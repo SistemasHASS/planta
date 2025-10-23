@@ -1,0 +1,72 @@
+  .hide-menu {
+    text-wrap: balance;
+    font-size: 12px;
+  }
+  .content-scrollSidebar{
+    padding: 15px 0 10px 0;
+    background-color: #238664;
+  }
+  .brand-logo{
+    position: relative;
+  }
+  .brand-logo img{
+    width: 80px;
+    padding: 12px;
+    overflow: visible;
+    background-color: #57b596;
+    border-radius: 50%;
+  }
+  .close-btn{
+    position: absolute;
+    top: 10px;
+    right: 15px;
+  }
+  .media-title {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    font-size: 1.2em; /* Tamaño base del texto */
+  }
+  
+  .Hola {
+    font-size: 1.2em; /* Aumenta el tamaño de "Hola," */
+    color: #fff; /* Color morado */
+    font-weight: bold;
+  }
+  
+  /* Estilo opcional para el nombre */
+  .nombre {
+    font-size: 1.2em;
+    color: #fff; /* Color del nombre */
+  }
+  .info-nav{
+    display: flex;
+    gap: 20px;
+  }
+  .nombre2 {
+    font-size: 1.3em;
+    padding: 5px;
+    background-color: #57b596;
+    color: #fff;
+    border-radius: 10px;
+  }
+  .nombre {
+    font-size: 1.2em;
+    color: #fff; /* Color del nombre */
+  }
+  @media(max-width: 500px){
+    .currentPath{
+        font-size: 12px!important;
+    }
+    .info-nav{
+        width: 200px;
+        flex-direction: column-reverse;
+        gap: 5px;
+        align-items: center;
+    }
+  }
+  @media (max-width: 450px) {
+    .nombre2{
+        font-size: 1rem;
+    }
+  }

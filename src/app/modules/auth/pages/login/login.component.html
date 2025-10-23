@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<body>
+  <div class="page-wrapper" data-layout="vertical" data-navbarbg="skin6" data-sidebartype="full"
+  data-sidebar-position="fixed" data-header-position="fixed">
+    <div style="position: fixed; bottom: 10px; right: 10px;" class="version">
+      <p style="margin: 0; font-size: 18px;">Versión 1.0.0</p>
+    </div>
+    <div
+      class="position-relative overflow-hidden radial-gradient min-vh-100 d-flex align-items-center justify-content-center">
+      <div class="d-flex align-items-center justify-content-center w-100">
+        <div class="row justify-content-center w-100">
+          <div class="col-md-8 col-lg-6 col-xxl-3">
+            <div class="card mb-0">
+              <div class="card-body">
+                <a class="text-nowrap logo-img text-center d-block py-3 w-100">
+                  <img src="../assets/images/logos/favicon.svg" height="80px" alt="">
+                </a>
+                <p class="text-center">Ingrese sus credenciales</p>
+                <div *ngIf="!!mensajeLogin" 
+                  class="col-md-12 alert alert-warning alert-dismissible alert-styled-left border-top-0
+                  border-bottom-0 border-right-0">
+                  <span>{{mensajeLogin}}</span>
+                </div>
+                <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+                  <div class="mb-3">
+                    <label for="usuario" class="form-label">Usuario</label>
+                    <input type="text" class="form-control" id="usuario" formControlName="usuario">
+                    <div *ngIf="loginForm.get('usuario')?.touched && loginForm.get('usuario')?.invalid">
+                      <small *ngIf="loginForm.get('usuario')?.errors?.['required']" class="error">
+                        El campo de usuario es obligatorio
+                      </small>
+                    </div>
+                  </div>
+                  <div class="mb-4">
+                    <label for="clave" class="form-label">Clave</label>
+                    <div style="position: relative;" class="pass d-flex align-items-center">
+                      <input [type]="mostrarClave ? 'text' : 'password'" class="form-control" formControlName="clave">
+                      <i [ngStyle]="{'opacity' : clave ? '1' : '0', 'z-index' : clave ? '1':'-1'}" style="transition: .2s;position: absolute; right: 15px; font-size: 25px; cursor: pointer;" (click)="mostrarClave = !mostrarClave" class='bx bxs-show'></i>
+                    </div>
+                    <div *ngIf="loginForm.get('clave')?.invalid && loginForm.get('clave')?.touched">
+                      <small class="error">El campo de contraseña es obligatorio</small>
+                    </div>
+                  </div>
+                  <div class="d-flex align-items-center justify-content-between mb-4">
+                    <div class="form-check">
+                      <input class="form-check-input primary" type="checkbox" value="" id="flexCheckChecked" checked>
+                      <label class="form-check-label text-dark" for="flexCheckChecked">
+                        Recordarme
+                      </label>
+                    </div>
+                    <a class="text-primary fw-bold">Olvidaste tu clave?</a>
+                  </div>
+                  <button type="submit" [disabled]="loginForm.invalid"
+                    style="gap: 5px; display: flex; justify-content: center; align-items: center;"
+                    class="btn btn-primary w-100 py-8 fs-4 mb-4">
+                    <div class="spinner-border text-light" style="width: 20px; height: 20px;" *ngIf="isCharge" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                    {{isCharge ? 'Cargando...' : 'Ingresar'}}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

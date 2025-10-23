@@ -1,0 +1,178 @@
+<!--  Body Wrapper -->
+<div class="page-wrapper" id="main-wrapper" data-layout="vertical" data-navbarbg="skin6" 
+  data-sidebartype="full" data-sidebar-position="fixed" data-header-position="fixed">
+  <!-- Sidebar Start -->
+  <aside class="left-sidebar">
+    <!-- Sidebar scroll-->
+    <div>
+      <div class="content-scrollSidebar">
+        <div class="brand-logo d-flex align-items-center justify-content-center">
+          <a class="text-nowrap logo-img text-center">
+            <img class="" src="../assets/images/logos/favicon.svg" alt="" />
+          </a>
+          <div (click)="toggleSidebar()" class="close-btn d-xl-none 
+            d-block sidebartoggler cursor-pointer" id="sidebarCollapse">
+            <i class="ti ti-x fs-8 text-white"></i>
+          </div>
+        </div>
+        <div class="row mt-2">
+          <div class="" style="max-width: 100%;">
+            <div class="media-title font-weight-semibold">
+              <span class="Hola">Hola</span>
+              <span class="nombre">{{formatNombre(usuario?.nombre)}}</span>
+              <span class="nombre" style="font-size: 10px;">V. 1.0.0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Sidebar navigation-->
+      <nav class="sidebar-nav scroll-sidebar" data-simplebar="">
+        <ul>
+          <li class="nav-small-cap">
+            <i class="ti ti-dots nav-small-cap-icon fs-6"></i>
+            <span class="hide-menu"> Configuración</span>
+          </li>
+          <li *ngIf="usuario?.idrol.includes('TI') || usuario?.idrol.includes('SUTAR')" class="sidebar-item" (click)="toggleSidebar()">
+            <a routerLink="./parametros" routerLinkActive="active" class="sidebar-link" aria-expanded="false">
+              <span>
+                <i class="icon icon-equalizer"></i>
+              </span>
+              <span class="hide-menu"> Parámetros</span>
+            </a>
+          </li>
+          <li *ngIf="usuario?.idrol.includes('TI') || usuario?.idrol.includes('ADTAR')" class="sidebar-item" (click)="toggleSidebar()">
+            <a routerLink="./configuracionaprobaciones" routerLinkActive="active" class="sidebar-link" aria-expanded="false">
+              <span>
+                <i class="icon icon-cog6"></i>
+              </span>
+              <span class="hide-menu"> Roles de aprobación</span>
+            </a>
+          </li>
+          <li *ngIf="usuario?.idrol.includes('TI') || usuario?.idrol.includes('ADTAR')" class="sidebar-item" (click)="toggleSidebar()">
+            <a routerLink="./mantenedorincidencias" routerLinkActive="active" 
+              class="sidebar-link" aria-expanded="false">
+              <span>
+                <i class="icon icon-stack"></i>
+              </span>
+              <span class="hide-menu"> Mantenedor incidencias</span>
+            </a>
+          </li>
+          <li class="nav-small-cap">
+            <i class="ti ti-dots nav-small-cap-icon fs-6"></i>
+            <span class="hide-menu"> Procesos</span>
+          </li>
+          <li *ngIf="usuario?.idrol.includes('TI') || usuario?.idrol.includes('SUTAR')" class="sidebar-item" (click)="toggleSidebar()">
+            <a routerLink="./planillas" routerLinkActive="active" class="sidebar-link" aria-expanded="false">
+              <span>
+                <i class="icon icon-grid4"></i>
+              </span>
+              <span class="hide-menu"> Planilla principal</span>
+            </a>
+          </li>
+          <li *ngIf="usuario?.idrol.includes('TI') || usuario?.idrol.includes('SUTAR')" class="sidebar-item" (click)="toggleSidebar()">
+            <a routerLink="./adicional" routerLinkActive="active" class="sidebar-link" aria-expanded="false">
+              <span>
+                <i class='icon icon-plus2'></i>
+              </span>
+              <span class="hide-menu"> Planilla adicional</span>
+            </a>
+          </li>
+          <!-- <li *ngIf="usuario?.idrol.includes('TI') || usuario?.idrol.includes('SUTAR')" class="sidebar-item" (click)="toggleSidebar()">
+            <a routerLink="./incidencias" routerLinkActive="active" class="sidebar-link" aria-expanded="false">
+              <span>
+                <i class='icon icon-man'></i>
+              </span>
+              <span class="hide-menu"> Incidencias</span>
+            </a>
+          </li> -->
+          <!-- <li *ngIf="usuario?.idrol.includes('TI') || usuario?.idrol.includes('SUTAR')" class="sidebar-item" (click)="toggleSidebar()">
+            <a routerLink="./bonos" routerLinkActive="active" class="sidebar-link" aria-expanded="false">
+              <span>
+                <i class='icon icon-piggy-bank'></i>
+              </span>
+              <span class="hide-menu"> Bonos</span>
+            </a>
+          </li> -->
+          <li *ngIf="usuario?.idrol.includes('TI') || usuario?.idrol.includes('ADTAR')" class="sidebar-item" (click)="toggleSidebar()">
+            <a routerLink="./gestionplanillas" routerLinkActive="active" class="sidebar-link" aria-expanded="false">
+              <span>
+                <i class='icon icon-users4'></i>
+              </span>
+              <span class="hide-menu"> Administración planillas</span>
+            </a>
+          </li>
+          <li *ngIf="usuario?.idrol.includes('TI') || usuario?.idrol.includes('ADTAR')" class="sidebar-item" (click)="toggleSidebar()">
+            <a routerLink="./gestionadicionales" routerLinkActive="active" class="sidebar-link" aria-expanded="false">
+              <span>
+                <i class='icon icon-users4'></i>
+              </span>
+              <span class="hide-menu"> Administración adicionales</span>
+            </a>
+          </li>
+          <li *ngIf="usuario?.idrol.includes('TI') || usuario?.idrol.includes('ADTAR')" class="sidebar-item" (click)="toggleSidebar()">
+            <a routerLink="./aprobaciones" routerLinkActive="active" class="sidebar-link" aria-expanded="false">
+              <span>
+                <i class='icon icon-file-check'></i>
+              </span>
+              <span class="hide-menu"> Aprobaciones</span>
+            </a>
+          </li>
+          <li class="nav-small-cap">
+            <i class="ti ti-dots nav-small-cap-icon fs-6"></i>
+            <span class="hide-menu"> Reportes</span>
+          </li>
+          <li *ngIf="usuario?.idrol.includes('TI') || usuario?.idrol.includes('SUTAR') || usuario?.idrol.includes('ADTAR') || usuario?.idrol.includes('GETAR')" class="sidebar-item" (click)="toggleSidebar()">
+            <a routerLink="./reportes" routerLinkActive="active" class="sidebar-link" aria-expanded="false">
+              <span>
+                <i class="icon-stats-bars3"></i>
+              </span>
+              <span class="hide-menu"> Asistencias</span>
+            </a>
+          </li>
+        </ul>
+        <div class="unlimited-access hide-menu position-relative mb-7 text-center ">
+          <a *ngIf="isOnline" (click)="logout()" class="btn btn-danger">
+            <span class="d-md-block hide-menu"><i class="icon icon-exit3 mr-2"></i> Cerrar sesion</span></a>
+          <p *ngIf="!isOnline" class="text-danger">Modo offline..</p>
+        </div>
+      </nav>
+      <!-- End Sidebar navigation -->
+    </div>
+    <!-- End Sidebar scroll-->
+  </aside>
+  <!--  Sidebar End -->
+  <!--  Main wrapper -->
+  <div class="body-wrapper">
+    <!--  Header Start -->
+    <header class="app-header bg-white">
+      <nav class="navbar navbar-expand-lg navbar-light">
+        <ul class="navbar-nav">
+          <li (click)="toggleSidebar()" class="nav-item d-block d-xl-none">
+            <a class="nav-link sidebartoggler nav-icon-hover" id="headerCollapse" href="javascript:void(0)">
+              <i class="ti ti-menu-2"></i>
+            </a>
+          </li>
+        </ul>
+        <div class="navbar-collapse justify-content-end px-0" id="navbarNav">
+          <ul class="navbar-nav align-items-center justify-content-between" style="width: 100%;padding: 0;">
+            <li class="nav-item dropdown" style="max-width: 50%;">
+              <span class="currentPath" style="font-size: 15px;color: black;">{{currentPath}}</span>
+            </li>
+            <div class="info-nav">
+              <li class="nav-item dropdown" style="max-width: 50%;">
+                <span class="currentPath" [ngClass]="{'text-danger' : !isOnline}" 
+                  style="font-size: 15px;color: black;">{{!isOnline ? 'Modo Offline...' : fechaHoy}} <i [ngClass]="!isOnline ? 'bx-wifi-off' : 'bx-wifi'" class='bx'></i></span>
+              </li>
+              <li class="nav-item dropdown">
+                <span class="nombre2"><i class="icon-pin"></i>{{this.usuario?.razonSocial}}</span>
+              </li>
+            </div>
+          </ul>
+        </div>
+      </nav>
+    </header>
+    <div class="container-fluid">
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+</div>
