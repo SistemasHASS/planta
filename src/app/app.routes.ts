@@ -3,6 +3,10 @@ import { Error404PageComponent } from './shared/pages/error404-page/error404-pag
 import { LayoutComponent } from './modules/main/pages/layout/layout.component';
 import { ParametrosComponent } from './modules/main/pages/parametros/parametros.component';
 import { AuthGuard } from './modules/auth/guard/auth.guard';
+import { DashboardComponent } from './modules/main/pages/dashboard/dashboard';
+import { MantenedorLineasComponent } from './modules/main/pages/mantenedor-lineas/mantenedor-lineas';
+import { AsignacionComponent } from './modules/main/pages/asignacion/asignacion';
+import { ConteoComponent } from './modules/main/pages/conteo/conteo';
 
 export const routes: Routes = [
   {
@@ -23,6 +27,10 @@ export const routes: Routes = [
     component: LayoutComponent,
     children: [
       { path: 'parametros', component: ParametrosComponent },
+      { path: 'dashboard', component: DashboardComponent },
+      { path: 'mantenedor-lineas', component: MantenedorLineasComponent },
+      { path: 'asignacion', component: AsignacionComponent },
+      { path: 'conteo', component: ConteoComponent },
       { path: '**', redirectTo: 'auth/login' }
     ],
     // canActivate: [AuthGuard]

@@ -129,14 +129,10 @@ export class LayoutComponent {
     const currentUrl = this.router.url.split('/').filter(Boolean);
     const pathMap: { [key: string]: string } = {
       'parametros': 'Parámetros',
-      'configuracionaprobaciones': 'Roles de aprobación',
-      'mantenedorincidencias': 'Mantenedor incidencias',
-      'planillas' : 'Planillas',
-      'reportes': 'Asistencias',
-      'adicional': 'Planilla adicional',
-      'incidencias': 'Incidencias',
-      'bonos': 'Bonos',
-      'aprobaciones': 'Aprobaciones'
+      'dashboard': 'Dashboard',
+      'mantenedor-lineas': 'Lineas de producción',
+      'asignacion': 'Asignación de operarios',
+      'conteo': 'Conteo por operario'
     };
     
     this.currentPath = pathMap[currentUrl[currentUrl.length - 1]] || '';
