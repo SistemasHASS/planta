@@ -1,0 +1,118 @@
+<div class="card">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="flex-grow-1 me-3">
+      <span class="p-input-icon-left w-100">
+        <i class="pi pi-search"></i>
+        <input
+          pInputText
+          type="text"
+          (input)="dt.filterGlobal($event.target.value, 'contains')"
+          placeholder="Buscar localidades..."
+          class="form-control p-inputtext-sm w-100"
+          style="height: 38px;"
+        />
+      </span>
+    </div>
+    <div>
+      <button class="btn btn-success d-flex align-items-center" (click)="abrirNuevo()">
+        <i class="icon icon-plus2 me-2"></i> Nuevo
+      </button>
+    </div>
+  </div>
+  <br>
+  <p-table 
+    #dt
+    [value]="localidades" 
+    [paginator]="true" 
+    [rows]="5" 
+    [rowsPerPageOptions]="[5,10,20]" 
+    [globalFilterFields]="['localidad', 'tipo']"
+    responsiveLayout="scroll"
+    styleClass="compact-table">
+    <ng-template pTemplate="header">
+      <tr>
+        <th>#</th>
+        <th>Editar</th>
+        <th>Localidad</th>
+        <th>Tipo</th>
+        <th>Eliminar</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-c>
+      <tr>
+        <td>{{ localidades.indexOf(c) + 1 }}</td>
+        <td>
+          <button class="btn btn-warning btn-sm" (click)="editar(c)">
+            <i class="icon icon-pencil"></i>
+          </button>
+        </td>
+        <td>{{ c.localidad }}</td>
+        <td>{{ c.tipo }}</td>
+        <td>
+          <button class="btn btn-danger btn-sm" (click)="eliminar(c)">
+            <i class="icon icon-trash"></i>
+          </button>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+<!-- Modal Transportista -->
+<div class="modal fade" #modalTransportista>
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-person-fill"></i>
+          {{ editMode ? 'Editar Transportista' : 'Nuevo Transportista' }}
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          (click)="closeModal()"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <div class="container-fluid">
+          <div class="row">
+            <div class="col-md-12 col-lg-6 col-xl-6 marginBottom">
+              <fieldset>
+                <div class="form-group row box-labelFloat">
+                  <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Localidad</label>
+                  <div class="col-lg-9">
+                    <input type="text" class="form-control fuerte" 
+                      [ngClass]="{'is-invalid': showValidation && !localidad.localidad, 'is-valid': localidad.localidad}"
+                      [(ngModel)]="localidad.localidad" [disabled]="editMode">
+                  </div>
+                </div>
+              </fieldset>
+            </div>
+            <div class="col-md-12 col-lg-6 col-xl-6 marginBottom">
+              <fieldset>
+                <div class="form-group row box-labelFloat">
+                    <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Tipo</label>
+                    <div class="col-lg-9">
+                        <select class="form-control fuerte" [(ngModel)]="localidad.tipo"
+                          [ngClass]="{'is-invalid': showValidation && !localidad.tipo, 'is-valid': localidad.tipo}">
+                          <option value="">Seleccione</option>
+                          <option *ngFor="let t of tiposLocalidades" [value]="t.id">{{ t.descripcion }}</option>
+                        </select>
+                    </div>
+                </div>
+              </fieldset>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" (click)="closeModal()">
+          Cancelar
+        </button>
+        <button type="button" class="btn btn-primary" (click)="guardar()">
+          Guardar <i class="icon icon-floppy-disk"></i> 
+        </button>
+        </div>
+    </div>
+  </div>
+</div>

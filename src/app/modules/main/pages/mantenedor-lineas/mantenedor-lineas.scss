@@ -1,0 +1,19 @@
+/* Hace la tabla más compacta */
+.compact-table .p-datatable-thead > tr > th,
+.compact-table .p-datatable-tbody > tr > td {
+  padding: 2px 4px !important; /* Reduce padding */
+  font-size: 11px; /* Texto más pequeño */
+}
+
+/* Centra y compacta los botones de acción */
+.compact-table .acciones {
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Opcional: ajusta el tamaño de los botones */
+.btn-sm {
+  padding: 4px 6px;
+  font-size: 11px;
+  border-radius: 5px;
+}

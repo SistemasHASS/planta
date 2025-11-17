@@ -22,7 +22,7 @@
                   border-bottom-0 border-right-0">
                   <span>{{mensajeLogin}}</span>
                 </div>
-                <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+                <form [formGroup]="loginForm" (ngSubmit)="login()">
                   <div class="mb-3">
                     <label for="usuario" class="form-label">Usuario</label>
                     <input type="text" class="form-control" id="usuario" formControlName="usuario">

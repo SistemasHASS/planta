@@ -1,17 +1,17 @@
 
 export interface Usuario {
     id: string;
-    sociedad: number;
-    ruc: string;
-    razonSocial: string;
-    idProyecto: string;
-    proyecto: string;
-    documentoIdentidad: string;
-    usuario: string;
-    clave: string;
-    nombre: string;
+    documentoidentidad: string;
+    idproyecto: string;
     idrol: string;
+    nombre: string;
+    proyecto: string;
+    razonSocial: string;
     rol: string;
+    ruc: string;
+    sociedad: number;
+    usuario: string;
+    idempresa: string;
 }
 
 export interface Configuracion {
@@ -257,4 +257,15 @@ export interface TareoSupervisorDetalle {
     fechahora_iniciotareo: string,
     fechahora_fintareo: string,
     labores: any[]
+}
+
+export interface Linea {
+    id: number
+    codigo: string
+    ruc: string
+    descripcion: string
+    ubicaciones: number
+    color: string
+    estado: string
+    eliminado: number
 }

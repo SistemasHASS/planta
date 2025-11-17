@@ -25,7 +25,7 @@ export const routes: Routes = [
       { path: 'parametros', component: ParametrosComponent },
       { path: '**', redirectTo: 'auth/login' }
     ],
-    canActivate: [AuthGuard]
+    // canActivate: [AuthGuard]
   },
   {
     path: '**',
