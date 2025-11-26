@@ -1,0 +1,105 @@
+<div class="card firstCard">
+  <div class="card-body p-0">
+    <div class="row">
+      <div class="col-md-6 marginBottom">
+        <fieldset>
+          <div class="form-group row box-labelFloat">
+            <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Fecha proceso</label>
+            <div class="col-lg-9">
+              <input [(ngModel)]="configuracion.fechaproceso" type="date"
+                [ngClass]="{'is-invalid': showValidation && !configuracion.fechaproceso, 
+                'is-valid': configuracion.fechaproceso}" class="form-control sinBorde boxtimeDate" required/>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+      <div class="col-md-6 marginBottom">
+        <fieldset>
+          <div class="form-group row box-labelFloat">
+            <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> empresa</label>
+            <div class="col-lg-9">
+              <select [(ngModel)]="configuracion.idempresa"
+                [ngClass]="{'is-invalid': showValidation && !configuracion.idempresa, 'is-valid': configuracion.idempresa}"
+                class="form-select mb-2" name="empresa">
+                <option [ngValue]="''">Seleccione una opción</option>
+                <option *ngFor="let t of empresas; let i = index" [ngValue]="t.id">{{ t.empresa }}</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6 marginBottom">
+        <fieldset>
+          <div class="form-group row box-labelFloat">
+            <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Fundo</label>
+            <div class="col-lg-9">
+              <select [(ngModel)]="configuracion.idfundo"
+                [ngClass]="{'is-invalid': showValidation && !configuracion.idfundo, 'is-valid': configuracion.idfundo}"
+                class="form-select mb-2" name="cultivo">
+                <option [ngValue]="''">Seleccione una opción</option>
+                <option *ngFor="let t of fundos; let i = index" [ngValue]="t.id">{{ t.fundo }}</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+      <div class="col-md-6 marginBottom">
+        <fieldset>
+          <div class="form-group row box-labelFloat">
+            <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Cultivo</label>
+            <div class="col-lg-9">
+              <select [(ngModel)]="configuracion.idcultivo" 
+                [ngClass]="{'is-invalid': showValidation && !configuracion.idcultivo, 'is-valid': configuracion.idcultivo}"
+                class="form-select mb-2" name="cultivo">
+                <option [ngValue]="''" [disabled]="true">Seleccione una opción</option>
+                <option *ngFor="let t of cultivos; let i = index" [ngValue]="t.codigo">
+                  {{ t.descripcion }}
+                </option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6 marginBottom">
+        <fieldset>
+          <div class="form-group row box-labelFloat">
+            <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Acopio</label>
+            <div class="col-lg-9">
+              <select [(ngModel)]="configuracion.idacopio"
+                [ngClass]="{'is-invalid': showValidation && !configuracion.idacopio, 'is-valid': configuracion.idacopio}"
+                class="form-select mb-2" name="acopio">
+                <option [ngValue]="''">Seleccione una opción</option>
+                <option *ngFor="let t of acopios; let i = index" [ngValue]="t.id">{{ t.acopio }}</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+      <div class="col-md-6 marginBottom">
+        <fieldset>
+          <div class="form-group row box-labelFloat">
+            <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Horario</label>
+            <div class="col-lg-9">
+              <select [(ngModel)]="configuracion.horario"
+                [ngClass]="{'is-invalid': showValidation && !configuracion.horario, 'is-valid': configuracion.horario}"
+                class="form-select mb-2" name="horario">
+                <option [ngValue]="''">Seleccione una opción</option>
+                <option *ngFor="let t of horarios; let i = index" [ngValue]="t.idhorario">{{ t.horario }}</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+    <div class="botonGuardar mb-4 mt-4 d-flex align-items-center justify-content-center" style="gap: 1em;">
+      <button (click)="sincronizarTablasMaestras()" class="btn btn-primary botonCelular">
+        <i class="icon icon-sync"></i> Sincronizar</button>
+      <button (click)="guardarConfiguracion()" class="btn btn-success botonCelular">
+        <i class="icon icon-floppy-disk"></i> Guardar</button>
+    </div>
+  </div>
+</div>

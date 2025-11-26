@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
-import { Observable } from 'rxjs';
+import { lastValueFrom } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -9,178 +9,53 @@ import { Observable } from 'rxjs';
 
 export class MaestrasService {
 
-  private readonly baseUrl: string = environment.baseUrl;
+  private readonly baseUrlMaestros: string = environment.baseUrlMaestros;
 
   constructor(private http: HttpClient) {}
 
-  getFundos(sociedad: any): Observable<any> {
-    const url = `${this.baseUrl}/maestras/fundos/${sociedad}`;
+  async getEmpresas(body: any): Promise<any> {
+    const url = `${this.baseUrlMaestros}/maestras/empresas`;
     try {
-      return this.http.get<any>(url);
+      return  await lastValueFrom(this.http.post<any>(url, body));
+    } catch (error: any) {
+      throw new Error(error.error?.message || 'Error obteniendo empresas');
+    }
+  }
+
+  async getFundos(body: any): Promise<any> {
+    const url = `${this.baseUrlMaestros}/maestras/fundos`;
+    try {
+      return await lastValueFrom(this.http.post<any>(url, body));
     } catch (error: any) {
       throw new Error(error.error?.message || 'Error obteniendo fundos');
     }
   }
 
-  getCultivos(sociedad: any): Observable<any> {
-    const url = `${this.baseUrl}/maestras/cultivos/${sociedad}`;
+  async getCultivos(body: any): Promise<any> {
+    const url = `${this.baseUrlMaestros}/maestras/cultivos`;
     try {
-      return this.http.get<any>(url);
+      return await lastValueFrom(this.http.post<any>(url, body));
     } catch (error: any) {
       throw new Error(error.error?.message || 'Error obteniendo cultivos');
     }
   }
 
-  getGrupos(params: any): Observable<any> {
-    const url = `${this.baseUrl}/maestras/grupos/${params.ruc}/${params.idproyecto}/${params.nrodocumento}`;
+  async getAcopios(body: any): Promise<any> {
+    const url = `${this.baseUrlMaestros}/maestras/acopios`;
     try {
-      return this.http.get<any>(url);
+      return await lastValueFrom(this.http.post<any>(url, body));
     } catch (error: any) {
-      throw new Error(error.error?.message || 'Error obteniendo grupos');
+      throw new Error(error.error?.message || 'Error obteniendo acopios');
     }
   }
 
-  getTapas(): Observable<any> {
-    const url = `${this.baseUrl}/maestras/tapas`;
+  async getHorarios(body: any): Promise<any> {
+    const url = `${this.baseUrlMaestros}/maestras/horarios`;
     try {
-      return this.http.get<any>(url);
+      return await lastValueFrom(this.http.post<any>(url, body));
     } catch (error: any) {
-      throw new Error(error.error?.message || 'Error obteniendo tapas');
+      throw new Error(error.error?.message || 'Error obteniendo horarios');
     }
   }
 
-  getModulos(sociedad: any): Observable<any> {
-    const url = `${this.baseUrl}/maestras/modulos/${sociedad}`;
-    try {
-      return this.http.get<any>(url);
-    } catch (error: any) {
-      throw new Error(error.error?.message || 'Error obteniendo modulos');
-    }
-  }
-
-  getLotes(sociedad: any): Observable<any> {
-    const url = `${this.baseUrl}/maestras/lotes/${sociedad}`;
-    try {
-      return this.http.get<any>(url);
-    } catch (error: any) {
-      throw new Error(error.error?.message || 'Error obteniendo lotes');
-    }
-  }
-
-  getTurnos(sociedad: any): Observable<any> {
-    const url = `${this.baseUrl}/maestras/turnos/${sociedad}`;
-    try {
-      return this.http.get<any>(url);
-    } catch (error: any) {
-      throw new Error(error.error?.message || 'Error obteniendo turnos');
-    }
-  }
-
-  getVariedades(sociedad: any): Observable<any> {
-    const url = `${this.baseUrl}/maestras/variedades/${sociedad}`;
-    try {
-      return this.http.get<any>(url);
-    } catch (error: any) {
-      throw new Error(error.error?.message || 'Error obteniendo variedades');
-    }
-  }
-
-  getEnvases(): Observable<any> {
-    const url = `${this.baseUrl}/maestras/envases`;
-    try {
-      return this.http.get<any>(url);
-    } catch (error: any) {
-      throw new Error(error.error?.message || 'Error obteniendo envases');
-    }
-  }
-
-  getCosechadores(params: any): Observable<any> {
-    const url = `${this.baseUrl}/maestras/cosechadores/${params.nrodocumento}`;
-    try {
-      return this.http.get<any>(url);
-    } catch (error: any) {
-      throw new Error(error.error?.message || 'Error obteniendo cosechadores');
-    }
-  }
-
-  getAcopios(sociedad: any): Observable<any>{
-    const url = `${this.baseUrl}/maestras/acopios/${sociedad}`;
-    try{
-      return this.http.get<any>(url);
-    }catch(error:any){
-      throw new Error(error.error?.message || 'Error al obtener los acopios');
-    }
-  }
-
-  getCecos(params: any): Observable<any>{
-    const url = `${this.baseUrl}/tareo/cecos`;
-    try{
-      let httpParams = new HttpParams();
-      const paramsString = JSON.stringify(params)
-      httpParams = httpParams.set('parametros', paramsString);
-      return this.http.get<any>(url, { params: httpParams });
-    }catch(error:any){
-      throw new Error(error.error?.message || 'Error al obtener los cecos');
-    }
-  }
-
-  getLabores(params: any): Observable<any>{
-    const url = `${this.baseUrl}/tareo/labor`;
-    try{
-      let httpParams = new HttpParams();
-      const paramsString = JSON.stringify(params)
-      httpParams = httpParams.set('parametros', paramsString);
-      return this.http.get<any>(url, { params: httpParams });
-    }catch(error:any){
-      throw new Error(error.error?.message || 'Error al obtener las labores');
-    }
-  }
-
-  getMonedas(params: any): Observable<any>{
-    const url = `${this.baseUrl}/tareo/monedas`;
-    try{
-      let httpParams = new HttpParams();
-      const paramsString = JSON.stringify(params)
-      httpParams = httpParams.set('parametros', paramsString);
-      return this.http.get<any>(url, { params: httpParams });
-    }catch(error:any){
-      throw new Error(error.error?.message || 'Error al obtener las monedas');
-    }
-  }
-
-  getActividades(params: any): Observable<any>{
-    const url = `${this.baseUrl}/tareo/labor`;
-    try{
-      let httpParams = new HttpParams();
-      const paramsString = JSON.stringify(params)
-      httpParams = httpParams.set('parametros', paramsString);
-      return this.http.get<any>(url, { params: httpParams });
-    }catch(error:any){
-      throw new Error(error.error?.message || 'Error al obtener las labores');
-    }
-  }
-
-  getIncidencias(params: any): Observable<any>{
-    const url = `${this.baseUrl}/tareo/incidencias`;
-    try{
-      let httpParams = new HttpParams();
-      const paramsString = JSON.stringify(params)
-      httpParams = httpParams.set('parametros', paramsString);
-      return this.http.get<any>(url, { params: httpParams });
-    }catch(error:any){
-      throw new Error(error.error?.message || 'Error al obtener las labores');
-    }
-  }
-
-  getMotivosSalida(params: any): Observable<any> {
-    const url = `${this.baseUrl}/tareo/motivosalida`;
-    try{
-      let httpParams = new HttpParams();
-      const paramsString = JSON.stringify(params)
-      httpParams = httpParams.set('parametros', paramsString);
-      return this.http.get<any>(url, { params: httpParams });
-    }catch(error:any){
-      throw new Error(error.error?.message || 'Error al obtener las labores');
-    }
-  }
 }

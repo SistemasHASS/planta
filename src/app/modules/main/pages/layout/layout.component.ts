@@ -41,39 +41,7 @@ export class LayoutComponent {
     this.usuario = await this.dexieService.showUsuario()
   }
   async logout() {
-    const sinenviar = await this.dexieService.showTrabajadoresPlanillaSinEnviar()
-    if(sinenviar.length > 0) {
-      Swal.fire({
-        title: 'Alerta!',
-        text: 'Por favor cierre toda su planilla y sincronice',
-        icon: 'info',
-        showConfirmButton: false,
-        timer: 2000
-      })
-    } else {
-      Swal.fire({
-        title: '¿Estás seguro?',
-        text: 'Confirma que desea cerrar sesión',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, deseo salir',
-        cancelButtonText: 'Cancelar',
-        customClass: {
-          confirmButton: 'btn btn-primary',
-          cancelButton: 'btn btn-warning'
-        },
-        buttonsStyling: false // para aplicar tus propias clases
-      }).then((result) => {
-        if (result.isConfirmed) {
-          this.router.navigate(['auth/login']);
-          localStorage.clear()
-          this.dexieService.clearConfiguracion();
-          this.dexieService.clearUsuario();
-          this.dexieService.clearMaestras();
-          this.dexieService.clearDatosEnviados();
-        }
-      });
-    }
+    
   }
 
   formatNombre(nombre: string): string {
