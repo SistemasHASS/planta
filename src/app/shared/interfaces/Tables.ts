@@ -22,6 +22,20 @@ export interface Configuracion {
     idcultivo: string;
     horario: string;
     idacopio: string;
+    cliente?: string;
+    destino?: string;
+    formato?: string;
+    modulo?: string;
+    variedad?: string;
+    mercado?: string;
+}
+
+export interface Empresa {
+    id: string;
+    idempresa: string;
+    ruc: string;
+    razonsocial: string;
+    empresa: number;
 }
 
 export interface Fundo {
@@ -48,11 +62,107 @@ export interface Acopio{
 
 export interface Linea {
     id: number
-    codigo: string
     ruc: string
-    descripcion: string
-    ubicaciones: number
+    linea: string
+    espacios: number
     color: string
-    estado: string
-    eliminado: number
+    estado: number
+    tipo?: string
+    codigo?: string
+}
+
+export interface Operario {
+    id: number
+    ruc: string
+    dni: string
+    nombres: string
+    apellidopaterno: string
+    apellidomaterno: string
+    nombrescompletos: string
+    estado: number
+}
+
+export interface Asignacion {
+    id?: number
+    idasignacion: string
+    ruc: string
+    idlinea: number
+    posicion: number
+    idoperario: number
+    fechaproceso: string
+    idfundo?: string
+    idcultivo?: string
+    idacopio?: string
+    cliente?: string
+    destino?: string
+    formato?: string
+    modulo?: string
+    variedad?: string
+    mercado?: string
+    estado: number
+    sincronizado: number
+    fechaasignacion?: string
+    fechasincronizacion?: string
+}
+
+export interface Conteo {
+    id?: number
+    idconteo: string
+    ruc: string
+    idasignacion: string
+    idoperario: number
+    idlinea: number
+    cantidad: number
+    fechaproceso: string
+    fecharegistro: string
+    sincronizado: number
+    fechasincronizacion?: string
+}
+
+export interface Cliente {
+    id: number
+    codigo: string
+    nombre: string
+}
+
+export interface Destino {
+    iddestino: string
+    codigo: string
+    nombre: string
+}
+
+export interface Formato {
+    id: number
+    codigo: string
+    descripcion: string
+}
+
+export interface Modulo {
+    id: number
+    codigo: string
+    descripcion: string
+}
+
+export interface Turno {
+    id: number
+    codigo: string
+    descripcion: string
+}
+
+export interface Lote {
+    id: number
+    codigo: string
+    descripcion: string
+}
+
+export interface Variedad {
+    id: number
+    codigo: string
+    descripcion: string
+}
+
+export interface Mercado {
+    id: number
+    codigo: string
+    nombre: string
 }

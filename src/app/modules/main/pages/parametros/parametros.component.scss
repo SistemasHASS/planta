@@ -133,31 +133,71 @@ legend{
     margin-top: 15px;
   }
 
-  select:valid{
+  select:not(.is-invalid):not(.is-valid){
     color: black;
     font-weight: bold;
     border-color: #000;
   }
-  input.form-select {
+  
+  select.is-invalid {
+    border-color: #dc3545 !important;
+    background-color: #fff;
+  }
+  
+  select.is-valid {
+    border-color: #198754 !important;
+    background-color: #fff;
+  }
+  
+  input.form-control:not(.is-invalid):not(.is-valid) {
     color: black;
     font-weight: bold;
-    border-color: #000 !important;
+    border-color: #000;
   }
+  
+  input.form-control.is-invalid {
+    border-color: #dc3545 !important;
+    background-color: #fff;
+  }
+  
+  input.form-control.is-valid {
+    border-color: #198754 !important;
+    background-color: #fff;
+  }
+  
   input.form-select::placeholder{
     color: #000;
   }
   .boxtime {
     border-color: #000;
   }
-  .boxtimeDate {
+  .boxtimeDate:not(.is-invalid):not(.is-valid) {
     border-color: #000;
     font-weight: bold;
     color: #000;
   }
+  
+  .boxtimeDate.is-invalid {
+    border-color: #dc3545 !important;
+  }
+  
+  .boxtimeDate.is-valid {
+    border-color: #198754 !important;
+  }
 
-  .sinBorde {
+  .sinBorde:not(.is-invalid):not(.is-valid) {
     background-color: #f9f5d1;
     color: #000;
+  }
+  
+  .sinBorde.is-invalid {
+    border-color: #dc3545 !important;
+    background-color: #fff;
+  }
+  
+  .sinBorde.is-valid {
+    border-color: #198754 !important;
+    background-color: #fff;
   }
 
   .labelLectura {

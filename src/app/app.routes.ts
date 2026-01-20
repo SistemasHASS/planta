@@ -33,7 +33,7 @@ export const routes: Routes = [
       { path: 'conteo', component: ConteoComponent },
       { path: '**', redirectTo: 'auth/login' }
     ],
-    // canActivate: [AuthGuard]
+    canActivate: [AuthGuard]
   },
   {
     path: '**',

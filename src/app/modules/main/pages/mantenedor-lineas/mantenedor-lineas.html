@@ -1,13 +1,16 @@
-<!-- <div class="card">
+<div class="card">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div class="flex-grow-1 me-3">
       <span class="p-input-icon-left w-100">
         <i class="pi pi-search"></i>
-        <input pInputText type="text"
+        <input
+          pInputText
+          type="text"
           (input)="dt.filterGlobal($event.target.value, 'contains')"
-          placeholder="Buscar localidades..."
+          placeholder="Buscar líneas de producción..."
           class="form-control p-inputtext-sm w-100"
-          style="height: 38px;" />
+          style="height: 38px;"
+        />
       </span>
     </div>
     <div>
@@ -17,35 +20,56 @@
     </div>
   </div>
   <br>
-  <p-table #dt
-    [value]="localidades" 
+  <p-table 
+    #dt
+    [value]="lineas" 
     [paginator]="true" 
     [rows]="5" 
     [rowsPerPageOptions]="[5,10,20]" 
-    [globalFilterFields]="['localidad', 'tipo']"
+    [globalFilterFields]="['linea', 'espacios', 'color', 'tipo', 'codigo']"
     responsiveLayout="scroll"
-    styleClass="compact-table">
+    styleClass="compact-table"
+  >
     <ng-template pTemplate="header">
       <tr>
         <th>#</th>
         <th>Editar</th>
-        <th>Localidad</th>
+        <th>Línea</th>
         <th>Tipo</th>
+        <th>Código</th>
+        <th>Espacios</th>
+        <th>Color</th>
         <th>Eliminar</th>
       </tr>
     </ng-template>
-    <ng-template pTemplate="body" let-c>
+
+    <ng-template pTemplate="body" let-l let-i="rowIndex">
       <tr>
-        <td>{{ localidades.indexOf(c) + 1 }}</td>
+        <td>{{ i + 1 }}</td>
         <td>
-          <button class="btn btn-warning btn-sm" (click)="editar(c)">
+          <button class="btn btn-warning btn-sm" (click)="editar(l)">
             <i class="icon icon-pencil"></i>
           </button>
         </td>
-        <td>{{ c.localidad }}</td>
-        <td>{{ c.tipo }}</td>
+        <td>{{ l.linea }}</td>
         <td>
-          <button class="btn btn-danger btn-sm" (click)="eliminar(c)">
+          <span class="badge" [ngClass]="l.tipo === 'M' ? 'bg-primary' : 'bg-info'">
+            {{ l.tipo === 'M' ? 'Maquina' : l.tipo === 'H' ? 'Handpack' : '-' }}
+          </span>
+        </td>
+        <td>{{ l.codigo || '-' }}</td>
+        <td>{{ l.espacios }}</td>
+        <td>
+          <span *ngIf="l.color" 
+                class="badge" 
+                [style.background-color]="l.color"
+                [style.color]="'#fff'">
+            {{ l.color }}
+          </span>
+          <span *ngIf="!l.color">-</span>
+        </td>
+        <td>
+          <button class="btn btn-danger btn-sm" (click)="eliminar(l)">
             <i class="icon icon-trash"></i>
           </button>
         </td>
@@ -53,13 +77,14 @@
     </ng-template>
   </p-table>
 </div>
-<div class="modal fade" #modalTransportista>
+
+<div class="modal fade" #modalLinea>
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header bg-success text-white">
         <h5 class="modal-title">
-          <i class="bi bi-person-fill"></i>
-          {{ editMode ? 'Editar Transportista' : 'Nuevo Transportista' }}
+          <i class="bi bi-diagram-3-fill"></i>
+          {{ editMode ? 'Editar Línea de Producción' : 'Nueva Línea de Producción' }}
         </h5>
         <button
           type="button"
@@ -72,13 +97,71 @@
         <div class="container-fluid">
           <div class="row">
             <div class="col-md-12 col-lg-6 col-xl-6 marginBottom">
+              <fieldset>
+                <div class="form-group row box-labelFloat">
+                  <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Línea</label>
+                  <div class="col-lg-9">
+                    <input type="text" class="form-control fuerte" 
+                      [ngClass]="{'is-invalid': showValidation && !linea.linea, 'is-valid': linea.linea}"
+                      [(ngModel)]="linea.linea" 
+                      placeholder="Nombre de la línea"
+                      maxlength="50">
+                  </div>
+                </div>
+              </fieldset>
+            </div>
+            <div class="col-md-12 col-lg-6 col-xl-6 marginBottom">
+              <fieldset>
+                <div class="form-group row box-labelFloat">
+                  <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Espacios</label>
+                  <div class="col-lg-9">
+                    <input type="number" class="form-control fuerte" 
+                      [ngClass]="{'is-invalid': showValidation && !linea.espacios, 'is-valid': linea.espacios}"
+                      [(ngModel)]="linea.espacios"
+                      placeholder="Número de espacios"
+                      min="0">
+                  </div>
+                </div>
+              </fieldset>
+            </div>
+            <div class="col-md-12 col-lg-6 col-xl-6 marginBottom">
+              <fieldset>
+                <div class="form-group row box-labelFloat">
+                  <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Color</label>
+                  <!-- <div class="col-lg-9"> -->
+                    <input type="color" class="form-control form-control-color fuerte" 
+                      [ngClass]="{'is-invalid': showValidation && !linea.color, 'is-valid': linea.color}"
+                      [(ngModel)]="linea.color"
+                      title="Seleccione un color">
+                  <!-- </div> -->
+                </div>
+              </fieldset>
             </div>
             <div class="col-md-12 col-lg-6 col-xl-6 marginBottom">
               <fieldset>
                 <div class="form-group row box-labelFloat">
                   <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Tipo</label>
                   <div class="col-lg-9">
-                      
+                    <select class="form-control fuerte" 
+                      [ngClass]="{'is-invalid': showValidation && !linea.tipo, 'is-valid': linea.tipo}"
+                      [(ngModel)]="linea.tipo">
+                      <option value="">Seleccione tipo</option>
+                      <option value="M">Maquina (M)</option>
+                      <option value="H">Handpack (H)</option>
+                    </select>
+                  </div>
+                </div>
+              </fieldset>
+            </div>
+            <div class="col-md-12 col-lg-6 col-xl-6 marginBottom" *ngIf="editMode && linea.codigo">
+              <fieldset>
+                <div class="form-group row box-labelFloat">
+                  <label class="col-lg-3 col-form-label">Código</label>
+                  <div class="col-lg-9">
+                    <input type="text" class="form-control fuerte" 
+                      [(ngModel)]="linea.codigo"
+                      readonly
+                      placeholder="Código generado automáticamente">
                   </div>
                 </div>
               </fieldset>
@@ -93,7 +176,7 @@
         <button type="button" class="btn btn-primary" (click)="guardar()">
           Guardar <i class="icon icon-floppy-disk"></i> 
         </button>
-        </div>
+      </div>
     </div>
   </div>
-</div> -->
+</div>

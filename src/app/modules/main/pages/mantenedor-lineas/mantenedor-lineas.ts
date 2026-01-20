@@ -16,149 +16,169 @@ import dayjs from 'dayjs';
   templateUrl: './mantenedor-lineas.html',
   styleUrl: './mantenedor-lineas.scss',
 })
+
 export class MantenedorLineasComponent {
-  // @ViewChild('modalTransportista') modalTransportistaRef!: ElementRef;
-  // modalTransportistaInstance!: Modal;
+  @ViewChild('modalLinea') modalLineaRef!: ElementRef;
+  modalLineaInstance!: Modal;
 
-  // localidades: any[] = [];
-  // tiposLocalidades: any[] = [
-  //   { id: 'I', descripcion: 'INTERNO' },
-  //   { id: 'E', descripcion: 'EXTERNO' },
-  // ];
-  // localidad: Linea = {
-  //   id: 0,
-  //   codigo: '',
-  //   ruc: '',
-  //   descripcion: '',
-  //   ubicaciones: 0,
-  //   color: '',
-  //   estado: '',
-  //   eliminado: 0
-  // };
-  // editMode = false;
-  // showValidation = false;
-  // usuario: Usuario = {
-  //   id: '',
-  //   documentoidentidad: '',
-  //   idproyecto: '',
-  //   idrol: '',
-  //   nombre: '',
-  //   proyecto: '',
-  //   razonSocial: '',
-  //   rol: '',
-  //   ruc: '',
-  //   sociedad: 0,
-  //   usuario: '',
-  //   idempresa: ''
-  // }
+  lineas: any[] = [];
+  linea: Linea = {
+    id: 0,
+    ruc: '',
+    linea: '',
+    espacios: 0,
+    color: '',
+    estado: 0,
+    tipo: '',
+    codigo: ''
+  };
+  editMode = false;
+  showValidation = false;
+  usuario: Usuario = {
+    id: '',
+    documentoidentidad: '',
+    idproyecto: '',
+    idrol: '',
+    nombre: '',
+    proyecto: '',
+    razonSocial: '',
+    rol: '',
+    ruc: '',
+    sociedad: 0,
+    usuario: '',
+    idempresa: ''
+  }
 
-  // constructor(private maestrasService: MaestrasService, private dexieService: DexieService, private alertService: AlertService) {}
+  constructor(
+    private maestrasService: MaestrasService, 
+    private dexieService: DexieService, 
+    private alertService: AlertService
+  ) {}
 
-  // async ngOnInit(): Promise<void> {
-  //   await this.cargarUsuario();
-  //   await this.cargarLocalidades();
-  // }
+  async ngOnInit(): Promise<void> {
+    await this.cargarUsuario();
+    await this.cargarLineas();
+  }
 
-  // async cargarUsuario() {
-  //   const usuario =  await this.dexieService.showUsuario();
-  //   if (usuario) {
-  //     this.usuario = usuario;
-  //   }
-  // }
+  async cargarUsuario() {
+    const usuario = await this.dexieService.showUsuario();
+    if (usuario) {
+      this.usuario = usuario;
+    }
+  }
 
-  // async cargarLocalidades() {
-  //   const localidades = await this.maestrasService.getLocalidades([{ ruc: this.usuario.ruc }]).toPromise();
-  //   this.localidades = localidades;
-  // }
+  async cargarLineas() {
+    const lineas = await this.maestrasService.getLineasProduccion([{ruc: this.usuario.ruc}]);
+    this.lineas = lineas;
+  }
 
-  // openModal(localidad?: any) {
-  //   this.localidad = localidad ? { ...localidad } : {};
-  //   this.editMode = !!localidad;
+  openModal(linea?: any) {
+    this.linea = linea ? { ...linea } : {};
+    this.editMode = !!linea;
+    if (!this.modalLineaInstance) {
+      this.modalLineaInstance = new Modal(this.modalLineaRef.nativeElement);
+    }
+    this.modalLineaInstance.show();
+  }
 
-  //   // Inicializa modal si aún no existe
-  //   if (!this.modalTransportistaInstance) {
-  //     this.modalTransportistaInstance = new Modal(this.modalTransportistaRef.nativeElement);
-  //   }
-  //   this.modalTransportistaInstance.show();
-  // }
+  closeModal() {
+    this.modalLineaInstance?.hide();
+  }
 
-  // closeModal() {
-  //   this.modalTransportistaInstance?.hide();
-  // }
+  async guardar() {
+    this.showValidation = true;
+    if (!this.linea.linea || !this.linea.espacios || !this.linea.color || !this.linea.tipo) {
+      return;
+    }
+    this.linea.estado = 1;
+    
+    if (!this.editMode) {
+      this.linea.codigo = await this.generarCodigo(this.linea.tipo);
+    }
+    
+    const formato = this.formatoLinea(this.linea);
+    this.maestrasService.crudLineaProduccion(formato).subscribe({
+      next: (data) => {
+        this.cargarLineas();
+        this.closeModal();
+        this.alertService.showAlert('Línea creada', 'Creado con éxito!', 'success');
+      },
+      error: (err) => {
+        console.error('Error al crear línea', err);
+        this.alertService.showAlert('Error al crear línea', 'Error al crear línea', 'error');
+      },
+    });
+  }
 
-  // guardar() {
-  //   this.showValidation = true;
-  //   if (!this.localidad.localidad || !this.localidad.tipo) {
-  //     return;
-  //   }
-  //   this.localidad.bestado = 1;
-  //   const formato = this.formatoLocalidad(this.localidad);
-  //   this.maestrasService.createLocalidades(formato).subscribe({
-  //     next: (data) => {
-  //       this.cargarLocalidades();
-  //       this.closeModal();
-  //       this.alertService.showAlert('Localidad creada', 'Creado con exito!', 'success');
-  //     },
-  //     error: (err) => {
-  //       console.error('Error al crear localidad', err);
-  //       this.alertService.showAlert('Error al crear localidad', 'Error al crear localidad', 'error');
-  //     },
-  //   });
-  // }
+  formatoLinea(l: any) {
+    return [
+      {
+        ruc: this.usuario.ruc,
+        id: l.id || 0,
+        linea: l.linea,
+        espacios: l.espacios,
+        color: l.color || '',
+        estado: l.estado,
+        tipo: l.tipo || '',
+        codigo: l.codigo || ''
+      }
+    ]
+  }
 
-  // formatoLocalidad(t: any) {
-  //   return [
-	// 		{
-	// 			ruc: this.usuario.ruc,
-	// 			nrodocumento: this.usuario.documentoidentidad,
-	// 			idlocalidad: t.idlocalidad,
-	// 			localidad: t.localidad,
-	// 			tipo: t.tipo,
-  //       bestado: t.bestado
-	// 		}
-	// 	]
-  // }
+  async generarCodigo(tipo: string): Promise<string> {
+    const tipoLetra = tipo === 'M' ? 'M' : 'H';
+    const lineasMismoTipo = this.lineas.filter(l => l.tipo === tipo && l.estado === 1);
+    const correlativo = lineasMismoTipo.length + 1;
+    const correlativoFormateado = correlativo.toString().padStart(4, '0');
+    return `${this.usuario.ruc}${tipoLetra}${correlativoFormateado}`;
+  }
 
-  // async eliminar(t: any) {
-  //   const confirmacion =  await this.alertService.showConfirm('Eliminar Localidad', '¿Está seguro de eliminar esta localidad?', 'warning');
-  //   if (confirmacion) {
-  //     t.bestado = 0;
-  //     const formato = this.formatoLocalidad(t);
-  //     this.maestrasService.createLocalidades(formato).subscribe({
-  //       next: (data) => {
-  //         this.alertService.showAlert('Localidad eliminada', 'Eliminado con exito!', 'success');
-  //         this.cargarLocalidades();
-  //       },
-  //       error: (err) => {console.error('Error al eliminar localidad', err); this.alertService.showAlert('Error al eliminar localidad', 'Error al eliminar localidad', 'error');}
-  //     });
-  //   }
-  // }
+  async eliminar(l: any) {
+    const confirmacion = await this.alertService.showConfirm('Eliminar Línea', '¿Está seguro de eliminar esta línea de producción?', 'warning');
+    if (confirmacion) {
+      l.estado = 0;
+      const formato = this.formatoLinea(l);
+      this.maestrasService.crudLineaProduccion(formato).subscribe({
+        next: (data) => {
+          this.alertService.showAlert('Línea eliminada', 'Eliminado con éxito!', 'success');
+          this.cargarLineas();
+        },
+        error: (err) => {
+          console.error('Error al eliminar línea', err);
+          this.alertService.showAlert('Error al eliminar línea', 'Error al eliminar línea', 'error');
+        }
+      });
+    }
+  }
 
-  // abrirNuevo() {
-  //   this.clearLocalidad();
-  //   this.editMode = false;
-  //   this.modalTransportistaInstance = new Modal(this.modalTransportistaRef.nativeElement);
-  //   this.modalTransportistaInstance.show();
-  // }
+  abrirNuevo() {
+    this.clearLinea();
+    this.editMode = false;
+    this.modalLineaInstance = new Modal(this.modalLineaRef.nativeElement);
+    this.modalLineaInstance.show();
+  }
 
-  // clearLocalidad() {
-  //   this.showValidation = false;
-  //   this.localidad = {
-  //     id: 0,
-  //     idlocalidad: 0,
-  //     localidad: '',
-  //     tipo: '',
-  //     bestado: 0
-  //   };
-  //   this.editMode = false;
-  // }
+  clearLinea() {
+    this.showValidation = false;
+    this.linea = {
+      id: 0,
+      ruc: '',
+      linea: '',
+      espacios: 0,
+      color: '',
+      estado: 0,
+      tipo: '',
+      codigo: ''
+    };
+    this.editMode = false;
+  }
 
-  // editar(c: Localidad) {
-  //   this.editMode = true;
-  //   this.localidad = {
-  //     ...c,
-  //   };
-  //   this.modalTransportistaInstance = new Modal(this.modalTransportistaRef.nativeElement);
-  //   this.modalTransportistaInstance.show();
-  // }
+  editar(l: Linea) {
+    this.editMode = true;
+    this.linea = {
+      ...l
+    };
+    this.modalLineaInstance = new Modal(this.modalLineaRef.nativeElement);
+    this.modalLineaInstance.show();
+  }
 }

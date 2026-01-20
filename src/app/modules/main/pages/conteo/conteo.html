@@ -1,1 +1,78 @@
-<p>conteo works!</p>
+<div class="conteo-container">
+  <div class="card shadow-sm">
+    <div class="card-header bg-success text-white">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="bi bi-box-seam"></i> Conteo de Cajas
+        </h5>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-warning text-dark" *ngIf="pendientesSincronizar > 0">
+            <i class="bi bi-exclamation-circle"></i> {{pendientesSincronizar}} pendientes
+          </span>
+          <button class="btn btn-light btn-sm" (click)="sincronizar()" [disabled]="sincronizando || pendientesSincronizar === 0">
+            <i class="bi bi-arrow-repeat" [class.spin-icon]="sincronizando"></i>
+            {{sincronizando ? 'Sincronizando...' : 'Sincronizar'}}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-body p-4">
+      <div class="row mb-4">
+        <div class="col-md-4">
+          <label class="form-label fw-bold">Fecha de Proceso</label>
+          <input type="date" class="form-control" [(ngModel)]="fechaSeleccionada" (change)="cambiarFecha()">
+        </div>
+      </div>
+
+      <div class="alert alert-info d-flex align-items-center" *ngIf="asignaciones.length === 0">
+        <i class="bi bi-info-circle me-2 fs-5"></i>
+        <span>No hay asignaciones para la fecha seleccionada. Primero debe asignar operarios a las líneas.</span>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-4" *ngFor="let asig of asignaciones">
+          <div class="card h-100 shadow-sm border-0 conteo-card">
+            <div class="card-header text-white" [style.background-color]="asig.color">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="mb-0 fw-bold">{{asig.nombrelinea}}</h6>
+                  <small>{{asig.codigolinea}} - Posición {{asig.posicion}}</small>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="operario-info mb-3">
+                <i class="bi bi-person-circle me-2"></i>
+                <strong>{{asig.nombreoperario}}</strong>
+              </div>
+              
+              <div class="total-cajas mb-3">
+                <div class="text-center p-3 bg-light rounded">
+                  <div class="display-4 fw-bold text-success">{{getTotalCajas(asig.idasignacion)}}</div>
+                  <small class="text-muted">Cajas Acumuladas</small>
+                </div>
+              </div>
+
+              <div class="input-group input-group-lg">
+                <input 
+                  type="number" 
+                  class="form-control" 
+                  [value]="getCantidadInput(asig.idasignacion)"
+                  (input)="setCantidadInput(asig.idasignacion, +$any($event.target).value)"
+                  placeholder="Cantidad"
+                  min="1">
+                <button 
+                  class="btn btn-success" 
+                  (click)="registrarConteo(asig)"
+                  [disabled]="!getCantidadInput(asig.idasignacion) || getCantidadInput(asig.idasignacion) <= 0">
+                  <i class="bi bi-plus-circle"></i> Registrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

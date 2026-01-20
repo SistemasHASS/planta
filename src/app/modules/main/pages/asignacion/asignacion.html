@@ -1,1 +1,121 @@
-<p>asignacion works!</p>
+<div class="asignacion-container">
+  <div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="bi bi-people"></i> Asignación de Operarios a Líneas
+        </h5>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-warning text-dark" *ngIf="pendientesSincronizar > 0">
+            <i class="bi bi-exclamation-circle"></i> {{pendientesSincronizar}} pendientes
+          </span>
+          <button class="btn btn-light btn-sm" (click)="sincronizar()" [disabled]="sincronizando || pendientesSincronizar === 0">
+            <i class="bi bi-arrow-repeat" [class.spin-icon]="sincronizando"></i>
+            {{sincronizando ? 'Sincronizando...' : 'Sincronizar'}}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-body p-4">
+      <div class="row mb-4">
+        <div class="col-md-4">
+          <label class="form-label fw-bold">Fecha de Proceso</label>
+          <input type="date" class="form-control" [(ngModel)]="fechaSeleccionada" (change)="cambiarFecha()">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-4">
+          <h6 class="mb-3 fw-bold"><i class="bi bi-list-ul"></i> Líneas de Producción</h6>
+          <div class="list-group">
+            <button 
+              *ngFor="let linea of lineas" 
+              class="list-group-item list-group-item-action linea-item"
+              [class.active]="lineaSeleccionada?.id === linea.id"
+              (click)="seleccionarLinea(linea)">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <div class="fw-bold mb-1">{{linea.linea}}</div>
+                  <div>
+                    <span class="badge me-1" [style.background-color]="linea.color">
+                      <i class="bi bi-grid-3x3"></i> {{linea.espacios}} posiciones
+                    </span>
+                    <span class="badge" [ngClass]="linea.tipo === 'M' ? 'bg-primary' : 'bg-info'">
+                      <i class="bi" [ngClass]="linea.tipo === 'M' ? 'bi-gear' : 'bi-hand-thumbs-up'"></i>
+                      {{linea.tipo === 'M' ? 'Máquina' : 'Handpack'}}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <div class="col-md-8" *ngIf="lineaSeleccionada">
+          <div class="d-flex align-items-center mb-3">
+            <h6 class="mb-0 me-2 fw-bold">
+              <i class="bi bi-diagram-3"></i> {{lineaSeleccionada.linea}}
+            </h6>
+            <span class="badge" [style.background-color]="lineaSeleccionada.color">
+              {{lineaSeleccionada.codigo}}
+            </span>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6 col-lg-4" *ngFor="let posicion of getPosiciones(lineaSeleccionada)">
+              <div class="card h-100 shadow-sm border-0 posicion-card">
+                <div class="card-header" [style.background-color]="lineaSeleccionada.color" style="color: white;">
+                  <strong><i class="bi bi-geo-alt"></i> Posición {{posicion}}</strong>
+                </div>
+                <div class="card-body">
+                  <ng-container *ngIf="getAsignacionEnPosicion(lineaSeleccionada.id, posicion) as asignacion; else sinAsignar">
+                    <div class="operario-asignado mb-3">
+                      <i class="bi bi-person-check-fill text-success me-2"></i>
+                      <strong>{{getOperarioNombre(asignacion.idoperario)}}</strong>
+                    </div>
+                    <div class="mb-3">
+                      <span class="badge" [ngClass]="asignacion.sincronizado === 1 ? 'bg-success' : 'bg-warning text-dark'">
+                        <i class="bi" [ngClass]="asignacion.sincronizado === 1 ? 'bi-check-circle' : 'bi-clock'"></i>
+                        {{asignacion.sincronizado === 1 ? 'Sincronizado' : 'Pendiente'}}
+                      </span>
+                    </div>
+                    <button class="btn btn-danger btn-sm w-100" (click)="removerAsignacion(asignacion)">
+                      <i class="bi bi-trash"></i> Remover
+                    </button>
+                  </ng-container>
+                  
+                  <ng-template #sinAsignar>
+                    <div class="sin-asignar mb-3">
+                      <i class="bi bi-person-x text-muted me-2"></i>
+                      <span class="text-muted">Sin asignar</span>
+                    </div>
+                    <select class="form-select mb-2" [(ngModel)]="operarioSeleccionadoId">
+                      <option [value]="0">Seleccionar operario</option>
+                      <option *ngFor="let op of operarios" [value]="op.id">
+                        {{op.nombrescompletos}}
+                      </option>
+                    </select>
+                    <button 
+                      class="btn btn-primary btn-sm w-100" 
+                      (click)="asignarOperarioPorId(lineaSeleccionada!, posicion)"
+                      [disabled]="!operarioSeleccionadoId || operarioSeleccionadoId === 0">
+                      <i class="bi bi-plus-circle"></i> Asignar
+                    </button>
+                  </ng-template>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-8" *ngIf="!lineaSeleccionada">
+          <div class="alert alert-info d-flex align-items-center">
+            <i class="bi bi-info-circle me-2 fs-5"></i>
+            <span>Seleccione una línea de producción para ver y gestionar las asignaciones</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

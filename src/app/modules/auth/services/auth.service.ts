@@ -10,16 +10,18 @@ import { DexieService } from '@/app/shared/dixiedb/dexie-db.service';
 
 export class AuthService {
 
-  private readonly baseUrl: string = environment.baseUrl;
+  private readonly apiMaestra: string = environment.baseUrlMaestros;
 
   constructor(
     private http: HttpClient,
     private dexieService: DexieService
   ) {}
 
-  async login(usuario: string, clave: string): Promise<any> {
-    const url = `${this.baseUrl}/login`;
-    const body = { dni: usuario, clave };
+  async login(usuario: string, clave: string, aplicacion: string): Promise<any> {
+    
+    const url = `${this.apiMaestra}/api/Maestros/get-usuarios`;
+
+    const body = [{ usuario, clave, aplicacion }];
   
     try {
       const response = await lastValueFrom(this.http.post<any>(url, body));
