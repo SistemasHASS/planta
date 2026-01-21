@@ -53,6 +53,8 @@ export class ParametrosComponent {
     destino: '',
     formato: '',
     modulo: '',
+    turno: '',
+    lote: '',
     variedad: '',
     mercado: ''
   }
@@ -105,6 +107,8 @@ export class ParametrosComponent {
     await this.ListarModulos();
     await this.ListarVariedades();
     await this.ListarMercados();
+    await this.ListarLotes();
+    await this.ListarTurnos();
   }
 
   async sincronizarTablasMaestras() {
@@ -295,9 +299,9 @@ export class ParametrosComponent {
     //    this.configuracion.idacopio && this.configuracion.horario && this.configuracion.cliente && 
     //    this.configuracion.destino && this.configuracion.formato && this.configuracion.modulo && 
     //    this.configuracion.variedad && this.configuracion.mercado) {
-      this.configuracion.id = this.usuario.documentoidentidad;
-      await this.dexieService.saveConfiguracion(this.configuracion);
-      this.alertService.showAlert('¡Éxito!','Configuración guardada correctamente', 'success');
+    this.configuracion.id = this.usuario.documentoidentidad;
+    await this.dexieService.saveConfiguracion(this.configuracion);
+    this.alertService.showAlert('¡Éxito!','Configuración guardada correctamente', 'success');
     // } else {
     //   this.alertService.showAlert('Alerta!','Debe completar todos los campos', 'warning');
     // }

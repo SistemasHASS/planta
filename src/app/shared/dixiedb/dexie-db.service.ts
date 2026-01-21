@@ -66,10 +66,9 @@ export class DexieService extends Dexie {
     this.modulos = this.table('modulos');
     this.lineas = this.table('lineas');
     this.turnos = this.table('turnos');
+    this.lotes = this.table('lotes');
     this.variedades = this.table('variedades');
     this.mercados = this.table('mercados');
-    this.lotes = this.table('lotes');
-    this.turnos = this.table('turnos');
   }
   //
   async saveConfiguracion(configuracion: Configuracion) { await this.configuracion.put(configuracion); }

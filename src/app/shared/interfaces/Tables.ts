@@ -26,6 +26,8 @@ export interface Configuracion {
     destino?: string;
     formato?: string;
     modulo?: string;
+    turno?: string;
+    lote?: string;
     variedad?: string;
     mercado?: string;
 }

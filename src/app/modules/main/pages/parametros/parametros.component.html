@@ -124,7 +124,7 @@
                 [ngClass]="{'is-invalid': showValidation && !configuracion.modulo, 'is-valid': configuracion.modulo}"
                 class="form-select mb-2" name="modulo">
                 <option [ngValue]="''">Seleccione una opción</option>
-                <option *ngFor="let t of modulos; let i = index" [ngValue]="t.id">{{ t.nombre }}</option>
+                <option *ngFor="let t of modulos; let i = index" [ngValue]="t.codModulo">{{ t.nombreModulo }}</option>
               </select>
             </div>
           </div>
@@ -137,11 +137,11 @@
           <div class="form-group row box-labelFloat">
             <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Turno</label>
             <div class="col-lg-9">
-              <select [(ngModel)]="configuracion.variedad"
-                [ngClass]="{'is-invalid': showValidation && !configuracion.variedad, 'is-valid': configuracion.variedad}"
-                class="form-select mb-2" name="variedad">
+              <select [(ngModel)]="configuracion.turno"
+                [ngClass]="{'is-invalid': showValidation && !configuracion.turno, 'is-valid': configuracion.turno}"
+                class="form-select mb-2" name="turno">
                 <option [ngValue]="''">Seleccione una opción</option>
-                <option *ngFor="let t of variedades; let i = index" [ngValue]="t.id">{{ t.nombre }}</option>
+                <option *ngFor="let t of turnos; let i = index" [ngValue]="t.id">{{ t.nombreTurno }}</option>
               </select>
             </div>
           </div>
@@ -152,11 +152,11 @@
           <div class="form-group row box-labelFloat">
             <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Lote</label>
             <div class="col-lg-9">
-              <select [(ngModel)]="configuracion.modulo"
-                [ngClass]="{'is-invalid': showValidation && !configuracion.modulo, 'is-valid': configuracion.modulo}"
-                class="form-select mb-2" name="modulo">
+              <select [(ngModel)]="configuracion.lote"
+                [ngClass]="{'is-invalid': showValidation && !configuracion.lote, 'is-valid': configuracion.lote}"
+                class="form-select mb-2" name="lote">
                 <option [ngValue]="''">Seleccione una opción</option>
-                <option *ngFor="let t of modulos; let i = index" [ngValue]="t.id">{{ t.nombre }}</option>
+                <option *ngFor="let t of lotes; let i = index" [ngValue]="t.id">{{ t.nombreLote }}</option>
               </select>
             </div>
           </div>
@@ -173,7 +173,7 @@
                 [ngClass]="{'is-invalid': showValidation && !configuracion.variedad, 'is-valid': configuracion.variedad}"
                 class="form-select mb-2" name="variedad">
                 <option [ngValue]="''">Seleccione una opción</option>
-                <option *ngFor="let t of variedades; let i = index" [ngValue]="t.id">{{ t.nombre }}</option>
+                <option *ngFor="let t of variedades; let i = index" [ngValue]="t.id">{{ t.nombreVariedad }}</option>
               </select>
             </div>
           </div>
