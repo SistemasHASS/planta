@@ -1,0 +1,325 @@
+<!-- Vista Lista Principal -->
+<div class="card" *ngIf="vistaActual === 'lista'">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="flex-grow-1 me-3">
+      <span class="p-input-icon-left w-100">
+        <i class="pi pi-search"></i>
+        <input
+          pInputText
+          type="text"
+          (input)="dt.filterGlobal($event.target.value, 'contains')"
+          placeholder="Buscar líneas de producción..."
+          class="form-control p-inputtext-sm w-100"
+          style="height: 38px;"
+        />
+      </span>
+    </div>
+  </div>
+  <br>
+  <p-table 
+    #dt
+    [value]="lineas" 
+    [paginator]="true" 
+    [rows]="5" 
+    [rowsPerPageOptions]="[5,10,20]" 
+    [globalFilterFields]="['linea', 'espacios', 'color', 'tipo']"
+    responsiveLayout="scroll"
+    styleClass="compact-table"
+  >
+    <ng-template pTemplate="header">
+      <tr>
+        <th>#</th>
+        <th>Línea</th>
+        <th>Tipo</th>
+        <th>Espacios</th>
+        <th>Color</th>
+        <th>Configuración</th>
+        <th>Operarios</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-l let-i="rowIndex">
+      <tr>
+        <td>{{ i + 1 }}</td>
+        <td>{{ l.linea }}</td>
+        <td>
+          <span class="badge" [ngClass]="l.tipo === 'M' ? 'bg-primary' : 'bg-info'">
+            {{ l.tipo === 'M' ? 'Maquina' : l.tipo === 'H' ? 'Handpack' : '-' }}
+          </span>
+        </td>
+        <td>{{ l.espacios }}</td>
+        <td>
+          <span *ngIf="l.color" 
+                class="badge" 
+                [style.background-color]="l.color"
+                [style.color]="'#fff'">
+            {{ l.color }}
+          </span>
+          <span *ngIf="!l.color">-</span>
+        </td>
+        <td>
+          <button class="btn btn-sm" 
+                  [ngClass]="tieneConfiguracion(l) ? 'btn-success' : 'btn-warning'"
+                  (click)="abrirVistaConfiguracion(l)">
+            <i class="icon icon-cog4"></i>
+            {{ tieneConfiguracion(l) ? 'Configurado' : 'Configurar' }}
+          </button>
+        </td>
+        <td>
+          <button class="btn btn-sm"
+                  [ngClass]="tieneOperarios(l) ? 'btn-success' : 'btn-warning'"
+                  (click)="abrirVistaOperarios(l)">
+            <i class="icon icon-users4"></i>
+            {{ tieneOperarios(l) ? l.operariosAsignados?.length + ' asignados' : 'Asignar' }}
+          </button>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<!-- Vista Configuración -->
+<div class="card" *ngIf="vistaActual === 'configuracion'">
+  <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">
+      <i class="icon icon-cog4"></i>
+      Configuración de Línea: {{ lineaSeleccionada?.linea }}
+    </h5>
+    <button type="button" class="btn btn-light btn-sm" (click)="volverALista()">
+      <i class="icon icon-arrow-left"></i> Volver
+    </button>
+  </div>
+  <div class="card-body">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-6 marginBottom">
+          <fieldset>
+            <div class="form-group row box-labelFloat">
+              <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Acopio</label>
+              <div class="col-lg-9">
+                <select [(ngModel)]="configuracion.idacopio"
+                  [ngClass]="{'is-invalid': showValidation && !configuracion.idacopio, 'is-valid': configuracion.idacopio}"
+                  class="form-select mb-2" name="acopio">
+                  <option [ngValue]="''">Seleccione una opción</option>
+                  <option *ngFor="let t of acopios; let i = index" [ngValue]="t.id">{{ t.acopio }}</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+        <div class="col-md-6 marginBottom">
+          <fieldset>
+            <div class="form-group row box-labelFloat">
+              <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Horario</label>
+              <div class="col-lg-9">
+                <select [(ngModel)]="configuracion.horario"
+                  [ngClass]="{'is-invalid': showValidation && !configuracion.horario, 'is-valid': configuracion.horario}"
+                  class="form-select mb-2" name="horario">
+                  <option [ngValue]="''">Seleccione una opción</option>
+                  <option [ngValue]="'Dia'">Dia</option>
+                  <option [ngValue]="'Noche'">Noche</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6 marginBottom">
+          <fieldset>
+            <div class="form-group row box-labelFloat">
+              <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Fundo</label>
+              <div class="col-lg-9">
+                <select [(ngModel)]="configuracion.idfundo"
+                  [ngClass]="{'is-invalid': showValidation && !configuracion.idfundo, 'is-valid': configuracion.idfundo}"
+                  class="form-select mb-2" name="fundo">
+                  <option [ngValue]="''">Seleccione una opción</option>
+                  <option *ngFor="let t of fundos; let i = index" [ngValue]="t.codigoFundo">{{ t.nombreFundo }}</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+        <div class="col-md-6 marginBottom">
+          <fieldset>
+            <div class="form-group row box-labelFloat">
+              <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Cultivo</label>
+              <div class="col-lg-9">
+                <select [(ngModel)]="configuracion.idcultivo" 
+                  [ngClass]="{'is-invalid': showValidation && !configuracion.idcultivo, 'is-valid': configuracion.idcultivo}"
+                  class="form-select mb-2" name="cultivo" disabled="true">
+                  <option [ngValue]="''">Seleccione una opción</option>
+                  <option *ngFor="let t of cultivos; let i = index" [ngValue]="t.codigo">
+                    {{ t.descripcion }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6 marginBottom">
+          <fieldset>
+            <div class="form-group row box-labelFloat">
+              <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Destino</label>
+              <div class="col-lg-9">
+                <select [(ngModel)]="configuracion.destino"
+                  [ngClass]="{'is-invalid': showValidation && !configuracion.destino, 'is-valid': configuracion.destino}"
+                  class="form-select mb-2" name="destino">
+                  <option [ngValue]="''">Seleccione una opción</option>
+                  <option *ngFor="let t of destinos; let i = index" [ngValue]="t.iddestino">{{ t.destinoCompleto }}</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+        <div class="col-md-6 marginBottom">
+          <fieldset>
+            <div class="form-group row box-labelFloat">
+              <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Cliente</label>
+              <div class="col-lg-9">
+                <select [(ngModel)]="configuracion.cliente"
+                  [ngClass]="{'is-invalid': showValidation && !configuracion.cliente, 'is-valid': configuracion.cliente}"
+                  class="form-select mb-2" name="cliente">
+                  <option [ngValue]="''">Seleccione una opción</option>
+                  <option *ngFor="let t of clientes; let i = index" [ngValue]="t.id">{{ t.nombre }}</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+        </div> 
+      </div>
+      <div class="row">
+        <div class="col-md-6 marginBottom">
+          <fieldset>
+            <div class="form-group row box-labelFloat">
+              <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Formato</label>
+              <div class="col-lg-9">
+                <select [(ngModel)]="configuracion.formato"
+                  [ngClass]="{'is-invalid': showValidation && !configuracion.formato, 'is-valid': configuracion.formato}"
+                  class="form-select mb-2" name="formato">
+                  <option [ngValue]="''">Seleccione una opción</option>
+                  <option *ngFor="let t of formatos; let i = index" [ngValue]="t.id">{{ t.descripcion }}</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+        <div class="col-md-6 marginBottom">
+          <fieldset>
+            <div class="form-group row box-labelFloat">
+              <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Módulo</label>
+              <div class="col-lg-9">
+                <select [(ngModel)]="configuracion.modulo"
+                  (ngModelChange)="onModuloChange($event)"
+                  [ngClass]="{'is-invalid': showValidation && !configuracion.modulo, 'is-valid': configuracion.modulo}"
+                  class="form-select mb-2" name="modulo">
+                  <option [ngValue]="''">Seleccione una opción</option>
+                  <option *ngFor="let t of modulos; let i = index" [ngValue]="t.idmodulo">{{ t.nombremodulo }}</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6 marginBottom">
+          <fieldset>
+            <div class="form-group row box-labelFloat">
+              <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Variedad</label>
+              <div class="col-lg-9">
+                <select [(ngModel)]="configuracion.variedad"
+                  [ngClass]="{'is-invalid': showValidation && !configuracion.variedad, 'is-valid': configuracion.variedad}"
+                  class="form-select mb-2" name="variedad">
+                  <option [ngValue]="''">Seleccione una opción</option>
+                  <option *ngFor="let t of variedadesFiltradas; let i = index" [ngValue]="t.idvariedad">{{ t.variedad }}</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card-footer text-end">
+    <button type="button" class="btn btn-outline-secondary me-2" (click)="volverALista()">
+      <i class="icon icon-cross"></i> Cancelar
+    </button>
+    <button type="button" class="btn btn-primary" (click)="guardarConfiguracion()">
+      <i class="icon icon-floppy-disk"></i> Guardar
+    </button>
+  </div>
+</div>
+
+<!-- Vista Operarios -->
+<div class="card" *ngIf="vistaActual === 'operarios'">
+  <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">
+      <i class="icon icon-users4"></i>
+      Asignar Operarios: {{ lineaSeleccionada?.linea }}
+    </h5>
+    <button type="button" class="btn btn-light btn-sm" (click)="volverALista()">
+      <i class="icon icon-arrow-left"></i> Volver
+    </button>
+  </div>
+  <div class="card-body">
+    <div class="container-fluid">
+      <div class="row mb-3">
+        <div class="col-md-9">
+          <select [(ngModel)]="operarioSeleccionado" class="form-select">
+            <option [ngValue]="0">Seleccione un operario</option>
+            <option *ngFor="let op of operariosDisponibles" [ngValue]="op.id">
+              {{ op.nombrescompletos }} - {{ op.dni }}
+            </option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <button class="btn btn-success w-100" (click)="agregarOperario()">
+            <i class="icon icon-plus2"></i> Agregar
+          </button>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-12">
+          <h6 class="mb-3">Operarios Asignados ({{ operariosAsignados.length }})</h6>
+          <div class="table-responsive">
+            <table class="table table-sm table-striped">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>DNI</th>
+                  <th>Nombre Completo</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let op of operariosAsignados; let i = index">
+                  <td>{{ i + 1 }}</td>
+                  <td>{{ op.dni }}</td>
+                  <td>{{ op.nombrescompletos }}</td>
+                  <td>
+                    <button class="btn btn-danger btn-sm" (click)="eliminarOperario(op)">
+                      <i class="icon icon-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+                <tr *ngIf="operariosAsignados.length === 0">
+                  <td colspan="4" class="text-center text-muted">
+                    No hay operarios asignados a esta línea
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card-footer text-end">
+    <button type="button" class="btn btn-secondary" (click)="volverALista()">
+      <i class="icon icon-arrow-left"></i> Volver a la Lista
+    </button>
+  </div>
+</div>

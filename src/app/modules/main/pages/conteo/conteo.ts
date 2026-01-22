@@ -1,195 +1,207 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DexieService } from '@/app/shared/dixiedb/dexie-db.service';
-import { ProcesosService } from '@/app/modules/main/services/procesos.service';
 import { AlertService } from '@/app/shared/alertas/alerts.service';
-import { UtilsService } from '@/app/shared/utils/utils.service';
-import { Asignacion, Conteo, Usuario, Operario, Linea } from '@/app/shared/interfaces/Tables';
+import { Linea, Operario, Asignacion, Conteo as ConteoInterface, Usuario, Configuracion } from '@/app/shared/interfaces/Tables';
+import { Modal } from 'bootstrap';
+import moment from 'moment';
+
+interface LineaConOperarios extends Linea {
+  operariosAsignados: Operario[];
+  conteos: ConteoInterface[];
+}
 
 @Component({
   selector: 'app-conteo',
+  standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './conteo.html',
   styleUrl: './conteo.scss',
 })
-export class ConteoComponent implements OnInit {
-  asignaciones: any[] = [];
-  conteos: Conteo[] = [];
-  totalesPorAsignacion: Map<string, number> = new Map();
-  cantidadesPorAsignacion: Map<string, number> = new Map();
+export class Conteo implements OnInit {
+  @ViewChild('modalConteo') modalConteoRef!: ElementRef;
+
+  usuario: Usuario = {} as Usuario;
+  configuracion: Configuracion = {} as Configuracion;
+  lineas: LineaConOperarios[] = [];
+  lineaSeleccionada: LineaConOperarios | null = null;
+  operariosConConteo: any[] = [];
+  fechaProceso: string = '';
   
-  operarios: Operario[] = [];
-  lineas: Linea[] = [];
-  
-  fechaSeleccionada: string = '';
-  usuario: Usuario | null = null;
-  
-  pendientesSincronizar: number = 0;
-  sincronizando: boolean = false;
+  modalConteoInstance: any;
+  cargando: boolean = false;
 
   constructor(
     private dexieService: DexieService,
-    private procesosService: ProcesosService,
-    private alertService: AlertService,
-    private utilsService: UtilsService
+    private alertService: AlertService
   ) {}
 
-  async ngOnInit() {
-    this.fechaSeleccionada = this.utilsService.formatDate3(new Date());
+  async ngOnInit(): Promise<void> {
     await this.cargarUsuario();
-    await this.cargarOperarios();
-    await this.cargarLineas();
-    await this.cargarAsignaciones();
-    await this.cargarConteos();
-    await this.contarPendientes();
+    await this.cargarConfiguracion();
+    this.fechaProceso = moment().format('YYYY-MM-DD');
+    await this.cargarLineasConOperarios();
   }
 
   async cargarUsuario() {
     const usuario = await this.dexieService.showUsuario();
-    this.usuario = usuario || null;
+    if (usuario) {
+      this.usuario = usuario;
+    }
   }
 
-  async cargarOperarios() {
-    this.operarios = await this.dexieService.showOperariosActivos();
+  async cargarConfiguracion() {
+    const config = await this.dexieService.obtenerConfiguracion();
+    if (config) {
+      this.configuracion = config;
+    }
   }
 
-  async cargarLineas() {
-    this.lineas = await this.dexieService.showLineasActivas();
+  async cargarLineasConOperarios() {
+    this.cargando = true;
+    try {
+      const lineasActivas = await this.dexieService.showLineasActivas();
+      
+      this.lineas = await Promise.all(
+        lineasActivas.map(async (linea: Linea) => {
+          const operariosAsignados = linea.operariosAsignados || [];
+          const conteos = await this.dexieService.showConteosByFecha(this.fechaProceso);
+          const conteosLinea = conteos.filter(c => c.idlinea === linea.id);
+          
+          return {
+            ...linea,
+            operariosAsignados,
+            conteos: conteosLinea
+          } as LineaConOperarios;
+        })
+      );
+
+      console.log('Líneas con operarios cargadas:', this.lineas);
+    } catch (error) {
+      console.error('Error cargando líneas:', error);
+      this.alertService.showAlert('Error', 'Error al cargar las líneas', 'error');
+    } finally {
+      this.cargando = false;
+    }
   }
 
-  async cargarAsignaciones() {
-    const asignaciones = await this.dexieService.showAsignacionesByFecha(this.fechaSeleccionada);
+  tieneOperarios(linea: LineaConOperarios): boolean {
+    return linea.operariosAsignados && linea.operariosAsignados.length > 0;
+  }
+
+  getContadorOperarios(linea: LineaConOperarios): number {
+    return linea.operariosAsignados?.length || 0;
+  }
+
+  getTotalConteo(linea: LineaConOperarios): number {
+    return linea.conteos?.reduce((sum, c) => sum + (c.cantidad || 0), 0) || 0;
+  }
+
+  async abrirModalConteo(linea: LineaConOperarios) {
+    if (!this.tieneOperarios(linea)) {
+      this.alertService.showAlert(
+        'Sin Operarios',
+        'Esta línea no tiene operarios asignados. Por favor, asigne operarios desde el módulo de Ajustes de Línea.',
+        'warning'
+      );
+      return;
+    }
+
+    this.lineaSeleccionada = linea;
     
-    this.asignaciones = asignaciones
-      .filter(a => a.estado === 1)
-      .map(a => {
-        const linea = this.lineas.find(l => l.id === a.idlinea);
+    this.operariosConConteo = linea.operariosAsignados.map(operario => {
+      const conteoExistente = linea.conteos.find(c => c.idoperario === operario.id);
+      return {
+        ...operario,
+        cantidad: conteoExistente?.cantidad || 0,
+        idconteo: conteoExistente?.idconteo || null,
+        sincronizado: conteoExistente?.sincronizado || 0
+      };
+    });
+
+    this.modalConteoInstance = new Modal(this.modalConteoRef.nativeElement);
+    this.modalConteoInstance.show();
+  }
+
+  cerrarModalConteo() {
+    if (this.modalConteoInstance) {
+      this.modalConteoInstance.hide();
+    }
+    this.lineaSeleccionada = null;
+    this.operariosConConteo = [];
+  }
+
+  async guardarConteos() {
+    if (!this.lineaSeleccionada) return;
+
+    try {
+      const conteosAGuardar: ConteoInterface[] = this.operariosConConteo.map(op => {
+        const idconteo = op.idconteo || `${this.usuario.ruc}-${this.lineaSeleccionada!.id}-${op.id}-${this.fechaProceso}-${Date.now()}`;
+        
         return {
-          ...a,
-          nombreoperario: this.getOperarioNombre(a.idoperario),
-          nombrelinea: this.getLineaNombre(a.idlinea),
-          color: linea?.color || '#6c757d',
-          codigolinea: linea?.codigo || ''
+          idconteo,
+          ruc: this.usuario.ruc,
+          idasignacion: '',
+          idoperario: op.id,
+          idlinea: this.lineaSeleccionada!.id,
+          cantidad: op.cantidad || 0,
+          fechaproceso: this.fechaProceso,
+          fecharegistro: moment().format('YYYY-MM-DD HH:mm:ss'),
+          sincronizado: 0
         };
       });
-  }
 
-  async cargarConteos() {
-    this.conteos = await this.dexieService.showConteosByFecha(this.fechaSeleccionada);
-    this.calcularTotales();
-  }
-
-  calcularTotales() {
-    this.totalesPorAsignacion.clear();
-    for (const conteo of this.conteos) {
-      const actual = this.totalesPorAsignacion.get(conteo.idasignacion) || 0;
-      this.totalesPorAsignacion.set(conteo.idasignacion, actual + conteo.cantidad);
-    }
-  }
-
-  getOperarioNombre(idoperario: number): string {
-    const operario = this.operarios.find(o => o.id === idoperario);
-    return operario ? operario.nombrescompletos : 'Operario desconocido';
-  }
-
-  getLineaNombre(idlinea: number): string {
-    const linea = this.lineas.find(l => l.id === idlinea);
-    return linea ? linea.linea : 'Línea desconocida';
-  }
-
-  getTotalCajas(idasignacion: string): number {
-    return this.totalesPorAsignacion.get(idasignacion) || 0;
-  }
-
-  async registrarConteo(asignacion: any) {
-    const cantidad = this.cantidadesPorAsignacion.get(asignacion.idasignacion) || 0;
-    
-    if (!cantidad || cantidad <= 0) {
-      this.alertService.showAlert('Error', 'Debe ingresar una cantidad válida', 'warning');
-      return;
-    }
-
-    if (!this.usuario) {
-      this.alertService.showAlert('Error', 'No se ha cargado el usuario', 'error');
-      return;
-    }
-
-    const nuevoConteo: Conteo = {
-      idconteo: this.generarIdConteo(),
-      ruc: this.usuario.ruc,
-      idasignacion: asignacion.idasignacion,
-      idoperario: asignacion.idoperario,
-      idlinea: asignacion.idlinea,
-      cantidad: cantidad,
-      fechaproceso: this.fechaSeleccionada,
-      fecharegistro: new Date().toISOString(),
-      sincronizado: 0
-    };
-
-    await this.dexieService.saveConteo(nuevoConteo);
-    await this.cargarConteos();
-    await this.contarPendientes();
-    
-    this.cantidadesPorAsignacion.set(asignacion.idasignacion, 0);
-    this.alertService.showAlert('Éxito', `${cantidad} cajas registradas. Total: ${this.getTotalCajas(asignacion.idasignacion)}`, 'success');
-  }
-
-  getCantidadInput(idasignacion: string): number {
-    return this.cantidadesPorAsignacion.get(idasignacion) || 0;
-  }
-
-  setCantidadInput(idasignacion: string, cantidad: number) {
-    this.cantidadesPorAsignacion.set(idasignacion, cantidad);
-  }
-
-  generarIdConteo(): string {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  async contarPendientes() {
-    const pendientes = await this.dexieService.showConteosPendientes();
-    this.pendientesSincronizar = pendientes.length;
-  }
-
-  async sincronizar() {
-    if (!navigator.onLine) {
-      this.alertService.showAlert('Sin conexión', 'Necesita internet para sincronizar', 'warning');
-      return;
-    }
-
-    const pendientes = await this.dexieService.showConteosPendientes();
-    
-    if (pendientes.length === 0) {
-      this.alertService.showAlert('Sin cambios', 'No hay conteos pendientes de sincronizar', 'info');
-      return;
-    }
-
-    this.sincronizando = true;
-    
-    try {
-      const resultado = await this.procesosService.syncConteos(pendientes);
+      await this.dexieService.saveConteos(conteosAGuardar);
       
-      if (resultado && resultado.success) {
-        for (const conteo of pendientes) {
-          await this.dexieService.updateConteoSincronizado(conteo.idconteo, 1);
-        }
-        
-        await this.contarPendientes();
-        this.alertService.showAlert('Éxito', `${pendientes.length} conteos sincronizados correctamente`, 'success');
-      } else {
-        this.alertService.showAlert('Error', 'Error al sincronizar conteos', 'error');
-      }
-    } catch (error: any) {
-      console.error('Error sincronizando:', error);
-      this.alertService.showAlert('Error', error.message || 'Error al sincronizar', 'error');
-    } finally {
-      this.sincronizando = false;
+      await this.cargarLineasConOperarios();
+      
+      this.alertService.showAlert(
+        '¡Éxito!',
+        'Conteos guardados correctamente',
+        'success'
+      );
+      
+      this.cerrarModalConteo();
+    } catch (error) {
+      console.error('Error guardando conteos:', error);
+      this.alertService.showAlert('Error', 'Error al guardar los conteos', 'error');
     }
   }
 
-  async cambiarFecha() {
-    await this.cargarAsignaciones();
-    await this.cargarConteos();
+  incrementarCantidad(operario: any) {
+    operario.cantidad = (operario.cantidad || 0) + 1;
+  }
+
+  decrementarCantidad(operario: any) {
+    if (operario.cantidad > 0) {
+      operario.cantidad--;
+    }
+  }
+
+  limpiarConteos() {
+    this.operariosConConteo.forEach(op => {
+      op.cantidad = 0;
+    });
+  }
+
+  getColorFondo(color: string): string {
+    return color || '#6c757d';
+  }
+
+  getColorTexto(color: string): string {
+    if (!color) return '#ffffff';
+    
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    
+    return brightness > 128 ? '#000000' : '#ffffff';
+  }
+
+  getTotalOperariosConteo(): number {
+    return this.operariosConConteo.reduce((sum, op) => sum + (op.cantidad || 0), 0);
   }
 }

@@ -36,7 +36,6 @@
         <th>Editar</th>
         <th>Línea</th>
         <th>Tipo</th>
-        <th>Código</th>
         <th>Espacios</th>
         <th>Color</th>
         <th>Eliminar</th>
@@ -57,7 +56,6 @@
             {{ l.tipo === 'M' ? 'Maquina' : l.tipo === 'H' ? 'Handpack' : '-' }}
           </span>
         </td>
-        <td>{{ l.codigo || '-' }}</td>
         <td>{{ l.espacios }}</td>
         <td>
           <span *ngIf="l.color" 

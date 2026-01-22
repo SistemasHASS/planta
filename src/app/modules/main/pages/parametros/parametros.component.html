@@ -56,7 +56,7 @@
             <div class="col-lg-9">
               <select [(ngModel)]="configuracion.idcultivo" 
                 [ngClass]="{'is-invalid': showValidation && !configuracion.idcultivo, 'is-valid': configuracion.idcultivo}"
-                class="form-select mb-2" name="cultivo">
+                class="form-select mb-2" name="cultivo" disabled="true">
                 <option [ngValue]="''" [disabled]="true">Seleccione una opción</option>
                 <option *ngFor="let t of cultivos; let i = index" [ngValue]="t.codigo">
                   {{ t.descripcion }}
@@ -71,14 +71,11 @@
       <div class="col-md-6 marginBottom">
         <fieldset>
           <div class="form-group row box-labelFloat">
-            <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Mercado - Destino</label>
+            <label class="col-lg-3 col-form-label"><b class="text-danger">*</b>&nbsp;&nbsp; Mercado - Destino</label>
             <div class="col-lg-9">
-              <select [(ngModel)]="configuracion.destino"
-                [ngClass]="{'is-invalid': showValidation && !configuracion.destino, 'is-valid': configuracion.destino}"
-                class="form-select mb-2" name="destino">
-                <option [ngValue]="''">Seleccione una opción</option>
-                <option *ngFor="let t of destinos; let i = index" [ngValue]="t.id">{{ t.mercado }} - {{ t.destino }}</option>
-              </select>
+              <app-dropdown [(ngModel)]="configuracion.destino"
+                [editable]="true" [data]="destinos" [valueField]="'iddestino'" 
+                [textShow2]="'Mercado - Destino'" [optionLabel]="'destinoCompleto'" [required]="true"/>
             </div>
           </div>
         </fieldset>
@@ -120,44 +117,10 @@
           <div class="form-group row box-labelFloat">
             <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Módulo</label>
             <div class="col-lg-9">
-              <select [(ngModel)]="configuracion.modulo"
-                [ngClass]="{'is-invalid': showValidation && !configuracion.modulo, 'is-valid': configuracion.modulo}"
-                class="form-select mb-2" name="modulo">
-                <option [ngValue]="''">Seleccione una opción</option>
-                <option *ngFor="let t of modulos; let i = index" [ngValue]="t.codModulo">{{ t.nombreModulo }}</option>
-              </select>
-            </div>
-          </div>
-        </fieldset>
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-md-6 marginBottom">
-        <fieldset>
-          <div class="form-group row box-labelFloat">
-            <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Turno</label>
-            <div class="col-lg-9">
-              <select [(ngModel)]="configuracion.turno"
-                [ngClass]="{'is-invalid': showValidation && !configuracion.turno, 'is-valid': configuracion.turno}"
-                class="form-select mb-2" name="turno">
-                <option [ngValue]="''">Seleccione una opción</option>
-                <option *ngFor="let t of turnos; let i = index" [ngValue]="t.id">{{ t.nombreTurno }}</option>
-              </select>
-            </div>
-          </div>
-        </fieldset>
-      </div>
-      <div class="col-md-6 marginBottom">
-        <fieldset>
-          <div class="form-group row box-labelFloat">
-            <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Lote</label>
-            <div class="col-lg-9">
-              <select [(ngModel)]="configuracion.lote"
-                [ngClass]="{'is-invalid': showValidation && !configuracion.lote, 'is-valid': configuracion.lote}"
-                class="form-select mb-2" name="lote">
-                <option [ngValue]="''">Seleccione una opción</option>
-                <option *ngFor="let t of lotes; let i = index" [ngValue]="t.id">{{ t.nombreLote }}</option>
-              </select>
+              <app-dropdown [(ngModel)]="configuracion.modulo"
+                (ngModelChange)="onModuloChange($event)"
+                [editable]="true" [data]="modulos" [valueField]="'idmodulo'" 
+                [textShow2]="'Módulo'" [optionLabel]="'nombremodulo'"/>
             </div>
           </div>
         </fieldset>
@@ -173,7 +136,7 @@
                 [ngClass]="{'is-invalid': showValidation && !configuracion.variedad, 'is-valid': configuracion.variedad}"
                 class="form-select mb-2" name="variedad">
                 <option [ngValue]="''">Seleccione una opción</option>
-                <option *ngFor="let t of variedades; let i = index" [ngValue]="t.id">{{ t.nombreVariedad }}</option>
+                <option *ngFor="let t of variedades; let i = index" [ngValue]="t.idvariedad">{{ t.variedad }}</option>
               </select>
             </div>
           </div>

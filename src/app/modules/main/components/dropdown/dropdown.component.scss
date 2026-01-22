@@ -1,0 +1,89 @@
+@mixin labelsFloat($top){
+    position: absolute;
+    width: max-content;
+    top: $top;
+    z-index: 9;
+    left: 15px;
+    background-color: #fff;
+    padding: 0px 10px;
+}
+@mixin inputsSelect{
+    background-color: #fff;
+    border-radius: 0.5rem;
+    height: 44.8px;
+    margin: 0;
+    box-shadow: none!important;
+}
+*{
+    text-wrap: wrap;
+}
+.dropdown{
+    width: 100%;
+    .activeDrop{
+        position: absolute;
+        right: 0;
+        height: 44.8px;
+        cursor: pointer;
+    }
+    &.active{
+        .dropdown-perso{
+            height: auto;
+        }
+    }
+    .dropdown-perso{
+        position: absolute;
+        top: 100%;
+        width: 100%;
+        overflow: hidden;
+        max-height: 200px;
+        height: 0;
+        background-color: #fff;
+        box-shadow: 0 0 8px #0002;
+        border-radius: 0.5rem;
+        z-index: 10;
+        .drop-content{
+            max-height: 170px;
+            overflow: auto;
+        }
+        p{
+            padding: 10px 5px 10px 15px;
+            cursor: pointer;
+            margin-bottom: 0;
+            transition: .1s;
+            border-radius: 0.5rem;
+            &:hover{
+                background-color: #6ba1ff22;
+            }
+        }
+    }
+}
+.componentReu{
+    height: 44.8px;
+    margin-bottom: 10px;
+    input{
+        @include inputsSelect();
+    }
+    label{
+        @include labelsFloat(-10px);
+    }
+}
+
+@media (max-width: 768px) {
+    input.form-select{
+        color: black;
+        font-weight: bold;
+        border-color: #000 !important;
+        font-size: 14px;
+        padding: 0;
+        padding-left: 5px;
+        padding-right: 15px;
+        -webkit-appearance: none; /* Para navegadores basados en WebKit */
+        -moz-appearance: none;    /* Para Firefox */
+        appearance: none;         /* Estándar */
+        background: none; 
+    }
+    input.form-select::placeholder{
+        font-size: 14px;
+        color: #000;
+    }
+}

@@ -71,6 +71,8 @@ export interface Linea {
     estado: number
     tipo?: string
     codigo?: string
+    configuraciones?: Configuracion
+    operariosAsignados?: Operario[]
 }
 
 export interface Operario {
@@ -140,9 +142,11 @@ export interface Formato {
 }
 
 export interface Modulo {
-    id: number
-    codigo: string
-    descripcion: string
+    id: string
+    idmodulo: string
+    nombremodulo: string
+    idfundo: string
+    idcultivo: string
 }
 
 export interface Turno {
@@ -159,8 +163,10 @@ export interface Lote {
 
 export interface Variedad {
     id: number
-    codigo: string
-    descripcion: string
+    idcultivo: string
+    idmodulo: string
+    idvariedad: string
+    variedad: string
 }
 
 export interface Mercado {

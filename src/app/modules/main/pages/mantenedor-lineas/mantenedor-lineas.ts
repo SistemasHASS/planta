@@ -20,7 +20,6 @@ import dayjs from 'dayjs';
 export class MantenedorLineasComponent {
   @ViewChild('modalLinea') modalLineaRef!: ElementRef;
   modalLineaInstance!: Modal;
-
   lineas: any[] = [];
   linea: Linea = {
     id: 0,
@@ -68,8 +67,11 @@ export class MantenedorLineasComponent {
   }
 
   async cargarLineas() {
-    const lineas = await this.maestrasService.getLineasProduccion([{ruc: this.usuario.ruc}]);
-    this.lineas = lineas;
+    this.maestrasService.getLineasProduccion([{ruc: this.usuario.ruc}]).subscribe(
+      (lineas) => {
+        this.lineas = lineas;
+      }
+    );
   }
 
   openModal(linea?: any) {
@@ -114,7 +116,7 @@ export class MantenedorLineasComponent {
     return [
       {
         ruc: this.usuario.ruc,
-        id: l.id || 0,
+        idlineaprodempa: l.id || 0,
         linea: l.linea,
         espacios: l.espacios,
         color: l.color || '',
@@ -134,7 +136,7 @@ export class MantenedorLineasComponent {
   }
 
   async eliminar(l: any) {
-    const confirmacion = await this.alertService.showConfirm('Eliminar Línea', '¿Está seguro de eliminar esta línea de producción?', 'warning');
+    const confirmacion = await this.alertService.showConfirm('Eliminar Línea', '¿Está seguro de eliminar la línea?', 'warning');
     if (confirmacion) {
       l.estado = 0;
       const formato = this.formatoLinea(l);
@@ -174,6 +176,7 @@ export class MantenedorLineasComponent {
   }
 
   editar(l: Linea) {
+    this.clearLinea();
     this.editMode = true;
     this.linea = {
       ...l

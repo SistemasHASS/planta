@@ -14,53 +14,62 @@ export class MaestrasService {
 
   constructor(private http: HttpClient) {}
 
-  async getEmpresas(body: any): Promise<any> {
-    const url = `${this.baseUrlMaestros}/api/Maestros/get_empresas`;
-    try {
-      return  await lastValueFrom(this.http.post<any>(url, body));
-    } catch (error: any) {
-      throw new Error(error.error?.message || 'Error obteniendo get_empresas');
-    }
-  }
-
-  async getFundos(body: any): Promise<any> {
-    const url = `${this.baseUrlMaestros}/api/Maestros/get-fundos`;
-    try {
-      return await lastValueFrom(this.http.post<any>(url, body));
-    } catch (error: any) {
-      throw new Error(error.error?.message || 'Error obteniendo get-fundos');
-    }
-  }
-
-  async getCultivos(body: any): Promise<any> {
-    const url = `${this.baseUrlMaestros}/api/Maestros/get-cultivos`;
-    try {
-      return await lastValueFrom(this.http.post<any>(url, body));
-    } catch (error: any) {
-      throw new Error(error.error?.message || 'Error obteniendo get_cultivos');
-    }
-  }
-
-  async getAcopios(body: any): Promise<any> {
+  getAcopios(body: any): Promise<any> {
     const url = `${this.baseUrlMaestros}/api/Maestros/get-acopios`;
     try {
-      return await lastValueFrom(this.http.post<any>(url, body));
+      return lastValueFrom(this.http.post<any>(url, body));
     } catch (error: any) {
       throw new Error(error.error?.message || 'Error obteniendo get_acopios');
     }
   }
 
-  async getLineasProduccion(body: any): Promise<any> {
-    const url = `${this.baseUrl}/transporte/mantenedores/lineas/listado`;
+  getFundos(body: any): Observable<any> {
+    const url = `${this.baseUrlMaestros}/api/Maestros/get-fundos`;
     try {
-      return await lastValueFrom(this.http.post<any>(url, body));
+      return this.http.post<any>(url, body);
+    } catch (error: any) {
+      throw new Error(error.error?.message || 'Error obteniendo get-fundos');
+    }
+  }
+
+  getCultivos(body: any): Observable<any> {
+    const url = `${this.baseUrlMaestros}/api/Maestros/get-cultivos`;
+    try {
+      return this.http.post<any>(url, body);
+    } catch (error: any) {
+      throw new Error(error.error?.message || 'Error obteniendo get_cultivos');
+    }
+  }
+
+  getClientes(body: any): Observable<any> {
+    const url = `${this.baseUrlMaestros}/api/Maestros/clientes/listado`;
+    try {
+      return this.http.post<any>(url, body);
+    } catch (error: any) {
+      throw new Error(error.error?.message || 'Error obteniendo clientes');
+    }
+  }
+
+  getDestinos(body: any): Observable<any> {
+    const url = `${this.baseUrlMaestros}/api/Maestros/mercadodestino/listado`;
+    try {
+      return this.http.post<any>(url, body);
+    } catch (error: any) {
+      throw new Error(error.error?.message || 'Error obteniendo destinos');
+    }
+  }
+
+  getLineasProduccion(body: any): Observable<any> {
+    const url = `${this.baseUrl}/mantenedoresplanta/lineas/listado`;
+    try {
+      return this.http.post<any>(url, body);
     } catch (error: any) {
       throw new Error(error.error?.message || 'Error obteniendo lineas de producción');
     }
   }
 
   crudLineaProduccion(body: any) {
-    const url = `${this.baseUrl}/transporte/mantenedores/lineas/crud/sp`;
+    const url = `${this.baseUrl}/mantenedoresplanta/lineas/crud/sp`;
     try {
       return this.http.post<any>(url, body);
     } catch (error: any) {
@@ -68,36 +77,17 @@ export class MaestrasService {
     }
   }
 
-  async getClientes(body: any): Promise<any> {
-    const url = `${this.baseUrlMaestros}/api/Maestros/clientes/listado`;
-    try {
-      return await lastValueFrom(this.http.post<any>(url, body));
-    } catch (error: any) {
-      throw new Error(error.error?.message || 'Error obteniendo clientes');
-    }
-  }
-
-  async getDestinos(body: any): Promise<any> {
-    const url = `${this.baseUrlMaestros}/api/Maestros/mercadodestino/listado`;
-    try {
-      return await lastValueFrom(this.http.post<any>(url, body));
-    } catch (error: any) {
-      throw new Error(error.error?.message || 'Error obteniendo destinos');
-    }
-  }
-
-  async getFormatos(body: any): Promise<any> {
+  getFormatos(body: any): Observable<any> {
     const url = `${this.baseUrlMaestros}/api/Maestros/formato/listado`;
     try {
-      return await lastValueFrom(this.http.post<any>(url, body));
+      return this.http.post<any>(url, body);
     } catch (error: any) {
       throw new Error(error.error?.message || 'Error obteniendo formatos');
     }
   }
 
-  getModulos(idempresa: any): Observable<any> {
+  getModulos(body: any): Observable<any> {
     const url = `${this.baseUrlMaestros}/api/Maestros/get-modulos`;
-    const body = [{ idempresa: idempresa }];
     try {
       return this.http.post<any>(url, body);
     } catch (error: any) {
@@ -105,9 +95,9 @@ export class MaestrasService {
     }
   }
 
-  getLotes(sociedad: any): Observable<any> {
-    const url = `${this.baseUrl}/api/Maestros/get-lotes`;
-    const body = [{ sociedad: sociedad }];
+  getLotes(idempresa: any): Observable<any> {
+    const url = `${this.baseUrlMaestros}/api/Maestros/get-lotes`;
+    const body = [{ idempresa: idempresa }];
     try {
       return this.http.post<any>(url, body);
     } catch (error: any) {
@@ -125,19 +115,19 @@ export class MaestrasService {
     }
   }
 
-  async getVariedades(body: any): Promise<any> {
-    const url = `${this.baseUrl}/planta/catalogos/variedades`;
+  getVariedades(body: any): Observable<any> {
+    const url = `${this.baseUrlMaestros}/api/Maestros/get-variedades`;
     try {
-      return await lastValueFrom(this.http.post<any>(url, body));
+      return this.http.post<any>(url, body);
     } catch (error: any) {
       throw new Error(error.error?.message || 'Error obteniendo variedades');
     }
   }
 
-  async getOperarios(body: any): Promise<any> {
+  getOperarios(body: any): Observable<any> {
     const url = `${this.baseUrl}/planta/operarios/listado`;
     try {
-      return await lastValueFrom(this.http.post<any>(url, body));
+      return this.http.post<any>(url, body);
     } catch (error: any) {
       throw new Error(error.error?.message || 'Error obteniendo operarios');
     }

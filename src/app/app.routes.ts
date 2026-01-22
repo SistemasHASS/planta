@@ -4,9 +4,9 @@ import { LayoutComponent } from './modules/main/pages/layout/layout.component';
 import { ParametrosComponent } from './modules/main/pages/parametros/parametros.component';
 import { AuthGuard } from './modules/auth/guard/auth.guard';
 import { DashboardComponent } from './modules/main/pages/dashboard/dashboard';
+import { AjustesLinea } from './modules/main/pages/ajustes-linea/ajustes-linea';
 import { MantenedorLineasComponent } from './modules/main/pages/mantenedor-lineas/mantenedor-lineas';
-import { AsignacionComponent } from './modules/main/pages/asignacion/asignacion';
-import { ConteoComponent } from './modules/main/pages/conteo/conteo';
+import { Conteo } from './modules/main/pages/conteo/conteo';
 
 export const routes: Routes = [
   {
@@ -29,8 +29,8 @@ export const routes: Routes = [
       { path: 'parametros', component: ParametrosComponent },
       { path: 'dashboard', component: DashboardComponent },
       { path: 'mantenedor-lineas', component: MantenedorLineasComponent },
-      { path: 'asignacion', component: AsignacionComponent },
-      { path: 'conteo', component: ConteoComponent },
+      { path: 'ajustes-linea', component: AjustesLinea },
+      { path: 'conteo', component: Conteo },
       { path: '**', redirectTo: 'auth/login' }
     ],
     canActivate: [AuthGuard]

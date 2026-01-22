@@ -29,24 +29,24 @@ export class DexieService extends Dexie {
   constructor() {
     super('Planta');
     console.log('DexieService Constructor - Base de datos inicializada');
-    this.version(1).stores({
+    this.version(2).stores({
       usuario: `id,sociedad,ruc,razonSocial,idProyecto,proyecto,documentoIdentidad,usuario,clave,nombre,idrol,rol`,
       empresas: `id,idempresa,ruc,razonsocial,empresa`,
       configuracion: `id,idempresa,fechaproceso,idfundo,idcultivo,horario,idacopio,cliente,destino,formato,modulo,variedad,mercado`,
       fundos: `id,codigoFundo,empresa,fundo,nombreFundo`,
       cultivos: `id,cultivo,codigo,descripcion,empresa`,
       acopios: `id,nave,codigoAcopio,acopio`,
-      lineas: `id,ruc,linea,espacios,color,tipo,codigo,estado`,
+      lineas: `id,ruc,linea,espacios,color,tipo,codigo,estado,configuraciones,operariosAsignados`,
       operarios: `id,ruc,dni,nombres,apellidopaterno,apellidomaterno,nombrescompletos,estado`,
       asignaciones: `idasignacion,ruc,idlinea,posicion,idoperario,fechaproceso,estado,sincronizado`,
       conteos: `idconteo,ruc,idasignacion,idoperario,idlinea,fechaproceso,sincronizado`,
       clientes: `id,codigo,nombre`,
       destinos: `iddestino,codigo,nombre`,
       formatos: `id,codigo,descripcion`,
-      modulos: `id,codigo,descripcion`,
+      modulos: `id,idmodulo,nombremodulo,idfundo,idcultivo`,
       turnos: `id,codigo,descripcion`,
       lotes: `id,codigo,descripcion`,
-      variedades: `id,codigo,descripcion`,
+      variedades: `id,idcultivo,idmodulo,idvariedad,variedad`,
       mercados: `id,codigo,nombre`
     });
 

@@ -7,11 +7,12 @@ import { MaestrasService } from '../../services/maestras.service';
 import { UtilsService } from '@/app/shared/utils/utils.service';
 import { AlertService } from '@/app/shared/alertas/alerts.service';
 import { Usuario } from '@/app/shared/interfaces/Tables';
+import { DropdownComponent } from '@/app/modules/main/components/dropdown/dropdown.component';
 
 @Component({
   selector: 'app-parametros',
   standalone: true,
-  imports: [CommonModule,FormsModule],
+  imports: [CommonModule,FormsModule,DropdownComponent],
   templateUrl: './parametros.component.html',
   styleUrl: './parametros.component.scss'
 })
@@ -34,6 +35,7 @@ export class ParametrosComponent {
   formatos: any[] = [];
   modulos: any[] = [];
   variedades: any[] = [];
+  allVariedades: any[] = [];
   mercados: any[] = [];
   lineas: any[] = [];
   operarios: any[] = [];
@@ -109,6 +111,10 @@ export class ParametrosComponent {
     await this.ListarMercados();
     await this.ListarLotes();
     await this.ListarTurnos();
+    
+    if (this.configuracion.modulo) {
+      this.variedades = this.allVariedades.filter((variedad: any) => variedad.idmodulo === this.configuracion.modulo);
+    }
   }
 
   async sincronizarTablasMaestras() {
@@ -116,59 +122,60 @@ export class ParametrosComponent {
       this.alertService.showAlert('Sin conexión', 'Necesita internet para sincronizar', 'warning');
       return;
     }
-
     this.sincronizando = true;
-    
     try {
-       //Acopio
       const acopios = await this.maestrasService.getAcopios([{ idempresa:'' }])
       if(!!acopios && acopios.length) { 
         await this.dexieService.saveAcopios(acopios);
         await this.ListarAcopios();
       }
-      //Empresa
-      const empresas = await this.maestrasService.getEmpresas([{ruc: this.usuario?.ruc}])
-      if(!!empresas && empresas.length) { 
-        await this.dexieService.saveEmpresas(empresas)
-        await this.ListarEmpresas()
-      }
       
-      //Fundo
-      const fundos = await this.maestrasService.getFundos([{ruc: this.usuario?.ruc}])
-      if(!!fundos && fundos.length) { 
-        await this.dexieService.saveFundos(fundos);
-        await this.ListarFundos();
-      }
+      this.maestrasService.getFundos([{ruc: this.usuario?.ruc}]).subscribe(
+        async (resp)=> {
+          if(!!resp && resp.length) {
+            await this.dexieService.saveFundos(resp);
+            await this.ListarFundos();
+          }
+        }
+      );
       
-      //Cultivo
-      const cultivos = await this.maestrasService.getCultivos([{idempresa: this.usuario?.idempresa}])
-      if(!!cultivos && cultivos.length) {  
-        await this.dexieService.saveCultivos(cultivos); 
-        await this.ListarCultivos();
-      }
+      this.maestrasService.getCultivos([{idempresa: this.usuario?.idempresa}]).subscribe(
+        async (resp)=> {
+          if(!!resp && resp.length) {  
+            await this.dexieService.saveCultivos(resp); 
+            await this.ListarCultivos();
+          }
+        }
+      );
 
-      //Cliente
-      const clientes = await this.maestrasService.getClientes([{aplicacion:'PLANTA'}])
-      if(!!clientes && clientes.length) { 
-        await this.dexieService.saveClientes(clientes);
-        await this.ListarClientes();
-      }
+      this.maestrasService.getClientes([{aplicacion:'PLANTA'}]).subscribe(
+        async (resp)=> {
+          if(!!resp && resp.length) { 
+            await this.dexieService.saveClientes(resp);
+            await this.ListarClientes();
+          }
+        }
+      );
 
-      //Destino
-      const destinos = await this.maestrasService.getDestinos([{aplicacion:'PLANTA'}])
-      if(!!destinos && destinos.length) { 
-        await this.dexieService.saveDestinos(destinos);
-        await this.ListarDestinos();
-      }
+      this.maestrasService.getDestinos([{aplicacion:'PLANTA'}]).subscribe(
+        async (resp)=> {
+          if(!!resp && resp.length) { 
+            await this.dexieService.saveDestinos(resp);
+            await this.ListarDestinos();
+          }
+        }
+      );
 
-      //Formato
-      const formatos = await this.maestrasService.getFormatos([{ idempresa : this.usuario?.idempresa, aplicacion : 'PLANTA' }])
-      if(!!formatos && formatos.length) { 
-        await this.dexieService.saveFormatos(formatos);
-        await this.ListarFormatos();
-      }
+      this.maestrasService.getFormatos([{ idempresa : this.usuario?.idempresa, aplicacion : 'PLANTA' }]).subscribe(
+        async (resp)=> {
+          if(!!resp && resp.length) { 
+            await this.dexieService.saveFormatos(resp);
+            await this.ListarFormatos();
+          }
+        }
+      );
 
-      this.maestrasService.getModulos(this.usuario?.idempresa).subscribe(
+      this.maestrasService.getModulos([{ idempresa: this.usuario?.idempresa, aplicacion:'PLANTA'}]).subscribe(
         async (resp)=> {
           if(!!resp && resp.length) {
             await this.dexieService.saveModulos(resp);
@@ -177,44 +184,59 @@ export class ParametrosComponent {
         }
       );
 
-      this.maestrasService.getLotes(this.usuario?.sociedad).subscribe(
-        async (resp)=> {
+      // this.maestrasService.getLotes(this.usuario?.idempresa).subscribe(
+      //   async (resp)=> {
+      //     if(!!resp && resp.length) {
+      //       await this.dexieService.saveLotes(resp);
+      //       await this.ListarLotes();
+      //     }
+      //   }
+      // );
+
+      // this.maestrasService.getTurnos(this.usuario?.idempresa).subscribe(
+      //   async (resp)=> {
+      //     if(!!resp && resp.length) {
+      //       await this.dexieService.saveTurnos(resp);
+      //       await this.ListarTurnos();
+      //     }
+      //   }
+      // );
+
+      this.maestrasService.getVariedades([{ idempresa: this.usuario?.idempresa, aplicacion:'PLANTA'}]).subscribe(
+        async (resp) => {
           if(!!resp && resp.length) {
-            await this.dexieService.saveLotes(resp);
-            await this.ListarLotes();
+            await this.dexieService.saveVariedades(resp);
+            await this.ListarVariedades();
           }
         }
       );
-
-      this.maestrasService.getTurnos(this.usuario?.idempresa).subscribe(
-        async (resp)=> {
-          if(!!resp && resp.length) {
-            await this.dexieService.saveTurnos(resp);
-            await this.ListarTurnos();
-          }
-        }
-      );
-
-      //Variedad
-      const variedades = await this.maestrasService.getVariedades([{ruc: this.usuario?.ruc}])
-      if(!!variedades && variedades.length) { 
-        await this.dexieService.saveVariedades(variedades);
-        await this.ListarVariedades();
-      }
       
-      //Lineas
-      const lineas = await this.maestrasService.getLineasProduccion([{ruc: this.usuario?.ruc}])
-      if(!!lineas && lineas.length) { 
-        await this.dexieService.saveLineas(lineas);
-        await this.ListarLineas();
-      }
+      this.maestrasService.getLineasProduccion([{ruc: this.usuario?.ruc}]).subscribe(
+        async (lineas) => {
+          if(!!lineas && lineas.length) {
+            const lineasExistentes = await this.dexieService.showLineas();
+            const lineasActualizadas = lineas.map((lineaAPI: any) => {
+              const lineaExistente = lineasExistentes.find(l => l.id === lineaAPI.id);
+              return {
+                ...lineaAPI,
+                configuraciones: lineaExistente?.configuraciones || undefined,
+                operariosAsignados: lineaExistente?.operariosAsignados || []
+              };
+            });
+            await this.dexieService.saveLineas(lineasActualizadas);
+            await this.ListarLineas();
+          }
+        }
+      );
 
-      //Operarios
-      const operarios = await this.maestrasService.getOperarios([{ruc: this.usuario?.ruc}])
-      if(!!operarios && operarios.length) { 
-        await this.dexieService.saveOperarios(operarios);
-        await this.ListarOperarios();
-      }
+      this.maestrasService.getOperarios([{ruc: this.usuario?.ruc}]).subscribe(
+        async (operarios) => {
+          if(!!operarios && operarios.length) {
+            await this.dexieService.saveOperarios(operarios);
+            await this.ListarOperarios();
+          }
+        }
+      );
 
       this.alertService.showAlert('¡Éxito!','Todos los catálogos sincronizados correctamente','success');
     } catch (error: any) {
@@ -244,9 +266,13 @@ export class ParametrosComponent {
   async ListarCultivos() {
     const cultivos = await this.dexieService.showCultivos();
     this.cultivos = cultivos.filter((cultivo: any) => cultivo.empresa === this.usuario.sociedad);
-    if(this.cultivos.length === 1) {
-      this.configuracion.idcultivo = this.cultivos[0].codigoCultivo;
-    }
+    this.configuracion.idcultivo = '0802';
+  }
+
+  async ListarModulos() {
+    const modulos = await this.dexieService.showModulos();
+    // console.log('m: ', modulos)
+    this.modulos = modulos.filter((m: any) => m.idcultivo == '0802')
   }
 
   async ListarEmpresas() {
@@ -258,19 +284,22 @@ export class ParametrosComponent {
   }
 
   async ListarDestinos() {
-    this.destinos = await this.dexieService.showDestinos();
+    const destinosData = await this.dexieService.showDestinos();
+    this.destinos = destinosData.map((d: any) => ({
+      ...d,
+      destinoCompleto: `${d.mercado} - ${d.destino}`
+    }));
   }
 
   async ListarFormatos() {
     this.formatos = await this.dexieService.showFormatos();
   }
 
-  async ListarModulos() {
-    this.modulos = await this.dexieService.showModulos();
-  }
+  
 
   async ListarLotes() {
-    this.lotes = await this.dexieService.showLotes();
+    const allLotes = await this.dexieService.showLotes();
+    this.lotes = allLotes.filter((lote: any) => lote.codcultivo === '0802');
   }
 
   async ListarTurnos() {
@@ -278,7 +307,23 @@ export class ParametrosComponent {
   }
 
   async ListarVariedades() {
-    this.variedades = await this.dexieService.showVariedades();
+    this.allVariedades = await this.dexieService.showVariedades();
+    this.variedades = [];
+  }
+
+  onModuloChange(moduloId: any) {
+    this.configuracion.variedad = '';
+    
+    if (!moduloId) {
+      this.variedades = [];
+      return;
+    }
+
+    this.variedades = this.allVariedades.filter((variedad: any) => variedad.idmodulo === moduloId);
+    
+    if (this.variedades.length === 1) {
+      this.configuracion.variedad = this.variedades[0].idvariedad;
+    }
   }
 
   async ListarMercados() {
@@ -293,18 +338,55 @@ export class ParametrosComponent {
     this.operarios = await this.dexieService.showOperarios();
   }
 
+  onLoteChange(loteId: any) {
+    if (!loteId) {
+      this.configuracion.modulo = '';
+      this.configuracion.turno = '';
+      this.configuracion.variedad = '';
+      this.variedades = [...this.allVariedades];
+      return;
+    }
+
+    const selectedLote = this.lotes.find((lote: any) => lote.id === loteId);
+    if (selectedLote) {
+      this.configuracion.modulo = selectedLote.codmodulo;
+      
+      const selectedTurno = this.turnos.find((turno: any) => turno.id === selectedLote.turno);
+      if (selectedTurno) {
+        this.configuracion.turno = selectedTurno.id;
+      }
+      
+      this.variedades = this.allVariedades.filter((variedad: any) => variedad.lote === selectedLote.lote);
+      
+      if (this.variedades.length === 1) {
+        this.configuracion.variedad = this.variedades[0].codigo;
+      } else {
+        this.configuracion.variedad = '';
+      }
+    }
+  }
+
   async guardarConfiguracion() {
     this.showValidation = true;
-    // if(this.configuracion.idempresa && this.configuracion.idfundo && this.configuracion.idcultivo && 
-    //    this.configuracion.idacopio && this.configuracion.horario && this.configuracion.cliente && 
-    //    this.configuracion.destino && this.configuracion.formato && this.configuracion.modulo && 
-    //    this.configuracion.variedad && this.configuracion.mercado) {
-    this.configuracion.id = this.usuario.documentoidentidad;
-    await this.dexieService.saveConfiguracion(this.configuracion);
-    this.alertService.showAlert('¡Éxito!','Configuración guardada correctamente', 'success');
-    // } else {
-    //   this.alertService.showAlert('Alerta!','Debe completar todos los campos', 'warning');
-    // }
+
+    const isValid = 
+      this.configuracion.idfundo != null && this.configuracion.idfundo !== '' &&
+      this.configuracion.idcultivo != null && this.configuracion.idcultivo !== '' &&
+      this.configuracion.idacopio != null && this.configuracion.idacopio !== '' &&
+      this.configuracion.horario != null && this.configuracion.horario !== '' &&
+      this.configuracion.cliente != null && this.configuracion.cliente !== '' &&
+      this.configuracion.destino != null && this.configuracion.destino !== '' &&
+      this.configuracion.formato != null && this.configuracion.formato !== '' &&
+      this.configuracion.modulo != null && this.configuracion.modulo !== '' &&
+      this.configuracion.variedad != null && this.configuracion.variedad !== '';
+    
+    if(isValid) {
+      this.configuracion.id = this.usuario.documentoidentidad;
+      await this.dexieService.saveConfiguracion(this.configuracion);
+      this.alertService.showAlert('¡Éxito!','Configuración guardada correctamente', 'success');
+    } else {
+      this.alertService.showAlert('Alerta!','Debe completar todos los campos', 'warning');
+    }
   }
 
 }

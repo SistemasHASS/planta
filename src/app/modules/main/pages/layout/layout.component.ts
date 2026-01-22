@@ -99,7 +99,7 @@ export class LayoutComponent {
       'parametros': 'Parámetros',
       'dashboard': 'Dashboard',
       'mantenedor-lineas': 'Lineas de producción',
-      'asignacion': 'Asignación de operarios',
+      'ajustes-linea': 'Ajustes de línea',
       'conteo': 'Conteo por operario'
     };
     

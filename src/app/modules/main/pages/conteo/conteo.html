@@ -1,77 +1,190 @@
-<div class="conteo-container">
-  <div class="card shadow-sm">
-    <div class="card-header bg-success text-white">
-      <div class="d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-          <i class="bi bi-box-seam"></i> Conteo de Cajas
-        </h5>
-        <div class="d-flex align-items-center gap-2">
-          <span class="badge bg-warning text-dark" *ngIf="pendientesSincronizar > 0">
-            <i class="bi bi-exclamation-circle"></i> {{pendientesSincronizar}} pendientes
-          </span>
-          <button class="btn btn-light btn-sm" (click)="sincronizar()" [disabled]="sincronizando || pendientesSincronizar === 0">
-            <i class="bi bi-arrow-repeat" [class.spin-icon]="sincronizando"></i>
-            {{sincronizando ? 'Sincronizando...' : 'Sincronizar'}}
-          </button>
+<div class="container-fluid">
+  <div class="card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="mb-0">
+          <i class="icon icon-calculator"></i> Conteo de Producción
+        </h4>
+        <div class="text-muted">
+          <i class="icon icon-calendar"></i> {{ fechaProceso }}
         </div>
       </div>
-    </div>
-
-    <div class="card-body p-4">
-      <div class="row mb-4">
-        <div class="col-md-4">
-          <label class="form-label fw-bold">Fecha de Proceso</label>
-          <input type="date" class="form-control" [(ngModel)]="fechaSeleccionada" (change)="cambiarFecha()">
+      <div *ngIf="cargando" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Cargando...</span>
         </div>
+        <p class="mt-3">Cargando líneas...</p>
       </div>
-
-      <div class="alert alert-info d-flex align-items-center" *ngIf="asignaciones.length === 0">
-        <i class="bi bi-info-circle me-2 fs-5"></i>
-        <span>No hay asignaciones para la fecha seleccionada. Primero debe asignar operarios a las líneas.</span>
+      <div *ngIf="!cargando && lineas.length === 0" class="alert alert-info text-center">
+        <i class="icon icon-info-circle"></i>
+        No hay líneas de producción disponibles. Por favor, sincronice las líneas desde Parámetros.
       </div>
-
-      <div class="row g-4">
-        <div class="col-md-6 col-lg-4" *ngFor="let asig of asignaciones">
-          <div class="card h-100 shadow-sm border-0 conteo-card">
-            <div class="card-header text-white" [style.background-color]="asig.color">
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 class="mb-0 fw-bold">{{asig.nombrelinea}}</h6>
-                  <small>{{asig.codigolinea}} - Posición {{asig.posicion}}</small>
-                </div>
-              </div>
-            </div>
+      <div *ngIf="!cargando && lineas.length > 0" class="row">
+        <div class="col-md-6 col-lg-4 mb-4" *ngFor="let linea of lineas">
+          <div class="card linea-card h-100 shadow-sm" 
+               [style.border-left]="'5px solid ' + getColorFondo(linea.color)"
+               (click)="abrirModalConteo(linea)"
+               [class.cursor-pointer]="tieneOperarios(linea)"
+               [class.disabled-card]="!tieneOperarios(linea)">
             <div class="card-body">
-              <div class="operario-info mb-3">
-                <i class="bi bi-person-circle me-2"></i>
-                <strong>{{asig.nombreoperario}}</strong>
-              </div>
-              
-              <div class="total-cajas mb-3">
-                <div class="text-center p-3 bg-light rounded">
-                  <div class="display-4 fw-bold text-success">{{getTotalCajas(asig.idasignacion)}}</div>
-                  <small class="text-muted">Cajas Acumuladas</small>
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                  <h5 class="card-title mb-1">
+                    <i class="icon icon-industry"></i> {{ linea.linea }}
+                  </h5>
+                  <span class="badge" 
+                        [ngClass]="linea.tipo === 'M' ? 'bg-primary' : 'bg-info'">
+                    {{ linea.tipo === 'M' ? 'Máquina' : 'Handpack' }}
+                  </span>
+                </div>
+                <div class="color-badge" 
+                     [style.background-color]="getColorFondo(linea.color)"
+                     [style.color]="getColorTexto(linea.color)">
+                  {{ linea.color || 'N/A' }}
                 </div>
               </div>
 
-              <div class="input-group input-group-lg">
-                <input 
-                  type="number" 
-                  class="form-control" 
-                  [value]="getCantidadInput(asig.idasignacion)"
-                  (input)="setCantidadInput(asig.idasignacion, +$any($event.target).value)"
-                  placeholder="Cantidad"
-                  min="1">
-                <button 
-                  class="btn btn-success" 
-                  (click)="registrarConteo(asig)"
-                  [disabled]="!getCantidadInput(asig.idasignacion) || getCantidadInput(asig.idasignacion) <= 0">
-                  <i class="bi bi-plus-circle"></i> Registrar
+              <div class="linea-info">
+                <div class="info-item">
+                  <i class="icon icon-users4"></i>
+                  <span class="info-label">Operarios:</span>
+                  <span class="info-value">
+                    <strong>{{ getContadorOperarios(linea) }}</strong>
+                  </span>
+                </div>
+                <div class="info-item">
+                  <i class="icon icon-grid"></i>
+                  <span class="info-label">Espacios:</span>
+                  <span class="info-value">{{ linea.espacios }}</span>
+                </div>
+                <div class="info-item">
+                  <i class="icon icon-calculator"></i>
+                  <span class="info-label">Total Conteo:</span>
+                  <span class="info-value">
+                    <strong class="text-success">{{ getTotalConteo(linea) }}</strong>
+                  </span>
+                </div>
+              </div>
+
+              <div class="mt-3">
+                <button class="btn btn-sm w-100"
+                        [ngClass]="tieneOperarios(linea) ? 'btn-primary' : 'btn-secondary'"
+                        [disabled]="!tieneOperarios(linea)">
+                  <i class="icon icon-pencil"></i>
+                  {{ tieneOperarios(linea) ? 'Registrar Conteo' : 'Sin Operarios' }}
                 </button>
               </div>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Conteo -->
+<div class="modal fade" #modalConteo tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header" 
+           [style.background-color]="getColorFondo(lineaSeleccionada?.color || '')"
+           [style.color]="getColorTexto(lineaSeleccionada?.color || '')">
+        <h5 class="modal-title">
+          <i class="icon icon-calculator"></i>
+          Conteo: {{ lineaSeleccionada?.linea }}
+        </h5>
+        <button type="button" 
+                class="btn-close" 
+                [class.btn-close-white]="getColorTexto(lineaSeleccionada?.color || '') === '#ffffff'"
+                (click)="cerrarModalConteo()"
+                aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="container-fluid">
+          <div class="row mb-3">
+            <div class="col-md-12">
+              <div class="alert alert-info">
+                <i class="icon icon-info-circle"></i>
+                <strong>Instrucciones:</strong> Registre la cantidad de producción para cada operario. 
+                Use los botones + y - o ingrese el valor directamente.
+              </div>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-hover table-striped">
+              <thead class="table-dark" style="position: sticky; top: 0; z-index: 1;">
+                <tr>
+                  <th class="text-center" style="width: 50px;">#</th>
+                  <th>DNI</th>
+                  <th>Operario</th>
+                  <th class="text-center" style="width: 200px;">Cantidad</th>
+                  <th class="text-center" style="width: 100px;">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let op of operariosConConteo; let i = index">
+                  <td class="text-center">{{ i + 1 }}</td>
+                  <td>{{ op.dni }}</td>
+                  <td>{{ op.nombrescompletos }}</td>
+                  <td>
+                    <div class="input-group input-group-sm">
+                      <button class="btn btn-outline-danger" 
+                              type="button"
+                              (click)="decrementarCantidad(op)">
+                        <i class="icon icon-minus"></i>
+                      </button>
+                      <input type="number" 
+                             class="form-control text-center" 
+                             [(ngModel)]="op.cantidad"
+                             min="0"
+                             style="max-width: 80px;">
+                      <button class="btn btn-outline-success" 
+                              type="button"
+                              (click)="incrementarCantidad(op)">
+                        <i class="icon icon-plus"></i>
+                      </button>
+                    </div>
+                  </td>
+                  <td class="text-center">
+                    <span class="badge" 
+                          [ngClass]="op.sincronizado === 1 ? 'bg-success' : 'bg-warning'">
+                      {{ op.sincronizado === 1 ? 'Sincronizado' : 'Pendiente' }}
+                    </span>
+                  </td>
+                </tr>
+                <tr *ngIf="operariosConConteo.length === 0">
+                  <td colspan="5" class="text-center text-muted">
+                    No hay operarios asignados a esta línea
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot class="table-light" *ngIf="operariosConConteo.length > 0">
+                <tr>
+                  <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                  <td class="text-center">
+                    <strong class="text-success fs-5">
+                      {{ getTotalOperariosConteo() }}
+                    </strong>
+                  </td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-danger" (click)="limpiarConteos()">
+          <i class="icon icon-eraser"></i> Limpiar
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="cerrarModalConteo()">
+          <i class="icon icon-cross"></i> Cancelar
+        </button>
+        <button type="button" class="btn btn-success" (click)="guardarConteos()">
+          <i class="icon icon-floppy-disk"></i> Guardar Conteos
+        </button>
       </div>
     </div>
   </div>
