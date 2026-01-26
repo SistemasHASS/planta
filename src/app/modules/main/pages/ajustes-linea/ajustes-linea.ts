@@ -46,7 +46,6 @@ export class AjustesLinea implements OnInit {
     idfundo: '',
     idcultivo: '',
     horario: '',
-    idacopio: '',
     cliente: '',
     destino: '',
     formato: '',
@@ -57,7 +56,6 @@ export class AjustesLinea implements OnInit {
     mercado: ''
   };
 
-  acopios: any[] = [];
   fundos: any[] = [];
   cultivos: any[] = [];
   clientes: any[] = [];
@@ -71,6 +69,7 @@ export class AjustesLinea implements OnInit {
   mercados: any[] = [];
   showValidation = false;
   variedadesFiltradas: any[] = [];
+  sincronizando = false;
 
   constructor(
     private maestrasService: MaestrasService,
@@ -135,7 +134,6 @@ export class AjustesLinea implements OnInit {
   }
 
   async cargarDropdowns() {
-    this.acopios = await this.dexieService.showAcopios();
     this.fundos = await this.dexieService.showFundos();
     this.cultivos = await this.dexieService.showCultivos();
     this.clientes = await this.dexieService.showClientes();
@@ -197,7 +195,6 @@ export class AjustesLinea implements OnInit {
     const isValid = 
       this.configuracion.idfundo != null && this.configuracion.idfundo !== '' &&
       this.configuracion.idcultivo != null && this.configuracion.idcultivo !== '' &&
-      this.configuracion.idacopio != null && this.configuracion.idacopio !== '' &&
       this.configuracion.horario != null && this.configuracion.horario !== '' &&
       this.configuracion.cliente != null && this.configuracion.cliente !== '' &&
       this.configuracion.destino != null && this.configuracion.destino !== '' &&
@@ -272,5 +269,56 @@ export class AjustesLinea implements OnInit {
 
   tieneOperarios(linea: Linea): boolean {
     return !!linea.operariosAsignados && linea.operariosAsignados.length > 0;
+  }
+
+  async sincronizarConfiguraciones() {
+    if (!navigator.onLine) {
+      this.alertService.showAlert('Sin conexión', 'Necesita internet para sincronizar', 'warning');
+      return;
+    }
+
+    const lineasConConfiguracion = this.lineas.filter(l => l.configuraciones && l.idacopio);
+    
+    if (lineasConConfiguracion.length === 0) {
+      this.alertService.showAlert('Sin configuraciones', 'No hay líneas con configuración para sincronizar', 'info');
+      return;
+    }
+
+    this.sincronizando = true;
+    
+    try {
+      const configuraciones = lineasConConfiguracion.map(linea => ({
+        idconfiguracion: `${linea.id}_${new Date().getTime()}`,
+        ruc: this.usuario.ruc,
+        idfundo: linea.configuraciones!.idfundo,
+        idacopio: linea.idacopio,
+        idlineaproduccion: linea.id,
+        fecharegistro: new Date().toISOString().slice(0, 19).replace('T', ' '),
+        horario: linea.configuraciones!.horario,
+        idcultivo: linea.configuraciones!.idcultivo,
+        iddestino: linea.configuraciones!.destino,
+        idcliente: linea.configuraciones!.cliente,
+        idformato: linea.configuraciones!.formato,
+        idmodulo: linea.configuraciones!.modulo,
+        idvariedad: linea.configuraciones!.variedad,
+        dniusuario: this.usuario.documentoidentidad
+      }));
+
+      this.maestrasService.sincronizarConfiguracionLineas(configuraciones).subscribe({
+        next: (response) => {
+          this.alertService.showAlert('¡Éxito!', `${configuraciones.length} configuraciones sincronizadas correctamente`, 'success');
+          this.sincronizando = false;
+        },
+        error: (error) => {
+          console.error('Error sincronizando configuraciones:', error);
+          this.alertService.showAlert('Error', 'Error al sincronizar configuraciones', 'error');
+          this.sincronizando = false;
+        }
+      });
+    } catch (error) {
+      console.error('Error preparando sincronización:', error);
+      this.alertService.showAlert('Error', 'Error al preparar sincronización', 'error');
+      this.sincronizando = false;
+    }
   }
 }

@@ -34,6 +34,7 @@
       <tr>
         <th>#</th>
         <th>Editar</th>
+        <th>Acopio</th>
         <th>Línea</th>
         <th>Tipo</th>
         <th>Espacios</th>
@@ -50,6 +51,7 @@
             <i class="icon icon-pencil"></i>
           </button>
         </td>
+        <td>{{ l.acopio }}</td>
         <td>{{ l.linea }}</td>
         <td>
           <span class="badge" [ngClass]="l.tipo === 'M' ? 'bg-primary' : 'bg-info'">
@@ -146,6 +148,21 @@
                       <option value="">Seleccione tipo</option>
                       <option value="M">Maquina (M)</option>
                       <option value="H">Handpack (H)</option>
+                    </select>
+                  </div>
+                </div>
+              </fieldset>
+            </div>
+            <div class="col-md-12 col-lg-6 col-xl-6 marginBottom">
+              <fieldset>
+                <div class="form-group row box-labelFloat">
+                  <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Acopio</label>
+                  <div class="col-lg-9">
+                    <select class="form-control fuerte" 
+                      [ngClass]="{'is-invalid': showValidation && !linea.idacopio, 'is-valid': linea.idacopio}"
+                      [(ngModel)]="linea.idacopio">
+                      <option value="">Seleccione acopio</option>
+                      <option *ngFor="let a of acopios" [value]="a.id">{{ a.acopio }}</option>
                     </select>
                   </div>
                 </div>

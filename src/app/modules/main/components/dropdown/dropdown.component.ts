@@ -27,11 +27,11 @@ export class DropdownComponent implements ControlValueAccessor, OnChanges {
   @Input() duration: number = 0.2;
   @Input() editable: boolean = false;
   @Input() disabled: boolean = false;
+  @Input() showValidation: boolean = false;
 
   isDrop: boolean = false;
   filteredData: any[] = [];
   selectedItem: any = null;
-  showValidation: boolean = false;
   private tempValue: any = null;
 
   private onChange: (value: any) => void = () => {};

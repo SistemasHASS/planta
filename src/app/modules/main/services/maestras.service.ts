@@ -68,12 +68,21 @@ export class MaestrasService {
     }
   }
 
-  crudLineaProduccion(body: any) {
-    const url = `${this.baseUrl}/mantenedoresplanta/lineas/crud/sp`;
+  crudLineaProduccion(body: any): Observable<any> {
+    const url = `${this.baseUrl}/mantenedoresplanta/crud-linea-produccion`;
     try {
       return this.http.post<any>(url, body);
     } catch (error: any) {
-      throw new Error(error.error?.message || 'Error en CRUD linea de producción');
+      throw new Error(error.error?.message || 'Error en crud línea producción');
+    }
+  }
+
+  sincronizarConfiguracionLineas(body: any): Observable<any> {
+    const url = `${this.baseUrl}/mantenedoresplanta/configuracion-lineas/sincronizar`;
+    try {
+      return this.http.post<any>(url, body);
+    } catch (error: any) {
+      throw new Error(error.error?.message || 'Error sincronizando configuración de líneas');
     }
   }
 

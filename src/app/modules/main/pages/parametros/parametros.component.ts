@@ -28,7 +28,6 @@ export class ParametrosComponent {
   empresas: any[] = [];
   cultivos: any[] = [];
   fundos: any[] = [];
-  acopios: any[] = [];
   horarios: any[] = [];
   clientes: any[] = [];
   destinos: any[] = [];
@@ -50,7 +49,6 @@ export class ParametrosComponent {
     idfundo: '',
     idcultivo: '',
     horario: '',
-    idacopio: '',
     cliente: '',
     destino: '',
     formato: '',
@@ -100,7 +98,6 @@ export class ParametrosComponent {
 
   async llenarDropdowns() {
     await this.ListarEmpresas();
-    await this.ListarAcopios();
     await this.ListarFundos();
     await this.ListarCultivos();    
     await this.ListarClientes();
@@ -127,7 +124,6 @@ export class ParametrosComponent {
       const acopios = await this.maestrasService.getAcopios([{ idempresa:'' }])
       if(!!acopios && acopios.length) { 
         await this.dexieService.saveAcopios(acopios);
-        await this.ListarAcopios();
       }
       
       this.maestrasService.getFundos([{ruc: this.usuario?.ruc}]).subscribe(
@@ -247,13 +243,6 @@ export class ParametrosComponent {
     }
   }
 
-  async ListarAcopios() {
-    const acopiostotales = await this.dexieService.showAcopios();
-    this.acopios = acopiostotales.filter((acopio: any) => acopio.ruc === this.usuario.ruc);
-    if(this.acopios.length === 1) {
-      this.configuracion.idacopio = this.acopios[0].codigoAcopio;
-    }
-  }
 
   async ListarFundos() {
     const fundostotales = await this.dexieService.showFundos();
@@ -372,7 +361,6 @@ export class ParametrosComponent {
     const isValid = 
       this.configuracion.idfundo != null && this.configuracion.idfundo !== '' &&
       this.configuracion.idcultivo != null && this.configuracion.idcultivo !== '' &&
-      this.configuracion.idacopio != null && this.configuracion.idacopio !== '' &&
       this.configuracion.horario != null && this.configuracion.horario !== '' &&
       this.configuracion.cliente != null && this.configuracion.cliente !== '' &&
       this.configuracion.destino != null && this.configuracion.destino !== '' &&

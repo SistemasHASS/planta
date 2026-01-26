@@ -14,9 +14,17 @@
         />
       </span>
     </div>
+    <div>
+      <button class="btn btn-primary d-flex align-items-center" 
+              (click)="sincronizarConfiguraciones()" 
+              [disabled]="sincronizando">
+        <i class="icon icon-sync me-2" [class.icon-spin]="sincronizando"></i>
+        {{ sincronizando ? 'Sincronizando...' : 'Sincronizar Configuraciones' }}
+      </button>
+    </div>
   </div>
   <br>
-  <p-table 
+  <p-table
     #dt
     [value]="lineas" 
     [paginator]="true" 
@@ -92,21 +100,6 @@
   <div class="card-body">
     <div class="container-fluid">
       <div class="row">
-        <div class="col-md-6 marginBottom">
-          <fieldset>
-            <div class="form-group row box-labelFloat">
-              <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Acopio</label>
-              <div class="col-lg-9">
-                <select [(ngModel)]="configuracion.idacopio"
-                  [ngClass]="{'is-invalid': showValidation && !configuracion.idacopio, 'is-valid': configuracion.idacopio}"
-                  class="form-select mb-2" name="acopio">
-                  <option [ngValue]="''">Seleccione una opción</option>
-                  <option *ngFor="let t of acopios; let i = index" [ngValue]="t.id">{{ t.acopio }}</option>
-                </select>
-              </div>
-            </div>
-          </fieldset>
-        </div>
         <div class="col-md-6 marginBottom">
           <fieldset>
             <div class="form-group row box-labelFloat">

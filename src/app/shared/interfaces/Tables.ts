@@ -21,7 +21,6 @@ export interface Configuracion {
     idfundo: string;
     idcultivo: string;
     horario: string;
-    idacopio: string;
     cliente?: string;
     destino?: string;
     formato?: string;
@@ -71,6 +70,7 @@ export interface Linea {
     estado: number
     tipo?: string
     codigo?: string
+    idacopio?: string
     configuraciones?: Configuracion
     operariosAsignados?: Operario[]
 }

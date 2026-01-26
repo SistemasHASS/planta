@@ -29,8 +29,10 @@ export class MantenedorLineasComponent {
     color: '',
     estado: 0,
     tipo: '',
-    codigo: ''
+    codigo: '',
+    idacopio: ''
   };
+  acopios: any[] = [];
   editMode = false;
   showValidation = false;
   usuario: Usuario = {
@@ -56,13 +58,20 @@ export class MantenedorLineasComponent {
 
   async ngOnInit(): Promise<void> {
     await this.cargarUsuario();
+    await this.cargarAcopios();
     await this.cargarLineas();
+  }
+
+  async cargarAcopios() {
+    const acopiostotales = await this.dexieService.showAcopios();
+    this.acopios = acopiostotales.filter((acopio: any) => acopio.ruc === this.usuario.ruc);
   }
 
   async cargarUsuario() {
     const usuario = await this.dexieService.showUsuario();
     if (usuario) {
       this.usuario = usuario;
+      this.linea.ruc = usuario.ruc;
     }
   }
 
@@ -89,9 +98,10 @@ export class MantenedorLineasComponent {
 
   async guardar() {
     this.showValidation = true;
-    if (!this.linea.linea || !this.linea.espacios || !this.linea.color || !this.linea.tipo) {
+    if (!this.linea.linea || !this.linea.espacios || !this.linea.color || !this.linea.tipo || !this.linea.idacopio) {
       return;
     }
+    
     this.linea.estado = 1;
     
     if (!this.editMode) {
@@ -113,16 +123,17 @@ export class MantenedorLineasComponent {
   }
 
   formatoLinea(l: any) {
+    const acopio = this.acopios.find(a => a.id === l.idacopio);
     return [
       {
         ruc: this.usuario.ruc,
-        idlineaprodempa: l.id || 0,
+        idlinea: l.id || 0,
+        idfundo: acopio?.nave || '',
+        idacopio: l.idacopio || '',
         linea: l.linea,
         espacios: l.espacios,
         color: l.color || '',
-        estado: l.estado,
-        tipo: l.tipo || '',
-        codigo: l.codigo || ''
+        estado: l.estado
       }
     ]
   }

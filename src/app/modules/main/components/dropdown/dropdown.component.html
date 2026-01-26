@@ -1,5 +1,6 @@
 <div class="dropdown componentReu" (clickOutside)="closeDropdown()" [ngClass]="{'active': isDrop, 'disabled': disabled}">
-    <label class="col-lg-3 col-form-label"><b *ngIf="required && !disabled" class="text-danger">*</b> {{textShow}}</label>
+    <label class="col-lg-3 col-form-label">
+        <b *ngIf="required && !disabled" class="text-danger">*</b> {{textShow}}</label>
     @if (!disabled) {
         <div class="activeDrop" (click)="toggleDrop()" [ngStyle]="{'width' : !editable ? '0' : '40px'}"></div>
     }
