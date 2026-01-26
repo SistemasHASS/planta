@@ -108,7 +108,7 @@ export class ParametrosComponent {
     await this.ListarMercados();
     await this.ListarLotes();
     await this.ListarTurnos();
-    
+
     if (this.configuracion.modulo) {
       this.variedades = this.allVariedades.filter((variedad: any) => variedad.idmodulo === this.configuracion.modulo);
     }
@@ -179,25 +179,6 @@ export class ParametrosComponent {
           }
         }
       );
-
-      // this.maestrasService.getLotes(this.usuario?.idempresa).subscribe(
-      //   async (resp)=> {
-      //     if(!!resp && resp.length) {
-      //       await this.dexieService.saveLotes(resp);
-      //       await this.ListarLotes();
-      //     }
-      //   }
-      // );
-
-      // this.maestrasService.getTurnos(this.usuario?.idempresa).subscribe(
-      //   async (resp)=> {
-      //     if(!!resp && resp.length) {
-      //       await this.dexieService.saveTurnos(resp);
-      //       await this.ListarTurnos();
-      //     }
-      //   }
-      // );
-
       this.maestrasService.getVariedades([{ idempresa: this.usuario?.idempresa, aplicacion:'PLANTA'}]).subscribe(
         async (resp) => {
           if(!!resp && resp.length) {
@@ -207,21 +188,15 @@ export class ParametrosComponent {
         }
       );
       
-      this.maestrasService.getLineasProduccion([{ruc: this.usuario?.ruc}]).subscribe(
+      this.maestrasService.getConfiguracionLineasProduccion([{ruc: this.usuario?.ruc}]).subscribe(
         async (lineas) => {
           if(!!lineas && lineas.length) {
-            const lineasExistentes = await this.dexieService.showLineas();
-            const lineasActualizadas = lineas.map((lineaAPI: any) => {
-              const lineaExistente = lineasExistentes.find(l => l.id === lineaAPI.id);
-              return {
-                ...lineaAPI,
-                configuraciones: lineaExistente?.configuraciones || undefined,
-                operariosAsignados: lineaExistente?.operariosAsignados || []
-              };
-            });
-            await this.dexieService.saveLineas(lineasActualizadas);
+            await this.dexieService.saveLineas(lineas);
             await this.ListarLineas();
           }
+        },
+        (error) => {
+          console.error('Error al cargar configuración de líneas', error);
         }
       );
 

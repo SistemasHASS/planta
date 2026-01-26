@@ -86,6 +86,15 @@ export class MaestrasService {
     }
   }
 
+  getConfiguracionLineasProduccion(body: any): Observable<any> {
+    const url = `${this.baseUrl}/mantenedoresplanta/configuracion-lineas/listado`;
+    try {
+      return this.http.post<any>(url, body);
+    } catch (error: any) {
+      throw new Error(error.error?.message || 'Error obteniendo configuración de líneas');
+    }
+  }
+
   getFormatos(body: any): Observable<any> {
     const url = `${this.baseUrlMaestros}/api/Maestros/formato/listado`;
     try {
