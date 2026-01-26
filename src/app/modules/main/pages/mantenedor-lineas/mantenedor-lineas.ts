@@ -33,6 +33,7 @@ export class MantenedorLineasComponent {
     idacopio: ''
   };
   acopios: any[] = [];
+  fundos: any[] = [];
   editMode = false;
   showValidation = false;
   usuario: Usuario = {
@@ -58,13 +59,31 @@ export class MantenedorLineasComponent {
 
   async ngOnInit(): Promise<void> {
     await this.cargarUsuario();
+    await this.cargarFundos();
     await this.cargarAcopios();
     await this.cargarLineas();
   }
 
+  async cargarFundos() {
+    this.maestrasService.getFundos([{ruc: this.usuario.ruc}]).subscribe(
+      (fundos) => {
+        this.fundos = fundos;
+      },
+      (error) => {
+        console.error('Error al cargar fundos', error);
+        this.alertService.showAlert('Error', 'Error al cargar fundos', 'error');
+      }
+    );
+  }
+
   async cargarAcopios() {
-    const acopiostotales = await this.dexieService.showAcopios();
-    this.acopios = acopiostotales.filter((acopio: any) => acopio.ruc === this.usuario.ruc);
+    try {
+      const acopios = await this.maestrasService.getAcopios([{idempresa: ''}]);
+      this.acopios = acopios.filter((acopio: any) => acopio.ruc === this.usuario.ruc);
+    } catch (error) {
+      console.error('Error al cargar acopios', error);
+      this.alertService.showAlert('Error', 'Error al cargar acopios', 'error');
+    }
   }
 
   async cargarUsuario() {
@@ -79,6 +98,10 @@ export class MantenedorLineasComponent {
     this.maestrasService.getLineasProduccion([{ruc: this.usuario.ruc}]).subscribe(
       (lineas) => {
         this.lineas = lineas;
+      },
+      (error) => {
+        console.error('Error al cargar líneas', error);
+        this.alertService.showAlert('Error', 'Error al cargar líneas de producción', 'error');
       }
     );
   }
@@ -98,7 +121,7 @@ export class MantenedorLineasComponent {
 
   async guardar() {
     this.showValidation = true;
-    if (!this.linea.linea || !this.linea.espacios || !this.linea.color || !this.linea.tipo || !this.linea.idacopio) {
+    if (!this.linea.linea || !this.linea.espacios || !this.linea.color || !this.linea.tipo || !this.linea.idacopio || !this.linea.idfundo) {
       return;
     }
     
@@ -123,12 +146,11 @@ export class MantenedorLineasComponent {
   }
 
   formatoLinea(l: any) {
-    const acopio = this.acopios.find(a => a.id === l.idacopio);
     return [
       {
         ruc: this.usuario.ruc,
         idlinea: l.id || 0,
-        idfundo: acopio?.nave || '',
+        idfundo: l.idfundo || '',
         idacopio: l.idacopio || '',
         linea: l.linea,
         espacios: l.espacios,
@@ -194,5 +216,15 @@ export class MantenedorLineasComponent {
     };
     this.modalLineaInstance = new Modal(this.modalLineaRef.nativeElement);
     this.modalLineaInstance.show();
+  }
+
+  nombreAcopio(idacopio: string): string {
+    const acopio = this.acopios.find(a => a.id == idacopio);
+    return acopio ? acopio.acopio : '';
+  }
+
+  nombreFundo(idfundo: string): string {
+    const fundo = this.fundos.find(f => f.codigoFundo == idfundo);
+    return fundo ? fundo.nombreFundo : '';
   }
 }

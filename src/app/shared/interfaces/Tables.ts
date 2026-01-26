@@ -70,6 +70,7 @@ export interface Linea {
     estado: number
     tipo?: string
     codigo?: string
+    idfundo?: string
     idacopio?: string
     configuraciones?: Configuracion
     operariosAsignados?: Operario[]

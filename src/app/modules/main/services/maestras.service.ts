@@ -69,7 +69,7 @@ export class MaestrasService {
   }
 
   crudLineaProduccion(body: any): Observable<any> {
-    const url = `${this.baseUrl}/mantenedoresplanta/crud-linea-produccion`;
+    const url = `${this.baseUrl}/mantenedoresplanta/lineas/crud-linea-produccion`;
     try {
       return this.http.post<any>(url, body);
     } catch (error: any) {

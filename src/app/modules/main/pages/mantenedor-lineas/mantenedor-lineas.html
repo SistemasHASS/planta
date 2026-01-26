@@ -34,6 +34,7 @@
       <tr>
         <th>#</th>
         <th>Editar</th>
+        <th>Fundo</th>
         <th>Acopio</th>
         <th>Línea</th>
         <th>Tipo</th>
@@ -51,7 +52,8 @@
             <i class="icon icon-pencil"></i>
           </button>
         </td>
-        <td>{{ l.acopio }}</td>
+        <td>{{ nombreFundo(l.idfundo) || l.idfundo }}</td>
+        <td>{{ nombreAcopio(l.idacopio) || l.idacopio }}</td>
         <td>{{ l.linea }}</td>
         <td>
           <span class="badge" [ngClass]="l.tipo === 'M' ? 'bg-primary' : 'bg-info'">
@@ -148,6 +150,21 @@
                       <option value="">Seleccione tipo</option>
                       <option value="M">Maquina (M)</option>
                       <option value="H">Handpack (H)</option>
+                    </select>
+                  </div>
+                </div>
+              </fieldset>
+            </div>
+            <div class="col-md-12 col-lg-6 col-xl-6 marginBottom">
+              <fieldset>
+                <div class="form-group row box-labelFloat">
+                  <label class="col-lg-3 col-form-label"><b class="text-danger">*</b> Fundo</label>
+                  <div class="col-lg-9">
+                    <select class="form-control fuerte" 
+                      [ngClass]="{'is-invalid': showValidation && !linea.idfundo, 'is-valid': linea.idfundo}"
+                      [(ngModel)]="linea.idfundo">
+                      <option value="">Seleccione fundo</option>
+                      <option *ngFor="let f of fundos" [value]="f.codigoFundo">{{ f.nombreFundo }}</option>
                     </select>
                   </div>
                 </div>
