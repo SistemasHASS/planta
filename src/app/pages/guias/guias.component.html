@@ -1,0 +1,219 @@
+@switch (currentView()) {
+  @case ('procesos') {
+    <div class="page-title-area">
+      <h2><i class="bi bi-truck" style="color:var(--color-primary)"></i> Guías de Remisión</h2>
+      <p class="page-subtitle">Selecciona un proceso para gestionar sus guías</p>
+    </div>
+
+    <div class="sp-card">
+      <div class="sp-card-header">
+        <h5><i class="bi bi-calendar-check"></i> Procesos Disponibles</h5>
+      </div>
+      <div class="sp-card-body" style="padding:0">
+        <div class="table-responsive">
+          <table class="sp-table">
+            <thead>
+              <tr><th>ID</th><th>Fecha</th><th>Acopio</th><th>Turno</th><th>Estado</th><th>Acciones</th></tr>
+            </thead>
+            <tbody>
+              @for (p of procesos(); track p.Id) {
+                <tr>
+                  <td><strong>#{{ p.Id }}</strong></td>
+                  <td>{{ p.FechaProceso }}</td>
+                  <td>{{ p.AcopioCodigo }} - {{ p.AcopioNombre }}</td>
+                  <td>
+                    <i class="bi" [class]="p.Turno === 'DIA' ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i>
+                    {{ p.Turno }}
+                  </td>
+                  <td>
+                    @if (p.Estado === 'ABIERTO') {
+                      <span class="sp-badge sp-badge-success">ABIERTO</span>
+                    } @else {
+                      <span class="sp-badge sp-badge-muted">CERRADO</span>
+                    }
+                  </td>
+                  <td>
+                    <button class="btn-sp-primary" style="padding:4px 12px;font-size:12px" (click)="seleccionarProceso(p)">
+                      <i class="bi bi-eye"></i> Ver Guías
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6">
+                    <div class="empty-state"><i class="bi bi-inbox"></i><p>No hay procesos disponibles</p></div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  }
+
+  @case ('guias') {
+    <div class="page-title-area">
+      <h2><i class="bi bi-truck" style="color:var(--color-primary)"></i> Guías de Remisión</h2>
+      <p class="page-subtitle">Proceso #{{ procesoSeleccionado()?.Id }} — {{ procesoSeleccionado()?.AcopioCodigo }} — Turno {{ procesoSeleccionado()?.Turno }}</p>
+    </div>
+
+    <div class="sp-card">
+      <div class="sp-card-header">
+        <h5><i class="bi bi-list-ul"></i> Lista de Guías</h5>
+        <button class="btn-sp-outline" style="padding:4px 12px;font-size:12px" (click)="volverAProcesos()">
+          <i class="bi bi-arrow-left"></i> Volver a Procesos
+        </button>
+      </div>
+      <div class="sp-card-body" style="padding:0">
+        @if (isLoading()) {
+          <div class="text-center py-4">
+            <span class="spinner-border text-primary"></span>
+            <p class="mt-2" style="color:var(--color-text-muted);font-size:13px">Cargando guías...</p>
+          </div>
+        } @else {
+          <div class="table-responsive">
+            <table class="sp-table">
+              <thead>
+                <tr>
+                  <th>ID</th><th>Serie-Número</th><th>Viaje</th><th>Destinatario</th>
+                  <th>Palets</th><th>Cajas</th><th>Peso</th><th>Estado</th><th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (g of guias(); track g.Id) {
+                  <tr>
+                    <td><strong>#{{ g.Id }}</strong></td>
+                    <td>{{ g.Serie ?? '-' }}-{{ g.Numero ?? '-' }}</td>
+                    <td>{{ g.NumeroViaje ?? '-' }}</td>
+                    <td>{{ g.DestinatarioNombre ?? '-' }}</td>
+                    <td><strong>{{ g.CantidadPalets }}</strong></td>
+                    <td>{{ g.TotalCajas }}</td>
+                    <td>{{ g.PesoTotal }} kg</td>
+                    <td>
+                      @if (g.Estado === 'ABIERTA') {
+                        <span class="sp-badge sp-badge-success">ABIERTA</span>
+                      } @else if (g.Estado === 'CERRADA') {
+                        <span class="sp-badge sp-badge-primary">CERRADA</span>
+                      } @else {
+                        <span class="sp-badge sp-badge-danger">ANULADA</span>
+                      }
+                    </td>
+                    <td>
+                      <div class="d-flex gap-1 flex-wrap">
+                        <button class="btn-sp-primary" style="padding:2px 10px;font-size:11px" (click)="verDetalle(g)">
+                          <i class="bi bi-eye"></i>
+                        </button>
+                        @if (g.Estado === 'ABIERTA' && permissions.puedeCerrarGuia()) {
+                          <button class="btn-sp-success" style="padding:2px 10px;font-size:11px" (click)="cerrarGuia(g)">
+                            <i class="bi bi-lock-fill"></i>
+                          </button>
+                        }
+                        @if (g.Estado === 'ABIERTA' && permissions.puedeEliminarGuia()) {
+                          <button class="btn-sp-danger" style="padding:2px 10px;font-size:11px" (click)="eliminarGuia(g)">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        }
+                        @if (g.Estado === 'CERRADA' && permissions.puedeAnularGuia()) {
+                          <button class="btn-sp-warning" style="padding:2px 10px;font-size:11px" (click)="anularGuia(g)">
+                            <i class="bi bi-x-circle"></i>
+                          </button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="9">
+                      <div class="empty-state"><i class="bi bi-inbox"></i><p>No hay guías para este proceso</p></div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  @case ('detalle') {
+    <div class="page-title-area">
+      <h2><i class="bi bi-truck" style="color:var(--color-primary)"></i> Detalle de Guía</h2>
+      <p class="page-subtitle">Guía #{{ guiaSeleccionada()?.Id }}</p>
+    </div>
+
+    <div class="mb-3">
+      <button class="btn-sp-outline" (click)="volverAGuias()">
+        <i class="bi bi-arrow-left"></i> Volver a Guías
+      </button>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-sm-4 col-xl-2">
+        <div class="kpi-card">
+          <div class="kpi-icon primary"><i class="bi bi-file-earmark-text"></i></div>
+          <div class="kpi-data"><div class="kpi-label">Serie-Número</div><div class="kpi-value" style="font-size:14px">{{ guiaSeleccionada()?.Serie ?? '-' }}-{{ guiaSeleccionada()?.Numero ?? '-' }}</div></div>
+        </div>
+      </div>
+      <div class="col-sm-4 col-xl-2">
+        <div class="kpi-card">
+          <div class="kpi-icon info"><i class="bi bi-truck"></i></div>
+          <div class="kpi-data"><div class="kpi-label">Viaje</div><div class="kpi-value" style="font-size:16px">{{ guiaSeleccionada()?.NumeroViaje ?? '-' }}</div></div>
+        </div>
+      </div>
+      <div class="col-sm-4 col-xl-2">
+        <div class="kpi-card">
+          <div class="kpi-icon success"><i class="bi bi-box-seam"></i></div>
+          <div class="kpi-data"><div class="kpi-label">Palets</div><div class="kpi-value">{{ guiaSeleccionada()?.CantidadPalets }}</div></div>
+        </div>
+      </div>
+      <div class="col-sm-4 col-xl-2">
+        <div class="kpi-card">
+          <div class="kpi-icon warning"><i class="bi bi-boxes"></i></div>
+          <div class="kpi-data"><div class="kpi-label">Cajas</div><div class="kpi-value">{{ guiaSeleccionada()?.TotalCajas }}</div></div>
+        </div>
+      </div>
+      <div class="col-sm-4 col-xl-2">
+        <div class="kpi-card">
+          <div class="kpi-icon danger"><i class="bi bi-speedometer2"></i></div>
+          <div class="kpi-data"><div class="kpi-label">Peso Total</div><div class="kpi-value" style="font-size:16px">{{ guiaSeleccionada()?.PesoTotal }} kg</div></div>
+        </div>
+      </div>
+      <div class="col-sm-4 col-xl-2">
+        <div class="kpi-card">
+          <div class="kpi-icon primary"><i class="bi bi-shield-lock-fill"></i></div>
+          <div class="kpi-data"><div class="kpi-label">Precinto</div><div class="kpi-value" style="font-size:14px">{{ guiaSeleccionada()?.Precinto ?? '-' }}</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Palets in Guia -->
+    @if (guiaSeleccionada()?.detallePalets; as detalle) {
+      <div class="sp-card">
+        <div class="sp-card-header">
+          <h5><i class="bi bi-box-seam"></i> Palets en la Guía</h5>
+          <span class="sp-badge sp-badge-primary">{{ detalle.length }} palets</span>
+        </div>
+        <div class="sp-card-body" style="padding:0">
+          <div class="table-responsive">
+            <table class="sp-table">
+              <thead><tr><th># Palet</th><th>Cajas</th><th>Peso</th><th>Estado</th></tr></thead>
+              <tbody>
+                @for (d of detalle; track d.Id) {
+                  <tr>
+                    <td><strong>#{{ d.NumeroPalet ?? d.PaletId }}</strong></td>
+                    <td>{{ d.CantidadCajas }}</td>
+                    <td>{{ d.PesoTotal }} kg</td>
+                    <td><span class="sp-badge sp-badge-info">{{ d.PaletEstado }}</span></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    }
+  }
+}

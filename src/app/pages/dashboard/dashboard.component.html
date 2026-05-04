@@ -1,0 +1,187 @@
+<div class="page-title-area">
+  <h2><i class="bi bi-grid-1x2-fill" style="color:var(--color-primary)"></i> Dashboard</h2>
+  <p class="page-subtitle">Bienvenido, <strong>{{ nombreCompleto() }}</strong>
+    @if (usuario()?.acopioNombre) {
+      — {{ usuario()?.acopioNombre }} ({{ usuario()?.acopioCodigo }})
+    }
+  </p>
+</div>
+
+<!-- User Info Card -->
+<div class="sp-card" style="margin-bottom:20px">
+  <div class="sp-card-body" style="padding:16px 20px">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <div style="width:44px;height:44px;background:linear-gradient(135deg,var(--color-primary),#7c3aed);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:700;flex-shrink:0">
+        {{ inicialUsuario() }}
+      </div>
+      <div>
+        <strong style="font-size:15px">{{ nombreCompleto() }}</strong><br>
+        <span style="font-size:12px;color:var(--color-text-muted)">
+          <i class="bi bi-person-badge"></i> {{ perfil() }}
+          @if (usuario()?.acopioNombre) {
+            &nbsp;|&nbsp; <i class="bi bi-geo-alt"></i> {{ usuario()?.acopioNombre }} ({{ usuario()?.acopioCodigo }})
+          }
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+@if (perfil() === 'ADMINISTRADOR' && kpis()) {
+  <!-- KPI Cards Admin -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl">
+      <div class="kpi-card">
+        <div class="kpi-icon primary"><i class="bi bi-box-seam-fill"></i></div>
+        <div class="kpi-data">
+          <div class="kpi-label">KG Palets Despachados</div>
+          <div class="kpi-value">{{ kpis()!.kgDespachados.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2}) }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl">
+      <div class="kpi-card">
+        <div class="kpi-icon warning"><i class="bi bi-hourglass-split"></i></div>
+        <div class="kpi-data">
+          <div class="kpi-label">KG Palets en Proceso</div>
+          <div class="kpi-value">{{ kpis()!.kgEnProceso.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2}) }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#fff3e0;color:#e65100"><i class="bi bi-lock-fill"></i></div>
+        <div class="kpi-data">
+          <div class="kpi-label">KG Palets Cerrados</div>
+          <div class="kpi-value">{{ kpis()!.kgEnAcopio.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2}) }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl">
+      <div class="kpi-card">
+        <div class="kpi-icon success"><i class="bi bi-speedometer2"></i></div>
+        <div class="kpi-data">
+          <div class="kpi-label">KG Palets Totales</div>
+          <div class="kpi-value">{{ kpis()!.kgTotales.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2}) }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:var(--color-info-light);color:var(--color-info)"><i class="bi bi-truck"></i></div>
+        <div class="kpi-data">
+          <div class="kpi-label">Palets Despachados</div>
+          <div class="kpi-value">{{ kpis()!.paletsDespachados }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#e8eaf6;color:#3f51b5"><i class="bi bi-bar-chart-line-fill"></i></div>
+        <div class="kpi-data">
+          <div class="kpi-label">Palets Totales</div>
+          <div class="kpi-value">{{ kpis()!.paletsTotales }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Alertas de palets vencidos -->
+@if (mostrarAlertas()) {
+  <div class="mb-4">
+    <div style="border:2px solid #dc2626;border-radius:10px;background:#fef2f2;padding:14px 18px">
+      <h6 style="color:#dc2626;margin-bottom:10px;font-size:14px">
+        <i class="bi bi-exclamation-triangle-fill"></i> Palets pendientes de despacho (más de 1h 30min)
+      </h6>
+      <div style="font-size:13px">
+        <div class="table-responsive">
+          <table class="table table-sm mb-0" style="font-size:12px">
+            <thead>
+              <tr>
+                <th>Palet</th>
+                @if (perfil() === 'ADMINISTRADOR' || perfil() === 'COORDINACION') {
+                  <th>Acopio</th>
+                  <th>Turno</th>
+                }
+                <th>Cajas</th>
+                <th>Estado</th>
+                <th>Tiempo</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (a of alertas(); track a.NumeroPalet) {
+                <tr>
+                  <td><strong>#{{ a.NumeroPalet }}</strong></td>
+                  @if (perfil() === 'ADMINISTRADOR' || perfil() === 'COORDINACION') {
+                    <td>{{ a.AcopioCodigo }}</td>
+                    <td>{{ a.Turno || '-' }}</td>
+                  }
+                  <td>{{ a.CantidadCajas }}</td>
+                  <td>{{ a.Estado.replace('_', ' ') }}</td>
+                  <td style="color:#dc2626;font-weight:700">{{ formatearTiempo(a.MinutosTranscurridos) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Quick Access Cards -->
+<h6 style="font-weight:700;margin-bottom:14px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;color:var(--color-text-muted)">
+  <i class="bi bi-lightning-fill"></i> Accesos Rápidos
+</h6>
+<div class="row g-3 mb-4">
+  @for (card of quickCards(); track card.link) {
+    <div class="col-6 col-lg-3">
+      <a [routerLink]="card.link" class="quick-card">
+        <div class="quick-card-icon" [style.background]="card.bg" [style.color]="card.color">
+          <i class="bi" [class]="card.icon"></i>
+        </div>
+        <h6>{{ card.title }}</h6>
+        <p>{{ card.desc }}</p>
+      </a>
+    </div>
+  }
+</div>
+
+<!-- Open Processes Table -->
+@if (procesosAbiertos().length > 0) {
+  <div class="sp-card">
+    <div class="sp-card-header">
+      <h5><i class="bi bi-calendar-check"></i> Procesos Abiertos</h5>
+    </div>
+    <div class="sp-card-body" style="padding:0">
+      <div class="table-responsive">
+        <table class="sp-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Fecha</th>
+              <th>Acopio</th>
+              <th>Turno</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of procesosAbiertos(); track p.Id) {
+              <tr>
+                <td><strong>#{{ p.Id }}</strong></td>
+                <td>{{ p.FechaProceso }}</td>
+                <td>{{ p.AcopioCodigo }} - {{ p.AcopioNombre }}</td>
+                <td>
+                  <i class="bi" [class]="p.Turno === 'DIA' ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i>
+                  {{ p.Turno }}
+                </td>
+                <td><span class="sp-badge sp-badge-success">{{ p.Estado }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+}

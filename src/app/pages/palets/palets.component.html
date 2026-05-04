@@ -1,0 +1,611 @@
+<div class="page-title-area">
+  <h2><i class="bi bi-box-seam-fill" style="color:var(--color-primary)"></i> Gestión de Palets</h2>
+  <p class="page-subtitle">Administra los palets de tus procesos activos</p>
+</div>
+
+@if (successMsg()) {
+  <div class="alert alert-success alert-dismissible fade show" role="alert" style="border-radius:8px;font-size:13px">
+    <i class="bi bi-check-circle-fill me-1"></i> {{ successMsg() }}
+    <button type="button" class="btn-close" (click)="successMsg.set('')" aria-label="Close"></button>
+  </div>
+}
+@if (errorMsg()) {
+  <div class="alert alert-danger alert-dismissible fade show" role="alert" style="border-radius:8px;font-size:13px">
+    <i class="bi bi-exclamation-triangle-fill me-1"></i> {{ errorMsg() }}
+    <button type="button" class="btn-close" (click)="errorMsg.set('')" aria-label="Close"></button>
+  </div>
+}
+
+<div class="row">
+  <!-- ═══ PROCESS SELECTOR (always visible) ═══ -->
+  <div class="col-12 mb-4">
+    <div class="sp-card">
+      <div class="sp-card-header"><h5><i class="bi bi-calendar-check"></i> Selecciona un Proceso</h5></div>
+      <div class="sp-card-body">
+        @if (procesosAbiertos().length > 0) {
+          <div class="row g-3">
+            @for (p of procesosAbiertos(); track p.Id) {
+              <div class="col-md-6">
+                <div class="sp-card" [style.border]="procesoSeleccionado()?.Id === p.Id ? '2px solid var(--color-primary)' : '2px solid var(--color-success)'" style="margin-bottom:0">
+                  <div class="sp-card-body" style="padding:16px">
+                    <h5 style="font-size:15px;margin-bottom:8px">
+                      <i class="bi" [class]="p.Turno === 'DIA' ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i>
+                      Turno {{ p.Turno }}
+                    </h5>
+                    <p class="mb-2" style="font-size:13px"><strong>Fecha:</strong> {{ formatearFechaLarga(p.FechaProceso) }}</p>
+                    <button class="btn-sp-primary w-100" (click)="seleccionarProceso(p)">
+                      <i class="bi bi-check-circle"></i> Trabajar en este proceso
+                    </button>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="empty-state">
+            <i class="bi bi-exclamation-circle"></i>
+            <p>No tienes procesos abiertos</p>
+            <a routerLink="/procesos" class="btn-sp-primary mt-2" style="text-decoration:none">
+              <i class="bi bi-plus-circle"></i> Abrir Proceso
+            </a>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ WORK AREA (visible after selecting a process) ═══ -->
+  @if (procesoSeleccionado()) {
+    <div class="col-12">
+      <div class="row">
+        <!-- Left Column: Create + Palet List -->
+        <div class="col-lg-4">
+          <div class="sp-card">
+            <div class="sp-card-header"><h5><i class="bi bi-plus-square-fill"></i> Crear Nuevo Palet</h5></div>
+            <div class="sp-card-body text-center">
+              <p class="text-muted" style="font-size:13px">Puedes crear múltiples palets abiertos simultáneamente</p>
+              @if (permissions.puedeCrearPalet()) {
+                <button class="btn-sp-primary btn-lg" (click)="crearPalet()"><i class="bi bi-plus-circle"></i> Crear Palet</button>
+              } @else {
+                <p class="text-muted" style="font-size:12px"><i class="bi bi-info-circle"></i> Solo ADMINISTRADOR y LOGISTICA pueden crear palets</p>
+              }
+            </div>
+          </div>
+
+          <div class="sp-card">
+            <div class="sp-card-header"><h5><i class="bi bi-list-ul"></i> Palets del Proceso</h5></div>
+            <div class="sp-card-body" style="padding:12px;max-height:500px;overflow-y:auto">
+              @if (isLoading()) {
+                <div class="text-center py-3"><span class="spinner-border spinner-border-sm text-primary"></span></div>
+              } @else {
+                <!-- Section: En Proceso / Cerrados -->
+                <div class="palet-section-box mb-2">
+                  <h6 class="palet-section-header" (click)="toggleSeccionActivos()">
+                    <span><i class="bi bi-hourglass-split"></i> En Proceso / Cerrados</span>
+                    <i class="bi" [class]="seccionActivosAbierta() ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                  </h6>
+                  @if (seccionActivosAbierta()) {
+                    <div class="palet-section-body">
+                      @if (paletsActivos().length > 0) {
+                        @for (p of paletsActivos(); track p.Id) {
+                          <div class="palet-card"
+                               [class.palet-abierto]="p.Estado === 'ABIERTO'"
+                               [class.palet-cerrado-completo]="p.Estado === 'CERRADO_COMPLETO'"
+                               [class.palet-cerrado-saldo]="p.Estado === 'CERRADO_SALDO'"
+                               [class.palet-card-activo]="paletSeleccionado()?.Id === p.Id"
+                               (click)="verDetalle(p)">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                              <h6 class="mb-0">Palet #{{ p.NumeroPalet ?? p.Id }}</h6>
+                              <div class="text-end">
+                                <span class="badge" [class]="getEstadoBadgeClass(p.Estado)">{{ getEstadoLabel(p.Estado) }}</span>
+                                @if (p.NumeroViaje) {
+                                  <span class="badge bg-info text-dark ms-1">Viaje #{{ p.NumeroViaje }}</span>
+                                }
+                              </div>
+                            </div>
+                            <p class="mb-1 small"><strong>Cajas:</strong> {{ p.CantidadCajas }}{{ p.LimiteCajasPorPalet ? ' / ' + p.LimiteCajasPorPalet : '' }}</p>
+                            @if (p.LimiteCajasPorPalet) {
+                              <div class="progress" style="height:8px">
+                                <div class="progress-bar progress-bar-custom" [style.width.%]="p.PorcentajeAvance"></div>
+                              </div>
+                              <small class="text-muted">{{ p.PorcentajeAvance }}% lleno</small>
+                            }
+                          </div>
+                        }
+                      } @else {
+                        <p class="text-muted text-center mb-0" style="font-size:12px">Sin palets activos</p>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <!-- Section: Despachados -->
+                <div class="palet-section-box">
+                  <h6 class="palet-section-header" (click)="toggleSeccionDespachados()">
+                    <span><i class="bi bi-truck"></i> Despachados</span>
+                    <i class="bi" [class]="seccionDespachadosAbierta() ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                  </h6>
+                  @if (seccionDespachadosAbierta()) {
+                    <div class="palet-section-body">
+                      @if (paletsDespachados().length > 0) {
+                        @for (p of paletsDespachados(); track p.Id) {
+                          <div class="palet-card palet-cerrado-completo"
+                               [class.palet-card-activo]="paletSeleccionado()?.Id === p.Id"
+                               (click)="verDetalle(p)" style="opacity:0.8">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                              <h6 class="mb-0" style="font-size:13px">Palet #{{ p.NumeroPalet ?? p.Id }}</h6>
+                              <div class="text-end">
+                                <span class="badge bg-success" style="font-size:10px">DESPACHADO</span>
+                                @if (p.NumeroViaje) {
+                                  <span class="badge bg-info text-dark ms-1">Viaje #{{ p.NumeroViaje }}</span>
+                                }
+                              </div>
+                            </div>
+                            <p class="mb-0 small"><strong>Cajas:</strong> {{ p.CantidadCajas }}</p>
+                          </div>
+                        }
+                      } @else {
+                        <p class="text-muted text-center mb-0" style="font-size:12px">Sin despachos aún</p>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Palet Detail -->
+        <div class="col-lg-8">
+          <div class="sp-card">
+            <div class="sp-card-header"><h5><i class="bi bi-box"></i> Detalle del Palet</h5></div>
+            <div class="sp-card-body" id="detallePalet">
+              @if (paletSeleccionado()) {
+                <!-- Title + Badge -->
+                <div class="mb-3">
+                  <h4>
+                    Palet #{{ paletSeleccionado()!.NumeroPalet ?? paletSeleccionado()!.Id }}
+                    <span class="badge" [class]="getEstadoBadgeClass(paletSeleccionado()!.Estado)">{{ getEstadoLabel(paletSeleccionado()!.Estado) }}</span>
+                    @if (paletSeleccionado()!.NumeroViaje) {
+                      <span class="badge bg-info text-dark">Viaje #{{ paletSeleccionado()!.NumeroViaje }}</span>
+                    }
+                  </h4>
+                  <p class="text-muted mb-2">
+                    <strong>Acopio:</strong> {{ paletSeleccionado()!.AcopioNombre }} ({{ paletSeleccionado()!.AcopioCodigo }}) |
+                    <strong>Turno:</strong> {{ paletSeleccionado()!.Turno }}
+                  </p>
+                </div>
+
+                <!-- KPI Cards (matching reference: Total de Cajas + Peso Total) -->
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <div class="card bg-light"><div class="card-body">
+                      <h6>Total de Cajas</h6>
+                      <h3 class="mb-0">{{ paletSeleccionado()!.CantidadCajas }}{{ paletSeleccionado()!.LimiteCajasPorPalet ? ' / ' + paletSeleccionado()!.LimiteCajasPorPalet : '' }}</h3>
+                      @if (paletSeleccionado()!.LimiteCajasPorPalet) {
+                        <div class="progress mt-2" style="height:10px">
+                          <div class="progress-bar progress-bar-custom" [style.width.%]="paletSeleccionado()!.PorcentajeAvance"></div>
+                        </div>
+                        <small class="text-muted">{{ paletSeleccionado()!.PorcentajeAvance }}% lleno</small>
+                      }
+                    </div></div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="card bg-light"><div class="card-body">
+                      <h6>Peso Total</h6>
+                      <h3 class="mb-0">{{ paletSeleccionado()!.PesoTotal }} kg</h3>
+                    </div></div>
+                  </div>
+                </div>
+
+                <!-- Action Buttons (matching reference) -->
+                @if (paletSeleccionado()!.Estado === 'ABIERTO') {
+                  <div class="mb-3 d-flex gap-2 flex-wrap acciones-palet">
+                    @if (permissions.puedeAgregarCajas()) {
+                      <button class="btn btn-agregar" (click)="abrirModalAgregarCajas(paletSeleccionado()!)">
+                        <i class="bi bi-plus-circle"></i> Agregar Cajas
+                      </button>
+                    }
+                    @if (paletSeleccionado()!.CantidadCajas > 0 && permissions.puedeCerrarPalet()) {
+                      <button class="btn btn-cerrar-saldo" (click)="abrirModalCerrarPalet(paletSeleccionado()!)">
+                        <i class="bi bi-check-circle"></i> Cerrar Palet
+                      </button>
+                    }
+                    <button class="btn btn-danger" (click)="abrirModalEliminarPalet(paletSeleccionado()!)">
+                      <i class="bi bi-trash"></i> Eliminar Palet
+                    </button>
+                  </div>
+                }
+                @if (paletSeleccionado()!.Estado === 'CERRADO_COMPLETO' || paletSeleccionado()!.Estado === 'CERRADO_SALDO') {
+                  <div class="mb-3 d-flex gap-2 flex-wrap acciones-palet">
+                    <button class="btn btn-warning" (click)="reabrirPalet(paletSeleccionado()!)">
+                      <i class="bi bi-unlock"></i> Reabrir Palet
+                    </button>
+                    <button class="btn btn-danger" (click)="abrirModalEliminarPalet(paletSeleccionado()!)">
+                      <i class="bi bi-trash"></i> Eliminar Palet
+                    </button>
+                  </div>
+                }
+
+                <hr>
+
+                <!-- Accordion: Composición del Palet -->
+                <div class="accordion-custom mb-2">
+                  <div class="accordion-header-custom" (click)="toggleSeccionComposicion()">
+                    <span><i class="bi bi-box-seam me-2"></i> Composición del Palet</span>
+                    <i class="bi" [class]="seccionComposicionAbierta() ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                  </div>
+                  @if (seccionComposicionAbierta()) {
+                    <div class="accordion-body-custom" style="padding:0">
+                      @if (composiciones().length > 0) {
+                        <div class="table-responsive" style="overflow-x:auto">
+                          <table class="table table-hover table-sm mb-0">
+                            <thead>
+                              <tr>
+                                <th>Consignatario</th>
+                                <th>Destino</th>
+                                <th>Formato</th>
+                                <th>Variedad</th>
+                                <th>Peso/caja</th>
+                                <th>Cantidad</th>
+                                <th>Peso</th>
+                                <th>Tipo</th>
+                                @if (paletSeleccionado()!.Estado === 'ABIERTO') {
+                                  <th>Acciones</th>
+                                }
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (c of composiciones(); track c.Id) {
+                                <tr [style.background]="c.EsReposicion ? '#fff3cd44' : c.EsEnsayo ? '#dbeafe44' : ''">
+                                  <td>{{ c.ConsignatarioNombre }}</td>
+                                  <td>{{ c.DestinoNombre }}</td>
+                                  <td>{{ c.FormatoNombre }}</td>
+                                  <td>{{ c.VariedadNombre }}</td>
+                                  <td>{{ c.PesoPorCaja }} kg</td>
+                                  <td>{{ c.CantidadCajas }}</td>
+                                  <td>{{ c.PesoTotal }} kg</td>
+                                  <td>
+                                    @if (c.EsReposicion) {
+                                      <span class="badge bg-warning text-dark"><i class="bi bi-arrow-repeat"></i> REPO</span>
+                                    } @else if (c.EsEnsayo) {
+                                      <span class="badge bg-info text-dark"><i class="bi bi-flask"></i> ENSAYO</span>
+                                    } @else {
+                                      <span class="badge bg-success">PROD</span>
+                                    }
+                                  </td>
+                                  @if (paletSeleccionado()!.Estado === 'ABIERTO') {
+                                    <td class="text-nowrap">
+                                      <button class="btn btn-sm btn-outline-danger" (click)="eliminarComposicion(c)"><i class="bi bi-trash"></i></button>
+                                    </td>
+                                  }
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                      } @else {
+                        <p class="text-muted text-center py-3 mb-0">Este palet está vacío. Agrega cajas para comenzar.</p>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <!-- Accordion: Observaciones (if present) -->
+                @if (paletSeleccionado()!.Observaciones || paletSeleccionado()!.MedidaCorrectiva) {
+                  <div class="accordion-custom">
+                    <div class="accordion-header-custom" (click)="toggleSeccionObservaciones()">
+                      <span><i class="bi bi-exclamation-triangle me-2 text-warning"></i> Observaciones y Medidas Correctivas</span>
+                      <i class="bi" [class]="seccionObservacionesAbierta() ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                    </div>
+                    @if (seccionObservacionesAbierta()) {
+                      <div class="accordion-body-custom">
+                        <div class="row">
+                          <div class="col-md-6">
+                            <h6 class="fw-bold text-danger" style="font-size:12px"><i class="bi bi-eye"></i> Observación</h6>
+                            <p class="mb-0">{{ paletSeleccionado()!.Observaciones || '—' }}</p>
+                          </div>
+                          <div class="col-md-6">
+                            <h6 class="fw-bold text-success" style="font-size:12px"><i class="bi bi-check-circle"></i> Medida Correctiva</h6>
+                            <p class="mb-0">{{ paletSeleccionado()!.MedidaCorrectiva || '—' }}</p>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              } @else {
+                <div class="empty-state">
+                  <i class="bi bi-box"></i>
+                  <p>Selecciona o crea un palet para ver su detalle</p>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- ═══════ MODAL: Agregar Cajas al Palet ═══════ -->
+@if (showModalAgregarCajas()) {
+  <div class="modal-backdrop-custom" (click)="cerrarModalAgregarCajas()"></div>
+  <div class="modal-custom modal-lg">
+    <div class="modal-header-custom">
+      <h5><i class="bi bi-plus-circle"></i> Agregar Cajas al Palet</h5>
+      <small class="text-white-50">DEBUG: Consignatarios: {{ consignatarios().length }} | Destinos: {{ destinos().length }} | LDP: {{ lugaresProduccion().length }}</small>
+      <button type="button" class="btn-close btn-close-white" (click)="cerrarModalAgregarCajas()" aria-label="Close"></button>
+    </div>
+    <div class="modal-body-custom">
+      <form id="formAgregarCajas">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label form-label-required">Tipo Proceso Empacado</label>
+            <select class="form-select" disabled name="tipoProcesoEmpacadoId" id="selectTipoProcesoEmpacado" required
+              [ngModel]="formCajas().tipoProcesoEmpacadoId">
+              <option value="1" selected>FP</option>
+            </select>
+            <small class="text-muted" id="helpTipoProceso">FP fijo para este acopio</small>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label form-label-required">Consignatario</label>
+            <select class="form-select" name="consignatarioId" id="selectConsignatario" required
+                    [ngModel]="formCajas().consignatarioId"
+                    [ngModelOptions]="{standalone: true}"
+                    (ngModelChange)="onConsignatarioChange($event)">
+              <option value="">Seleccione...</option>
+              @for (c of consignatarios(); track c.Id) {
+                <option [value]="c.Id">{{ c.Nombre }}</option>
+              }
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label form-label-required">Destino</label>
+            <select class="form-select" name="destinoId" id="selectDestino" required
+                    [disabled]="destinoDisabled()"
+                    [ngModel]="formCajas().destinoId"
+                    [ngModelOptions]="{standalone: true}"
+                    (ngModelChange)="onDestinoChange($event)">
+              <option value="">Seleccione consignatario...</option>
+              @for (d of filteredDestinos(); track d.Id) {
+                <option [value]="d.Id">{{ d.Nombre }}</option>
+              }
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label form-label-required">Formato</label>
+            <select class="form-select" name="formatoId" id="selectFormato" required
+                    [disabled]="formatoDisabled()"
+                    [ngModel]="formCajas().formatoId"
+                    [ngModelOptions]="{standalone: true}"
+                    (ngModelChange)="onFormatoChange($event)">
+              <option value="">Seleccione destino...</option>
+              @for (f of filteredFormatos(); track f.Id) {
+                <option [value]="f.Id">{{ f.Nombre || f.Descripcion }}</option>
+              }
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label form-label-required">Tipo de Empaque Guía</label>
+            <select class="form-select" name="tipoEmpaqueGuiaId" id="selectTipoEmpaqueGuia" required
+                    [disabled]="tipoEmpaqueGuiaDisabled()"
+                    [ngModel]="formCajas().tipoEmpaqueGuiaId"
+                    [ngModelOptions]="{standalone: true}"
+                    (ngModelChange)="onTipoEmpaqueGuiaChange($event)">
+              <option value="">Seleccione formato...</option>
+              @for (t of filteredTiposEmpaqueGuia(); track t.Id) {
+                <option [value]="t.Id">{{ t.Nombre }}</option>
+              }
+            </select>
+          </div>
+          <input type="hidden" name="calibreId" id="selectCalibre" 
+                  [ngModel]="formCajas().calibreId"
+                  [ngModelOptions]="{standalone: true}">
+          <input type="hidden" name="categoriaId" id="selectCategoria" 
+                  [ngModel]="formCajas().categoriaId"
+                  [ngModelOptions]="{standalone: true}">
+          <input type="hidden" name="tipoEmpaqueId" id="selectTipoEmpaque" 
+                  [ngModel]="formCajas().tipoEmpaqueId"
+                  [ngModelOptions]="{standalone: true}">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Presentación</label>
+            <select class="form-select" name="presentacionId" id="selectPresentacion"
+                    [disabled]="presentacionDisabled()"
+                    [ngModel]="formCajas().presentacionId"
+                    [ngModelOptions]="{standalone: true}"
+                    (ngModelChange)="onPresentacionChange($event)">
+              <option value="">Seleccione tipo empaque guía...</option>
+              @for (p of filteredPresentaciones(); track p.Id) {
+                <option [value]="p.Id ?? 0">{{ p.Nombre }}</option>
+              }
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label form-label-required">Tipo de Caja</label>
+            <select class="form-select" name="tipoCajaId" id="selectTipoCaja" required
+                    [disabled]="tipoCajaDisabled()"
+                    [ngModel]="formCajas().tipoCajaId"
+                    [ngModelOptions]="{standalone: true}"
+                    (ngModelChange)="onTipoCajaChange($event)">
+              <option value="">Esperando selección...</option>
+              @for (t of filteredTiposCaja(); track t.Id) {
+                <option [value]="t.Id">{{ t.Nombre }}</option>
+              }
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label form-label-required">Tipo de Clamshell</label>
+            <select class="form-select" name="tipoClamshellId" id="selectTipoClamshell" required
+                    [disabled]="tipoClamshellDisabled()"
+                    [ngModel]="formCajas().tipoClamshellId"
+                    [ngModelOptions]="{standalone: true}"
+                    (ngModelChange)="onTipoClamshellChange($event)">
+              <option value="">Seleccione tipo caja...</option>
+              @for (t of filteredTiposClamshell(); track t.Id) {
+                <option [value]="t.Id">{{ t.Nombre }}</option>
+              }
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <label class="form-label form-label-required mb-0">Variedad</label>
+              <div class="form-check form-switch m-0">
+                <input class="form-check-input" type="checkbox" id="switchEsEnsayo"
+                       [ngModel]="formCajas().esEnsayo"
+                       [ngModelOptions]="{standalone: true}"
+                       (ngModelChange)="onEsEnsayoChange($event)">
+                <label class="form-check-label small" for="switchEsEnsayo">¿Es ensayo?</label>
+              </div>
+            </div>
+            <select class="form-select" name="variedadId" id="selectVariedad" required
+                    [ngModel]="formCajas().variedadId"
+                    [ngModelOptions]="{standalone: true}"
+                    (ngModelChange)="onVariedadChange($event)">
+              <option value="">Seleccione...</option>
+              @for (v of variedades(); track v.Id) {
+                <option [value]="v.Id" 
+                        [attr.data-procedencia]="v.Procedencia"
+                        [attr.data-es-ensayo]="v.EsEnsayo ? '1' : '0'">
+                  {{ v.Nombre }}
+                </option>
+              }
+            </select>
+          </div>
+          <!-- Select condicional: Variedad en Guía (solo para ensayos) -->
+          <div class="col-md-6 mb-3" id="contenedorVariedadGuia" [style.display]="formCajas().esEnsayo ? 'block' : 'none'">
+            <label class="form-label form-label-required" style="color: #d97706;">
+              <i class="bi bi-arrow-repeat"></i> Variedad en Guía (ensayo)
+            </label>
+            <select class="form-select" name="variedadGuiaId" id="selectVariedadGuia"
+                    [ngModel]="formCajas().variedadGuiaId"
+                    [ngModelOptions]="{standalone: true}"
+                    (ngModelChange)="updateFormCajas('variedadGuiaId', +$event)">
+              <option value="">Seleccione variedad certificada...</option>
+              @for (v of variedades(); track v.Id) {
+                @if (!v.EsEnsayo && v.Procedencia && !v.Procedencia.toLowerCase().includes('driscoll')) {
+                  <option [value]="v.Id">{{ v.Nombre }}</option>
+                }
+              }
+            </select>
+            <small class="text-muted" style="color: #d97706 !important;">Esta variedad aparecerá en la guía de remisión</small>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label form-label-required">Lugar de Producción (LDP)</label>
+            <select class="form-select" name="lugarProduccionId" id="selectLDP" required
+                    [ngModel]="formCajas().lugarProduccionId"
+                    [ngModelOptions]="{standalone: true}"
+                    (ngModelChange)="onLugarProduccionChange($event)">
+              <option value="">Seleccione...</option>
+              @for (l of lugaresProduccion(); track l.Id) {
+                <option [value]="l.Id">{{ l.Nombre }}</option>
+              }
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label form-label-required">Código de Rancho</label>
+            <select class="form-select" name="codigoRanchoId" id="selectCodigoRancho" required
+                    [disabled]="codigoRanchoDisabled()"
+                    [ngModel]="formCajas().codigoRanchoId"
+                    [ngModelOptions]="{standalone: true}"
+                    (ngModelChange)="updateFormCajas('codigoRanchoId', +$event)"
+                    [style.background-color]="filteredCodigosRancho().length === 1 ? '#e9ecef' : ''"
+                    [style.cursor]="filteredCodigosRancho().length === 1 ? 'not-allowed' : 'pointer'">
+              @if (filteredCodigosRancho().length === 0) {
+                <option value="">Sin códigos disponibles</option>
+              } @else {
+                <option value="">Seleccione...</option>
+                @for (c of filteredCodigosRancho(); track c.Id) {
+                  <option [value]="c.Id">{{ c.Codigo }}</option>
+                }
+              }
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label form-label-required">Vía de Transporte</label>
+            <select class="form-select" name="transporteId" id="selectTransporte" required
+                    [ngModel]="formCajas().transporteId"
+                    [ngModelOptions]="{standalone: true}"
+                    (ngModelChange)="updateFormCajas('transporteId', +$event)">
+              @for (t of transportes(); track t.Id) {
+                <option [value]="t.Id" [selected]="t.Codigo === 'MAR'">{{ t.Nombre }}</option>
+              }
+              @if (transportes().length === 0) {
+                <option value="1" selected>Marítimo</option>
+                <option value="2">Aéreo</option>
+              }
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label form-label-required">Cantidad de Cajas</label>
+            <input type="number" class="form-control" id="inputCantidadCajas" name="cantidadCajas" min="1" required
+                   [ngModel]="formCajas().cantidadCajas"
+                   [ngModelOptions]="{standalone: true}"
+                   (ngModelChange)="updateFormCajas('cantidadCajas', +$event)">
+          </div>
+        </div>
+        <!-- Switch de Reposición -->
+        <div class="mb-3">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="switchEsReposicion" name="esReposicion"
+                   [ngModel]="formCajas().esReposicion"
+                   (ngModelChange)="updateFormCajas('esReposicion', $event)">
+            <label class="form-check-label" for="switchEsReposicion">¿Es reposición?</label>
+          </div>
+          <div id="labelReposicion" class="mt-1" [style.display]="formCajas().esReposicion ? 'block' : 'none'">
+            <span class="badge bg-warning text-dark"><i class="bi bi-arrow-repeat"></i> REPOSICIÓN</span>
+            <small class="text-muted ms-1">Esta línea NO contará como producción del día</small>
+          </div>
+        </div>
+        <div class="text-end mt-3">
+          <button type="button" class="btn btn-sp-outline" (click)="cerrarModalAgregarCajas()">Cancelar</button>
+          <button type="button" class="btn btn-sp-success" (click)="submitAgregarCajas()"><i class="bi bi-check-circle"></i> Agregar Cajas</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ═══════ MODAL: Cerrar Palet ═══════ -->
+@if (showModalCerrarPalet()) {
+  <div class="modal-backdrop-custom" (click)="cerrarModalCerrarPalet()"></div>
+  <div class="modal-custom">
+    <div class="modal-header-custom" style="background:linear-gradient(135deg,#22c55e,#16a34a)">
+      <h5><i class="bi bi-check-circle-fill"></i> Cerrar Palet</h5>
+      <button type="button" class="btn-close btn-close-white" (click)="cerrarModalCerrarPalet()" aria-label="Close"></button>
+    </div>
+    <div class="modal-body-custom">
+      <p class="mb-3"><strong>¿El palet tiene alguna observación?</strong></p>
+      <div class="d-flex gap-3 mb-3">
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="cerrarTieneObs" id="cerrarObsRadioSi"
+                 [checked]="cerrarPaletTieneObs()" (change)="cerrarPaletTieneObs.set(true)">
+          <label class="form-check-label fw-bold" for="cerrarObsRadioSi">Sí</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="cerrarTieneObs" id="cerrarObsRadioNo"
+                 [checked]="!cerrarPaletTieneObs()" (change)="cerrarPaletTieneObs.set(false)">
+          <label class="form-check-label fw-bold" for="cerrarObsRadioNo">No</label>
+        </div>
+      </div>
+      @if (cerrarPaletTieneObs()) {
+        <div class="mb-3">
+          <label class="form-label"><strong>Observación</strong></label>
+          <textarea class="form-control" rows="2" placeholder="Describa la observación..."
+                    [ngModel]="cerrarPaletObservaciones()" (ngModelChange)="cerrarPaletObservaciones.set($event)"></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label"><strong>Medida Correctiva</strong></label>
+          <textarea class="form-control" rows="2" placeholder="Describa la medida correctiva..."
+                    [ngModel]="cerrarPaletMedida()" (ngModelChange)="cerrarPaletMedida.set($event)"></textarea>
+        </div>
+      }
+    </div>
+    <div class="modal-footer-custom">
+      <button type="button" class="btn btn-secondary" (click)="cerrarModalCerrarPalet()">Cancelar</button>
+      <button type="button" class="btn btn-success" (click)="confirmarCerrarPalet()">
+        <i class="bi bi-check-circle"></i> Cerrar Palet
+      </button>
+    </div>
+  </div>
+}

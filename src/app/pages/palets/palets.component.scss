@@ -1,0 +1,208 @@
+/* Palets component styles */
+
+.palet-section-box {
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.palet-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary, #4f46e5);
+  background: #f8fafc;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #f1f5f9;
+  }
+}
+
+.palet-section-body {
+  padding: 8px;
+}
+
+.palet-card-activo {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2), 0 10px 24px rgba(37, 99, 235, 0.12) !important;
+  background: #eff6ff !important;
+  transform: translateY(-1px);
+  position: relative;
+
+  &::before {
+    content: 'SELECCIONADO';
+    position: absolute;
+    top: 8px;
+    left: 12px;
+    background: #2563eb;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    letter-spacing: 0.4px;
+  }
+}
+
+/* Badge styles matching reference */
+:host ::ng-deep .badge-abierto {
+  background: #22c55e;
+  color: #fff;
+}
+:host ::ng-deep .badge-cerrado-completo {
+  background: #6366f1;
+  color: #fff;
+}
+:host ::ng-deep .badge-cerrado-saldo {
+  background: #f59e0b;
+  color: #000;
+}
+:host ::ng-deep .badge-despachado {
+  background: #22c55e;
+  color: #fff;
+}
+
+/* Action buttons matching reference */
+.acciones-palet {
+  .btn-agregar {
+    background: #22c55e;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-weight: 600;
+    font-size: 14px;
+
+    &:hover {
+      background: #16a34a;
+    }
+  }
+
+  .btn-cerrar-saldo {
+    background: #6366f1;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-weight: 600;
+    font-size: 14px;
+
+    &:hover {
+      background: #4f46e5;
+    }
+  }
+}
+
+/* Accordion styles */
+.accordion-custom {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.accordion-header-custom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #e8edf5;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+  font-size: 14px;
+  color: #1e293b;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #dde3ef;
+  }
+}
+
+.accordion-body-custom {
+  padding: 16px;
+}
+
+/* Modal styles */
+.modal-backdrop-custom {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1040;
+}
+
+.modal-custom {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  border-radius: 12px;
+  z-index: 1050;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+
+  &.modal-lg {
+    max-width: 800px;
+  }
+
+  &.modal-xl {
+    max-width: 900px;
+  }
+}
+
+.modal-header-custom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #fff;
+  border-radius: 12px 12px 0 0;
+
+  h5 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+  }
+}
+
+.modal-body-custom {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-footer-custom {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* Form label required */
+.form-label-required::after {
+  content: " *";
+  color: #dc2626;
+}
+
+/* Prevent body scroll when modal is open */
+body.modal-open {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+}

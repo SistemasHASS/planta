@@ -1,0 +1,286 @@
+<div class="page-title-area">
+  <h2><i class="bi bi-calendar-event-fill" style="color:var(--color-primary)"></i> Gestión de Procesos por Turno</h2>
+  @if (perfil() === 'LOGISTICA') {
+    <p class="page-subtitle">Administra los procesos de tu acopio: <strong>{{ usuario()?.acopioNombre }}</strong> (Turnos: DIA y NOCHE)</p>
+  } @else {
+    <p class="page-subtitle">Vista de procesos de todos los acopios</p>
+  }
+</div>
+
+@if (successMsg()) {
+  <div class="alert alert-success alert-dismissible fade show" role="alert" style="border-radius:8px;font-size:13px">
+    <i class="bi bi-check-circle-fill me-1"></i> {{ successMsg() }}
+    <button type="button" class="btn-close" (click)="successMsg.set('')" aria-label="Close"></button>
+  </div>
+}
+@if (errorMsg()) {
+  <div class="alert alert-danger alert-dismissible fade show" role="alert" style="border-radius:8px;font-size:13px">
+    <i class="bi bi-exclamation-triangle-fill me-1"></i> {{ errorMsg() }}
+    <button type="button" class="btn-close" (click)="errorMsg.set('')" aria-label="Close"></button>
+  </div>
+}
+
+<!-- Campaign Card -->
+<div class="col-12 mb-3">
+  <div class="sp-card" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); border: none;">
+    <div class="sp-card-body d-flex align-items-center justify-content-between py-2 px-3" style="min-height: auto;">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-calendar-range-fill" style="font-size: 1.4rem; color: #fff;"></i>
+        <div>
+          <span style="color: rgba(255,255,255,0.75); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Campaña Actual</span>
+          <h5 class="mb-0" style="color: #fff; font-weight: 700; font-size: 1.15rem;">
+            {{ campaniaActiva() ? campaniaActiva().Nombre : 'Sin campaña definida' }}
+          </h5>
+        </div>
+      </div>
+      @if (perfil() === 'ADMINISTRADOR') {
+        <a routerLink="/admin/campanias" class="btn btn-sm btn-light" style="font-weight:600;">
+          <i class="bi bi-gear-fill"></i> Gestionar
+        </a>
+      }
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ LOGISTICA VIEW: 2-column layout ═══════ -->
+@if (perfil() === 'LOGISTICA') {
+  <div class="row">
+    <!-- Left: Mis Procesos Activos -->
+    <div class="col-lg-6 mb-4">
+      <div class="sp-card">
+        <div class="sp-card-header"><h5><i class="bi bi-play-circle-fill"></i> Mis Procesos Activos</h5></div>
+        <div class="sp-card-body">
+          @if (procesosActivos().length > 0) {
+            @for (proceso of procesosActivos(); track proceso.Id) {
+              <div class="proceso-card-activo">
+                <h5 class="mb-2">
+                  <i class="bi" [class]="proceso.Turno === 'DIA' ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i>
+                  Turno {{ proceso.Turno }}
+                </h5>
+                <p class="mb-2"><strong>Fecha:</strong> {{ formatearFechaLarga(proceso.FechaProceso) }}</p>
+                <p class="mb-2"><strong>Abierto:</strong> {{ formatearFechaHora(proceso.FechaApertura) }}</p>
+                @if (proceso.Supervisores) {
+                  <p class="mb-1" style="font-size:12px"><i class="bi bi-person-badge"></i> <strong>Sup:</strong> {{ proceso.Supervisores }}</p>
+                }
+                @if (proceso.Logisticos) {
+                  <p class="mb-1" style="font-size:12px"><i class="bi bi-people"></i> <strong>Log:</strong> {{ proceso.Logisticos }}</p>
+                }
+                <p class="mb-3"><span class="sp-badge sp-badge-success"><i class="bi bi-circle-fill" style="font-size:7px"></i> ABIERTO</span></p>
+                <button class="btn-sp-danger w-100" (click)="cerrarProceso(proceso)">
+                  <i class="bi bi-stop-circle"></i> Cerrar Turno {{ proceso.Turno }}
+                </button>
+              </div>
+            }
+          } @else {
+            <div class="empty-state">
+              <i class="bi bi-exclamation-circle"></i>
+              <p>No tienes procesos abiertos<br><small>Abre un proceso para comenzar</small></p>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Abrir Nuevo Proceso -->
+    @if (permissions.puedeCrearProceso()) {
+      <div class="col-lg-6 mb-4">
+        <div class="sp-card">
+          <div class="sp-card-header"><h5><i class="bi bi-plus-circle-fill"></i> Abrir Nuevo Proceso</h5></div>
+          <div class="sp-card-body">
+            <div class="mb-3">
+              <label for="fechaProceso" class="form-label"><strong>Fecha del Proceso</strong></label>
+              <input type="date" class="form-control form-control-lg" id="fechaProceso"
+                     [ngModel]="nuevoProceso().fechaProceso"
+                     (ngModelChange)="updateNuevoProceso('fechaProceso', $event)">
+            </div>
+            <div class="mb-3">
+              <label for="turno" class="form-label"><strong>Turno</strong></label>
+              <select class="form-select form-select-lg" id="turno"
+                      [ngModel]="nuevoProceso().turno"
+                      (ngModelChange)="updateNuevoProceso('turno', $event)">
+                <option value="">Selecciona un turno...</option>
+                <option value="DIA">DIA</option>
+                <option value="NOCHE">NOCHE</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label"><strong>Supervisores</strong> <small class="text-muted">(1 a 2)</small></label>
+              @if (cargandoPersonal()) {
+                <div class="form-select text-muted d-flex align-items-center gap-2" style="min-height:38px">
+                  <span class="spinner-border spinner-border-sm"></span> Cargando...
+                </div>
+              } @else if (!nuevoProceso().fechaProceso || !nuevoProceso().turno) {
+                <div class="form-select text-muted" style="min-height:38px">Seleccione fecha y turno primero</div>
+              } @else if (supervisoresDisponibles().length === 0) {
+                <div class="form-select text-muted" style="min-height:38px">No hay supervisores disponibles</div>
+              } @else {
+                <select class="form-select"
+                        (change)="onSupervisoresChange($event)">
+                  @for (sup of supervisoresDisponibles(); track sup.Id) {
+                    <option [value]="sup.Id" [disabled]="sup.ocupado">
+                      {{ sup.NombreCompleto }}{{ sup.DNI && sup.DNI !== 'POR-ASIGNAR' ? ' (DNI: ' + sup.DNI + ')' : '' }}{{ sup.ocupado ? ' — asignado' : '' }}
+                    </option>
+                  }
+                </select>
+              }
+              <small class="text-muted">Seleccionados: {{ nuevoProceso().supervisores.length }}/2</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label"><strong>Personal de Logística</strong> <small class="text-muted">(1 a 5)</small></label>
+              @if (cargandoPersonal()) {
+                <div class="form-select text-muted d-flex align-items-center gap-2" style="min-height:38px">
+                  <span class="spinner-border spinner-border-sm"></span> Cargando...
+                </div>
+              } @else if (!nuevoProceso().fechaProceso || !nuevoProceso().turno) {
+                <div class="form-select text-muted" style="min-height:38px">Seleccione fecha y turno primero</div>
+              } @else if (logisticosDisponibles().length === 0) {
+                <div class="form-select text-muted" style="min-height:38px">No hay personal logístico disponible</div>
+              } @else {
+                <select class="form-select"
+                        (change)="onLogisticosChange($event)">
+                  @for (log of logisticosDisponibles(); track log.Id) {
+                    <option [value]="log.Id" [disabled]="log.ocupado">
+                      {{ log.NombreCompleto }}{{ log.DNI && log.DNI !== 'POR-ASIGNAR' ? ' (DNI: ' + log.DNI + ')' : '' }}{{ log.ocupado ? ' — asignado' : '' }}
+                    </option>
+                  }
+                </select>
+              }
+              <small class="text-muted">Seleccionados: {{ nuevoProceso().logisticos.length }}/5</small>
+            </div>
+            <button class="btn-sp-primary w-100" (click)="crearProceso()" [disabled]="isCreating()">
+              @if (isCreating()) {
+                <span class="spinner-border spinner-border-sm me-1"></span> Abriendo...
+              } @else {
+                <i class="bi bi-play-circle"></i> Abrir Proceso
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+}
+
+<!-- ═══════ ADMIN/COORDINACION VIEW: Grid of open processes ═══════ -->
+@if (perfil() === 'ADMINISTRADOR' || perfil() === 'COORDINACION') {
+  <div class="col-12 mb-4">
+    <div class="sp-card">
+      <div class="sp-card-header"><h5><i class="bi bi-grid-3x3"></i> Procesos Abiertos por Acopio y Turno</h5></div>
+      <div class="sp-card-body">
+        @if (procesosActivos().length > 0) {
+          <div class="row g-3">
+            @for (proceso of procesosActivos(); track proceso.Id) {
+              <div class="col-md-6 col-lg-4">
+                <div class="proceso-card-grid">
+                  <h6 class="mb-2">{{ proceso.AcopioNombre }} ({{ proceso.AcopioCodigo }})</h6>
+                  <p class="mb-1">
+                    <span class="sp-badge" [class]="proceso.Turno === 'DIA' ? 'sp-badge-warning' : 'sp-badge-primary'">
+                      <i class="bi" [class]="proceso.Turno === 'DIA' ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i> {{ proceso.Turno }}
+                    </span>
+                  </p>
+                  <p class="mb-1" style="font-size:13px"><strong>Fecha:</strong> {{ formatearFechaCorta(proceso.FechaProceso) }}</p>
+                  @if (proceso.Supervisores) {
+                    <p class="mb-0" style="font-size:11px"><i class="bi bi-person-badge"></i> {{ proceso.Supervisores }}</p>
+                  }
+                  @if (proceso.Logisticos) {
+                    <p class="mb-0" style="font-size:11px"><i class="bi bi-people"></i> {{ proceso.Logisticos }}</p>
+                  }
+                  <p class="mb-0" style="font-size:12px; color: var(--color-text-muted)"><small>Abierto: {{ formatearFechaHora(proceso.FechaApertura) }}</small></p>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="empty-state"><i class="bi bi-inbox"></i><p>No hay procesos abiertos en ningún acopio</p></div>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══════ HISTORIAL DE PROCESOS ═══════ -->
+<div class="sp-card">
+  <div class="sp-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Historial de Procesos</h5>
+    <div class="d-flex align-items-center gap-2">
+      <input type="date" class="form-control form-control-sm" style="width:170px"
+             [ngModel]="filterFecha()" (ngModelChange)="filterFecha.set($event)">
+      <button class="btn btn-sm btn-outline-secondary" (click)="limpiarFiltroFecha()" title="Limpiar filtro">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  </div>
+  <div class="sp-card-body" style="padding:0">
+    @if (isLoading()) {
+      <div class="text-center py-4">
+        <span class="spinner-border text-primary"></span>
+        <p class="mt-2" style="color:var(--color-text-muted);font-size:13px">Cargando procesos...</p>
+      </div>
+    } @else {
+      @if (historial().length > 0) {
+        <div class="table-responsive">
+          <table class="sp-table">
+            <thead>
+              <tr>
+                @if (perfil() !== 'LOGISTICA') {
+                  <th>Acopio</th>
+                }
+                <th>Turno</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Apertura</th>
+                <th>Cierre</th>
+                <th>Abierto por</th>
+                <th>Supervisores</th>
+                <th>Logísticos</th>
+                <th style="width:60px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (p of historial(); track p.Id) {
+                <tr [style.opacity]="p.Estado === 'CERRADO' ? '0.65' : '1'">
+                  @if (perfil() !== 'LOGISTICA') {
+                    <td><strong>{{ p.AcopioCodigo }}</strong></td>
+                  }
+                  <td>
+                    <span class="sp-badge" [class]="p.Turno === 'DIA' ? 'sp-badge-warning' : 'sp-badge-primary'">
+                      <i class="bi" [class]="p.Turno === 'DIA' ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i> {{ p.Turno }}
+                    </span>
+                  </td>
+                  <td><strong>{{ formatearFechaCorta(p.FechaProceso) }}</strong></td>
+                  <td>
+                    @if (p.Estado === 'ABIERTO') {
+                      <span class="sp-badge sp-badge-success">ABIERTO</span>
+                    } @else {
+                      <span class="sp-badge sp-badge-muted">CERRADO</span>
+                    }
+                  </td>
+                  <td>{{ formatearFechaHora(p.FechaApertura) }}</td>
+                  <td>{{ formatearFechaHora(p.FechaCierre) }}</td>
+                  <td>{{ p.UsuarioApertura || '—' }}</td>
+                  <td style="font-size:12px">{{ p.Supervisores ?? '—' }}</td>
+                  <td style="font-size:12px">{{ p.Logisticos ?? '—' }}</td>
+                  <td class="text-center">
+                    @if (p.Estado === 'CERRADO' && permissions.puedeReabrirProceso()) {
+                      <button class="btn btn-sm btn-outline-warning" (click)="reabrirProceso(p)" title="Reabrir proceso">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                      </button>
+                    }
+                    @if (p.Estado === 'ABIERTO' && perfil() === 'ADMINISTRADOR') {
+                      <button class="btn btn-sm btn-outline-danger" (click)="cerrarProceso(p)" title="Cerrar proceso">
+                        <i class="bi bi-stop-circle"></i>
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="empty-state"><i class="bi bi-inbox"></i><p>No hay historial de procesos</p></div>
+      }
+    }
+  </div>
+</div>

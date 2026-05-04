@@ -1,0 +1,28 @@
+/* Layout component styles */
+
+.sidebar-submenu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.sidebar-submenu.show {
+  max-height: 1000px;
+  transition: max-height 0.5s ease-in;
+}
+
+.sidebar-submenu .sidebar-link {
+  padding-left: 3rem;
+  font-size: 13px;
+}
+
+.sidebar-submenu-toggle::after {
+  content: '\F282';
+  font-family: 'bootstrap-icons';
+  margin-left: auto;
+  transition: transform 0.3s ease;
+}
+
+.sidebar-submenu-toggle.active::after {
+  transform: rotate(90deg);
+}

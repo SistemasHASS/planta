@@ -1,0 +1,48 @@
+<div class="login-page">
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-logo d-flex justify-content-center">
+          <div class="login-logo-icon">
+            <i class="bi bi-box-seam-fill"></i>
+          </div>
+        </div>
+        <h2>Sistema de Palets</h2>
+        <p>Agroexportación — Ingresa tus credenciales</p>
+      </div>
+
+      <div class="login-body">
+        @if (errorMsg()) {
+          <div class="alert alert-danger d-flex align-items-center" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <div>{{ errorMsg() }}</div>
+          </div>
+        }
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()">
+          <div class="mb-3">
+            <label for="usuario" class="form-label">Usuario</label>
+            <input type="text" class="form-control" id="usuario" formControlName="usuario"
+                   placeholder="Ingresa tu usuario" autocomplete="username">
+          </div>
+          <div class="mb-4">
+            <label for="password" class="form-label">Contraseña</label>
+            <input type="password" class="form-control" id="password" formControlName="password"
+                   placeholder="Ingresa tu contraseña" autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn-login" [disabled]="loading()">
+            @if (loading()) {
+              <span class="spinner-border spinner-border-sm me-1"></span> Ingresando...
+            } @else {
+              <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
+            }
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <p class="login-footer-text">
+      &copy; 2025 Sistema de Palets — Agroexportación
+    </p>
+  </div>
+</div>
