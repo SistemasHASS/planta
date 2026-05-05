@@ -4,12 +4,14 @@ import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { LoginRequest, LoginResponse, UsuarioAuth } from '../interfaces/auth.interface';
+import { DexieService } from '../dixiedb/dexie-db.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
   private readonly apiUrl = environment.apiUrl;
+  private readonly dbDexie = inject(DexieService);
 
   private readonly _usuario = signal<UsuarioAuth | null>(this.getStoredUser());
   readonly usuario = this._usuario.asReadonly();
@@ -28,6 +30,7 @@ export class AuthService {
           localStorage.setItem('token', res.token);
           localStorage.setItem('usuario', JSON.stringify(res.user));
           this._usuario.set(res.user);
+          this.dbDexie.open().catch(err => console.error('Error abriendo Dexie DB', err));
         }
       })
     );
@@ -37,6 +40,8 @@ export class AuthService {
     localStorage.removeItem('token');
     localStorage.removeItem('usuario');
     this._usuario.set(null);
+    this.dbDexie.close();
+    this.dbDexie.delete().catch(err => console.error('Error eliminando Dexie DB', err));
     this.router.navigate(['/login']);
   }
 

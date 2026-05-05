@@ -71,7 +71,7 @@ const childRoutes: Routes = [
   {
     path: 'admin/catalogos/:tipo',
     loadComponent: () =>
-      import('./pages/placeholder/placeholder.component').then((m) => m.PlaceholderComponent),
+      import('./pages/catalogos/catalogos.component').then((m) => m.CatalogosComponent),
     data: { title: 'Catálogo', subtitle: 'Gestión de catálogo', icon: 'bi-collection-fill' }
   },
   {

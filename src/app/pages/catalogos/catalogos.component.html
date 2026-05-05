@@ -1,185 +1,70 @@
 <div class="page-title-area">
-  <h2><i class="bi bi-collection-fill" style="color:var(--color-primary)"></i> Administración de Catálogos</h2>
-  <p class="page-subtitle">Gestiona los catálogos del sistema</p>
+  <h2><i class="bi" [class]="config().icon" style="color:var(--color-primary)"></i> {{config().label}}</h2>
+  <p class="page-subtitle">Gestiona los catálogos de {{config().label}}</p>
 </div>
 
-<!-- Tabs -->
-<div class="sp-card" style="margin-bottom:0;border-bottom:none;border-radius:10px 10px 0 0">
-  <div class="sp-card-body" style="padding:10px 16px">
-    <div class="d-flex gap-2 flex-wrap">
-      @for (tab of tabs; track tab.key) {
-        <button
-          class="btn-sp-outline"
-          [class.active-tab]="catalogoActivo() === tab.key"
-          style="padding:6px 14px;font-size:12px"
-          (click)="cambiarTab(tab.key)">
-          {{ tab.label }}
-        </button>
-      }
+<div class="sp-card catalogos-card">
+  <div class="sp-card-body" style="padding:16px">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div style="min-width:220px;flex:1">
+        <input
+          class="form-control"
+          placeholder="Buscar..."
+          [ngModel]="searchTerm()"
+          (ngModelChange)="onSearchChange($event)"
+        />
+      </div>
+
+      <div class="d-flex align-items-center gap-2 flex-wrap catalogos-actions" style="justify-content:flex-end">
+        @if (config().tieneActivo) {
+          <div class="btn-group catalogos-filtro-group" role="group">
+            <button type="button" class="btn-sp-outline" [class.active-tab]="estadoFiltro() === 'activos'" (click)="setEstadoFiltro('activos')">
+              <i class="bi bi-check-circle"></i> Activos
+            </button>
+            <button type="button" class="btn-sp-outline" [class.active-tab]="estadoFiltro() === 'inactivos'" (click)="setEstadoFiltro('inactivos')">
+              <i class="bi bi-x-circle"></i> Inactivos
+            </button>
+            <button type="button" class="btn-sp-outline" [class.active-tab]="estadoFiltro() === 'todos'" (click)="setEstadoFiltro('todos')">
+              <i class="bi bi-list"></i> Todos
+            </button>
+          </div>
+        }
+
+        @if (puedeCrear()) {
+          <button type="button" class="btn-sp-primary" (click)="abrirNuevo()">
+            <i class="bi bi-plus-lg"></i> Nuevo
+          </button>
+        }
+      </div>
     </div>
   </div>
-</div>
 
-<!-- Table Content -->
-<div class="sp-card" style="border-radius:0 0 10px 10px">
   <div class="sp-card-body" style="padding:0">
     @if (isLoading()) {
       <div class="text-center py-4">
         <span class="spinner-border text-primary"></span>
-        <p class="mt-2" style="color:var(--color-text-muted);font-size:13px">Cargando catálogo...</p>
+        <p class="mt-2" style="color:var(--color-text-muted);font-size:13px">Cargando catálogo {{config().label}}...</p>
       </div>
     } @else {
-      <div class="table-responsive">
-        @switch (catalogoActivo()) {
-          @case ('acopios') {
-            <table class="sp-table">
-              <thead><tr><th>Código</th><th>Nombre</th><th>Activo</th><th>Acciones</th></tr></thead>
-              <tbody>
-                @for (a of acopios(); track a.Id) {
-                  <tr>
-                    <td><strong>{{ a.Codigo }}</strong></td><td>{{ a.Nombre }}</td>
-                    <td>@if (a.Activo) { <span class="sp-badge sp-badge-success">Sí</span> } @else { <span class="sp-badge sp-badge-muted">No</span> }</td>
-                    <td>
-                      @if (permissions.puedeGestionarCatalogos()) {
-                        <button class="btn-sp-danger" style="padding:2px 10px;font-size:11px" (click)="eliminarItem('acopios', a.Id)"><i class="bi bi-trash"></i></button>
-                      }
-                    </td>
-                  </tr>
-                } @empty { <tr><td colspan="4"><div class="empty-state" style="padding:20px"><i class="bi bi-inbox" style="font-size:32px"></i><p>Sin registros</p></div></td></tr> }
-              </tbody>
-            </table>
-          }
-          @case ('formatos') {
-            <table class="sp-table">
-              <thead><tr><th>Código</th><th>Descripción</th><th>Peso/Caja</th><th>Límite Cajas</th><th>Activo</th><th>Acciones</th></tr></thead>
-              <tbody>
-                @for (f of formatos(); track f.Id) {
-                  <tr>
-                    <td><strong>{{ f.Codigo }}</strong></td><td>{{ f.Descripcion }}</td><td>{{ f.PesoPorCaja }}</td><td>{{ f.LimiteCajasPorPalet }}</td>
-                    <td>@if (f.Activo) { <span class="sp-badge sp-badge-success">Sí</span> } @else { <span class="sp-badge sp-badge-muted">No</span> }</td>
-                    <td>
-                      @if (permissions.puedeGestionarCatalogos()) {
-                        <button class="btn-sp-danger" style="padding:2px 10px;font-size:11px" (click)="eliminarItem('formatos', f.Id)"><i class="bi bi-trash"></i></button>
-                      }
-                    </td>
-                  </tr>
-                } @empty { <tr><td colspan="6"><div class="empty-state" style="padding:20px"><i class="bi bi-inbox" style="font-size:32px"></i><p>Sin registros</p></div></td></tr> }
-              </tbody>
-            </table>
-          }
-          @case ('clientes') {
-            <table class="sp-table">
-              <thead><tr><th>Código</th><th>Razón Social</th><th>Activo</th><th>Acciones</th></tr></thead>
-              <tbody>
-                @for (c of clientes(); track c.Id) {
-                  <tr>
-                    <td><strong>{{ c.Codigo }}</strong></td><td>{{ c.RazonSocial }}</td>
-                    <td>@if (c.Activo) { <span class="sp-badge sp-badge-success">Sí</span> } @else { <span class="sp-badge sp-badge-muted">No</span> }</td>
-                    <td>
-                      @if (permissions.puedeGestionarCatalogos()) {
-                        <button class="btn-sp-danger" style="padding:2px 10px;font-size:11px" (click)="eliminarItem('clientes', c.Id)"><i class="bi bi-trash"></i></button>
-                      }
-                    </td>
-                  </tr>
-                } @empty { <tr><td colspan="4"><div class="empty-state" style="padding:20px"><i class="bi bi-inbox" style="font-size:32px"></i><p>Sin registros</p></div></td></tr> }
-              </tbody>
-            </table>
-          }
-          @case ('destinos') {
-            <table class="sp-table">
-              <thead><tr><th>Código</th><th>Nombre</th><th>País</th><th>Activo</th><th>Acciones</th></tr></thead>
-              <tbody>
-                @for (d of destinos(); track d.Id) {
-                  <tr>
-                    <td><strong>{{ d.Codigo }}</strong></td><td>{{ d.Nombre }}</td><td>{{ d.Pais }}</td>
-                    <td>@if (d.Activo) { <span class="sp-badge sp-badge-success">Sí</span> } @else { <span class="sp-badge sp-badge-muted">No</span> }</td>
-                    <td>
-                      @if (permissions.puedeGestionarCatalogos()) {
-                        <button class="btn-sp-danger" style="padding:2px 10px;font-size:11px" (click)="eliminarItem('destinos', d.Id)"><i class="bi bi-trash"></i></button>
-                      }
-                    </td>
-                  </tr>
-                } @empty { <tr><td colspan="5"><div class="empty-state" style="padding:20px"><i class="bi bi-inbox" style="font-size:32px"></i><p>Sin registros</p></div></td></tr> }
-              </tbody>
-            </table>
-          }
-          @case ('consignatarios') {
-            <table class="sp-table">
-              <thead><tr><th>Código</th><th>Razón Social</th><th>Activo</th><th>Acciones</th></tr></thead>
-              <tbody>
-                @for (c of consignatarios(); track c.Id) {
-                  <tr>
-                    <td><strong>{{ c.Codigo }}</strong></td><td>{{ c.RazonSocial }}</td>
-                    <td>@if (c.Activo) { <span class="sp-badge sp-badge-success">Sí</span> } @else { <span class="sp-badge sp-badge-muted">No</span> }</td>
-                    <td>
-                      @if (permissions.puedeGestionarCatalogos()) {
-                        <button class="btn-sp-danger" style="padding:2px 10px;font-size:11px" (click)="eliminarItem('consignatarios', c.Id)"><i class="bi bi-trash"></i></button>
-                      }
-                    </td>
-                  </tr>
-                } @empty { <tr><td colspan="4"><div class="empty-state" style="padding:20px"><i class="bi bi-inbox" style="font-size:32px"></i><p>Sin registros</p></div></td></tr> }
-              </tbody>
-            </table>
-          }
-          @case ('variedades') {
-            <table class="sp-table">
-              <thead><tr><th>Código</th><th>Nombre</th><th>Procedencia</th><th>Activo</th><th>Acciones</th></tr></thead>
-              <tbody>
-                @for (v of variedades(); track v.Id) {
-                  <tr>
-                    <td><strong>{{ v.Codigo }}</strong></td><td>{{ v.Nombre }}</td><td>{{ v.Procedencia }}</td>
-                    <td>@if (v.Activo) { <span class="sp-badge sp-badge-success">Sí</span> } @else { <span class="sp-badge sp-badge-muted">No</span> }</td>
-                    <td>
-                      @if (permissions.puedeGestionarCatalogos()) {
-                        <button class="btn-sp-danger" style="padding:2px 10px;font-size:11px" (click)="eliminarItem('variedades', v.Id)"><i class="bi bi-trash"></i></button>
-                      }
-                    </td>
-                  </tr>
-                } @empty { <tr><td colspan="5"><div class="empty-state" style="padding:20px"><i class="bi bi-inbox" style="font-size:32px"></i><p>Sin registros</p></div></td></tr> }
-              </tbody>
-            </table>
-          }
-          @case ('tiposEmpaque') {
-            <table class="sp-table">
-              <thead><tr><th>Código</th><th>Descripción</th><th>Activo</th></tr></thead>
-              <tbody>
-                @for (t of tiposEmpaque(); track t.Id) {
-                  <tr>
-                    <td><strong>{{ t.Codigo }}</strong></td><td>{{ t.Descripcion }}</td>
-                    <td>@if (t.Activo) { <span class="sp-badge sp-badge-success">Sí</span> } @else { <span class="sp-badge sp-badge-muted">No</span> }</td>
-                  </tr>
-                } @empty { <tr><td colspan="3"><div class="empty-state" style="padding:20px"><i class="bi bi-inbox" style="font-size:32px"></i><p>Sin registros</p></div></td></tr> }
-              </tbody>
-            </table>
-          }
-          @case ('calibres') {
-            <table class="sp-table">
-              <thead><tr><th>Código</th><th>Nombre</th><th>Activo</th></tr></thead>
-              <tbody>
-                @for (c of calibres(); track c.Id) {
-                  <tr>
-                    <td><strong>{{ c.Codigo }}</strong></td><td>{{ c.Nombre }}</td>
-                    <td>@if (c.Activo) { <span class="sp-badge sp-badge-success">Sí</span> } @else { <span class="sp-badge sp-badge-muted">No</span> }</td>
-                  </tr>
-                } @empty { <tr><td colspan="3"><div class="empty-state" style="padding:20px"><i class="bi bi-inbox" style="font-size:32px"></i><p>Sin registros</p></div></td></tr> }
-              </tbody>
-            </table>
-          }
-          @case ('campanias') {
-            <table class="sp-table">
-              <thead><tr><th>Nombre</th><th>Inicio</th><th>Fin</th><th>Activa</th></tr></thead>
-              <tbody>
-                @for (c of campanias(); track c.Id) {
-                  <tr>
-                    <td><strong>{{ c.Nombre }}</strong></td><td>{{ c.FechaInicio ?? '-' }}</td><td>{{ c.FechaFin ?? '-' }}</td>
-                    <td>@if (c.Activa) { <span class="sp-badge sp-badge-success">Sí</span> } @else { <span class="sp-badge sp-badge-muted">No</span> }</td>
-                  </tr>
-                } @empty { <tr><td colspan="4"><div class="empty-state" style="padding:20px"><i class="bi bi-inbox" style="font-size:32px"></i><p>Sin registros</p></div></td></tr> }
-              </tbody>
-            </table>
-          }
-        }
-      </div>
+      <app-catalogo-tabla
+        [config]="config()"
+        [items]="items()"
+        [searchTerm]="searchTerm()"
+        [estadoFiltro]="estadoFiltro()"
+        (editar)="abrirEditar($event)"
+        (desactivar)="onDesactivar($event)"
+        (eliminar)="onEliminar($event)"
+      />
     }
   </div>
 </div>
+
+@if (modalAbierto()) {
+  <app-catalogo-modal
+    [config]="config()"
+    [modo]="modalModo()"
+    [value]="modalValue()"
+    (cerrar)="cerrarModal()"
+    (guardar)="guardarModal($event)"
+  />
+}

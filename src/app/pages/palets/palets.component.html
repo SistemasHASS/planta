@@ -355,8 +355,8 @@
                     [ngModelOptions]="{standalone: true}"
                     (ngModelChange)="onConsignatarioChange($event)">
               <option value="">Seleccione...</option>
-              @for (c of consignatarios(); track c.Id) {
-                <option [value]="c.Id">{{ c.Nombre }}</option>
+              @for (c of consignatarios(); track c.id) {
+                <option [value]="c.id">{{ c.nombre }}</option>
               }
             </select>
           </div>
@@ -463,11 +463,11 @@
                     [ngModelOptions]="{standalone: true}"
                     (ngModelChange)="onVariedadChange($event)">
               <option value="">Seleccione...</option>
-              @for (v of variedades(); track v.Id) {
-                <option [value]="v.Id" 
-                        [attr.data-procedencia]="v.Procedencia"
-                        [attr.data-es-ensayo]="v.EsEnsayo ? '1' : '0'">
-                  {{ v.Nombre }}
+              @for (v of variedades(); track v.id) {
+                <option [value]="v.id" 
+                        [attr.data-procedencia]="v.procedencia"
+                        [attr.data-es-ensayo]="v.esEnsayo ? '1' : '0'">
+                  {{ v.nombre }}
                 </option>
               }
             </select>
@@ -482,9 +482,9 @@
                     [ngModelOptions]="{standalone: true}"
                     (ngModelChange)="updateFormCajas('variedadGuiaId', +$event)">
               <option value="">Seleccione variedad certificada...</option>
-              @for (v of variedades(); track v.Id) {
-                @if (!v.EsEnsayo && v.Procedencia && !v.Procedencia.toLowerCase().includes('driscoll')) {
-                  <option [value]="v.Id">{{ v.Nombre }}</option>
+              @for (v of variedades(); track v.id) {
+                @if (!v.esEnsayo && v.procedencia && !v.procedencia.toLowerCase().includes('driscoll')) {
+                  <option [value]="v.id">{{ v.nombre }}</option>
                 }
               }
             </select>
@@ -497,8 +497,8 @@
                     [ngModelOptions]="{standalone: true}"
                     (ngModelChange)="onLugarProduccionChange($event)">
               <option value="">Seleccione...</option>
-              @for (l of lugaresProduccion(); track l.Id) {
-                <option [value]="l.Id">{{ l.Nombre }}</option>
+              @for (l of lugaresProduccion(); track l.id) {
+                <option [value]="l.id">{{ l.nombre }}</option>
               }
             </select>
           </div>
@@ -515,8 +515,8 @@
                 <option value="">Sin códigos disponibles</option>
               } @else {
                 <option value="">Seleccione...</option>
-                @for (c of filteredCodigosRancho(); track c.Id) {
-                  <option [value]="c.Id">{{ c.Codigo }}</option>
+                @for (c of filteredCodigosRancho(); track c.id) {
+                  <option [value]="c.id">{{ c.codigo }}</option>
                 }
               }
             </select>
@@ -527,8 +527,8 @@
                     [ngModel]="formCajas().transporteId"
                     [ngModelOptions]="{standalone: true}"
                     (ngModelChange)="updateFormCajas('transporteId', +$event)">
-              @for (t of transportes(); track t.Id) {
-                <option [value]="t.Id" [selected]="t.Codigo === 'MAR'">{{ t.Nombre }}</option>
+              @for (t of transportes(); track t.id) {
+                <option [value]="t.id" [selected]="t.codigo === 'MAR'">{{ t.nombre }}</option>
               }
               @if (transportes().length === 0) {
                 <option value="1" selected>Marítimo</option>

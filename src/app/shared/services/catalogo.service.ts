@@ -13,6 +13,10 @@ export class CatalogoService {
     return this.http.post<any>(`${this.apiUrl}/listar`, filtros ?? {});
   }
 
+  listarTodosOperarios(filtros?: Record<string, unknown>): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/operarios/listar`, filtros ?? {});
+  }
+
   // ── Cascading selects (MatrizCompatibilidad) ──
   listarDestinos(filtros: { consignatarioId?: number } = {}): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/destinos`, filtros);

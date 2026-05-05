@@ -1,65 +1,64 @@
-export interface Acopio {
-  Id: number;
-  Codigo: string;
-  Nombre: string;
-  Activo: boolean;
-  FechaCreacion: string;
-}
-
 export interface Formato {
-  Id: number;
-  Codigo: string;
-  Descripcion: string;
-  Nombre?: string; // Aliased from Descripcion in cascading SP
-  PesoPorCaja: number;
-  LimiteCajasPorPalet: number;
-  Activo: boolean;
+  id: number;
+  codigo: string;
+  descripcion: string;
+  nombre?: string;
+  pesoPorCaja: number;
+  limiteCajasPorPalet: number;
+  activo: boolean;
+  bd?: number;
 }
 
 export interface Variedad {
-  Id: number;
-  Codigo: string;
-  Nombre: string;
-  Procedencia: string;
-  EsEnsayo: boolean;
-  Activo: boolean;
+  id: number;
+  codigo: string;
+  nombre: string;
+  procedencia: string;
+  esEnsayo: boolean;
+  activo: boolean;
+  bd?: number;
 }
 
 export interface Cliente {
-  Id: number;
-  Codigo: string;
-  RazonSocial: string;
-  Activo: boolean;
+  id: number;
+  codigo: string;
+  razonSocial: string;
+  activo: boolean;
+  bd?: number;
 }
 
 export interface Destino {
-  Id: number;
-  Codigo: string;
-  Nombre: string;
-  Pais: string;
-  Activo: boolean;
+  id: number;
+  codigo: string;
+  nombre: string;
+  pais: string;
+  activo: boolean;
+  bd?: number;
 }
 
 export interface Consignatario {
-  Id: number;
-  Codigo: string;
-  RazonSocial: string;
-  Nombre: string;
-  Activo: boolean;
+  id: number;
+  codigo: string;
+  razonSocial: string;
+  nombre: string;
+  activo: boolean;
+  bd?: number;
 }
 
 export interface TipoEmpaque {
-  Id: number;
-  Codigo: string;
-  Descripcion: string;
-  Activo: boolean;
+  id: number;
+  codigo: string;
+  descripcion: string;
+  activo: boolean;
+  bd?: number;
 }
 
 export interface Calibre {
-  Id: number;
-  Codigo?: string;
-  Nombre: string;
-  Activo: boolean;
+  id: number;
+  codigo?: string;
+  nombre: string;
+  activo: boolean;
+  bd?: number;
 }
 
 export interface Campania {
@@ -69,54 +68,60 @@ export interface Campania {
   FechaFin: string | null;
   Activa: boolean;
   FechaCreacion: string;
+  bd?: number;
 }
 
 export interface TipoProcesoEmpacado {
   Id: number;
   Codigo: string;
   Nombre: string;
-  Descripcion?: string; // alias for Nombre in some contexts
+  Descripcion?: string;
   Activo: boolean;
 }
 
 export interface TipoEmpaqueGuia {
-  Id: number;
-  Codigo?: string;
-  Nombre: string;
-  Activo: boolean;
-  FechaCreacion?: string;
+  id: number;
+  codigo?: string;
+  nombre: string;
+  activo: boolean;
+  fechaCreacion?: string;
+  bd?: number;
 }
 
 export interface Presentacion {
-  Id: number;
-  Nombre: string;
-  Descripcion?: string; // actual DB column, aliased as Nombre by SP
-  Activo: boolean;
-  FechaCreacion?: string;
+  id: number;
+  nombre: string;
+  descripcion?: string;
+  activo: boolean;
+  fechaCreacion?: string;
+  bd?: number;
 }
 
 export interface TipoCaja {
-  Id: number;
-  Codigo?: string;
-  Nombre: string;
-  Activo: boolean;
-  FechaCreacion?: string;
+  id: number;
+  codigo?: string;
+  nombre: string;
+  activo: boolean;
+  fechaCreacion?: string;
+  bd?: number;
 }
 
 export interface TipoClamshell {
-  Id: number;
-  Codigo?: string;
-  Nombre: string;
-  Activo: boolean;
-  FechaCreacion?: string;
+  id: number;
+  codigo?: string;
+  nombre: string;
+  activo: boolean;
+  fechaCreacion?: string;
+  bd?: number;
 }
 
 export interface LugarProduccion {
-  Id: number;
-  Codigo: string;
-  Nombre: string;
-  Descripcion: string;
-  Activo: boolean;
+  id: number;
+  codigo: string;
+  nombre: string;
+  descripcion: string;
+  activo: boolean;
+  bd?: number;
 }
 
 export interface CodigoRancho {
@@ -125,28 +130,94 @@ export interface CodigoRancho {
   LugarProduccionId: number;
   ConsignatarioId: number;
   Activo: boolean;
+  bd?: number;
 }
 
 export interface Transporte {
-  Id: number;
-  Codigo?: string;
-  Nombre: string;
-  Descripcion?: string;
-  Activo: boolean;
-  FechaCreacion?: string;
+  id: number;
+  codigo?: string;
+  nombre: string;
+  descripcion?: string;
+  activo: boolean;
+  fechaCreacion?: string;
+  bd?: number;
 }
 
 export interface Categoria {
-  Id: number;
-  Codigo: string;
-  Nombre: string;
-  Descripcion: string;
-  Activo: boolean;
-  FechaCreacion: string;
+  id: number;
+  codigo: string;
+  nombre: string;
+  descripcion: string;
+  activo: boolean;
+  fechaCreacion: string;
+  bd?: number;
 }
 
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
   message?: string;
+}
+
+
+// Categoria Operativos 
+
+export interface Conductor {
+  id: number;
+  nombreCompleto: string;
+  documentoIdentidad: string;
+  licenciaConducir?: string;
+  activo: boolean;
+  fechaCreacion?: string;
+  bd?: number;
+}
+
+export interface Vehiculo {
+  id: number;
+  placaPrincipal: string;
+  placaRemolque?: string;
+  marca?: string;
+  certificadoInscripcion?: string;
+  activo: boolean;
+  fechaCreacion?: string;
+  bd?: number;
+}
+
+export interface Transportista{
+  id: number;
+  razonSocial: string;
+  ruc: string;
+  activo: boolean;
+  fechaCreacion?: string;
+  bd?: number;
+}
+
+export interface Supervisor{
+  id: number;
+  dni: string;
+  nombreCompleto: string;
+  celular?: string;
+  activo: boolean;
+  fechaCreacion?: string;
+  bd?: number;
+}
+
+export interface PersonalLogistico{
+  id: number;
+  dni: string;
+  nombreCompleto: string;
+  celular?: string;
+  activo: boolean;
+  fechaCreacion?: string;
+  bd?: number;
+}
+
+export interface Acopio{
+  id: number;
+  codigo: string;
+  nombre: string;
+  serieGuia: string;
+  activo: boolean;
+  fechaCreacion?: string;
+  bd?: number;
 }

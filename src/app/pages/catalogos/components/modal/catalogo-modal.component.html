@@ -1,0 +1,46 @@
+<div class="modal-backdrop-custom" (click)="onBackdrop()"></div>
+<div class="modal-custom">
+  <div class="modal-header-custom">
+    <h5><i class="bi bi-pencil-square"></i> {{ getTitle() }}</h5>
+    <button type="button" class="btn-close btn-close-white" (click)="onCerrar()" aria-label="Close"></button>
+  </div>
+
+  <div class="modal-body-custom">
+    <div class="sp-card" style="margin-bottom:0">
+      <div class="sp-card-header">
+        <h5><i class="bi bi-pencil"></i> {{ modo === 'editar' ? 'Editar registro' : 'Nuevo registro' }}</h5>
+      </div>
+      <div class="sp-card-body">
+        <div class="row">
+          @for (col of columnasEditables(); track col.campo) {
+            <div class="col-12 mb-3">
+              <label class="form-label" [class.form-label-required]="col.required">{{ col.label }}</label>
+
+              @if (isBooleanBadgeColumn(col)) {
+                <select class="form-select"
+                        [ngModel]="form()[col.campo]"
+                        [ngModelOptions]="{standalone: true}"
+                        (ngModelChange)="updateField(col.campo, $event)">
+                  <option [ngValue]="true">Activo</option>
+                  <option [ngValue]="false">Inactivo</option>
+                </select>
+              } @else {
+                <input class="form-control"
+                       [attr.maxLength]="col.maxLength ?? null"
+                       [type]="col.tipo === 'int' || col.tipo === 'decimal' ? 'text' : 'text'"
+                       [ngModel]="form()[col.campo]"
+                       [ngModelOptions]="{standalone: true}"
+                       (ngModelChange)="updateField(col.campo, $event)">
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-footer-custom">
+    <button type="button" class="btn btn-sp-outline" (click)="onCerrar()">Cancelar</button>
+    <button type="button" class="btn btn-sp-primary" (click)="onGuardar()">Guardar</button>
+  </div>
+</div>
