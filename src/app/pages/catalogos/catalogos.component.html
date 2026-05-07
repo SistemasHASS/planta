@@ -7,33 +7,36 @@
   <div class="sp-card-body" style="padding:16px">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
       <div style="min-width:220px;flex:1">
-        <input
-          class="form-control"
-          placeholder="Buscar..."
-          [ngModel]="searchTerm()"
-          (ngModelChange)="onSearchChange($event)"
-        />
+        <input class="form-control" placeholder="Buscar..." [ngModel]="searchTerm()"
+          (ngModelChange)="onSearchChange($event)" />
       </div>
+
+      <button type="button" class="btn btn-success" (click)="onSincronizar()">
+        <i class="bi bi-arrow-repeat"></i> Sincronizar
+      </button>
 
       <div class="d-flex align-items-center gap-2 flex-wrap catalogos-actions" style="justify-content:flex-end">
         @if (config().tieneActivo) {
-          <div class="btn-group catalogos-filtro-group" role="group">
-            <button type="button" class="btn-sp-outline" [class.active-tab]="estadoFiltro() === 'activos'" (click)="setEstadoFiltro('activos')">
-              <i class="bi bi-check-circle"></i> Activos
-            </button>
-            <button type="button" class="btn-sp-outline" [class.active-tab]="estadoFiltro() === 'inactivos'" (click)="setEstadoFiltro('inactivos')">
-              <i class="bi bi-x-circle"></i> Inactivos
-            </button>
-            <button type="button" class="btn-sp-outline" [class.active-tab]="estadoFiltro() === 'todos'" (click)="setEstadoFiltro('todos')">
-              <i class="bi bi-list"></i> Todos
-            </button>
-          </div>
+        <div class="btn-group catalogos-filtro-group" role="group">
+          <button type="button" class="btn-sp-outline" [class.active-tab]="estadoFiltro() === 'activos'"
+            (click)="setEstadoFiltro('activos')">
+            <i class="bi bi-check-circle"></i> Activos
+          </button>
+          <button type="button" class="btn-sp-outline" [class.active-tab]="estadoFiltro() === 'inactivos'"
+            (click)="setEstadoFiltro('inactivos')">
+            <i class="bi bi-x-circle"></i> Inactivos
+          </button>
+          <button type="button" class="btn-sp-outline" [class.active-tab]="estadoFiltro() === 'todos'"
+            (click)="setEstadoFiltro('todos')">
+            <i class="bi bi-list"></i> Todos
+          </button>
+        </div>
         }
 
         @if (puedeCrear()) {
-          <button type="button" class="btn-sp-primary" (click)="abrirNuevo()">
-            <i class="bi bi-plus-lg"></i> Nuevo
-          </button>
+        <button type="button" class="btn-sp-primary" (click)="abrirNuevo()">
+          <i class="bi bi-plus-lg"></i> Nuevo
+        </button>
         }
       </div>
     </div>
@@ -41,30 +44,19 @@
 
   <div class="sp-card-body" style="padding:0">
     @if (isLoading()) {
-      <div class="text-center py-4">
-        <span class="spinner-border text-primary"></span>
-        <p class="mt-2" style="color:var(--color-text-muted);font-size:13px">Cargando catálogo {{config().label}}...</p>
-      </div>
+    <div class="text-center py-4">
+      <span class="spinner-border text-primary"></span>
+      <p class="mt-2" style="color:var(--color-text-muted);font-size:13px">Cargando catálogo {{config().label}}...</p>
+    </div>
     } @else {
-      <app-catalogo-tabla
-        [config]="config()"
-        [items]="items()"
-        [searchTerm]="searchTerm()"
-        [estadoFiltro]="estadoFiltro()"
-        (editar)="abrirEditar($event)"
-        (desactivar)="onDesactivar($event)"
-        (eliminar)="onEliminar($event)"
-      />
+    <app-catalogo-tabla [config]="config()" [items]="items()" [searchTerm]="searchTerm()"
+      [estadoFiltro]="estadoFiltro()" (editar)="abrirEditar($event)" (desactivar)="onDesactivar($event)"
+      (eliminar)="onEliminar($event)" />
     }
   </div>
 </div>
 
 @if (modalAbierto()) {
-  <app-catalogo-modal
-    [config]="config()"
-    [modo]="modalModo()"
-    [value]="modalValue()"
-    (cerrar)="cerrarModal()"
-    (guardar)="guardarModal($event)"
-  />
+<app-catalogo-modal [config]="config()" [modo]="modalModo()" [value]="modalValue()" (cerrar)="cerrarModal()"
+  (guardar)="guardarModal($event)" />
 }

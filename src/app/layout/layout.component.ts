@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, signal, computed, inject } from '@a
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../shared/services/auth.service';
 import { PermissionService } from '../shared/services/permission.service';
+import { ConnectivityService } from '../shared/services/connectivity.service';
 
 interface NavItem {
   label: string;
@@ -21,6 +22,7 @@ interface NavItem {
 export class LayoutComponent {
   private readonly auth = inject(AuthService);
   private readonly permissions = inject(PermissionService);
+  private readonly connectivity = inject(ConnectivityService);
 
   readonly sidebarOpen = signal(false);
   readonly perfil = this.auth.perfil;
@@ -29,6 +31,10 @@ export class LayoutComponent {
   readonly usuario = this.auth.usuario;
   readonly userDropdownOpen = signal(false);
   readonly submenuOpen = signal<string | null>(null);
+
+  get online(): boolean {
+    return this.connectivity.isOnline();
+  }
 
   readonly navSections = computed(() => {
     const p = this.perfil();
@@ -65,14 +71,14 @@ export class LayoutComponent {
               { label: 'Formatos', path: '/admin/catalogos/formatos', icon: 'bi-dot' },
               { label: 'Calibres', path: '/admin/catalogos/calibres', icon: 'bi-dot' },
               { label: 'Categorías', path: '/admin/catalogos/categorias', icon: 'bi-dot' },
-              { label: 'Tipos de Empaque', path: '/admin/catalogos/tiposempaque', icon: 'bi-dot' },
-              { label: 'Tipos Empaque Guía', path: '/admin/catalogos/tiposempaqueguia', icon: 'bi-dot' },
+              { label: 'Tipos de Empaque', path: '/admin/catalogos/tiposEmpaque', icon: 'bi-dot' },
+              { label: 'Tipos Empaque Guía', path: '/admin/catalogos/tiposEmpaqueGuia', icon: 'bi-dot' },
               { label: 'Presentaciones', path: '/admin/catalogos/presentaciones', icon: 'bi-dot' },
-              { label: 'Tipos de Caja', path: '/admin/catalogos/tiposcaja', icon: 'bi-dot' },
-              { label: 'Tipos de Clamshell', path: '/admin/catalogos/tiposclamshell', icon: 'bi-dot' },
+              { label: 'Tipos de Caja', path: '/admin/catalogos/tiposCaja', icon: 'bi-dot' },
+              { label: 'Tipos de Clamshell', path: '/admin/catalogos/tiposClamshell', icon: 'bi-dot' },
               { label: 'Variedades', path: '/admin/catalogos/variedades', icon: 'bi-dot' },
-              { label: 'Lugares de Producción', path: '/admin/catalogos/lugaresproduccion', icon: 'bi-dot' },
-              { label: 'Transporte', path: '/admin/catalogos/transporte', icon: 'bi-dot' },
+              { label: 'Lugares de Producción', path: '/admin/catalogos/lugaresProduccion', icon: 'bi-dot' },
+              { label: 'Transportes', path: '/admin/catalogos/transportes', icon: 'bi-dot' },
             ]
           },
           {
@@ -84,7 +90,7 @@ export class LayoutComponent {
               { label: 'Vehículos', path: '/admin/catalogos/vehiculos', icon: 'bi-dot' },
               { label: 'Transportistas', path: '/admin/catalogos/transportistas', icon: 'bi-dot' },
               { label: 'Supervisores', path: '/admin/catalogos/supervisores', icon: 'bi-dot' },
-              { label: 'Personal Logística', path: '/admin/catalogos/personallogistica', icon: 'bi-dot' },
+              { label: 'Personal Logística', path: '/admin/catalogos/personalLogistica', icon: 'bi-dot' },
               { label: 'Acopios', path: '/admin/catalogos/acopios', icon: 'bi-dot' },
             ]
           },

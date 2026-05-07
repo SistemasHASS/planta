@@ -351,7 +351,10 @@ body {
   font-size: 11px;
   font-weight: 700;
 }
-
+/* SweetAlert2 must always stay above custom/Bootstrap modals */
+.swal2-container {
+  z-index: 20000 !important;
+}
 /* ── Content ── */
 .app-content {
   flex: 1;

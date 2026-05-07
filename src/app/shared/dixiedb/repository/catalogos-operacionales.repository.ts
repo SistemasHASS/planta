@@ -4,7 +4,7 @@ import { BaseRepository } from "../db-base.repository";
 import { DexieService } from "../dexie-db.service";
 
 @Injectable({ providedIn: 'root' })
-export class CatalogosOperacionalesRepository {
+export class CatalogosOperativosRepository {
     constructor(
         public readonly conductoresRepo: ConductorRepository,
         public readonly vehiculosRepo: VehiculoRepository,

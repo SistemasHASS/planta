@@ -16,11 +16,11 @@ export type EstadoFiltro = 'activos' | 'inactivos' | 'todos';
 })
 export class CatalogoTablaComponent {
   private readonly booleanBadgeFields = new Set<string>([
-    'Activo',
-    'EsEnsayo',
+    'activo',
+    'esEnsayo',
   ]);
   private readonly booleanBadgeFieldsSincronizado = new Set<string>([
-    'db'
+    'bd'
   ]);
 
   private readonly _config = signal<CatalogoConfig | null>(null);
@@ -70,7 +70,6 @@ export class CatalogoTablaComponent {
 
   readonly tableMinWidthPx = computed(() => {
     const cols = this.columnasVisibles().length;
-    // Rough width per column + fixed space for index/actions.
     const estimated = cols * 180 + 220;
     return Math.max(900, estimated);
   });
@@ -83,8 +82,8 @@ export class CatalogoTablaComponent {
 
     if (cfg?.tieneActivo) {
       const f = this._estadoFiltro();
-      if (f === 'activos') base = base.filter(i => !!i?.Activo);
-      if (f === 'inactivos') base = base.filter(i => !i?.Activo);
+      if (f === 'activos') base = base.filter(i => !!i?.activo);
+      if (f === 'inactivos') base = base.filter(i => !i?.activo);
     }
 
     if (!term) return base;

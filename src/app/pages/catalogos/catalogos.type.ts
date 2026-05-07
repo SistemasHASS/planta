@@ -3,21 +3,21 @@ export type CatalogoKey =
     | 'consignatarios'
     | 'destinos'
     | 'formatos'
-    | 'tiposempaque'
-    | 'tiposempaqueguia'
+    | 'tiposEmpaque'
+    | 'tiposEmpaqueGuia'
     | 'presentaciones'
-    | 'tiposcaja'
-    | 'tiposclamshell'
+    | 'tiposCaja'
+    | 'tiposClamshell'
     | 'variedades'
-    | 'lugaresproduccion'
-    | 'transporte'
+    | 'lugaresProduccion'
+    | 'transportes'
     | 'calibres'
     | 'categorias'
     | 'conductores'
     | 'vehiculos'
     | 'transportistas'
     | 'supervisores'
-    | 'personallogistica'
+    | 'personalLogistica'
     | 'acopios';
 
 export type CampoTipo =
@@ -54,4 +54,5 @@ export interface CatalogoConfig {
     tieneActivo: boolean;
     noCrear?: boolean;
     fkTablas?: string[];
+    dixieRepo?: string;
 }

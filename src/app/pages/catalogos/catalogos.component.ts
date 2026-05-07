@@ -4,21 +4,23 @@ import { CatalogoService } from '../../shared/services/catalogo.service';
 import { PermissionService } from '../../shared/services/permission.service';
 import { ActivatedRoute } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { finalize, map } from 'rxjs';
+import { finalize, firstValueFrom, map } from 'rxjs';
 import { isCatalogoKey } from './catalogos.utils';
 import { CatalogoKey } from './catalogos.type';
 import { CATALOGOS_CONFIG } from './catalogos.config';
 import { CatalogoTablaComponent, EstadoFiltro } from './components/tabla/catalogo-tabla.component';
 import { CatalogoModalComponent } from './components/modal/catalogo-modal.component';
 import { CatalogosRepository } from '../../shared/dixiedb/repository/catalogos.repository';
-import { CatalogosOperacionalesRepository } from '../../shared/dixiedb/repository/catalogos-operacionales.repository';
+import { CatalogosOperativosRepository } from '../../shared/dixiedb/repository/catalogos-operacionales.repository';
+import { ConnectivityService } from '../../shared/services/connectivity.service';
+import { AlertService } from '../../shared/services/alert.service';
 
 const OPERARIOS_KEYS = new Set<CatalogoKey>([
   'conductores',
   'vehiculos',
   'transportistas',
   'supervisores',
-  'personallogistica',
+  'personalLogistica',
   'acopios',
 ]);
 
@@ -29,20 +31,20 @@ const CATALOGO_DATA_KEY_MAP: Record<CatalogoKey, string> = {
   destinos: 'destinos',
   consignatarios: 'consignatarios',
   variedades: 'variedades',
-  tiposempaque: 'tiposEmpaque',
-  tiposempaqueguia: 'tiposEmpaqueGuia',
+  tiposEmpaque: 'tiposEmpaque',
+  tiposEmpaqueGuia: 'tiposEmpaqueGuia',
   presentaciones: 'presentaciones',
-  tiposcaja: 'tiposCaja',
-  tiposclamshell: 'tiposClamshell',
-  lugaresproduccion: 'lugaresProduccion',
-  transporte: 'transportes',
+  tiposCaja: 'tiposCaja',
+  tiposClamshell: 'tiposClamshell',
+  lugaresProduccion: 'lugaresProduccion',
+  transportes: 'transportes',
   calibres: 'calibres',
   categorias: 'categorias',
   conductores: 'conductores',
   vehiculos: 'vehiculos',
   transportistas: 'transportistas',
   supervisores: 'supervisores',
-  personallogistica: 'personalLogistica',
+  personalLogistica: 'personalLogistica',
 };
 
 @Component({
@@ -60,6 +62,9 @@ export class CatalogosComponent implements OnInit {
   private readonly catalogoService = inject(CatalogoService);
   private readonly route = inject(ActivatedRoute);
   readonly permissions = inject(PermissionService);
+  private readonly connectivity = inject(ConnectivityService);
+  private readonly alertService = inject(AlertService);
+
   readonly tipo = toSignal(
     this.route.paramMap.pipe(
       map(params => params.get('tipo')),
@@ -77,8 +82,10 @@ export class CatalogosComponent implements OnInit {
   readonly modalAbierto = signal(false);
   readonly modalModo = signal<'nuevo' | 'editar'>('nuevo');
   readonly modalValue = signal<any>(null);
-  private catalogosBaseCargados = false;
-  private catalogosOperariosCargados = false;
+
+  get online(): boolean {
+    return this.connectivity.isOnline();
+  }
   private readonly data = signal<Record<string, any[]>>({});
 
   readonly items = computed(() => {
@@ -92,20 +99,20 @@ export class CatalogosComponent implements OnInit {
       destinos: 'destinos',
       consignatarios: 'consignatarios',
       variedades: 'variedades',
-      tiposempaque: 'tiposEmpaque',
-      tiposempaqueguia: 'tiposEmpaqueGuia',
+      tiposEmpaque: 'tiposEmpaque',
+      tiposEmpaqueGuia: 'tiposEmpaqueGuia',
       presentaciones: 'presentaciones',
-      tiposcaja: 'tiposCaja',
-      tiposclamshell: 'tiposClamshell',
-      lugaresproduccion: 'lugaresProduccion',
-      transporte: 'transportes',
+      tiposCaja: 'tiposCaja',
+      tiposClamshell: 'tiposClamshell',
+      lugaresProduccion: 'lugaresProduccion',
+      transportes: 'transportes',
       calibres: 'calibres',
       categorias: 'categorias',
       conductores: 'conductores',
       vehiculos: 'vehiculos',
       transportistas: 'transportistas',
       supervisores: 'supervisores',
-      personallogistica: 'personalLogistica',
+      personalLogistica: 'personalLogistica',
     };
 
     const key = mapKey[t] ?? t;
@@ -124,7 +131,7 @@ export class CatalogosComponent implements OnInit {
 
   constructor(
     private catalogosRepo: CatalogosRepository,
-    private catalogosOperacionales: CatalogosOperacionalesRepository
+    private catalogosOperativosRepo: CatalogosOperativosRepository
   ) {
     effect(() => {
       const tipo = this.tipo();
@@ -136,61 +143,272 @@ export class CatalogosComponent implements OnInit {
     });
   }
 
-  private cargarCatalogosBaseSiHaceFalta(): void {
-    if (this.catalogosBaseCargados) return;
-
-    this.isLoading.set(true);
-
-    this.catalogoService.listarTodos()
-      .pipe(
-        finalize(() => this.isLoading.set(false))
-      )
-      .subscribe({
-        next: (r: any) => {
-          console.log('r', r);
-          const data = r?.data ?? r;
-
-          this.data.update(current => ({
-            ...current,
-            ...(data ?? {})
-          }));
-
-          this.catalogosBaseCargados = true;
-        },
-        error: (err) => {
-          console.error('Error cargando catálogos base', err);
-        }
-      });
+  private async cargarCatalogosOperariosSiHaceFalta(): Promise<void> {
+    const dixieRepo = this.config().dixieRepo;
+    let info = await this.catalogosOperativosRepo[dixieRepo as keyof CatalogosOperativosRepository].getAll()
+    if (info.length > 0) {
+      this.data.update(current => ({ ...current, [this.tipo()]: [...info] }))
+      return;
+    } else {
+      await this.getCatalogosOperativosApi()
+    }
   }
 
-  private cargarCatalogosOperariosSiHaceFalta(): void {
-    if (this.catalogosOperariosCargados) return;
+  private async cargarCatalogosBaseSiHaceFalta(): Promise<void> {
+    const dixieRepo = this.config().dixieRepo;
+    let info = await this.catalogosRepo[dixieRepo as keyof CatalogosRepository].getAll()
+    if (info.length > 0) {
+      this.data.update(current => ({ ...current, [this.tipo()]: [...info] }))
+      return;
+    } else {
+      await this.getCatalogoApi()
+    }
+  }
 
+  private async getCatalogosOperativosApi(): Promise<void> {
+    console.log('getCatalogosOperativosApi');
     this.isLoading.set(true);
+    try {
+      const resp: any = await firstValueFrom(this.catalogoService.listarTodosOperarios());
+      const data = resp?.data ?? resp;
+      const nombres = Object.keys(data ?? {});
+      for (const element of nombres) {
+        const confTemp = CATALOGOS_CONFIG[element as keyof typeof CATALOGOS_CONFIG];
+        if (!confTemp) continue;
+        const repo = this.catalogosOperativosRepo[confTemp.dixieRepo as keyof CatalogosOperativosRepository];
+        const items = data[element].map((item: any) => ({
+          ...item,
+          bd: 1
+        }));
 
-    this.catalogoService.listarTodosOperarios()
-      .pipe(
-        finalize(() => this.isLoading.set(false))
-      )
-      .subscribe({
-        next: (r: any) => {
-          const data = r?.data ?? r;
-
-          this.data.update(current => ({
-            ...current,
-            ...(data ?? {})
-          }));
-
-          this.catalogosOperariosCargados = true;
-        },
-        error: (err) => {
-          console.error('Error cargando catálogos operarios', err);
+        for (const item of items) {
+          await repo.save(item);
         }
-      });
+      }
+
+      await this.getDataCatalogosOperativosDixie()
+
+    } catch (err) {
+      console.error('Error cargando catálogos operativos', err);
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  private async getCatalogoApi(): Promise<void> {
+    console.log('getCatalogoApi');
+    this.isLoading.set(true);
+    try {
+      const resp: any = await firstValueFrom(this.catalogoService.listarTodos());
+      const data = resp?.data ?? resp;
+      const nombres = Object.keys(data ?? {});
+      for (const element of nombres) {
+        const confTemp = CATALOGOS_CONFIG[element as keyof typeof CATALOGOS_CONFIG];
+        if (!confTemp) continue;
+        const repo = this.catalogosRepo[confTemp.dixieRepo as keyof CatalogosRepository];
+        const items = data[element].map((item: any) => ({
+          ...item,
+          bd: 1
+        }));
+
+        for (const item of items) {
+          await repo.save(item);
+        }
+
+      }
+
+      await this.getDataCatalogosDixie()
+
+    } catch (err) {
+      console.error('Error cargando catálogos base', err);
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  private async getDataCatalogosOperativosDixie(): Promise<void> {
+    try {
+      const dixieRepo = this.config().dixieRepo;
+      const info = await this.catalogosOperativosRepo[dixieRepo as keyof CatalogosOperativosRepository].getAll();
+      this.data.update(current => ({
+        ...current,
+        [this.tipo()]: info
+      }));
+    } catch (error) {
+      console.error('Error cargando catálogos dixie', error);
+      this.alertService.showAlert('Error', 'Error cargando catálogos dixie', 'error');
+    }
+  }
+
+  private async getDataCatalogosDixie(): Promise<void> {
+    try {
+      const dixieRepo = this.config().dixieRepo;
+      const info = await this.catalogosRepo[dixieRepo as keyof CatalogosRepository].getAll();
+      this.data.update(current => ({
+        ...current,
+        [this.tipo()]: info
+      }));
+    } catch (error) {
+      this.alertService.showAlert('Error', 'Error cargando catálogos dixie', 'error');
+      console.error('Error cargando catálogos dixie', error);
+    }
+  }
+
+  private async getCatalogoOperativosTipoApi(): Promise<void> {
+    console.log('getCatalogoOperativosTipoApi');
+    this.isLoading.set(true);
+    try {
+      const resp: any = await firstValueFrom(this.catalogoService.listarTodosOperarios());
+      const data = resp?.data ?? resp;
+      const nombres = Object.keys(data ?? {});
+      let tipo = nombres.find(s => s === this.tipo());
+      const confTemp = CATALOGOS_CONFIG[tipo as keyof typeof CATALOGOS_CONFIG];
+      const repo = this.catalogosOperativosRepo[confTemp.dixieRepo as keyof CatalogosOperativosRepository];
+      const uniqueField = confTemp.codigoField || 'codigo';
+      for (const item of data[tipo!]) {
+        const apiId = (item as any)?.id;
+        const uniqueValue = (item as any)?.[uniqueField];
+        const existing = apiId
+          ? await repo.getByField('id', apiId)
+          : (uniqueValue !== undefined && uniqueValue !== null && `${uniqueValue}`.trim() !== '')
+            ? await repo.getByField(uniqueField, uniqueValue)
+            : undefined;
+
+        if (existing) {
+          if ((existing as any)?.bd === 0) {
+            continue;
+          }
+          (item as any)._pk = (existing as any)._pk;
+        }
+
+        (item as any).bd = 1;
+        await repo.save(item);
+      }
+
+      await this.getDataCatalogosOperativosDixie();
+
+    } catch (err) {
+      console.error('Error cargando catálogos base', err);
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+
+  private async getCatalogoTipoApi(): Promise<void> {
+    console.log('getCatalogoTipoApi');
+    this.isLoading.set(true);
+    try {
+      const resp: any = await firstValueFrom(this.catalogoService.listarTodos());
+      const data = resp?.data ?? resp;
+      const nombres = Object.keys(data ?? {});
+      let tipo = nombres.find(s => s === this.tipo());
+      const confTemp = CATALOGOS_CONFIG[tipo as keyof typeof CATALOGOS_CONFIG];
+      const repo = this.catalogosRepo[confTemp.dixieRepo as keyof CatalogosRepository];
+      const uniqueField = confTemp.codigoField || 'codigo';
+      for (const item of data[tipo!]) {
+        const apiId = (item as any)?.id;
+        const uniqueValue = (item as any)?.[uniqueField];
+        const existing = apiId
+          ? await repo.getByField('id', apiId)
+          : (uniqueValue !== undefined && uniqueValue !== null && `${uniqueValue}`.trim() !== '')
+            ? await repo.getByField(uniqueField, uniqueValue)
+            : undefined;
+
+        if (existing) {
+          if ((existing as any)?.bd === 0) {
+            continue;
+          }
+          (item as any)._pk = (existing as any)._pk;
+        }
+
+        (item as any).bd = 1;
+        await repo.save(item);
+      }
+
+      await this.getDataCatalogosDixie();
+
+    } catch (err) {
+      console.error('Error cargando catálogos base', err);
+    } finally {
+      this.isLoading.set(false);
+    }
   }
 
   onSearchChange(value: string): void {
     this.searchTerm.set(value);
+  }
+
+  async onSincronizar(): Promise<void> {
+    try {
+      if (!this.online) {
+        this.alertService.showAlert('Error', 'No tiene conexión a internet', 'error');
+        return
+      }
+
+      const confirmar = await this.alertService.showConfirm(
+        'Confirmar sincronización',
+        'Se subirán a BD las registros pendientes. ¿Desea continuar?',
+        'question',
+      );
+
+      if (confirmar) {
+        // TODO: Implementar lógica de sincronización
+        console.log('Sincronizando catálogos...');
+        this.alertService.mostrarModalCarga();
+        let dataSend: any
+        if (OPERARIOS_KEYS.has(this.tipo())) {
+          dataSend = await this.catalogosOperativosRepo[this.config().dixieRepo as keyof CatalogosOperativosRepository].getAllNoSincronizado();
+        } else {
+          dataSend = await this.catalogosRepo[this.config().dixieRepo as keyof CatalogosRepository].getAllNoSincronizado();
+        }
+        if (dataSend.length === 0) {
+          if (OPERARIOS_KEYS.has(this.tipo())) {
+            await this.catalogosOperativosRepo[this.config().dixieRepo as keyof CatalogosOperativosRepository].clear();
+          } else {
+            await this.catalogosRepo[this.config().dixieRepo as keyof CatalogosRepository].clear();
+          }
+          if (OPERARIOS_KEYS.has(this.tipo())) {
+            this.getCatalogoOperativosTipoApi()
+          } else {
+            this.getCatalogoTipoApi()
+          }
+          this.alertService.showAlert('Éxito', 'No hay registros pendientes de sincronización', 'success');
+          return
+        } else {
+          const payloads = structuredClone(dataSend);
+          payloads.forEach((item: any) => {
+            delete item.bd
+            delete item._pk
+          })
+
+          let { error, data, mensaje } = await firstValueFrom(this.catalogoService.sincronizarCatalogos(this.config().tabla, payloads));
+          if (error) {
+            this.alertService.showAlert('Error', mensaje, 'error');
+          } else {
+            if (OPERARIOS_KEYS.has(this.tipo())) {
+              for (const element of dataSend) {
+                await this.catalogosOperativosRepo[this.config().dixieRepo as keyof CatalogosOperativosRepository].delete(element._pk);
+              }
+            } else {
+              for (const element of dataSend) {
+                await this.catalogosRepo[this.config().dixieRepo as keyof CatalogosRepository].delete(element._pk);
+              }
+            }
+            if (OPERARIOS_KEYS.has(this.tipo())) {
+              this.getCatalogoOperativosTipoApi()
+            } else {
+              this.getCatalogoTipoApi()
+            }
+            this.alertService.showAlert('Éxito', mensaje, 'success');
+          }
+
+        }
+      }
+    } catch (error: any) {
+      console.error('Error en sincronización:', error);
+      this.alertService.showAlert('Error en sincronización', error, 'error');
+    }
   }
 
   setEstadoFiltro(f: EstadoFiltro): void {
@@ -213,16 +431,204 @@ export class CatalogosComponent implements OnInit {
     this.modalAbierto.set(false);
   }
 
-  guardarModal(payload: any): void {
-    console.warn('Guardar no implementado aún', { tipo: this.tipo(), payload });
-    this.modalAbierto.set(false);
+  async enviarRegistrosApi(payloads: any[], pk: any = ''): Promise<boolean> {
+    const label = this.config()?.label ?? 'registro';
+    const tipo = this.tipo();
+    try {
+      let { error, data, mensaje } = await firstValueFrom(this.catalogoService.sincronizarCatalogos(this.config().tabla, payloads));
+      if (error) {
+        this.alertService.showAlert('Error', `Error al guardar el ${label}, ${mensaje}.`, 'error')
+        return false
+      }
+      if (pk !== '') {
+        let existe
+        if (OPERARIOS_KEYS.has(tipo)) {
+          existe = await this.catalogosOperativosRepo[this.config().dixieRepo as keyof CatalogosOperativosRepository].getByKey(pk);
+        } else {
+          existe = await this.catalogosRepo[this.config().dixieRepo as keyof CatalogosRepository].getByKey(pk);
+        }
+        if (existe) {
+          if (OPERARIOS_KEYS.has(tipo)) {
+            await this.catalogosOperativosRepo[this.config().dixieRepo as keyof CatalogosOperativosRepository].delete(pk);
+          } else {
+            await this.catalogosRepo[this.config().dixieRepo as keyof CatalogosRepository].delete(pk);
+          }
+        }
+      }
+      if (OPERARIOS_KEYS.has(tipo)) {
+        this.getCatalogoOperativosTipoApi()
+      } else {
+        this.getCatalogoTipoApi()
+      }
+      return true
+    } catch (error) {
+      console.log(error)
+      this.alertService.showAlert('Error', `Error al guardar el ${label}, ${error}.`, 'error')
+      return false
+    }
   }
 
-  onDesactivar(item: any): void {
-    console.warn('Desactivar no implementado aún', { tipo: this.tipo(), item });
+  async saveDixie(payload: any, modo: any): Promise<void> {
+    const tipo = this.tipo();
+    let repo;
+    if (OPERARIOS_KEYS.has(tipo)) {
+      repo = this.catalogosOperativosRepo[this.config().dixieRepo as keyof CatalogosOperativosRepository];
+    } else {
+      repo = this.catalogosRepo[this.config().dixieRepo as keyof CatalogosRepository];
+    }
+    if (modo === 'nuevo') {
+      await repo.save(payload);
+    } else if (modo === 'editar') {
+      await repo.save(payload);
+    }
+    if (OPERARIOS_KEYS.has(tipo)) {
+      await this.getDataCatalogosOperativosDixie()
+    } else {
+      await this.getDataCatalogosDixie()
+    }
+  }
+
+  async guardarModal(payload: any): Promise<void> {
+    const modo = payload?.modo ?? payload?.payload?.modo;
+    const data = payload?.payload ?? payload;
+    const _pk = data._pk
+    if (payload?._pk !== undefined && payload?._pk !== null && (data as any)?._pk === undefined) {
+      (data as any)._pk = payload._pk;
+    }
+    try {
+      const tipo = this.tipo();
+      this.alertService.mostrarModalCarga();
+      const label = this.config()?.label ?? 'registro';
+      if (modo === 'nuevo') {
+        const keyField = this.config()?.codigoField || '';
+        const keyValue = keyField ? data?.[keyField] : undefined;
+        if (!keyField || keyValue === undefined || keyValue === null || `${keyValue}`.trim() === '') {
+          this.alertService.showAlertAcept('Validación', 'No se detectó el campo clave para validar duplicados.', 'warning');
+          return;
+        }
+        let duplicado
+        if (OPERARIOS_KEYS.has(tipo)) {
+          duplicado = await this.catalogosOperativosRepo[this.config().dixieRepo as keyof CatalogosOperativosRepository].getByField(keyField, keyValue);
+        } else {
+          duplicado = await this.catalogosRepo[this.config().dixieRepo as keyof CatalogosRepository].getByField(keyField, keyValue);
+        }
+        if (duplicado) {
+          this.alertService.showAlert('Duplicado', `Ya existe un ${label} con ${keyField}: <b>${keyValue}</b>.`, 'error');
+          return;
+        }
+
+        if (this.online) {
+          if (!data) {
+            this.alertService.showAlert('Error', `Error al guardar el ${label}.`, 'error');
+            return
+          } else {
+            delete data.modo;
+            delete (data as any)._pk;
+            delete (data as any).bd;
+            let res = await this.enviarRegistrosApi(data)
+            if (res) {
+              this.alertService.cerrarModalCarga();
+              this.modalAbierto.set(false);
+              return
+            }
+          }
+        } else {
+          delete data.modo;
+          (data as any).bd = 0
+          await this.saveDixie(data, 'nuevo')
+          this.alertService.cerrarModalCarga();
+          this.modalAbierto.set(false);
+          return
+        }
+
+      } else if (modo === 'editar') {
+        const keyField = this.config()?.codigoField || '';
+        const keyValue = keyField ? data?.[keyField] : undefined;
+        if (keyField && keyValue !== undefined && keyValue !== null && `${keyValue}`.trim() !== '') {
+          let duplicado
+          if (OPERARIOS_KEYS.has(tipo)) {
+            duplicado = await this.catalogosOperativosRepo[this.config().dixieRepo as keyof CatalogosOperativosRepository].getByField(keyField, keyValue);
+          } else {
+            duplicado = await this.catalogosRepo[this.config().dixieRepo as keyof CatalogosRepository].getByField(keyField, keyValue);
+          }
+          if (duplicado && (duplicado as any)?._pk !== (data as any)?._pk) {
+            this.alertService.showAlert('Duplicado', `Ya existe un ${label} con ${keyField}: <b>${keyValue}</b>.`, 'error');
+            return;
+          }
+        }
+        if (this.online) {
+          if (!data) {
+            this.alertService.showAlert('Error', `Error al guardar el ${label}.`, 'error');
+            return
+          } else {
+            delete data.modo;
+            delete (data as any).bd;
+            delete (data as any)._pk;
+            let res = await this.enviarRegistrosApi(data, _pk)
+            if (res) {
+              this.alertService.cerrarModalCarga();
+              this.modalAbierto.set(false);
+              return
+            }
+          }
+        } else {
+          delete data.modo;
+          (data as any).bd = 0
+          await this.saveDixie(data, 'editar')
+          this.alertService.cerrarModalCarga();
+          this.modalAbierto.set(false);
+          return
+        }
+      }
+      return
+    } catch (error) {
+      console.log(error)
+      this.alertService.cerrarModalCarga();
+      this.alertService.showAlertAcept('Error', 'No se pudo guardar el registro. Inténtalo nuevamente.', 'error');
+
+    }
+  }
+
+  async onDesactivar(item: any): Promise<void> {
+    this.alertService.mostrarModalCarga();
+    let tipo = this.tipo();
+    let existe: any
+    if (OPERARIOS_KEYS.has(tipo)) {
+      existe = await this.catalogosOperativosRepo[this.config().dixieRepo as keyof CatalogosOperativosRepository].getByKey(item._pk);
+    } else {
+      existe = await this.catalogosRepo[this.config().dixieRepo as keyof CatalogosRepository].getByKey(item._pk);
+    }
+    if (existe) {
+      if (this.online) {
+        delete existe.modo;
+        delete (existe as any).bd;
+        delete (existe as any)._pk;
+        existe.activo = !existe.activo
+        let res = await this.enviarRegistrosApi(existe, existe._pk)
+        if (res) {
+          this.alertService.cerrarModalCarga();
+          return
+        }
+      } else {
+        if (OPERARIOS_KEYS.has(tipo)) {
+          await this.catalogosOperativosRepo[this.config().dixieRepo as keyof CatalogosOperativosRepository].update(existe._pk, { activo: !existe.activo, bd: 0 });
+        } else {
+          await this.catalogosRepo[this.config().dixieRepo as keyof CatalogosRepository].update(existe._pk, { activo: !existe.activo, bd: 0 });
+        }
+        if (OPERARIOS_KEYS.has(tipo)) {
+          await this.getDataCatalogosOperativosDixie()
+        } else {
+          await this.getDataCatalogosDixie()
+        }
+      }
+      this.alertService.cerrarModalCarga();
+      return
+    } else {
+      this.alertService.showAlert('Error', 'No se encontró el registro.', 'error');
+    }
   }
 
   onEliminar(item: any): void {
-    console.warn('Eliminar no implementado aún', { tipo: this.tipo(), item });
+    console.log('Eliminar no implementado aún', { tipo: this.tipo(), item });
   }
 }

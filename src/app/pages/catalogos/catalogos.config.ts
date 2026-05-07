@@ -7,347 +7,367 @@ export const CATALOGOS_CONFIG: Record<CatalogoKey, CatalogoConfig> = {
     label: 'Clientes',
     icon: 'bi-building',
     columnas: [
-      { campo: 'Id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'Codigo', label: 'Código', tipo: 'varchar', maxLength: 50, required: true, unique: true },
-      { campo: 'RazonSocial', label: 'Razón Social', tipo: 'varchar', maxLength: 200, required: true },
-      { campo: 'db', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
-      { campo: 'Activo', label: 'Estado', tipo: 'bit', default: 1 }
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'codigo', label: 'Código', tipo: 'varchar', maxLength: 50, required: true, unique: true },
+      { campo: 'razonSocial', label: 'Razón Social', tipo: 'varchar', maxLength: 200, required: true },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'activo', label: 'Estado', tipo: 'bit',required: true }
     ],
     displayField: 'RazonSocial',
-    codigoField: 'Codigo',
+    codigoField: 'codigo',
     tieneActivo: true,
-    noCrear: true, // D) Bloquear creación de nuevos clientes
-    fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad']
+    noCrear: true,
+    fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad'],
+    dixieRepo: 'clientesRepo'
   },
   consignatarios: {
     tabla: 'Consignatarios',
     label: 'Consignatarios',
     icon: 'bi-person-vcard',
     columnas: [
-      { campo: 'Id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'Codigo', label: 'Código', tipo: 'varchar', maxLength: 50, required: true, unique: true },
-      { campo: 'RazonSocial', label: 'Razón Social', tipo: 'varchar', maxLength: 200, required: true },
-      { campo: 'db', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
-      { campo: 'Activo', label: 'Estado', tipo: 'bit', default: 1 }
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'codigo', label: 'Código', tipo: 'varchar', maxLength: 50, required: true, unique: true },
+      { campo: 'razonSocial', label: 'Razón Social', tipo: 'varchar', maxLength: 200, required: true },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'activo', label: 'Estado', tipo: 'bit',required: true }
     ],
     displayField: 'RazonSocial',
-    codigoField: 'Codigo',
+    codigoField: 'codigo',
     tieneActivo: true,
-    fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad', 'ReglasSobrepeso']
+    fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad', 'ReglasSobrepeso'],
+    dixieRepo: 'consignatariosRepo'
   },
   destinos: {
     tabla: 'Destinos',
     label: 'Destinos',
     icon: 'bi-geo-alt',
     columnas: [
-      { campo: 'Id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'Codigo', label: 'Código', tipo: 'varchar', maxLength: 50, required: true, unique: true },
-      { campo: 'Nombre', label: 'Nombre', tipo: 'varchar', maxLength: 100, required: true },
-      { campo: 'Pais', label: 'País', tipo: 'varchar', maxLength: 100, required: true },
-      { campo: 'db', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
-      { campo: 'Activo', label: 'Estado', tipo: 'bit', default: 1 }
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'codigo', label: 'Código', tipo: 'varchar', maxLength: 50, required: true, unique: true },
+      { campo: 'nombre', label: 'Nombre', tipo: 'varchar', maxLength: 100, required: true },
+      { campo: 'pais', label: 'País', tipo: 'varchar', maxLength: 100, required: true },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'activo', label: 'Estado', tipo: 'bit',required: true }
     ],
     displayField: 'Nombre',
-    codigoField: 'Codigo',
+    codigoField: 'codigo',
     tieneActivo: true,
-    fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad', 'ReglasSobrepeso']
+    fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad', 'ReglasSobrepeso'],
+    dixieRepo: 'destinosRepo'
   },
   formatos: {
     tabla: 'Formatos',
     label: 'Formatos',
     icon: 'bi-box',
     columnas: [
-      { campo: 'Id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'Codigo', label: 'Código', tipo: 'varchar', maxLength: 20, required: true, unique: true },
-      { campo: 'Descripcion', label: 'Descripción', tipo: 'varchar', maxLength: 100, required: true },
-      { campo: 'PesoPorCaja', label: 'Peso por Caja (Kg)', tipo: 'decimal', required: true },
-      { campo: 'LimiteCajasPorPalet', label: 'Límite Cajas/Palet', tipo: 'int', required: true },
-      { campo: 'db', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
-      { campo: 'Activo', label: 'Estado', tipo: 'bit', default: 1 }
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'codigo', label: 'Código', tipo: 'varchar', maxLength: 20, required: true, unique: true },
+      { campo: 'descripcion', label: 'Descripción', tipo: 'varchar', maxLength: 100, required: true },
+      { campo: 'pesoPorCaja', label: 'Peso por Caja (Kg)', tipo: 'decimal', required: true },
+      { campo: 'limiteCajasPorPalet', label: 'Límite Cajas/Palet', tipo: 'int', required: true },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'activo', label: 'Estado', tipo: 'bit', required: true }
     ],
     displayField: 'Descripcion',
-    codigoField: 'Codigo',
+    codigoField: 'codigo',
     tieneActivo: true,
-    fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad', 'Palets', 'ReglasSobrepeso']
+    fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad', 'Palets', 'ReglasSobrepeso'],
+    dixieRepo: 'formatosRepo'
   },
-  tiposempaque: {
+  tiposEmpaque: {
     tabla: 'TiposEmpaque',
     label: 'Tipos de Empaque',
     icon: 'bi-archive',
     columnas: [
-      { campo: 'Id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'Codigo', label: 'Código', tipo: 'varchar', maxLength: 50, required: true, unique: true },
-      { campo: 'Descripcion', label: 'Descripción', tipo: 'varchar', maxLength: 100, required: true },
-      { campo: 'db', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
-      { campo: 'Activo', label: 'Estado', tipo: 'bit', default: 1 }
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'codigo', label: 'Código', tipo: 'varchar', maxLength: 50, required: true, unique: true },
+      { campo: 'descripcion', label: 'Descripción', tipo: 'varchar', maxLength: 100, required: true },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'activo', label: 'Estado', tipo: 'bit', required: true }
     ],
     displayField: 'Descripcion',
-    codigoField: 'Codigo',
+    codigoField: 'codigo',
     tieneActivo: true,
-    fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad']
+    fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad'],
+    dixieRepo: 'tiposEmpaqueRepo'
   },
-  tiposempaqueguia: {
+  tiposEmpaqueGuia: {
     tabla: 'TiposEmpaqueGuia',
     label: 'Tipos Empaque Guía',
     icon: 'bi-file-earmark-text',
     columnas: [
-      { campo: 'Id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'Codigo', label: 'Código', tipo: 'nvarchar', maxLength: 20, required: true, unique: true },
-      { campo: 'Nombre', label: 'Nombre', tipo: 'nvarchar', maxLength: 100, required: true },
-      { campo: 'db', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
-      { campo: 'Activo', label: 'Estado', tipo: 'bit', default: 1 },
-      { campo: 'FechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'codigo', label: 'Código', tipo: 'nvarchar', maxLength: 20, required: true, unique: true },
+      { campo: 'nombre', label: 'Nombre', tipo: 'nvarchar', maxLength: 100, required: true },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'activo', label: 'Estado', tipo: 'bit', required: true },
+      { campo: 'fechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
     ],
     displayField: 'Nombre',
-    codigoField: 'Codigo',
+    codigoField: 'codigo',
     tieneActivo: true,
-    fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad']
+    fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad'],
+    dixieRepo: 'tiposEmpaqueGuiaRepo'
   },
   presentaciones: {
     tabla: 'Presentacion',
     label: 'Presentaciones',
     icon: 'bi-tag',
     columnas: [
-      { campo: 'Id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'Nombre', label: 'Nombre', tipo: 'nvarchar', maxLength: 100, required: true, unique: true },
-      { campo: 'db', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
-      { campo: 'Activo', label: 'Estado', tipo: 'bit', default: 1 },
-      { campo: 'FechaCreacion', label: 'Fecha Creación', tipo: 'datetime2', auto: true, visible: true, editable: false }
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'nombre', label: 'Nombre', tipo: 'nvarchar', maxLength: 100, required: true, unique: true },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'activo', label: 'Estado', tipo: 'bit', required: true },
+      { campo: 'fechaCreacion', label: 'Fecha Creación', tipo: 'datetime2', auto: true, visible: true, editable: false }
     ],
     displayField: 'Nombre',
-    codigoField: null,
+    codigoField: 'nombre',
     tieneActivo: true,
-    fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad']
+    fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad'],
+    dixieRepo: 'presentacionesRepo'
   },
-  tiposcaja: {
+  tiposCaja: {
     tabla: 'TiposCaja',
     label: 'Tipos de Caja',
     icon: 'bi-inbox',
     columnas: [
-      { campo: 'Id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'Codigo', label: 'Código', tipo: 'nvarchar', maxLength: 100, required: true, unique: true },
-      { campo: 'Nombre', label: 'Nombre', tipo: 'nvarchar', maxLength: 200, required: true },
-      { campo: 'db', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
-      { campo: 'Activo', label: 'Estado', tipo: 'bit', default: 1 },
-      { campo: 'FechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'codigo', label: 'Código', tipo: 'nvarchar', maxLength: 100, required: true, unique: true },
+      { campo: 'nombre', label: 'Nombre', tipo: 'nvarchar', maxLength: 200, required: true },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'activo', label: 'Estado', tipo: 'bit', required: true },
+      { campo: 'fechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
     ],
     displayField: 'Nombre',
-    codigoField: 'Codigo',
+    codigoField: 'codigo',
     tieneActivo: true,
-    fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad']
+    fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad'],
+    dixieRepo: 'tiposCajaRepo'
   },
-  tiposclamshell: {
-    tabla: 'TiposClamshell',
+  tiposClamshell: {
+    tabla: 'tiposClamshell',
     label: 'Tipos de Clamshell',
     icon: 'bi-layers',
     columnas: [
-      { campo: 'Id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'Codigo', label: 'Código', tipo: 'nvarchar', maxLength: 100, required: true, unique: true },
-      { campo: 'Nombre', label: 'Nombre', tipo: 'nvarchar', maxLength: 200, required: true },
-      { campo: 'db', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
-      { campo: 'Activo', label: 'Estado', tipo: 'bit', default: 1 },
-      { campo: 'FechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'codigo', label: 'Código', tipo: 'nvarchar', maxLength: 100, required: true, unique: true },
+      { campo: 'nombre', label: 'Nombre', tipo: 'nvarchar', maxLength: 200, required: true },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'activo', label: 'Estado', tipo: 'bit', required: true },
+      { campo: 'fechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
     ],
     displayField: 'Nombre',
-    codigoField: 'Codigo',
+    codigoField: 'codigo',
     tieneActivo: true,
-    fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad']
+    fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad'],
+    dixieRepo: 'tiposClamshellRepo'
   },
   variedades: {
     tabla: 'Variedades',
     label: 'Variedades',
     icon: 'bi-flower1',
     columnas: [
-      { campo: 'Id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'Codigo', label: 'Código', tipo: 'varchar', maxLength: 50, required: true, unique: true },
-      { campo: 'Nombre', label: 'Nombre', tipo: 'varchar', maxLength: 100, required: true },
-      { campo: 'Procedencia', label: 'Procedencia', tipo: 'varchar', maxLength: 100, required: true },
-      { campo: 'EsEnsayo', label: 'Es Ensayo', tipo: 'bit', default: 0 },
-      { campo: 'db', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
-      { campo: 'Activo', label: 'Estado', tipo: 'bit', default: 1 }
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'codigo', label: 'Código', tipo: 'varchar', maxLength: 50, required: true, unique: true },
+      { campo: 'nombre', label: 'Nombre', tipo: 'varchar', maxLength: 100, required: true },
+      { campo: 'procedencia', label: 'Procedencia', tipo: 'varchar', maxLength: 100, required: true },
+      { campo: 'esEnsayo', label: 'Es Ensayo', tipo: 'bit', default: 0 },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'activo', label: 'Estado', tipo: 'bit', required: true }
     ],
     displayField: 'Nombre',
-    codigoField: 'Codigo',
+    codigoField: 'codigo',
     tieneActivo: true,
-    fkTablas: ['ComposicionPalets']
+    fkTablas: ['ComposicionPalets'],
+    dixieRepo: 'variedadesRepo'
   },
-  lugaresproduccion: {
+  lugaresProduccion: {
     tabla: 'LugaresProduccion',
     label: 'Lugares de Producción',
     icon: 'bi-pin-map',
     columnas: [
-      { campo: 'Id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'Codigo', label: 'Código', tipo: 'varchar', maxLength: 50, required: true, unique: true },
-      { campo: 'Descripcion', label: 'Descripción', tipo: 'varchar', maxLength: 200, required: true },
-      { campo: 'db', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
-      { campo: 'Activo', label: 'Estado', tipo: 'bit', default: 1 }
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'codigo', label: 'Código', tipo: 'varchar', maxLength: 50, required: true, unique: true },
+      { campo: 'descripcion', label: 'Descripción', tipo: 'varchar', maxLength: 200, required: true },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'activo', label: 'Estado', tipo: 'bit',required: true }
     ],
     displayField: 'Descripcion',
-    codigoField: 'Codigo',
+    codigoField: 'codigo',
     tieneActivo: true,
-    fkTablas: ['ComposicionPalets', 'CodigosRancho']
+    fkTablas: ['ComposicionPalets', 'CodigosRancho'],
+    dixieRepo: 'lugaresProduccionRepo'
   },
-  transporte: {
+  transportes: {
     tabla: 'Transporte',
     label: 'Transporte',
     icon: 'bi-truck',
     columnas: [
-      { campo: 'Id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'Codigo', label: 'Código', tipo: 'nvarchar', maxLength: 50, required: true, unique: true },
-      { campo: 'Nombre', label: 'Nombre', tipo: 'nvarchar', maxLength: 100, required: true },
-      { campo: 'Descripcion', label: 'Descripción', tipo: 'nvarchar', maxLength: 200, required: false },
-      { campo: 'db', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
-      { campo: 'Activo', label: 'Estado', tipo: 'bit', default: 1 },
-      { campo: 'FechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'codigo', label: 'Código', tipo: 'nvarchar', maxLength: 50, required: true, unique: true },
+      { campo: 'nombre', label: 'Nombre', tipo: 'nvarchar', maxLength: 100, required: true },
+      { campo: 'descripcion', label: 'Descripción', tipo: 'nvarchar', maxLength: 200, required: false },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'activo', label: 'Estado', tipo: 'bit',required: true },
+      { campo: 'fechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
     ],
     displayField: 'Nombre',
-    codigoField: 'Codigo',
+    codigoField: 'codigo',
     tieneActivo: true,
-    fkTablas: ['ComposicionPalets', 'ReglasSobrepeso']
+    fkTablas: ['ComposicionPalets', 'ReglasSobrepeso'],
+    dixieRepo: 'transportesRepo'
   },
   calibres: {
     tabla: 'Calibres',
     label: 'Calibres',
     icon: 'bi-rulers',
     columnas: [
-      { campo: 'Id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'Codigo', label: 'Código', tipo: 'nvarchar', maxLength: 50, required: true, unique: true },
-      { campo: 'Nombre', label: 'Nombre', tipo: 'nvarchar', maxLength: 50, required: true },
-      { campo: 'CategoriaId', label: 'Categoría', tipo: 'int', required: false, fkTabla: 'Categorias', fkDisplay: 'Nombre' },
-      { campo: 'db', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
-      { campo: 'Activo', label: 'Estado', tipo: 'bit', default: 1 },
-      { campo: 'FechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'codigo', label: 'Código', tipo: 'nvarchar', maxLength: 50, required: true, unique: true },
+      { campo: 'nombre', label: 'Nombre', tipo: 'nvarchar', maxLength: 50, required: true },
+      { campo: 'categoriaId', label: 'Categoría', tipo: 'int', required: false, fkTabla: 'Categorias', fkDisplay: 'Nombre' },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'activo', label: 'Estado', tipo: 'bit',required: true },
+      { campo: 'fechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
     ],
     displayField: 'Nombre',
-    codigoField: 'Codigo',
+    codigoField: 'codigo',
     tieneActivo: true,
-    fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad']
+    fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad'],
+    dixieRepo: 'calibresRepo'
   },
   categorias: {
     tabla: 'Categorias',
     label: 'Categorías',
     icon: 'bi-bookmark',
     columnas: [
-      { campo: 'Id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'Codigo', label: 'Código', tipo: 'nvarchar', maxLength: 50, required: true, unique: true },
-      { campo: 'Nombre', label: 'Nombre', tipo: 'nvarchar', maxLength: 100, required: true },
-      { campo: 'Descripcion', label: 'Descripción', tipo: 'nvarchar', maxLength: 200, required: false },
-      { campo: 'db', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
-      { campo: 'Activo', label: 'Estado', tipo: 'bit', default: 1 },
-      { campo: 'FechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'codigo', label: 'Código', tipo: 'nvarchar', maxLength: 50, required: true, unique: true },
+      { campo: 'nombre', label: 'Nombre', tipo: 'nvarchar', maxLength: 100, required: true },
+      { campo: 'descripcion', label: 'Descripción', tipo: 'nvarchar', maxLength: 200, required: false },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'activo', label: 'Estado', tipo: 'bit',required: true },
+      { campo: 'fechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
     ],
     displayField: 'Nombre',
-    codigoField: 'Codigo',
+    codigoField: 'codigo',
     tieneActivo: true,
-    fkTablas: ['Calibres', 'MatrizCompatibilidad']
+    fkTablas: ['Calibres', 'MatrizCompatibilidad'],
+    dixieRepo: 'categoriasRepo'
   },
   conductores: {
     tabla: 'Conductores',
     label: 'Conductores',
     icon: 'bi-person-badge',
     columnas: [
-      { campo: 'Id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'NombreCompleto', label: 'Nombre Completo', tipo: 'varchar', maxLength: 200, required: true },
-      { campo: 'DocumentoIdentidad', label: 'Documento Identidad', tipo: 'varchar', maxLength: 20, required: true, unique: true },
-      { campo: 'LicenciaConducir', label: 'Licencia de Conducir', tipo: 'varchar', maxLength: 30, required: false },
-      { campo: 'db', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
-      { campo: 'Activo', label: 'Estado', tipo: 'bit', default: 1 },
-      { campo: 'FechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'nombreCompleto', label: 'Nombre Completo', tipo: 'varchar', maxLength: 200, required: true },
+      { campo: 'documentoIdentidad', label: 'Documento Identidad', tipo: 'varchar', maxLength: 20, required: true, unique: true },
+      { campo: 'licenciaConducir', label: 'Licencia de Conducir', tipo: 'varchar', maxLength: 30, required: false },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'activo', label: 'Estado', tipo: 'bit',required: true },
+      { campo: 'fechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
     ],
     displayField: 'NombreCompleto',
-    codigoField: 'DocumentoIdentidad',
+    codigoField: 'documentoIdentidad',
     tieneActivo: true,
-    fkTablas: ['GuiasRemision']
+    fkTablas: ['GuiasRemision'],
+    dixieRepo: 'conductoresRepo'
   },
   vehiculos: {
     tabla: 'Vehiculos',
     label: 'Vehículos',
     icon: 'bi-truck-front',
     columnas: [
-      { campo: 'Id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'PlacaPrincipal', label: 'Placa Principal', tipo: 'varchar', maxLength: 20, required: true, unique: true },
-      { campo: 'PlacaRemolque', label: 'Placa Remolque', tipo: 'varchar', maxLength: 20, required: false },
-      { campo: 'Marca', label: 'Marca', tipo: 'varchar', maxLength: 100, required: false },
-      { campo: 'CertificadoInscripcion', label: 'Certificado Inscripción', tipo: 'varchar', maxLength: 50, required: false },
-      { campo: 'db', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
-      { campo: 'Activo', label: 'Estado', tipo: 'bit', default: 1 },
-      { campo: 'FechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'placaPrincipal', label: 'Placa Principal', tipo: 'varchar', maxLength: 20, required: true, unique: true },
+      { campo: 'placaRemolque', label: 'Placa Remolque', tipo: 'varchar', maxLength: 20, required: false },
+      { campo: 'marca', label: 'Marca', tipo: 'varchar', maxLength: 100, required: false },
+      { campo: 'certificadoInscripcion', label: 'Certificado Inscripción', tipo: 'varchar', maxLength: 50, required: false },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'activo', label: 'Estado', tipo: 'bit', required: true },
+      { campo: 'fechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
     ],
     displayField: 'PlacaPrincipal',
-    codigoField: 'PlacaPrincipal',
+    codigoField: 'placaPrincipal',
     tieneActivo: true,
-    fkTablas: ['GuiasRemision']
+    fkTablas: ['GuiasRemision'],
+    dixieRepo: 'vehiculosRepo'
   },
   transportistas: {
     tabla: 'Transportistas',
     label: 'Transportistas',
     icon: 'bi-building-gear',
     columnas: [
-      { campo: 'Id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'RazonSocial', label: 'Razón Social', tipo: 'varchar', maxLength: 300, required: true },
-      { campo: 'Ruc', label: 'RUC', tipo: 'varchar', maxLength: 20, required: true, unique: true },
-      { campo: 'db', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
-      { campo: 'Activo', label: 'Estado', tipo: 'bit', default: 1 },
-      { campo: 'FechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'razonSocial', label: 'Razón Social', tipo: 'varchar', maxLength: 300, required: true },
+      { campo: 'ruc', label: 'RUC', tipo: 'varchar', maxLength: 50, required: true, unique: true },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'activo', label: 'Estado', tipo: 'bit', required: true },
+      { campo: 'fechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
     ],
     displayField: 'RazonSocial',
-    codigoField: 'Ruc',
+    codigoField: 'ruc',
     tieneActivo: true,
-    fkTablas: ['GuiasRemision']
+    fkTablas: ['GuiasRemision'],
+    dixieRepo: 'transportistasRepo'
   },
   supervisores: {
     tabla: 'Supervisores',
     label: 'Supervisores',
     icon: 'bi-person-check',
     columnas: [
-      { campo: 'Id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'DNI', label: 'DNI', tipo: 'varchar', maxLength: 20, required: true, unique: true },
-      { campo: 'NombreCompleto', label: 'Nombre Completo', tipo: 'nvarchar', maxLength: 200, required: true },
-      { campo: 'Celular', label: 'Celular', tipo: 'varchar', maxLength: 20, required: false },
-      { campo: 'db', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
-      { campo: 'Activo', label: 'Estado', tipo: 'bit', default: 1 },
-      { campo: 'FechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'dni', label: 'DNI', tipo: 'varchar', maxLength: 20, required: true, unique: true },
+      { campo: 'nombreCompleto', label: 'Nombre Completo', tipo: 'nvarchar', maxLength: 200, required: true },
+      { campo: 'celular', label: 'Celular', tipo: 'varchar', maxLength: 20, required: false },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'activo', label: 'Estado', tipo: 'bit',required: true },
+      { campo: 'fechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
     ],
     displayField: 'NombreCompleto',
-    codigoField: 'DNI',
+    codigoField: 'dni',
     tieneActivo: true,
-    fkTablas: ['ProcesoSupervisores']
+    fkTablas: ['ProcesoSupervisores'],
+    dixieRepo: 'supervisoresRepo'
   },
-  personallogistica: {
+  personalLogistica: {
     tabla: 'PersonalLogistica',
     label: 'Personal Logística',
     icon: 'bi-people',
     columnas: [
-      { campo: 'Id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'DNI', label: 'DNI', tipo: 'varchar', maxLength: 20, required: true, unique: true },
-      { campo: 'NombreCompleto', label: 'Nombre Completo', tipo: 'nvarchar', maxLength: 200, required: true },
-      { campo: 'Celular', label: 'Celular', tipo: 'varchar', maxLength: 20, required: false },
-      { campo: 'Activo', label: 'Estado', tipo: 'bit', default: 1 },
-      { campo: 'db', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
-      { campo: 'FechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'dni', label: 'DNI', tipo: 'varchar', maxLength: 20, required: true, unique: true },
+      { campo: 'nombreCompleto', label: 'Nombre Completo', tipo: 'nvarchar', maxLength: 200, required: true },
+      { campo: 'celular', label: 'Celular', tipo: 'varchar', maxLength: 20, required: false },
+      { campo: 'activo', label: 'Estado', tipo: 'bit',required: true },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'fechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
     ],
     displayField: 'NombreCompleto',
-    codigoField: 'DNI',
+    codigoField: 'dni',
     tieneActivo: true,
-    fkTablas: ['ProcesoLogisticos']
+    fkTablas: ['ProcesoLogisticos'],
+    dixieRepo: 'personalLogisticoRepo'
   },
   acopios: {
     tabla: 'Acopios',
     label: 'Acopios',
     icon: 'bi-house-gear',
     columnas: [
-      { campo: 'Id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'Codigo', label: 'Código', tipo: 'varchar', maxLength: 10, required: true, unique: true },
-      { campo: 'Nombre', label: 'Nombre', tipo: 'varchar', maxLength: 100, required: true },
-      { campo: 'SerieGuia', label: 'Serie de Guía', tipo: 'varchar', maxLength: 10, required: true },
-      { campo: 'Activo', label: 'Estado', tipo: 'bit', default: 1 },
-      { campo: 'db', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
-      { campo: 'FechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false },
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'codigo', label: 'Código', tipo: 'varchar', maxLength: 10, required: true, unique: true },
+      { campo: 'nombre', label: 'Nombre', tipo: 'varchar', maxLength: 100, required: true },
+      { campo: 'serieGuia', label: 'Serie de Guía', tipo: 'varchar', maxLength: 10, required: true },
+      { campo: 'activo', label: 'Estado', tipo: 'bit',required: true },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'fechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false },
     ],
     displayField: 'Nombre',
-    codigoField: 'Codigo',
+    codigoField: 'codigo',
     tieneActivo: true,
     noCrear: true,
-    fkTablas: ['Procesos', 'Palets', 'ConfigAcopioTipoProceso']
+    fkTablas: ['Procesos', 'Palets', 'ConfigAcopioTipoProceso'],
+    dixieRepo: 'acopiosRepo'
   }
 }

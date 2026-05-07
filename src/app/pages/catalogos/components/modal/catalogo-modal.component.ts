@@ -39,10 +39,23 @@ export class CatalogoModalComponent {
   @Output() guardar = new EventEmitter<any>();
 
   readonly form = signal<Record<string, any>>({});
+  readonly initialForm = signal<Record<string, any>>({});
+  readonly submitAttempted = signal(false);
+
+  readonly hasChanges = computed(() => {
+    if (this.modo !== 'editar') return true;
+    const current = this.form();
+    const initial = this.initialForm();
+    for (const c of this.columnasEditables()) {
+      const a = initial?.[c.campo];
+      const b = current?.[c.campo];
+      if ((a ?? '') !== (b ?? '')) return true;
+    }
+    return false;
+  });
 
   readonly columnasEditables = computed(() =>
     (this.config?.columnas ?? []).filter((c: CatalogoColumna) => {
-      console.log(c)
       if (c.campo === 'Id') return false;
       if (c.auto) return false;
       if (c.editable === false) return false;
@@ -51,21 +64,52 @@ export class CatalogoModalComponent {
   );
 
   private readonly booleanBadgeFields = new Set<string>([
-    'Activo',
-    'EsEnsayo'
+    'activo',
+    'esEnsayo'
   ]);
 
   private initForm(): void {
     if (!this._config) return;
+    this.submitAttempted.set(false);
     const base: Record<string, any> = {};
     for (const c of this.columnasEditables()) {
       const current = this.value?.[c.campo];
-      if (typeof current !== 'undefined') base[c.campo] = current;
-      else if (typeof c.default !== 'undefined') base[c.campo] = c.default;
-      else if (c.tipo === 'bit' && c.campo === 'Activo') base[c.campo] = 1;
+      if (typeof current !== 'undefined') {
+        base[c.campo] = current;
+      } else if (typeof c.default !== 'undefined') {
+        base[c.campo] = c.default;
+      } else if (this.modo === 'nuevo' && c.tipo === 'bit' && c.campo === 'activo') {
+        base[c.campo] = true;
+      }
       else base[c.campo] = '';
     }
     this.form.set(base);
+    this.initialForm.set({ ...base });
+  }
+
+  private isEmptyRequiredValue(value: unknown, col: CatalogoColumna): boolean {
+    if (col.tipo === 'bit') return value === null || value === undefined || value === '';
+    if (typeof value === 'string') return value.trim().length === 0;
+    return value === null || value === undefined || value === '';
+  }
+
+  private missingRequiredFields(): CatalogoColumna[] {
+    const f = this.form();
+    return this.columnasEditables().filter(col => {
+      if (!col.required) return false;
+      const v = f?.[col.campo];
+      return this.isEmptyRequiredValue(v, col);
+    });
+  }
+
+  isInvalid(col: CatalogoColumna): boolean {
+    if (!this.submitAttempted()) return false;
+    if (!col.required) return false;
+    return this.isEmptyRequiredValue(this.form()?.[col.campo], col);
+  }
+
+  isFormValid(): boolean {
+    return this.missingRequiredFields().length === 0;
   }
 
   isBooleanBadgeColumn(col: CatalogoColumna): boolean {
@@ -81,7 +125,11 @@ export class CatalogoModalComponent {
   }
 
   onGuardar(): void {
-    this.guardar.emit(this.form());
+    this.submitAttempted.set(true);
+    if (!this.isFormValid()) return;
+    if (this.modo === 'editar' && !this.hasChanges()) return;
+    const merged = { ...(this.value ?? {}), ...this.form() };
+    this.guardar.emit({ payload: merged, modo: this.modo, _pk: (this.value as any)?._pk });
   }
 
   updateField(field: string, value: any): void {

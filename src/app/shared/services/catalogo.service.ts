@@ -17,6 +17,10 @@ export class CatalogoService {
     return this.http.post<any>(`${this.apiUrl}/operarios/listar`, filtros ?? {});
   }
 
+  sincronizarCatalogos(tabla: string, json: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/sincronizar`, { tabla, json });
+  }
+
   // ── Cascading selects (MatrizCompatibilidad) ──
   listarDestinos(filtros: { consignatarioId?: number } = {}): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/destinos`, filtros);

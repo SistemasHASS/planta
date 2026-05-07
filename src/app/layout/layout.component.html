@@ -91,6 +91,19 @@
           </div>
         }
 
+        <button type="button"
+                class="conn-status"
+                [class.conn-status-online]="online"
+                [class.conn-status-offline]="!online"
+                [attr.title]="online ? 'Conectado' : 'Sin conexión'">
+          <span class="conn-status-icon">
+            <i class="bi" [class.bi-wifi]="online" [class.bi-wifi-off]="!online"></i>
+          </span>
+          <span class="conn-status-text d-none d-lg-inline">
+            {{ online ? 'Conectado' : 'Sin conexión' }}
+          </span>
+        </button>
+
         <!-- User Dropdown -->
         <div class="dropdown">
           <button class="topbar-user-btn dropdown-toggle"

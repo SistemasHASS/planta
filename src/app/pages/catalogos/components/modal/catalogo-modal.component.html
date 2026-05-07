@@ -17,20 +17,26 @@
               <label class="form-label" [class.form-label-required]="col.required">{{ col.label }}</label>
 
               @if (isBooleanBadgeColumn(col)) {
-                <select class="form-select"
+                <select class="form-select" [class.is-invalid]="isInvalid(col)"
                         [ngModel]="form()[col.campo]"
                         [ngModelOptions]="{standalone: true}"
                         (ngModelChange)="updateField(col.campo, $event)">
                   <option [ngValue]="true">Activo</option>
                   <option [ngValue]="false">Inactivo</option>
                 </select>
+                @if (isInvalid(col)) {
+                  <div class="invalid-feedback" style="display:block">Campo requerido</div>
+                }
               } @else {
-                <input class="form-control"
+                <input class="form-control" [class.is-invalid]="isInvalid(col)"
                        [attr.maxLength]="col.maxLength ?? null"
                        [type]="col.tipo === 'int' || col.tipo === 'decimal' ? 'text' : 'text'"
                        [ngModel]="form()[col.campo]"
                        [ngModelOptions]="{standalone: true}"
                        (ngModelChange)="updateField(col.campo, $event)">
+                @if (isInvalid(col)) {
+                  <div class="invalid-feedback" style="display:block">Campo requerido</div>
+                }
               }
             </div>
           }
@@ -41,6 +47,6 @@
 
   <div class="modal-footer-custom">
     <button type="button" class="btn btn-sp-outline" (click)="onCerrar()">Cancelar</button>
-    <button type="button" class="btn btn-sp-primary" (click)="onGuardar()">Guardar</button>
+    <button type="button" class="btn btn-sp-primary" (click)="onGuardar()" [disabled]="!isFormValid() || !hasChanges()">Guardar</button>
   </div>
 </div>
