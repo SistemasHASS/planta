@@ -1,0 +1,105 @@
+<div class="catalogo-table-scroll">
+  <table class="catalogo-table table">
+    <thead>
+      <tr>
+        <th style="min-width:50px">#</th>
+        <th style="min-width:120px">Cliente</th>
+        <th style="min-width:140px">Consignatario</th>
+        <th style="min-width:120px">Destino</th>
+        <th style="min-width:120px">Formato</th>
+        <th style="min-width:140px">Empaque</th>
+        <th style="min-width:150px">Empaque Guía</th>
+        <th style="min-width:120px">Calibre</th>
+        <th style="min-width:120px">Caja</th>
+        <th style="min-width:140px">Clamshell</th>
+        <th style="min-width:130px">Presentación</th>
+        <th style="min-width:130px">Categoría</th>
+        <th style="min-width:130px">Fecha Creación</th>
+        <th class="th-sticky-sync" style="min-width:140px">Sincronizado</th>
+        <th class="th-sticky-estado" style="min-width:110px">Estado</th>
+        <th class="th-actions th-sticky-actions">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of pagedItems(); track trackById($index, row)) {
+        <tr>
+          <td>{{ ((page() - 1) * pageSize()) + $index + 1 }}</td>
+          <td>{{ row.clienteCodigo }}</td>
+          <td>{{ row.consignatarioCodigo }}</td>
+          <td>{{ row.destinoCodigo }}</td>
+          <td>{{ row.formatoCodigo }}</td>
+          <td>{{ row.tipoEmpaqueNombre }}</td>
+          <td>{{ row.tipoEmpaqueGuiaNombre }}</td>
+          <td>{{ row.calibreNombre }}</td>
+          <td>{{ row.tipoCajaNombre }}</td>
+          <td>{{ row.tipoClamshellNombre }}</td>
+          <td>{{ row.presentacionNombre == '' || row.presentacionNombre == null ? '-' : row.presentacionNombre }}</td>
+          <td>{{ row.categoriaNombre == '' || row.categoriaNombre == null ? '-' : row.categoriaNombre }}</td>
+          <td>{{ row.fechaCreacion | date:'dd/MM/yyyy' }}</td>
+          <td class="td-sticky-sync">
+            <span [class]="sincronizadoClass(row.bd)">{{ sincronizadoLabel(row.bd) }}</span>
+          </td>
+          <td class="td-sticky-estado">
+            <span [class]="estadoClass(row.activo)">{{ estadoLabel(row.activo) }}</span>
+          </td>
+          <td class="td-sticky-actions">
+            <div class="catalogo-actions">
+              <button type="button" class="catalogo-action-btn catalogo-action-btn-edit" (click)="onEditar(row)" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button type="button" class="catalogo-action-btn catalogo-action-btn-warning" (click)="onDesactivar(row)" [attr.data-tooltip]="row.activo ? 'Desactivar' : 'Activar'" title="Estado">
+                <i class="bi" [class.bi-slash-circle]="row.activo" [class.bi-check-circle]="!row.activo"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      }
+
+      @if (total() === 0) {
+        <tr>
+          <td colspan="14" class="text-center py-4" style="color:var(--color-text-muted);font-size:13px">
+            Sin registros
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<div class="mc-pagination">
+  <div class="mc-pagination-left">
+    <span class="mc-range">Mostrando {{ rangeLabel() }}</span>
+  </div>
+
+  <div class="mc-pagination-right">
+    <div class="mc-page-size">
+      <span class="mc-page-size-label">Filas</span>
+      <select class="form-select" style="width:90px" [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)">
+        <option value="10">10</option>
+        <option value="15">15</option>
+        <option value="25">25</option>
+        <option value="50">50</option>
+      </select>
+    </div>
+
+    <nav class="mc-pager" aria-label="Paginación">
+      <button type="button" class="mc-page-btn" (click)="prev()" [disabled]="page() === 1" aria-label="Anterior">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+
+      @for (p of pageNumbers(); track $index) {
+        @if (p === '...') {
+          <span class="mc-ellipsis">…</span>
+        } @else {
+          <button type="button" class="mc-page-number" [class.active]="page() === p" (click)="setPage(p)">
+            {{ p }}
+          </button>
+        }
+      }
+
+      <button type="button" class="mc-page-btn" (click)="next()" [disabled]="page() === totalPages()" aria-label="Siguiente">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </nav>
+  </div>
+</div>

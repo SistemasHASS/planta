@@ -1,0 +1,54 @@
+<div class="as-root" [class.as-disabled]="disabled">
+  <button type="button" class="as-trigger" (click)="toggle()" [attr.aria-expanded]="open()">
+    <span class="as-value" [class.as-placeholder]="!value">
+      {{ selectedItem() ? selectedLabel() : placeholder }}
+    </span>
+
+    <span class="as-actions">
+      @if (value) {
+        <button type="button" class="as-clear" (click)="$event.stopPropagation(); clear()" aria-label="Limpiar">
+          <i class="bi bi-x"></i>
+        </button>
+      }
+      <span class="as-caret"><i class="bi" [class.bi-chevron-down]="!open()" [class.bi-chevron-up]="open()"></i></span>
+    </span>
+  </button>
+
+  @if (open()) {
+    <div class="as-dropdown" [class.as-dropup]="dropUp()">
+      <div class="as-search">
+        <input
+          data-role="search"
+          type="text"
+          class="form-control"
+          [value]="query()"
+          (input)="query.set(($any($event.target).value ?? '').toString())"
+          placeholder="Buscar..."
+        />
+      </div>
+
+      <div class="as-options">
+        @if (loading()) {
+          <div class="as-loading">
+            <span class="spinner-border spinner-border-sm text-primary"></span>
+            <span>Cargando...</span>
+          </div>
+        } @else {
+          <button type="button" class="as-option as-option-placeholder" (click)="clear()">
+            {{ placeholder }}
+          </button>
+
+          @for (opt of filtered(); track opt?.[idField] ?? $index) {
+            <button type="button" class="as-option" [class.as-selected]="value && (opt?.[idField] == value)" (click)="selectItem(opt)">
+              {{ formatLabel(opt) }}
+            </button>
+          }
+
+          @if (filtered().length === 0) {
+            <div class="as-empty">Sin resultados</div>
+          }
+        }
+      </div>
+    </div>
+  }
+</div>

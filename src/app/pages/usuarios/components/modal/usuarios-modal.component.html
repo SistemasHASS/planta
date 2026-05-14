@@ -1,0 +1,129 @@
+<div class="modal-backdrop-custom" (click)="onBackdrop()"></div>
+
+<div class="modal-custom" role="dialog" aria-modal="true">
+  <div class="modal-header-custom">
+    <h3 class="modal-title">{{ title() }}</h3>
+    <button type="button" class="modal-close" (click)="onCerrar()" aria-label="Cerrar">×</button>
+  </div>
+
+  <div class="modal-body-custom">
+    <div class="row g-3">
+      <div [class.col-lg-8]="modo === 'editado'" [class.col-12]="modo !== 'editado'">
+        <div class="sp-card" style="margin:0">
+          <div class="sp-card-header">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-pencil-square"></i>
+              <strong>{{ modo === 'editado' ? 'Editar datos de usuario' : 'Crear nuevo usuario' }}</strong>
+            </div>
+          </div>
+          <div class="sp-card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Usuario (login) <span class="required">*</span></label>
+                <input disabled="true" class="form-control" [class.is-invalid]="isInvalid('usuario')"
+                  [ngModel]="form().usuario" (ngModelChange)="updateField('usuario', $event)" placeholder="admin"
+                  name="editUsuarioLogin" autocomplete="off" />
+                @if (isInvalid('usuario')) {
+                <div class="invalid-feedback d-block">Requerido</div>
+                }
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label">Nombre Completo <span class="required">*</span></label>
+                <input class="form-control" [class.is-invalid]="isInvalid('nombreCompleto')" disabled="true"
+                  [ngModel]="form().nombreCompleto" (ngModelChange)="updateField('nombreCompleto', $event)"
+                  placeholder="Administrador del Sistema" />
+                @if (isInvalid('nombreCompleto')) {
+                <div class="invalid-feedback d-block">Requerido</div>
+                }
+              </div>
+
+              @if (modo === 'nuevo') {
+              <div class="col-12">
+                <label class="form-label">Contraseña <span class="required">*</span></label>
+                <input type="password" class="form-control" name="newUserPassword"
+                  [class.is-invalid]="isInvalid('contrasena')" [ngModel]="form().contrasena"
+                  (ngModelChange)="updateField('contrasena', $event)" placeholder="••••••••" autocomplete="new-password"
+                  autocapitalize="off" autocorrect="off" spellcheck="false" />
+                @if (isInvalid('contrasena')) {
+                <div class="invalid-feedback d-block">Requerido</div>
+                }
+              </div>
+              }
+
+              <div class="col-md-6">
+                <label class="form-label">Perfil / Rol <span class="required">*</span></label>
+                <input disabled="true" class="form-control" [class.is-invalid]="isInvalid('perfil')"
+                  [value]="perfilLabel(form().perfil)" readonly />
+                @if (isInvalid('perfil')) {
+                <div class="invalid-feedback d-block">Requerido</div>
+                }
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label">Acopio asignado</label>
+                <app-advanced-select table="acopios" placeholder="— Seleccionar —" source="dexie"
+                  [value]="form().acopioId ?? null" (valueChange)="onAcopioIdChange($event)" />
+              </div>
+
+              <div class="col-12">
+                <label class="form-label">Serie de Guía</label>
+                <input class="form-control" [ngModel]="form().serieGuia"
+                  (ngModelChange)="updateField('serieGuia', $event)" placeholder="Ej: T001" />
+                <small class="text-muted">Serie usada para generar guías de remisión (si aplica)</small>
+              </div>
+
+              <!-- <div class="col-12">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" [ngModel]="form().activo"
+                    (ngModelChange)="updateField('activo', $event)" id="usuarioActivo" />
+                  <label class="form-check-label" for="usuarioActivo">Activo</label>
+                </div>
+              </div> -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      @if (modo === 'editado') {
+      <div class="col-lg-4 col-12">
+        <div class="sp-card mt-3" style="margin:0">
+          <div class="sp-card-header">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-info-circle"></i>
+              <strong>Información</strong>
+            </div>
+          </div>
+          <div class="sp-card-body" style="font-size:13px">
+            <div class="d-flex justify-content-between">
+              <span class="text-muted">ID:</span>
+              <span><strong>{{ value?.id }}</strong></span>
+            </div>
+            <!-- <div class="d-flex justify-content-between mt-1">
+              <span class="text-muted">Creado:</span>
+              <span>{{ value?.fechaCreacion ? (value?.fechaCreacion | date:'dd/MM/yyyy') : '—' }}</span>
+            </div> -->
+            <div class="d-flex justify-content-between mt-1">
+              <span class="text-muted">Sincronizado:</span>
+              <span [class]="sincronizadoClass(value?.bd)">{{ sincronizadoLabel(value?.bd) }}</span>
+            </div>
+            <div class="d-flex justify-content-between mt-1">
+              <span class="text-muted">Estado:</span>
+              <span [class]="estadoClass(value?.activo)">{{ estadoLabel(value?.activo) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      }
+    </div>
+  </div>
+
+  <div class="modal-footer-custom">
+    <div class="footer-actions">
+      <button type="button" class="btn btn-sp-outline btn-cancel" (click)="onCerrar()">Cancelar</button>
+      <button type="button" class="btn btn-sp-primary btn-save" [disabled]="!canSave()" (click)="onGuardar()">
+        {{ modo === 'editado' ? 'Guardar cambios' : 'Crear Usuario' }}
+      </button>
+    </div>
+  </div>
+</div>

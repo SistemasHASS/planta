@@ -8,7 +8,7 @@ export interface LoginResponse {
   user: UsuarioAuth;
 }
 
-export interface UsuarioAuth {
+export interface UsuarioAuth {  
   id: number;
   usuario: string;
   nombreCompleto: string;
@@ -16,4 +16,17 @@ export interface UsuarioAuth {
   acopioId?: number;
   acopioCodigo?: string;
   acopioNombre?: string;
+  sociedad: number,
+  idempresa: string,
+  ruc: string,
+  razonSocial: string,
+  proyecto: string,
+  documentoidentidad: string,
+  nombre: string,
+  idrol: string,
+  rol: string,
+  aplicacion: string,
+  modotrabajo: number,
+  fechacompensacion: string,
+  serieGuia: string
 }

@@ -1,6 +1,6 @@
 <div class="page-title-area">
   <h2><i class="bi bi-calendar-event-fill" style="color:var(--color-primary)"></i> Gestión de Procesos por Turno</h2>
-  @if (perfil() === 'LOGISTICA') {
+  @if (perfil() === 'LOPLA') {
     <p class="page-subtitle">Administra los procesos de tu acopio: <strong>{{ usuario()?.acopioNombre }}</strong> (Turnos: DIA y NOCHE)</p>
   } @else {
     <p class="page-subtitle">Vista de procesos de todos los acopios</p>
@@ -33,7 +33,7 @@
           </h5>
         </div>
       </div>
-      @if (perfil() === 'ADMINISTRADOR') {
+      @if (perfil() === 'ADPLA') {
         <a routerLink="/admin/campanias" class="btn btn-sm btn-light" style="font-weight:600;">
           <i class="bi bi-gear-fill"></i> Gestionar
         </a>
@@ -43,7 +43,7 @@
 </div>
 
 <!-- ═══════ LOGISTICA VIEW: 2-column layout ═══════ -->
-@if (perfil() === 'LOGISTICA') {
+@if (perfil() === 'LOPLA') {
   <div class="row">
     <!-- Left: Mis Procesos Activos -->
     <div class="col-lg-6 mb-4">
@@ -163,7 +163,7 @@
 }
 
 <!-- ═══════ ADMIN/COORDINACION VIEW: Grid of open processes ═══════ -->
-@if (perfil() === 'ADMINISTRADOR' || perfil() === 'COORDINACION') {
+@if (perfil() === 'ADPLA' || perfil() === 'COPLA') {
   <div class="col-12 mb-4">
     <div class="sp-card">
       <div class="sp-card-header"><h5><i class="bi bi-grid-3x3"></i> Procesos Abiertos por Acopio y Turno</h5></div>
@@ -223,7 +223,7 @@
           <table class="sp-table">
             <thead>
               <tr>
-                @if (perfil() !== 'LOGISTICA') {
+                @if (perfil() !== 'LOPLA') {
                   <th>Acopio</th>
                 }
                 <th>Turno</th>
@@ -240,7 +240,7 @@
             <tbody>
               @for (p of historial(); track p.Id) {
                 <tr [style.opacity]="p.Estado === 'CERRADO' ? '0.65' : '1'">
-                  @if (perfil() !== 'LOGISTICA') {
+                  @if (perfil() !== 'LOPLA') {
                     <td><strong>{{ p.AcopioCodigo }}</strong></td>
                   }
                   <td>

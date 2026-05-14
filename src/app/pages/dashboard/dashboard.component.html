@@ -2,7 +2,7 @@
   <h2><i class="bi bi-grid-1x2-fill" style="color:var(--color-primary)"></i> Dashboard</h2>
   <p class="page-subtitle">Bienvenido, <strong>{{ nombreCompleto() }}</strong>
     @if (usuario()?.acopioNombre) {
-      — {{ usuario()?.acopioNombre }} ({{ usuario()?.acopioCodigo }})
+      — {{ usuario()?.acopioNombre }} ({{ usuario()?.serieGuia }})
     }
   </p>
 </div>
@@ -19,7 +19,7 @@
         <span style="font-size:12px;color:var(--color-text-muted)">
           <i class="bi bi-person-badge"></i> {{ perfil() }}
           @if (usuario()?.acopioNombre) {
-            &nbsp;|&nbsp; <i class="bi bi-geo-alt"></i> {{ usuario()?.acopioNombre }} ({{ usuario()?.acopioCodigo }})
+            &nbsp;|&nbsp; <i class="bi bi-geo-alt"></i> {{ usuario()?.acopioNombre }} ({{ usuario()?.serieGuia }})
           }
         </span>
       </div>

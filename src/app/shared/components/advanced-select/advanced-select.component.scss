@@ -1,0 +1,145 @@
+:host {
+  display: block;
+}
+
+.as-root {
+  position: relative;
+}
+
+.as-disabled {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.as-trigger {
+  width: 100%;
+  height: 40px;
+  border-radius: 6px;
+  border: 1px solid #ced4da;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px 0 12px;
+  gap: 10px;
+}
+
+.as-value {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  color: #111827;
+}
+
+.as-placeholder {
+  color: #6b7280;
+}
+
+.as-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.as-clear {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #6b7280;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: rgba(79, 70, 229, 0.08);
+    color: var(--color-primary);
+  }
+}
+
+.as-caret {
+  width: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+}
+
+.as-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.8);
+  border-radius: 10px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+  z-index: 1060;
+  overflow: hidden;
+}
+
+.as-portal {
+  position: fixed;
+  z-index: 3005;
+}
+
+.as-dropup {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
+.as-search {
+  padding: 10px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.as-options {
+  max-height: 320px;
+  overflow: auto;
+}
+
+.as-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.as-option {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #111827;
+
+  &:hover {
+    background: rgba(79, 70, 229, 0.08);
+  }
+}
+
+.as-option-placeholder {
+  color: #374151;
+}
+
+.as-selected {
+  background: #0d6efd;
+  color: #fff;
+
+  &:hover {
+    background: #0b5ed7;
+  }
+}
+
+.as-empty {
+  padding: 12px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}

@@ -19,6 +19,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private alertasInterval?: number;
 
   readonly perfil = this.auth.perfil;
+  readonly perfilName= computed(() => {
+    return this.perfil() === 'ADPLA' ? 'Administrador' : 
+           this.perfil() === 'LOPLA' ? 'Logistica' : 
+           this.perfil() === 'COPLA' ? 'Coordinador' : 
+           this.perfil() === 'OPPLA' ? 'Operaciones' : 
+           this.perfil();
+  })
   readonly nombreCompleto = this.auth.nombreCompleto;
   readonly inicialUsuario = this.auth.inicialUsuario;
   readonly usuario = this.auth.usuario;

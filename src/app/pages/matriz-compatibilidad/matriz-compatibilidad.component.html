@@ -1,0 +1,66 @@
+<div class="page-title-area">
+  <h2><i class="bi bi-diagram-3-fill" style="color:var(--color-primary)"></i> Matriz de Compatibilidad</h2>
+  <p class="page-subtitle">Gestión de combinaciones permitidas — {{ totalRegistros() }} registros</p>
+</div>
+
+<div class="sp-card catalogos-card">
+  <div class="sp-card-body" style="padding:16px">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div style="min-width:210px;flex:1">
+        <input
+          class="form-control"
+          placeholder="Buscar cliente, destino, formato..."
+          [ngModel]="searchTerm()"
+          (ngModelChange)="onSearchChange($event)"
+        />
+      </div>
+
+       <button type="button" class="btn btn-success" (click)="onSincronizar()">
+        <i class="bi bi-arrow-repeat"></i> Sincronizar
+      </button>
+
+      <div class="d-flex align-items-center gap-2 flex-wrap" style="justify-content:flex-end">
+        <div class="btn-group catalogos-filtro-group" role="group">
+          <button type="button" class="btn-sp-outline" [class.active-tab]="estadoFiltro() === 'activos'" (click)="setEstadoFiltro('activos')">
+            Activos
+          </button>
+          <button type="button" class="btn-sp-outline" [class.active-tab]="estadoFiltro() === 'inactivos'" (click)="setEstadoFiltro('inactivos')">
+            Inactivos
+          </button>
+          <button type="button" class="btn-sp-outline" [class.active-tab]="estadoFiltro() === 'todos'" (click)="setEstadoFiltro('todos')">
+            Todos
+          </button>
+        </div>
+
+        <button type="button" class="btn-sp-primary" (click)="abrirNuevo()">
+          <i class="bi bi-plus-lg"></i> Nuevo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sp-card-body" style="padding:0">
+    @if (isLoading()) {
+      <div class="text-center py-4">
+        <span class="spinner-border text-primary"></span>
+        <p class="mt-2" style="color:var(--color-text-muted);font-size:13px">Cargando matriz de compatibilidad...</p>
+      </div>
+    } @else {
+      <app-matriz-compatibilidad-tabla
+        [items]="filteredItems()"
+        [estadoFiltro]="estadoFiltro()"
+        (editar)="abrirEditar($event)"
+        (desactivar)="onDesactivar($event)"
+      />
+    }
+  </div>
+</div>
+
+@if (modalAbierto()) {
+  <app-matriz-compatibilidad-modal
+    [modo]="modalModo()"
+    [value]="modalValue()"
+    (cerrar)="cerrarModal()"
+    (guardar)="guardarModal($event)"
+  />
+}

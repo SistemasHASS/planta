@@ -1,0 +1,179 @@
+<div class="modal-backdrop-custom" (click)="onBackdrop()"></div>
+<div class="modal-custom">
+  <div class="modal-header-custom">
+    <h5><i class="bi bi-diagram-3"></i> {{ title() }}</h5>
+    <button type="button" class="btn-close btn-close-white" (click)="onCerrar()" aria-label="Close"></button>
+  </div>
+
+  <div class="modal-body-custom">
+    <div class="sp-card" style="margin-bottom:0">
+      <div class="sp-card-header">
+        <h5><i class="bi bi-sliders"></i> {{ modo === 'editado' ? 'Editar combinación' : 'Nueva combinación' }}</h5>
+      </div>
+      <div class="sp-card-body">
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label form-label-required">Cliente</label>
+            <app-advanced-select
+              table="clientes"
+              placeholder="— Seleccionar Cliente —"
+              source="dexie"
+              [value]="form().clienteId"
+              (valueChange)="updateField('clienteId', $event)"
+            />
+            @if (isInvalid('clienteId')) {
+              <div class="invalid-feedback" style="display:block">Campo requerido</div>
+            }
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label form-label-required">Consignatario</label>
+            <app-advanced-select
+              table="consignatarios"
+              placeholder="— Seleccionar Consignatario —"
+              source="dexie"
+              [value]="form().consignatarioId"
+              (valueChange)="updateField('consignatarioId', $event)"
+            />
+            @if (isInvalid('consignatarioId')) {
+              <div class="invalid-feedback" style="display:block">Campo requerido</div>
+            }
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label form-label-required">Destino</label>
+            <app-advanced-select
+              table="destinos"
+              placeholder="— Seleccionar Destino —"
+              source="dexie"
+              [value]="form().destinoId"
+              (valueChange)="updateField('destinoId', $event)"
+            />
+            @if (isInvalid('destinoId')) {
+              <div class="invalid-feedback" style="display:block">Campo requerido</div>
+            }
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label form-label-required">Formato</label>
+            <app-advanced-select
+              table="formatos"
+              placeholder="— Seleccionar Formato —"
+              source="dexie"
+              [value]="form().formatoId"
+              (valueChange)="updateField('formatoId', $event)"
+            />
+            @if (isInvalid('formatoId')) {
+              <div class="invalid-feedback" style="display:block">Campo requerido</div>
+            }
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label form-label-required">Calibre</label>
+            <app-advanced-select
+              table="calibres"
+              placeholder="— Seleccionar Calibre —"
+              source="dexie"
+              [value]="form().calibreId"
+              (valueChange)="updateField('calibreId', $event)"
+            />
+            @if (isInvalid('calibreId')) {
+              <div class="invalid-feedback" style="display:block">Campo requerido</div>
+            }
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label form-label-required">Tipo de Empaque</label>
+            <app-advanced-select
+              table="tiposEmpaque"
+              placeholder="— Seleccionar —"
+              source="dexie"
+              [value]="form().tipoEmpaqueId"
+              (valueChange)="updateField('tipoEmpaqueId', $event)"
+            />
+            @if (isInvalid('tipoEmpaqueId')) {
+              <div class="invalid-feedback" style="display:block">Campo requerido</div>
+            }
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label form-label-required">Tipo Empaque Guía</label>
+            <app-advanced-select
+              table="tiposEmpaqueGuia"
+              placeholder="— Seleccionar —"
+              source="dexie"
+              [value]="form().tipoEmpaqueGuiaId"
+              (valueChange)="updateField('tipoEmpaqueGuiaId', $event)"
+            />
+            @if (isInvalid('tipoEmpaqueGuiaId')) {
+              <div class="invalid-feedback" style="display:block">Campo requerido</div>
+            }
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label form-label-required">Tipo de Caja</label>
+            <app-advanced-select
+              table="tiposCaja"
+              placeholder="— Seleccionar —"
+              source="dexie"
+              [value]="form().tipoCajaId"
+              (valueChange)="updateField('tipoCajaId', $event)"
+            />
+            @if (isInvalid('tipoCajaId')) {
+              <div class="invalid-feedback" style="display:block">Campo requerido</div>
+            }
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label form-label-required">Tipo Clamshell</label>
+            <app-advanced-select
+              table="tiposClamshell"
+              placeholder="— Seleccionar —"
+              source="dexie"
+              [value]="form().tipoClamshellId"
+              (valueChange)="updateField('tipoClamshellId', $event)"
+            />
+            @if (isInvalid('tipoClamshellId')) {
+              <div class="invalid-feedback" style="display:block">Campo requerido</div>
+            }
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label">Presentación (opcional)</label>
+            <app-advanced-select
+              table="presentaciones"
+              placeholder="— Sin presentación —"
+              source="dexie"
+              [value]="form().presentacionId"
+              (valueChange)="updateField('presentacionId', $event)"
+            />
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label">Categoría (opcional)</label>
+            <app-advanced-select
+              table="categorias"
+              placeholder="— Sin categoría —"
+              source="dexie"
+              [value]="form().categoriaId"
+              (valueChange)="updateField('categoriaId', $event)"
+            />
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label form-label-required">Estado</label>
+            <select class="form-select" [class.is-invalid]="isInvalid('activo')" [ngModel]="form().activo" [ngModelOptions]="{standalone: true}" (ngModelChange)="updateField('activo', $event)">
+              <option [ngValue]="true">Activo</option>
+              <option [ngValue]="false">Inactivo</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-footer-custom">
+    <button type="button" class="btn btn-sp-outline btn-cancel" (click)="onCerrar()">Cancelar</button>
+    <button type="button" class="btn btn-sp-primary btn-save" (click)="onGuardar()" [disabled]="!canSave()">{{ modo === 'editado' ? 'Guardar' : 'Crear Combinación' }}</button>
+  </div>
+</div>

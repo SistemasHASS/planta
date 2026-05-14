@@ -1,0 +1,291 @@
+import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, HostListener, Input, Output, computed, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { CatalogoService } from '../../services/catalogo.service';
+import { ConnectivityService } from '../../services/connectivity.service';
+import { DexieService } from '../../dixiedb/dexie-db.service';
+
+type OptionItem = Record<string, any>;
+
+@Component({
+  selector: 'app-advanced-select',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './advanced-select.component.html',
+  styleUrl: './advanced-select.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class AdvancedSelectComponent {
+  private readonly catalogoService = inject(CatalogoService);
+  private readonly connectivity = inject(ConnectivityService);
+  private readonly dexie = inject(DexieService);
+  private readonly el = inject(ElementRef<HTMLElement>);
+
+  @Input({ required: true }) table!: string;
+  @Input() placeholder = '— Seleccionar —';
+  @Input() required = false;
+  @Input() disabled = false;
+  @Input() source: 'auto' | 'dexie' | 'api' = 'auto';
+
+  private readonly _value = signal<number | null>(null);
+  @Input()
+  set value(v: number | null) {
+    this._value.set(v ?? null);
+  }
+  get value(): number | null {
+    return this._value();
+  }
+  @Output() valueChange = new EventEmitter<number | null>();
+
+  @Input() idField = 'id';
+
+  readonly open = signal(false);
+  readonly loading = signal(false);
+  readonly query = signal('');
+  readonly items = signal<OptionItem[]>([]);
+  readonly dropUp = signal(false);
+
+  private portalDropdownEl: HTMLElement | null = null;
+  private portalOriginalParent: HTMLElement | null = null;
+  private portalOriginalNextSibling: ChildNode | null = null;
+
+  readonly selectedItem = computed(() => {
+    const v = this._value();
+    if (v === null || v === undefined) return null;
+    return this.items().find(i => Number(i?.[this.idField]) === Number(v)) ?? null;
+  });
+
+  readonly selectedLabel = computed(() => {
+    const it = this.selectedItem();
+    if (!it) return '';
+    return this.formatLabel(it);
+  });
+
+  readonly filtered = computed(() => {
+    const q = (this.query() ?? '').trim().toLowerCase();
+    const list = this.items();
+    if (!q) return list;
+    return list.filter(i => this.formatLabel(i).toLowerCase().includes(q));
+  });
+
+  get online(): boolean {
+    return this.connectivity.isOnline();
+  }
+
+  ngOnChanges(): void {
+    const v = this._value();
+    if (v === null || v === undefined) return;
+    if (!this.table) return;
+    if (this.items().length > 0) return;
+    void this.ensureLoaded();
+  }
+
+  async toggle(): Promise<void> {
+    if (this.disabled) return;
+    const next = !this.open();
+    this.open.set(next);
+    if (next) {
+      await this.ensureLoaded();
+      this.recalcDirection();
+      this.attachDropdownPortalIfNeeded();
+      queueMicrotask(() => {
+        const input = this.el.nativeElement.querySelector('input[data-role="search"]') as HTMLInputElement | null;
+        input?.focus();
+      });
+    }
+  }
+
+  private recalcDirection(): void {
+    const trigger = this.el.nativeElement.querySelector('button.as-trigger') as HTMLElement | null;
+    if (!trigger) {
+      this.dropUp.set(false);
+      return;
+    }
+
+    const rect = trigger.getBoundingClientRect();
+    // When dropdown is shown, it may be portaled (fixed) and must use viewport bounds.
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+
+    const desired = 420;
+    if (spaceBelow >= desired) {
+      this.dropUp.set(false);
+      return;
+    }
+
+    this.dropUp.set(spaceAbove > spaceBelow);
+  }
+
+  @HostListener('window:resize')
+  onResize(): void {
+    if (!this.open()) return;
+    this.recalcDirection();
+    this.updatePortalPosition();
+  }
+
+  @HostListener('window:scroll')
+  onWindowScroll(): void {
+    if (!this.open()) return;
+    this.recalcDirection();
+    this.updatePortalPosition();
+  }
+
+  private updatePortalPosition(): void {
+    if (!this.open()) return;
+    const dropdown = this.portalDropdownEl;
+    if (!dropdown) return;
+
+    const trigger = this.el.nativeElement.querySelector('button.as-trigger') as HTMLElement | null;
+    if (!trigger) return;
+
+    const triggerRect = trigger.getBoundingClientRect();
+    dropdown.style.left = `${triggerRect.left}px`;
+    dropdown.style.right = 'auto';
+    dropdown.style.width = `${triggerRect.width}px`;
+
+    if (this.dropUp()) {
+      dropdown.style.top = 'auto';
+      dropdown.style.bottom = `${window.innerHeight - triggerRect.top}px`;
+    } else {
+      dropdown.style.bottom = 'auto';
+      dropdown.style.top = `${triggerRect.bottom}px`;
+    }
+  }
+
+  close(): void {
+    this.open.set(false);
+    this.query.set('');
+    this.detachDropdownPortal();
+  }
+
+  clear(): void {
+    if (this.disabled) return;
+    this._value.set(null);
+    this.valueChange.emit(null);
+    this.close();
+  }
+
+  selectItem(item: OptionItem): void {
+    if (this.disabled) return;
+    const v = item?.[this.idField];
+    this._value.set(v ?? null);
+    this.valueChange.emit(v ?? null);
+    this.close();
+  }
+
+  async ensureLoaded(): Promise<void> {
+    if (!this.table) return;
+    if (this.items().length > 0) return;
+    this.loading.set(true);
+    try {
+      const shouldUseApi = this.source === 'api' || (this.source === 'auto' && this.online);
+      if (shouldUseApi) {
+        const resp: any = await firstValueFrom(this.catalogoService.listarTodos());
+        const data = resp?.data ?? resp;
+        const arr = data?.[this.table] ?? [];
+        this.items.set(Array.isArray(arr) ? arr : []);
+      } else {
+        const t = this.dexie.getTable(this.table) as any;
+        const arr = await t.toArray();
+        this.items.set(Array.isArray(arr) ? arr : []);
+      }
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  formatLabel(item: OptionItem): string {
+    const code =
+      item?.['codigo'] ??
+      item?.['ruc'] ??
+      item?.['dni'] ??
+      item?.['documentoIdentidad'] ??
+      item?.['placaPrincipal'] ??
+      item?.['nombre'] ??
+      item?.['descripcion'] ??
+      item?.['razonSocial'] ??
+      item?.['nombreCompleto'];
+    const name =
+      item?.['razonSocial'] ??
+      item?.['nombreCompleto'] ??
+      item?.['nombre'] ??
+      item?.['descripcion'] ??
+      '';
+    const left = String(code ?? '').trim();
+    const right = String(name ?? '').trim();
+    if (left && right && left !== right) return `${left} — ${right}`;
+    return left || right || String(item?.[this.idField] ?? '');
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocClick(ev: MouseEvent): void {
+    if (!this.open()) return;
+    const target = ev.target as Node | null;
+    if (!target) return;
+    if (this.el.nativeElement.contains(target)) return;
+    if (this.portalDropdownEl && this.portalDropdownEl.contains(target)) return;
+    this.close();
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (!this.open()) return;
+    this.close();
+  }
+
+  private attachDropdownPortalIfNeeded(): void {
+    const tryAttach = (attemptsLeft: number): void => {
+      if (!this.open()) return;
+      if (this.portalDropdownEl) return;
+
+      const dropdown = this.el.nativeElement.querySelector('.as-dropdown') as HTMLElement | null;
+      if (!dropdown) {
+        if (attemptsLeft <= 0) return;
+        requestAnimationFrame(() => tryAttach(attemptsLeft - 1));
+        return;
+      }
+
+      const modal = this.el.nativeElement.closest('.modal-custom') as HTMLElement | null;
+      if (!modal) return;
+
+      this.portalDropdownEl = dropdown;
+      this.portalOriginalParent = dropdown.parentElement;
+      this.portalOriginalNextSibling = dropdown.nextSibling;
+
+      document.body.appendChild(dropdown);
+      dropdown.classList.add('as-portal');
+
+      this.updatePortalPosition();
+    };
+
+    requestAnimationFrame(() => tryAttach(10));
+  }
+
+  private detachDropdownPortal(): void {
+    const dropdown = this.portalDropdownEl;
+    const parent = this.portalOriginalParent;
+    if (!dropdown || !parent) {
+      this.portalDropdownEl = null;
+      this.portalOriginalParent = null;
+      this.portalOriginalNextSibling = null;
+      return;
+    }
+
+    dropdown.classList.remove('as-portal');
+    dropdown.style.left = '';
+    dropdown.style.right = '';
+    dropdown.style.top = '';
+    dropdown.style.bottom = '';
+    dropdown.style.width = '';
+
+    if (this.portalOriginalNextSibling) {
+      parent.insertBefore(dropdown, this.portalOriginalNextSibling);
+    } else {
+      parent.appendChild(dropdown);
+    }
+
+    this.portalDropdownEl = null;
+    this.portalOriginalParent = null;
+    this.portalOriginalNextSibling = null;
+  }
+}

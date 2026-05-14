@@ -53,19 +53,19 @@ const childRoutes: Routes = [
   {
     path: 'admin/usuarios',
     loadComponent: () =>
-      import('./pages/placeholder/placeholder.component').then((m) => m.PlaceholderComponent),
+      import('./pages/usuarios/usuarios.component').then((m) => m.UsuariosComponent),
     data: { title: 'Gestión de Usuarios', subtitle: 'Administrar usuarios del sistema', icon: 'bi-people-fill' }
   },
   {
     path: 'admin/matriz',
     loadComponent: () =>
-      import('./pages/placeholder/placeholder.component').then((m) => m.PlaceholderComponent),
+      import('./pages/matriz-compatibilidad/matriz-compatibilidad.component').then((m) => m.MatrizCompatibilidadComponent),
     data: { title: 'Matriz Compatibilidad', subtitle: 'Configurar compatibilidad de productos', icon: 'bi-diagram-3-fill' }
   },
   {
     path: 'admin/sobrepeso',
     loadComponent: () =>
-      import('./pages/placeholder/placeholder.component').then((m) => m.PlaceholderComponent),
+      import('./pages/sobrepeso/sobrepeso.component').then((m) => m.SobrepesoComponent),
     data: { title: 'Reglas Sobrepeso', subtitle: 'Configurar reglas de sobrepeso', icon: 'bi-speedometer2' }
   },
   {

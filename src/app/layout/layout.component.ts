@@ -3,6 +3,9 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../shared/services/auth.service';
 import { PermissionService } from '../shared/services/permission.service';
 import { ConnectivityService } from '../shared/services/connectivity.service';
+import { AlertService } from '../shared/services/alert.service';
+import { GlobalErrorService } from '../shared/services/global-error.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface NavItem {
   label: string;
@@ -23,14 +26,35 @@ export class LayoutComponent {
   private readonly auth = inject(AuthService);
   private readonly permissions = inject(PermissionService);
   private readonly connectivity = inject(ConnectivityService);
+  private readonly alertService = inject(AlertService);
+  private readonly globalError = inject(GlobalErrorService);
+
+  readonly currentYear = new Date().getFullYear();
 
   readonly sidebarOpen = signal(false);
   readonly perfil = this.auth.perfil;
+  readonly perfilName= computed(() => {
+    return this.perfil() === 'ADPLA' ? 'Administrador' : 
+           this.perfil() === 'LOPLA' ? 'Logistica' : 
+           this.perfil() === 'COPLA' ? 'Coordinador' : 
+           this.perfil() === 'OPPLA' ? 'Operaciones' : 
+           this.perfil();
+  })
   readonly nombreCompleto = this.auth.nombreCompleto;
   readonly inicialUsuario = this.auth.inicialUsuario;
   readonly usuario = this.auth.usuario;
   readonly userDropdownOpen = signal(false);
   readonly submenuOpen = signal<string | null>(null);
+
+  constructor() {
+    this.globalError.forbidden$
+      .pipe(takeUntilDestroyed())
+      .subscribe((message) => {
+        const m = (message ?? '').toString().trim();
+        if (!m) return;
+        this.alertService.showAlert('Sin permisos', m, 'warning');
+      });
+  }
 
   get online(): boolean {
     return this.connectivity.isOnline();
@@ -39,8 +63,7 @@ export class LayoutComponent {
   readonly navSections = computed(() => {
     const p = this.perfil();
     const sections: { title?: string; items: NavItem[] }[] = [];
-
-    if (p === 'ADMINISTRADOR') {
+    if (p === 'ADPLA') { //Administrador
       sections.push({
         items: [{ label: 'Dashboard', path: '/dashboard', icon: 'bi-grid-1x2-fill' }]
       });
@@ -127,7 +150,7 @@ export class LayoutComponent {
           },
         ]
       });
-    } else if (p === 'LOGISTICA') {
+    } else if (p === 'LOPLA') { //Logistica
       sections.push({
         items: [
           { label: 'Dashboard', path: '/dashboard', icon: 'bi-grid-1x2-fill' },
@@ -138,7 +161,7 @@ export class LayoutComponent {
           { label: 'Documentación', path: '/despacho', icon: 'bi-clipboard-check-fill' },
         ]
       });
-    } else if (p === 'COORDINACION') {
+    } else if (p === 'COPLA') { //Coordinacion
       sections.push({
         items: [
           { label: 'Dashboard', path: '/dashboard', icon: 'bi-grid-1x2-fill' },
@@ -173,7 +196,7 @@ export class LayoutComponent {
           },
         ]
       });
-    } else if (p === 'OPERACIONES') {
+    } else if (p === 'OPPLA') { //Operaciones
       sections.push({
         title: 'Reportes',
         items: [

@@ -111,9 +111,9 @@ export class ProcesosComponent implements OnInit {
     
     this.procesoService.listar({ estado: 'TODOS' }).subscribe({
       next: (res: any) => {
-        const data = res?.data ?? res;
-        console.log(data)
-        this.procesos.set(Array.isArray(data) ? data : []);
+        const raw = res?.data ?? res;
+        const data = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : Array.isArray(raw?.items) ? raw.items : [];
+        this.procesos.set(data);
         this.isLoading.set(false);
       },
       error: () => { this.errorMsg.set('Error al cargar procesos'); this.isLoading.set(false); }
@@ -150,14 +150,14 @@ export class ProcesosComponent implements OnInit {
     this.isLoading.set(true);
     this.procesoService.listarPorAcopio(acopioId).subscribe({
       next: (res: any) => {
-        const data = res?.data ?? res;
-        console.log(data)
+        const raw = res?.data ?? res;
+        const data = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : Array.isArray(raw?.items) ? raw.items : [];
         this.procesosActivos.set(data);
         this.isLoading.set(false);
       },
       error: (err: any) => {
         console.error('❌ Error cargando procesos por acopio:', err);
-        this.procesos.set([]);
+        this.procesosActivos.set([]);
         this.isLoading.set(false);
       }
     });

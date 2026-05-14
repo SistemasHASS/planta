@@ -381,7 +381,6 @@ export class CatalogosComponent implements OnInit {
             delete item.bd
             delete item._pk
           })
-
           let { error, data, mensaje } = await firstValueFrom(this.catalogoService.sincronizarCatalogos(this.config().tabla, payloads));
           if (error) {
             this.alertService.showAlert('Error', mensaje, 'error');
