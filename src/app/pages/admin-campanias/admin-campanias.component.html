@@ -1,0 +1,95 @@
+<div class="page-title-area">
+  <h2><i class="bi bi-calendar-range-fill" style="color:var(--color-primary)"></i> Gestión de Campañas</h2>
+  <p class="page-subtitle">
+    Consulta tus campañas cargadas localmente. La campaña activa se define desde <strong>Parámetros</strong>.
+  </p>
+</div>
+
+<div class="sp-card campania-active" style="margin-bottom: 16px">
+  <div class="sp-card-body" style="padding:18px 18px">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div class="d-flex align-items-center gap-3">
+        <div class="campania-icon">
+          <i class="bi bi-check2-circle"></i>
+        </div>
+        <div>
+          <div class="text-uppercase text-muted" style="font-size:12px; letter-spacing: .08em;">Campaña activa</div>
+          <div class="campania-title">{{ activeLabel() }}</div>
+          @if (activeCampania()) {
+            <div class="d-flex flex-wrap gap-2 mt-2">
+              <span class="badge campania-badge">
+                <i class="bi bi-calendar-event"></i>
+                {{ fmtDateRange(activeCampania()?.fecha_inicio, activeCampania()?.fecha_fin) }}
+              </span>
+              <span class="badge campania-badge-secondary">
+                <i class="bi bi-geo"></i>
+                Fundo: {{ activeCampania()?.idfundo }}
+              </span>
+              <span class="badge campania-badge-secondary">
+                <i class="bi bi-flower1"></i>
+                Cultivo: {{ activeCampania()?.codcultivo }}
+              </span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <a class="btn btn-light btn-sm" routerLink="/parametros">
+          <i class="bi bi-sliders"></i> Ir a Parámetros
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sp-card">
+  <div class="sp-card-header">
+    <h5 class="mb-0"><i class="bi bi-list-ul"></i> Todas las campañas</h5>
+  </div>
+  <div class="sp-card-body" style="padding:0">
+    @if (campanias().length === 0) {
+      <div class="text-center" style="padding:50px 20px">
+        <i class="bi bi-inboxes" style="font-size:56px;color:var(--color-text-muted);opacity:0.35"></i>
+        <div style="margin-top:10px;font-weight:600;color:var(--color-text-muted)">Sin campañas en Dexie</div>
+        <div class="text-muted" style="font-size:13px;margin-top:4px">Sincroniza catálogos desde Parámetros.</div>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th style="width: 150px">ID</th>
+              <th>Descripción</th>
+              <th style="width: 140px">Inicio</th>
+              <th style="width: 140px">Fin</th>
+              <th style="width: 110px">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of campanias(); track c?.idproyecto) {
+              <tr [class.is-active]="isActive(c)">
+                <td>
+                  <div class="fw-semibold">{{ c.idproyecto }}</div>
+                </td>
+                <td>
+                  <div class="fw-semibold">{{ c.descripcion }}</div>
+                  <div class="text-muted" style="font-size:12px">Fundo: {{ c.idfundo }} · Cultivo: {{ c.codcultivo }}</div>
+                </td>
+                <td><span class="badge text-bg-light">{{ fmtDate(c.fecha_inicio) }}</span></td>
+                <td><span class="badge text-bg-light">{{ fmtDate(c.fecha_fin) }}</span></td>
+                <td>
+                  @if (isActive(c)) {
+                    <span class="badge text-bg-success">Seleccionado</span>
+                  } @else {
+                    <span class="badge text-bg-secondary">No seleccionado</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

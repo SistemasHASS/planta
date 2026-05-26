@@ -1,8 +1,19 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './shared/guards/auth.guard';
+import { parametrosConfigChildGuard } from './shared/guards/parametros-config.guard';
 
 const childRoutes: Routes = [
-  { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+  { path: '', redirectTo: 'parametros', pathMatch: 'full' },
+  {
+    path: 'parametros/setup',
+    loadComponent: () =>
+      import('./pages/parametros-setup/parametros-setup.component').then((m) => m.ParametrosSetupComponent),
+  },
+  {
+    path: 'parametros',
+    loadComponent: () =>
+      import('./pages/parametros/parametros.component').then((m) => m.ParametrosComponent),
+  },
   {
     path: 'dashboard',
     loadComponent: () =>
@@ -47,8 +58,7 @@ const childRoutes: Routes = [
   {
     path: 'admin/campanias',
     loadComponent: () =>
-      import('./pages/placeholder/placeholder.component').then((m) => m.PlaceholderComponent),
-    data: { title: 'Campañas', subtitle: 'Gestión de campañas', icon: 'bi-calendar-range-fill' }
+      import('./pages/admin-campanias/admin-campanias.component').then((m) => m.AdminCampaniasComponent),
   },
   {
     path: 'admin/usuarios',
@@ -107,6 +117,7 @@ export const appRoutes: Routes = [
     loadComponent: () =>
       import('./layout/layout.component').then((m) => m.LayoutComponent),
     canActivate: [authGuard],
+    canActivateChild: [parametrosConfigChildGuard],
     children: childRoutes,
   },
   { path: '**', redirectTo: '' },

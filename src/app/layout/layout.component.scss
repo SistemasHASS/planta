@@ -86,6 +86,48 @@
   box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.14);
 }
 
+.campania-chip .conn-status-icon {
+  color: #2b1f7a;
+  background: radial-gradient(circle at 30% 30%, #d5d2ff, #9b94ff);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+.campania-chip {
+  border-color: rgba(79, 70, 229, 0.18);
+  background: linear-gradient(135deg, #f6f5ff, #ebe9ff);
+}
+
+.campania-chip:hover {
+  box-shadow:
+    0 10px 22px rgba(79, 70, 229, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.campania-chip-value {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: #1f1b5e;
+}
+
+.topbar-acopio .conn-status-icon {
+  color: #0b3b3f;
+  background: radial-gradient(circle at 30% 30%, #baf7ff, #63d7e6);
+  box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.12);
+}
+
+.topbar-acopio {
+  border-color: rgba(8, 145, 178, 0.16);
+  background: linear-gradient(135deg, #f1fdff, #e9fbff);
+}
+
+.topbar-acopio-value {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: #07343a;
+}
+
 @media (max-width: 991.98px) {
   .conn-status {
     padding: 0 8px;

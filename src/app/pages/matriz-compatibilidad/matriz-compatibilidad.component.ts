@@ -3,13 +3,14 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatrizCompatibilidadTablaComponent } from './components/tabla/matriz-compatibilidad-tabla.component';
 import { MatrizCompatibilidadModalComponent } from './components/modal/matriz-compatibilidad-modal.component';
-import { MatrizCompatibilidad } from '../../shared/interfaces/administracion.interface';
+import { Configuracion, MatrizCompatibilidad } from '../../shared/interfaces/administracion.interface';
 import { AdministracionService } from '../../shared/services/administracion.service';
 import { firstValueFrom } from 'rxjs';
 import { ConnectivityService } from '../../shared/services/connectivity.service';
 import { AlertService } from '../../shared/services/alert.service';
-import { AdministracionRepository } from '../../shared/dixiedb/repository/administracion.repository';
-import { CatalogosRepository } from '../../shared/dixiedb/repository/catalogos.repository';
+import { AdministracionRepository } from '../../shared/dexiedb/repository/administracion.repository';
+import { CatalogosRepository } from '../../shared/dexiedb/repository/catalogos.repository';
+import { AuthService } from '../../shared/services/auth.service';
 
 export type EstadoFiltro = 'activos' | 'inactivos' | 'todos';
 
@@ -26,6 +27,12 @@ export class MatrizCompatibilidadComponent implements OnInit {
   private readonly administracionService = inject(AdministracionService);
   private readonly connectivity = inject(ConnectivityService);
   private readonly alertService = inject(AlertService);
+  private readonly catalogosRepo = inject(CatalogosRepository);
+  private readonly auth = inject(AuthService);
+  readonly usuario = this.auth.usuario;
+  readonly savedConfig = signal<Configuracion | null>(null);
+  
+
 
   readonly isLoading = signal(false);
   readonly searchTerm = signal('');
@@ -41,13 +48,15 @@ export class MatrizCompatibilidadComponent implements OnInit {
   }
   readonly items = signal<MatrizCompatibilidad[]>([
     {
-      id: 15,
-      destinoId: 1,
-      clienteId: 1,
-      consignatarioId: 1,
+      id: 0,
+      idProyecto:'',
+      codigoCultivo:'',
+      destinoId: '',
+      documentoCliente: '',
+      documentoConsignatario: '',
       formatoId: 1,
-      tipoEmpaqueId: 1,
-      calibreId: 1,
+      tiposEmpaqueId: 1,
+      calibreId: '',
       tipoCajaId: 1,
       tipoClamshellId: 1,
       fechaCreacion: new Date().toISOString(),
@@ -74,11 +83,11 @@ export class MatrizCompatibilidadComponent implements OnInit {
       .filter(i => {
         const parts = [
           i.id,
-          i.clienteCodigo,
+          i.documentoCliente,
           i.clienteNombre,
-          i.consignatarioCodigo,
+          i.documentoConsignatario,
           i.consignatarioNombre,
-          i.destinoCodigo,
+          i.destinoId,
           i.destinoNombre,
           i.formatoCodigo,
           i.formatoNombre,
@@ -106,7 +115,20 @@ export class MatrizCompatibilidadComponent implements OnInit {
   ) { }
 
   async ngOnInit(): Promise<void> {
+    await this.cargarConfiguracionGuardada()
     await this.listarMatricesCompatibilidad();
+  }
+
+  private async cargarConfiguracionGuardada(): Promise<void> {
+        const nro = this.getNroDocumentoFromUsuario();
+        const cfg = await this.catalogosRepo.configuracionRepo.getByField('nrodocumento', nro);
+        this.savedConfig.set(cfg ?? null);
+  }
+
+  private getNroDocumentoFromUsuario(): string {
+      const u: any = this.usuario();
+      const v = u?.nrodocumento ?? u?.documentoidentidad ?? u?.documentoIdentidad ?? u?.documento ?? '';
+      return String(v ?? '').trim();
   }
 
   async listarMatricesCompatibilidad() {
@@ -127,7 +149,7 @@ export class MatrizCompatibilidadComponent implements OnInit {
 
   async listarMatricesCompatibilidadRespository() {
     let info = await this.administracionRepository.matricesCompatibilidadRepository.getAll();
-    if (info.length > 0) {
+    if (info.length>0) {
       this.items.set(info);
       return true
     } else {
@@ -141,14 +163,13 @@ export class MatrizCompatibilidadComponent implements OnInit {
       this.alertService.showAlert('Error', 'No tienes conexión a internet', 'error');
       return
     }
-    const resp: any = await firstValueFrom(this.administracionService.listarMatricesCompatibilidad({}));
-    if (resp?.error) {
+    const resp: any = await firstValueFrom(this.administracionService.listarMatricesCompatibilidad({idProyecto:this.savedConfig()?.idProyecto,idCultivo:this.savedConfig()?.codigoCultivo}));
+    if (resp[0]?.error ) {
       this.alertService.showAlert('Error', 'Error al listar las matrices de compatibilidad', 'error');
       return
     }
-    const data = resp?.data ?? resp;
-    const apiItems = Array.isArray(data) ? data : (data?.matricesCompatibilidad ?? data?.items ?? []);
 
+    let apiItems = resp[0].data
     const normalizados = await this.normalizarMatricesCompatibilidadDixie(apiItems);
     if (normalizados.length > 0) {
       for (const item of normalizados) {
@@ -158,51 +179,50 @@ export class MatrizCompatibilidadComponent implements OnInit {
       if (!repo) {
         this.alertService.showAlert('Error', 'Error al listar las matrices de compatibilidad', 'error');
       }
+    }else{
+        let repo = await this.listarMatricesCompatibilidadRespository();
     }
   }
 
   async normalizarMatricesCompatibilidadDixie(data: any[], bd: number = 1): Promise<any[]> {
     const normalizar: MatrizCompatibilidad[] = [];
-
     for (const item of (Array.isArray(data) ? data : [])) {
-      const cliente = item?.clienteId ? await this.catalogosRepository.clientesRepo.getByField('id', item.clienteId) : undefined;
-      const consignatario = item?.consignatarioId ? await this.catalogosRepository.consignatariosRepo.getByField('id', item.consignatarioId) : undefined;
+      const cliente = item?.documentoCliente ? await this.catalogosRepository.clientesRepo.getByField('id', Number(item.documentoCliente)) : undefined;
+      const consignatario = item?.documentoConsignatario ? await this.catalogosRepository.consignatariosRepo.getByField('id', Number(item.documentoConsignatario)) : undefined;
       const destino = item?.destinoId ? await this.catalogosRepository.destinosRepo.getByField('id', item.destinoId) : undefined;
       const formato = item?.formatoId ? await this.catalogosRepository.formatosRepo.getByField('id', item.formatoId) : undefined;
-      const tipoEmpaque = item?.tipoEmpaqueId ? await this.catalogosRepository.tiposEmpaqueRepo.getByField('id', item.tipoEmpaqueId) : undefined;
+      const tipoEmpaque = item?.tiposEmpaqueId ? await this.catalogosRepository.tiposEmpaqueRepo.getByField('id', item.tiposEmpaqueId) : undefined;
       const tipoEmpaqueGuia = item?.tipoEmpaqueGuiaId ? await this.catalogosRepository.tiposEmpaqueGuiaRepo.getByField('id', item.tipoEmpaqueGuiaId) : undefined;
       const calibre = item?.calibreId ? await this.catalogosRepository.calibresRepo.getByField('id', item.calibreId) : undefined;
       const tipoCaja = item?.tipoCajaId ? await this.catalogosRepository.tiposCajaRepo.getByField('id', item.tipoCajaId) : undefined;
       const tipoClamshell = item?.tipoClamshellId ? await this.catalogosRepository.tiposClamshellRepo.getByField('id', item.tipoClamshellId) : undefined;
       const presentacion = item?.presentacionId ? await this.catalogosRepository.presentacionesRepo.getByField('id', item.presentacionId) : undefined;
       const categoria = item?.categoriaId ? await this.catalogosRepository.categoriasRepo.getByField('id', item.categoriaId) : undefined;
-
       const row: MatrizCompatibilidad = {
         id: Number(item?.id ?? 0),
-        clienteId: Number(item?.clienteId ?? 0),
+        idProyecto: item?.idProyecto ?? this.savedConfig()?.idProyecto,
+        codigoCultivo: item?.codigoCultivo  ?? this.savedConfig()?.codigoCultivo,
+        documentoCliente: (item?.documentoCliente ?? ''),
         clienteNombre: (cliente as any)?.razonSocial ?? (cliente as any)?.nombre ?? (cliente as any)?.descripcion,
-        clienteCodigo: (cliente as any)?.codigo,
 
-        consignatarioId: Number(item?.consignatarioId ?? 0),
+        documentoConsignatario: (item?.documentoConsignatario ?? ''),
         consignatarioNombre: (consignatario as any)?.razonSocial ?? (consignatario as any)?.nombre ?? (consignatario as any)?.descripcion,
-        consignatarioCodigo: (consignatario as any)?.codigo,
 
-        destinoId: Number(item?.destinoId ?? 0),
-        destinoNombre: (destino as any)?.nombre ?? (destino as any)?.descripcion,
-        destinoCodigo: (destino as any)?.codigo,
+        destinoId: (item?.destinoId ?? ''),
+        destinoNombre: (destino as any)?.pais ?? (destino as any)?.nacionalidad,
 
         formatoId: Number(item?.formatoId ?? 0),
-        formatoNombre: (formato as any)?.descripcion ?? (formato as any)?.nombre,
-        formatoCodigo: (formato as any)?.codigo,
+        formatoNombre: (formato as any)?.descripcion ?? (formato as any)?.descripcion2,
+        formatoCodigo: (formato as any)?.descripcion2,
 
-        tipoEmpaqueId: Number(item?.tipoEmpaqueId ?? 0),
-        tipoEmpaqueNombre: (tipoEmpaque as any)?.descripcion ?? (tipoEmpaque as any)?.nombre,
+        tiposEmpaqueId: Number(item?.tiposEmpaqueId ?? 0),
+        tipoEmpaqueNombre: (tipoEmpaque as any)?.descripcion ?? (tipoEmpaque as any)?.codigo,
 
         tipoEmpaqueGuiaId: Number(item?.tipoEmpaqueGuiaId ?? 0),
         tipoEmpaqueGuiaNombre: (tipoEmpaqueGuia as any)?.nombre ?? (tipoEmpaqueGuia as any)?.descripcion,
 
-        calibreId: Number(item?.calibreId ?? 0),
-        calibreNombre: (calibre as any)?.nombre ?? (calibre as any)?.descripcion,
+        calibreId: item?.calibreId ?? '',
+        calibreNombre: (calibre as any)?.calibre ?? (calibre as any)?.calibreId,
 
         tipoCajaId: Number(item?.tipoCajaId ?? 0),
         tipoCajaNombre: (tipoCaja as any)?.nombre ?? (tipoCaja as any)?.descripcion,
@@ -261,20 +281,27 @@ export class MatrizCompatibilidadComponent implements OnInit {
   private async findDuplicateCombination(payload: Partial<MatrizCompatibilidad>, excludePk?: any): Promise<MatrizCompatibilidad | undefined> {
     const all = await this.administracionRepository.matricesCompatibilidadRepository.getAll();
 
-    const same = (a: any, b: any) => {
-      const av = a === undefined ? null : a;
-      const bv = b === undefined ? null : b;
-      return Number(av ?? 0) === Number(bv ?? 0);
+    const normalize = (v: any): string | number => {
+      if (v === null || v === undefined) return '';
+      if (typeof v === 'number') return v;
+      const s = String(v).trim();
+      if (s === '') return '';
+      // If it's numeric-like, compare numerically (covers ids that come as strings)
+      if (/^-?\d+(\.\d+)?$/.test(s)) return Number(s);
+      // Otherwise compare as normalized string (covers destinoId, calibreId, etc.)
+      return s.toUpperCase();
     };
+
+    const same = (a: any, b: any) => normalize(a) === normalize(b);
 
     return all.find((r: any) => {
       if (excludePk !== null && excludePk !== undefined && (r as any)?._pk === excludePk) return false;
       return (
-        same(r?.clienteId, payload?.clienteId) &&
-        same(r?.consignatarioId, payload?.consignatarioId) &&
+        same(r?.documentoCliente, payload?.documentoCliente) &&
+        same(r?.documentoConsignatario, payload?.documentoConsignatario) &&
         same(r?.destinoId, payload?.destinoId) &&
         same(r?.formatoId, payload?.formatoId) &&
-        same(r?.tipoEmpaqueId, payload?.tipoEmpaqueId) &&
+        same(r?.tiposEmpaqueId, payload?.tiposEmpaqueId) &&
         same(r?.tipoEmpaqueGuiaId, payload?.tipoEmpaqueGuiaId) &&
         same(r?.calibreId, payload?.calibreId) &&
         same(r?.tipoCajaId, payload?.tipoCajaId) &&
@@ -300,12 +327,12 @@ export class MatrizCompatibilidadComponent implements OnInit {
       const payload = (ev?.payload ?? ev ?? {}) as Partial<MatrizCompatibilidad>;
       const pk = ev?._pk;
       if (
-        this.isEmpty(payload?.clienteId) ||
-        this.isEmpty(payload?.consignatarioId) ||
+        this.isEmpty(payload?.documentoCliente) ||
+        this.isEmpty(payload?.documentoConsignatario) ||
         this.isEmpty(payload?.destinoId) ||
         this.isEmpty(payload?.formatoId) ||
         this.isEmpty(payload?.calibreId) ||
-        this.isEmpty(payload?.tipoEmpaqueId) ||
+        this.isEmpty(payload?.tiposEmpaqueId) ||
         this.isEmpty(payload?.tipoEmpaqueGuiaId) ||
         this.isEmpty(payload?.tipoCajaId) ||
         this.isEmpty(payload?.tipoClamshellId)
@@ -313,14 +340,12 @@ export class MatrizCompatibilidadComponent implements OnInit {
         this.alertService.showAlert('Advertencia', 'Complete los campos obligatorios (*)', 'warning');
         return;
       }
-
-      const excludePk = modo === 'editado' ? await this.resolvePkForEdit(payload, pk) : undefined;
+      const excludePk = await this.resolvePkForEdit(payload, pk)
       const dup = await this.findDuplicateCombination(payload, excludePk);
       if (dup) {
         this.alertService.showAlertAcept('Advertencia', 'Ya existe la combinación seleccionada.', 'warning');
         return;
       }
-
       const now = new Date().toISOString();
 
       const record: any = {
@@ -332,7 +357,6 @@ export class MatrizCompatibilidadComponent implements OnInit {
         fechaModificacion: now,
         modo: modo === 'nuevo' ? 'nuevo' : payload.modo
       };
-
       if (modo === 'editado') {
         const resolvedPk = await this.resolvePkForEdit(payload, pk);
         if (resolvedPk !== null && resolvedPk !== undefined) {
@@ -340,11 +364,12 @@ export class MatrizCompatibilidadComponent implements OnInit {
         }
       }
       let normalizado = await this.normalizarMatricesCompatibilidadDixie([record], 0);
+
       if (modo === 'editado'){ 
         normalizado[0]._pk = record._pk; 
       }
 
-      if (!this.online) {
+      if (this.online) {
         const payloads = structuredClone(normalizado);
           payloads.map((item: any) => {
             delete item.clienteNombre
@@ -365,6 +390,7 @@ export class MatrizCompatibilidadComponent implements OnInit {
             delete item.bd
             delete item._pk
           })
+
           let { error, data, mensaje } = await firstValueFrom(this.administracionService.sincronizarMatricesCompatibilidad(payloads))
           if (error) {
             this.alertService.showAlert('Error', mensaje, 'error');
@@ -377,6 +403,7 @@ export class MatrizCompatibilidadComponent implements OnInit {
             return
           }
       }else{  
+
         await this.administracionRepository.matricesCompatibilidadRepository.save(normalizado[0]);
         await this.listarMatricesCompatibilidadRespository();
         this.alertService.cerrarModalCarga()
@@ -456,10 +483,13 @@ export class MatrizCompatibilidadComponent implements OnInit {
   }
 
   nuevoId(): number {
-    const mayor = this.items().reduce((max, item) =>
-      item.id > max.id ? item : max
-    );
-    return mayor.id + 1;
+    const items = this.items() ?? [];
+    if (items.length === 0) {
+      return 1;
+    }
+    const maxId = Math.max(...items.map(x => x.id));
+
+    return maxId + 1;
   }
 
   async onSincronizar(): Promise<void> {

@@ -167,16 +167,16 @@
             </tr>
           </thead>
           <tbody>
-            @for (p of procesosAbiertos(); track p.Id) {
+            @for (p of procesosAbiertos(); track p.id) {
               <tr>
-                <td><strong>#{{ p.Id }}</strong></td>
-                <td>{{ p.FechaProceso }}</td>
-                <td>{{ p.AcopioCodigo }} - {{ p.AcopioNombre }}</td>
+                <td><strong>#{{ p.id }}</strong></td>
+                <td>{{ p.fechaProceso }}</td>
+                <td>{{ p.acopioId }} - {{ p.acopioNombre }}</td>
                 <td>
-                  <i class="bi" [class]="p.Turno === 'DIA' ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i>
-                  {{ p.Turno }}
+                  <i class="bi" [class]="p.turno === 'DIA' ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i>
+                  {{ p.turno }}
                 </td>
-                <td><span class="sp-badge sp-badge-success">{{ p.Estado }}</span></td>
+                <td><span class="sp-badge sp-badge-success">{{ p.estado }}</span></td>
               </tr>
             }
           </tbody>

@@ -16,20 +16,20 @@
     </thead>
     <tbody>
       @for (row of pagedItems(); track trackById($index, row)) {
-        <tr [class.table-secondary]="!row.activo">
+        <tr [class.table-secondary]="!false">
           <td class="text-muted">{{ ((page() - 1) * pageSize()) + $index + 1 }}</td>
           <td><strong>{{ row.usuario }}</strong></td>
-          <td>{{ row.nombreCompleto }}</td>
+          <td>{{ row.nombre }}</td>
           <td>
-            <span [class]="perfilClass(row.perfil)">
-              <i class="bi" [class.bi-shield-check]="(row.perfil || '').toUpperCase() === 'ADMINISTRADOR'"
-                [class.bi-box-seam]="(row.perfil || '').toUpperCase() === 'LOGISTICA'"
-                [class.bi-eye]="(row.perfil || '').toUpperCase() === 'COORDINACION'"
-                [class.bi-bar-chart-line]="(row.perfil || '').toUpperCase() === 'OPERACIONES'"></i>
-              {{ perfilConvert(row.perfil) }}
+            <span [class]="perfilClass(row.idRol)">
+              <i class="bi" [class.bi-shield-check]="(row.idRol || '').toUpperCase() === 'ADMINISTRADOR'"
+                [class.bi-box-seam]="(row.idRol || '').toUpperCase() === 'LOGISTICA'"
+                [class.bi-eye]="(row.idRol || '').toUpperCase() === 'COORDINACION'"
+                [class.bi-bar-chart-line]="(row.idRol || '').toUpperCase() === 'OPERACIONES'"></i>
+              {{ perfilConvert(row.idRol) }}
             </span>
           </td>
-          <td>{{ row.acopioCodigo ? (row.acopioCodigo + ' - ' + (row.acopioNombre ?? '')) : '—' }}</td>
+          <td>{{ row.acopioId ? (row.acopioId + ' - ' + (row.acopioNombre)) : '—' }}</td>
           <td>{{ row.serieGuia || '—' }}</td>
           <!-- <td><small class="text-muted">{{ row.fechaCreacion ? (row.fechaCreacion | date:'dd/MM/yyyy') : '—' }}</small></td> -->
 
@@ -38,9 +38,9 @@
           </td>
 
           <td class="td-sticky-estado">
-            <span [class]="estadoClass(row.activo)">
-              <i class="bi" [class.bi-check-circle]="row.activo" [class.bi-x-circle]="!row.activo"></i>
-              {{ estadoLabel(row.activo) }}
+            <span [class]="estadoClass(true)">
+              <i class="bi" [class.bi-check-circle]="true" [class.bi-x-circle]="false"></i>
+              {{ estadoLabel(true) }}
             </span>
           </td>
 

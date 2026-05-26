@@ -16,17 +16,17 @@
               <tr><th>ID</th><th>Fecha</th><th>Acopio</th><th>Turno</th><th>Estado</th><th>Acciones</th></tr>
             </thead>
             <tbody>
-              @for (p of procesos(); track p.Id) {
+              @for (p of procesos(); track p.id) {
                 <tr>
-                  <td><strong>#{{ p.Id }}</strong></td>
-                  <td>{{ p.FechaProceso }}</td>
-                  <td>{{ p.AcopioCodigo }} - {{ p.AcopioNombre }}</td>
+                  <td><strong>#{{ p.id }}</strong></td>
+                  <td>{{ p.fechaProceso }}</td>
+                  <td>{{ p.acopioId }} - {{ p.acopioNombre }}</td>
                   <td>
-                    <i class="bi" [class]="p.Turno === 'DIA' ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i>
-                    {{ p.Turno }}
+                    <i class="bi" [class]="p.turno === 'DIA' ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i>
+                    {{ p.turno }}
                   </td>
                   <td>
-                    @if (p.Estado === 'ABIERTO') {
+                    @if (p.estado === 'ABIERTO') {
                       <span class="sp-badge sp-badge-success">ABIERTO</span>
                     } @else {
                       <span class="sp-badge sp-badge-muted">CERRADO</span>
@@ -55,7 +55,7 @@
   @case ('guias') {
     <div class="page-title-area">
       <h2><i class="bi bi-truck" style="color:var(--color-primary)"></i> Guías de Remisión</h2>
-      <p class="page-subtitle">Proceso #{{ procesoSeleccionado()?.Id }} — {{ procesoSeleccionado()?.AcopioCodigo }} — Turno {{ procesoSeleccionado()?.Turno }}</p>
+      <p class="page-subtitle">Proceso #{{ procesoSeleccionado()?.id }} — {{ procesoSeleccionado()?.acopioId }} — Turno {{ procesoSeleccionado()?.turno }}</p>
     </div>
 
     <div class="sp-card">

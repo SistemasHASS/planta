@@ -1,25 +1,31 @@
 
 export type Modo = 'nuevo' | 'editado';
 
+export interface Configuracion {
+    nrodocumento: string;
+    idFundo: string;
+    codigoCultivo: string;
+    idProyecto: string;
+}
+
 export interface MatrizCompatibilidad {
     id: number,
-    clienteId: number,
-    clienteNombre?: string,
-    clienteCodigo?: string,
-    consignatarioId: number,
-    consignatarioNombre?: string,
-    consignatarioCodigo?: string,
-    destinoId: number,
+    idProyecto: string,
+    codigoCultivo: string,
+    destinoId: string,
     destinoNombre?: string,
-    destinoCodigo?: string,
+    documentoCliente: string,
+    clienteNombre?: string,
+    documentoConsignatario: string,
+    consignatarioNombre?: string,
     formatoId: number,
     formatoNombre?: string,
     formatoCodigo?: string,
-    tipoEmpaqueId: number,
+    tiposEmpaqueId: number,
     tipoEmpaqueNombre?: string,
     tipoEmpaqueGuiaId: number,
     tipoEmpaqueGuiaNombre?: string,
-    calibreId: number,
+    calibreId: string,
     calibreNombre?: string,
     tipoCajaId: number,
     tipoCajaNombre?: string,
@@ -32,43 +38,42 @@ export interface MatrizCompatibilidad {
     activo: boolean,
     fechaCreacion?: string,
     fechaModificacion?: string,
-    modo:Modo,
-    bd?:number
+    modo: Modo,
+    bd?: number
 }
 
-export interface Usuario{
-    id: number,
-    usuario: string,
+export interface Usuario {
+    id: string,
+    acopioId: number,
+    acopioNombre: string,
+    aplicacion: string,
+    documentoIdentidad: string,
+    idRol: string,
     idempresa: string,
+    nombre: string,
+    razonSocial: string,
     ruc: string,
-    password?: string,
-    nombreCompleto: string,
-    perfil: string,
-    acopioId?: number,
-    acopioCodigo?: string | null,
-    acopioNombre?: string | null,
-    serieGuia?: string | null,
-    activo: boolean,
-    fechaCreacion: string,
-    fechaModificacion?: string,
-    modo:Modo,
-    bd?:number
+    serieGuia: string,
+    usuario: string,
+    modo: Modo,
+    bd?: number
 }
 
-export interface ReglaSobrePeso{
+export interface ReglaSobrePeso {
     id: number,
-    consignatarioId: number,
+    idProyecto: string,
+    codigoCultivo: string,
+    documentoConsignatario: string,
     formatoId: number,
-    destinoId: number,
-    transporteId:number,
+    destinoId: string,
+    transporteId: string,
     porcentaje: number,
+    vigenciaDesde: string,
+    vigenciaHasta: string,
+    descripcion: string,
     activo: boolean,
     fechaCreacion: string,
-    fechaModificacion?: string,
-    vigenciaDesde?: string,
-    vigenciaHasta?: string,
-    descripcion?: string,
-    modo:Modo,
-    bd?:number
+    modo: Modo,
+    bd?: number
 }
 

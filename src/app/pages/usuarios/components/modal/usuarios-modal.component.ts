@@ -3,19 +3,18 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { Acopio } from '../../../../shared/interfaces/catalogo.interface';
-import { CatalogosOperativosRepository } from '../../../../shared/dixiedb/repository/catalogos-operacionales.repository';
+import { CatalogosOperativosRepository } from '../../../../shared/dexiedb/repository/catalogos-operacionales.repository';
 import { ConnectivityService } from '../../../../shared/services/connectivity.service';
 import { AdministracionService } from '../../../../shared/services/administracion.service';
 import { AdvancedSelectComponent } from '../../../../shared/components/advanced-select/advanced-select.component';
-import { firstValueFrom } from 'rxjs';
 import { Usuario } from '../../../../shared/interfaces/administracion.interface';
 
 type UsuarioForm = {
   id?: number;
   usuario: string;
-  nombreCompleto: string;
+  nombre: string;
   contrasena: string;
-  perfil: string;
+  idRol: string;
   acopioId?: number;
   acopioCodigo: string;
   acopioNombre: string;
@@ -52,9 +51,9 @@ export class UsuariosModalComponent {
 
   readonly form = signal<UsuarioForm>({
     usuario: '',
-    nombreCompleto: '',
+    nombre: '',
     contrasena: '',
-    perfil: '',
+    idRol: '',
     acopioId: undefined,
     acopioCodigo: '',
     acopioNombre: '',
@@ -73,8 +72,8 @@ export class UsuariosModalComponent {
     const f = this.form();
     return (
       base.usuario !== f.usuario ||
-      base.nombreCompleto !== f.nombreCompleto ||
-      base.perfil !== f.perfil ||
+      base.nombre !== f.nombre ||
+      base.idRol !== f.idRol ||
       (base.acopioId ?? undefined) !== (f.acopioId ?? undefined) ||
       base.acopioCodigo !== f.acopioCodigo ||
       base.acopioNombre !== f.acopioNombre ||
@@ -95,9 +94,9 @@ export class UsuariosModalComponent {
     const next: UsuarioForm = {
       id: v.id,
       usuario: v.usuario ?? '',
-      nombreCompleto: v.nombreCompleto ?? '',
+      nombre: v.nombre ?? '',
       contrasena: '',
-      perfil: v.perfil ?? '',
+      idRol: v.idRol ?? '',
       acopioId: typeof v.acopioId === 'number' ? v.acopioId : undefined,
       acopioCodigo: (v.acopioCodigo ?? '') as any,
       acopioNombre: (v.acopioNombre ?? '') as any,
@@ -123,7 +122,7 @@ export class UsuariosModalComponent {
 
   isFormValid(): boolean {
     const f = this.form();
-    if (this.isEmpty(f.usuario) || this.isEmpty(f.nombreCompleto) || this.isEmpty(f.perfil)) return false;
+    if (this.isEmpty(f.usuario) || this.isEmpty(f.nombre) || this.isEmpty(f.idRol)) return false;
     if (this.modo === 'nuevo' && this.isEmpty(f.contrasena)) return false;
     return true;
   }
@@ -132,7 +131,7 @@ export class UsuariosModalComponent {
     if (!this.submitAttempted()) return false;
     const f: any = this.form();
     if (field === 'contrasena') return this.modo === 'nuevo' ? this.isEmpty(f[field]) : false;
-    if (field === 'usuario' || field === 'nombreCompleto' || field === 'perfil') return this.isEmpty(f[field]);
+    if (field === 'usuario' || field === 'nombre' || field === 'idRol') return this.isEmpty(f[field]);
     return false;
   }
 
@@ -144,7 +143,8 @@ export class UsuariosModalComponent {
     if (this.acopios().length > 0) return;
     try {
       const list = await this.catalogosOperativosRepository.acopiosRepo.getAll();
-      this.acopios.set([...(list ?? [])].sort((a, b) => String(a?.codigo ?? '').localeCompare(String(b?.codigo ?? ''))));
+      console.log(list)
+      this.acopios.set([...(list ?? [])].sort((a, b) => String(a?.acopioId ?? '').localeCompare(String(b?.acopioId ?? ''))));
 
       const f = this.form();
       let acopio: Acopio | undefined;
@@ -153,7 +153,7 @@ export class UsuariosModalComponent {
         acopio = this.acopios().find(a => Number(a?.id) === Number(f.acopioId));
       } else if (String(f.acopioCodigo ?? '').trim()) {
         const codigo = String(f.acopioCodigo ?? '').trim().toUpperCase();
-        acopio = this.acopios().find(a => String(a?.codigo ?? '').trim().toUpperCase() === codigo);
+        acopio = this.acopios().find(a => String(a?.acopioId ?? '').trim().toUpperCase() === codigo);
         if (acopio) {
           this.form.update(cur => ({ ...cur, acopioId: acopio?.id }));
         }
@@ -162,8 +162,8 @@ export class UsuariosModalComponent {
       if (acopio) {
         this.form.update(cur => ({
           ...cur,
-          acopioCodigo: cur.acopioCodigo || acopio.codigo || '',
-          acopioNombre: cur.acopioNombre || acopio.nombre || '',
+          acopioCodigo: cur.acopioCodigo || acopio.acopioId || '',
+          acopioNombre: cur.acopioNombre || acopio.acopioNombre || '',
           serieGuia: cur.serieGuia || acopio.serieGuia || '',
         }));
 
@@ -204,13 +204,13 @@ export class UsuariosModalComponent {
     this.form.update(f => ({
       ...f,
       acopioId,
-      acopioCodigo: acopio?.codigo ?? '',
-      acopioNombre: acopio?.nombre ?? '',
+      acopioCodigo: acopio?.acopioId ?? '',
+      acopioNombre: acopio?.acopioNombre ?? '',
       serieGuia: acopio?.serieGuia ?? '',
     }));
   }
 
-  onAcopioIdChange(value: number | null): void {
+  onAcopioIdChange(value: any | null): void {
     this.onAcopioChange(value);
   }
 
@@ -233,8 +233,8 @@ export class UsuariosModalComponent {
       ...(this.value ?? {}),
       id: f.id ?? (this.value as any)?.id,
       usuario: f.usuario,
-      nombreCompleto: f.nombreCompleto,
-      perfil: f.perfil,
+      nombre: f.nombre,
+      idRol: f.idRol,
       acopioId: typeof f.acopioId === 'number' ? f.acopioId : undefined,
       acopioCodigo: this.isEmpty(f.acopioCodigo) ? null : f.acopioCodigo,
       acopioNombre: this.isEmpty(f.acopioNombre) ? null : f.acopioNombre,

@@ -52,6 +52,7 @@ export interface CatalogoConfig {
     displayField: string;
     codigoField: string | null;
     tieneActivo: boolean;
+    editable?: boolean;
     noCrear?: boolean;
     fkTablas?: string[];
     dixieRepo?: string;

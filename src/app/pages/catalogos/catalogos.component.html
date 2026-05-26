@@ -16,7 +16,7 @@
       </button>
 
       <div class="d-flex align-items-center gap-2 flex-wrap catalogos-actions" style="justify-content:flex-end">
-        @if (config().tieneActivo) {
+        @if (config().tieneActivo && hasActivoColumn()) {
         <div class="btn-group catalogos-filtro-group" role="group">
           <button type="button" class="btn-sp-outline" [class.active-tab]="estadoFiltro() === 'activos'"
             (click)="setEstadoFiltro('activos')">

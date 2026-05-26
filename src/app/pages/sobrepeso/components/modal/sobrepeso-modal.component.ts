@@ -5,13 +5,14 @@ import { AdvancedSelectComponent } from '../../../../shared/components/advanced-
 
 import { ReglaSobrePeso } from '../../../../shared/interfaces/administracion.interface';
 import { Consignatario, Destino, Formato, Transporte } from '../../../../shared/interfaces/catalogo.interface';
+import { formatDate } from '../../../../shared/utils/datetime.utils';
 
 type Form = {
   id?: number;
-  consignatarioId: number | null;
+  documentoConsignatario: string | null;
   formatoId: number | null;
-  destinoId: number | null;
-  transporteId: number | null;
+  destinoId: string | null;
+  transporteId: string | null;
   porcentaje: number | null;
   descripcion: string;
   vigenciaDesde: string;
@@ -45,7 +46,7 @@ export class SobrepesoModalComponent {
   private readonly initialForm = signal<Form | null>(null);
 
   readonly form = signal<Form>({
-    consignatarioId: null,
+    documentoConsignatario: null,
     formatoId: null,
     destinoId: null,
     transporteId: null,
@@ -64,7 +65,7 @@ export class SobrepesoModalComponent {
     if (!base) return false;
     const f = this.form();
     return (
-      (base.consignatarioId ?? null) !== (f.consignatarioId ?? null) ||
+      (base.documentoConsignatario ?? null) !== (f.documentoConsignatario ?? null) ||
       (base.formatoId ?? null) !== (f.formatoId ?? null) ||
       (base.destinoId ?? null) !== (f.destinoId ?? null) ||
       (base.transporteId ?? null) !== (f.transporteId ?? null) ||
@@ -82,18 +83,50 @@ export class SobrepesoModalComponent {
     return this.modo === 'nuevo' ? true : this.hasChanges();
   });
 
+  private normalizeDateForInput(value: unknown): string {
+    if (value === null || value === undefined || value === '') return '';
+    if (typeof value === 'string') {
+      const s = value.trim();
+      if (!s) return '';
+      const m = /^\d{4}-\d{2}-\d{2}/.exec(s);
+      if (m) return m[0];
+    }
+    return formatDate(value) ?? '';
+  }
+
+  private parseDateInput(value: unknown): Date | null {
+    if (value === null || value === undefined || value === '') return null;
+    if (typeof value !== 'string') return null;
+    const s = value.trim();
+    if (!s) return null;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+    const d = new Date(`${s}T00:00:00`);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  private hasInvalidDateRange(): boolean {
+    const f = this.form();
+    const d = this.isEmpty(f.vigenciaDesde) ? null : this.parseDateInput(f.vigenciaDesde);
+    const h = this.isEmpty(f.vigenciaHasta) ? null : this.parseDateInput(f.vigenciaHasta);
+
+    if (!this.isEmpty(f.vigenciaDesde) && !d) return true;
+    if (!this.isEmpty(f.vigenciaHasta) && !h) return true;
+    if (d && h && h.getTime() < d.getTime()) return true;
+    return false;
+  }
+
   ngOnChanges(): void {
     const v: any = this.value ?? {};
     const next: Form = {
       id: v.id,
-      consignatarioId: typeof v.consignatarioId === 'number' ? v.consignatarioId : null,
+      documentoConsignatario: v.documentoConsignatario ?? null,
       formatoId: typeof v.formatoId === 'number' ? v.formatoId : null,
-      destinoId: typeof v.destinoId === 'number' ? v.destinoId : null,
-      transporteId: typeof v.transporteId === 'number' ? v.transporteId : null,
+      destinoId: v.destinoId ?? null,
+      transporteId: v.transporteId ?? null,
       porcentaje: v.porcentaje === null || v.porcentaje === undefined ? null : Number(v.porcentaje),
       descripcion: v.descripcion ?? '',
-      vigenciaDesde: v.vigenciaDesde ?? '',
-      vigenciaHasta: v.vigenciaHasta ?? '',
+      vigenciaDesde: this.normalizeDateForInput(v.vigenciaDesde),
+      vigenciaHasta: this.normalizeDateForInput(v.vigenciaHasta),
       activo: typeof v.activo === 'boolean' ? v.activo : true,
     };
 
@@ -108,8 +141,9 @@ export class SobrepesoModalComponent {
 
   isFormValid(): boolean {
     const f = this.form();
-    if (this.isEmpty(f.consignatarioId) || this.isEmpty(f.formatoId) || this.isEmpty(f.destinoId) || this.isEmpty(f.transporteId)) return false;
+    if (this.isEmpty(f.documentoConsignatario) || this.isEmpty(f.formatoId) || this.isEmpty(f.destinoId) || this.isEmpty(f.transporteId)) return false;
     if (f.porcentaje === null || f.porcentaje === undefined || !Number.isFinite(Number(f.porcentaje))) return false;
+    if (this.hasInvalidDateRange()) return false;
     return true;
   }
 
@@ -117,7 +151,8 @@ export class SobrepesoModalComponent {
     if (!this.submitAttempted()) return false;
     const f: any = this.form();
     if (field === 'porcentaje') return f[field] === null || f[field] === undefined || !Number.isFinite(Number(f[field]));
-    if (field === 'consignatarioId' || field === 'formatoId' || field === 'destinoId' || field === 'transporteId') return this.isEmpty(f[field]);
+    if (field === 'documentoConsignatario' || field === 'formatoId' || field === 'destinoId' || field === 'transporteId') return this.isEmpty(f[field]);
+    if (field === 'vigenciaDesde' || field === 'vigenciaHasta') return this.hasInvalidDateRange();
     return false;
   }
 
@@ -151,7 +186,7 @@ export class SobrepesoModalComponent {
     const payload: any = {
       ...(this.value ?? {}),
       id: f.id ?? (this.value as any)?.id,
-      consignatarioId: f.consignatarioId,
+      documentoConsignatario: f.documentoConsignatario,
       formatoId: f.formatoId,
       destinoId: f.destinoId,
       transporteId: f.transporteId,

@@ -15,7 +15,7 @@ export class AdministracionService {
 
     // ------ Matriz de compatibilidad ------
     listarMatricesCompatibilidad(payload: any): Observable<any> {
-          const params = new HttpParams().set('json', JSON.stringify(payload));
+        const params = new HttpParams().set('json', JSON.stringify(payload));
         return this.http.get<any>(`${this.apiUrlMatricesCompatibilidad}/listar`, { params, withCredentials: true });
     }
 
@@ -33,19 +33,18 @@ export class AdministracionService {
         return this.http.post<any>(`${this.apiUrlUsuarios}/sincronizar`, json, { withCredentials: true });
     }
 
-    resetearPasswordUsuario(json: any): Observable<any> {
-        return this.http.post<any>(`${this.apiUrlUsuarios}/reset-password`, json);
-    }
+  
+
     
     //---------- Reglas Sobrepso------
 
     listarReglasSobrePeso(payload: any): Observable<any> {
         const params = new HttpParams().set('json', JSON.stringify(payload));
-        return this.http.get<any>(`${this.apiUrlReglasSobrePeso}/listar`, { params });
+        return this.http.get<any>(`${this.apiUrlReglasSobrePeso}/listar`, { params,withCredentials: true });
     }
 
     sincronizarReglasSobrePeso(json: any): Observable<any> {
-        return this.http.post<any>(`${this.apiUrlReglasSobrePeso}/sincronizar`, json);
+        return this.http.post<any>(`${this.apiUrlReglasSobrePeso}/sincronizar`, json, { withCredentials: true });
     }
 
 }

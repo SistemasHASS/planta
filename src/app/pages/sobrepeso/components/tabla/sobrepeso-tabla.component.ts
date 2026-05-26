@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import { ReglaSobrePeso } from '../../../../shared/interfaces/administracion.interface';
+import { formatDate } from '../../../../shared/utils/datetime.utils';
 
 type Row = ReglaSobrePeso & {
   _pk?: any;
@@ -128,8 +129,8 @@ export class SobrepesoTablaComponent {
   }
 
   vigenciaLabel(row: Row): string {
-    const d = (row as any)?.vigenciaDesde;
-    const h = (row as any)?.vigenciaHasta;
+    const d = formatDate((row as any)?.vigenciaDesde);
+    const h = formatDate((row as any)?.vigenciaHasta);
     const from = d && String(d).trim() ? d : '—';
     const to = h && String(h).trim() ? h : '∞';
     return `${from} – ${to}`;

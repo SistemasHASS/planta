@@ -34,7 +34,7 @@ export class GuiasComponent implements OnInit {
   seleccionarProceso(p: Proceso): void {
     this.procesoSeleccionado.set(p);
     this.currentView.set('guias');
-    this.cargarGuias(p.Id);
+    this.cargarGuias(p.id);
   }
 
   cargarGuias(procesoId: number): void {
@@ -56,19 +56,19 @@ export class GuiasComponent implements OnInit {
 
   cerrarGuia(g: GuiaRemision): void {
     this.guiaService.cerrar(g.Id).subscribe({
-      next: () => { const p = this.procesoSeleccionado(); if (p) this.cargarGuias(p.Id); }
+      next: () => { const p = this.procesoSeleccionado(); if (p) this.cargarGuias(p.id); }
     });
   }
 
   anularGuia(g: GuiaRemision): void {
     this.guiaService.anular(g.Id).subscribe({
-      next: () => { const p = this.procesoSeleccionado(); if (p) this.cargarGuias(p.Id); }
+      next: () => { const p = this.procesoSeleccionado(); if (p) this.cargarGuias(p.id); }
     });
   }
 
   eliminarGuia(g: GuiaRemision): void {
     this.guiaService.eliminar(g.Id).subscribe({
-      next: () => { const p = this.procesoSeleccionado(); if (p) this.cargarGuias(p.Id); }
+      next: () => { const p = this.procesoSeleccionado(); if (p) this.cargarGuias(p.id); }
     });
   }
 

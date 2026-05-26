@@ -9,7 +9,9 @@
         @for (col of columnasVisibles(); track col.campo) {
           <th>{{ col.label }}</th>
         }
-        <th style="width:150px" class="text-end">Acciones</th>
+        @if (showActions()) {
+          <th style="width:150px" class="text-end">Acciones</th>
+        }
       </tr>
     </thead>
     <tbody>
@@ -27,23 +29,27 @@
               }
             </td>
           }
-          <td class="text-end" style="white-space:nowrap">
-            <div class="catalogo-actions">
-              <button type="button" class="catalogo-action-btn catalogo-action-btn-edit" (click)="onEditar(row)" title="Editar" data-tooltip="Editar">
-                <i class="bi bi-pencil"></i>
-              </button>
-              <button type="button" class="catalogo-action-btn catalogo-action-btn-warning" (click)="onDesactivar(row)" [attr.data-tooltip]="row.activo ? 'Desactivar' : 'Activar'" title="Desactivar">
-                <i class="bi bi-slash-circle"></i>
-              </button>
-              <!-- <button type="button" class="catalogo-action-btn catalogo-action-btn-danger" (click)="onEliminar(row)" title="Eliminar" data-tooltip="Eliminar">
-                <i class="bi bi-trash"></i>
-              </button> -->
-            </div>
-          </td>
+          @if (showActions()) {
+            <td class="text-end" style="white-space:nowrap">
+              <div class="catalogo-actions">
+                <button type="button" class="catalogo-action-btn catalogo-action-btn-edit" (click)="onEditar(row)" title="Editar" data-tooltip="Editar">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                @if (showToggleActivo()) {
+                  <button type="button" class="catalogo-action-btn catalogo-action-btn-warning" (click)="onDesactivar(row)" [attr.data-tooltip]="row.activo ? 'Desactivar' : 'Activar'" title="Desactivar">
+                    <i class="bi bi-slash-circle"></i>
+                  </button>
+                }
+                <!-- <button type="button" class="catalogo-action-btn catalogo-action-btn-danger" (click)="onEliminar(row)" title="Eliminar" data-tooltip="Eliminar">
+                  <i class="bi bi-trash"></i>
+                </button> -->
+              </div>
+            </td>
+          }
         </tr>
       } @empty {
         <tr>
-          <td [attr.colspan]="columnasVisibles().length + 2">
+          <td [attr.colspan]="columnasVisibles().length + (showActions() ? 2 : 1)">
             <div class="empty-state" style="padding:20px">
               <i class="bi bi-inbox" style="font-size:32px"></i>
               <p>Sin registros</p>

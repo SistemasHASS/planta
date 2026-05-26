@@ -1,5 +1,6 @@
 
 export const DB_TABLES = {
+  fundo: 'fundo',
   clientes: 'clientes',
   consignatarios: 'consignatarios',
   destinos: 'destinos',

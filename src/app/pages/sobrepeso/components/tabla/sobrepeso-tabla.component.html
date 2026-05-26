@@ -41,7 +41,7 @@
               <button type="button" class="catalogo-action-btn catalogo-action-btn-warning" (click)="onDesactivar(row)" [attr.data-tooltip]="row.activo ? 'Desactivar' : 'Activar'" title="Estado">
                 <i class="bi" [class.bi-slash-circle]="row.activo" [class.bi-check-circle]="!row.activo"></i>
               </button>
-              <button
+              <!-- <button
                 type="button"
                 class="catalogo-action-btn catalogo-action-btn-danger"
                 [class.disabled]="!canEliminar(row)"
@@ -51,7 +51,7 @@
                 (click)="canEliminar(row) && onEliminar(row)"
               >
                 <i class="bi bi-trash"></i>
-              </button>
+              </button> -->
             </div>
           </td>
         </tr>

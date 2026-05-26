@@ -24,10 +24,10 @@
       @for (row of pagedItems(); track trackById($index, row)) {
         <tr>
           <td>{{ ((page() - 1) * pageSize()) + $index + 1 }}</td>
-          <td>{{ row.clienteCodigo }}</td>
-          <td>{{ row.consignatarioCodigo }}</td>
-          <td>{{ row.destinoCodigo }}</td>
-          <td>{{ row.formatoCodigo }}</td>
+          <td>{{ row.clienteNombre }}</td>
+          <td>{{ row.consignatarioNombre }}</td>
+          <td>{{ row.destinoNombre }}</td>
+          <td>{{ row.formatoNombre }}</td>
           <td>{{ row.tipoEmpaqueNombre }}</td>
           <td>{{ row.tipoEmpaqueGuiaNombre }}</td>
           <td>{{ row.calibreNombre }}</td>

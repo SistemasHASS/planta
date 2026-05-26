@@ -68,6 +68,19 @@ export class CatalogoTablaComponent {
     (this._config()?.columnas ?? []).filter((c: CatalogoColumna) => c.visible !== false)
   );
 
+  readonly hasActivoColumn = computed(() => {
+    const cols = this._config()?.columnas ?? [];
+    return cols.some(c => String(c?.campo ?? '').trim().toLowerCase() === 'activo');
+  });
+
+  readonly isEditable = computed(() => {
+    const cfg = this._config();
+    return (cfg as any)?.editable !== false;
+  });
+
+  readonly showActions = computed(() => this.isEditable());
+  readonly showToggleActivo = computed(() => this.isEditable() && this.hasActivoColumn() && !!this._config()?.tieneActivo);
+
   readonly tableMinWidthPx = computed(() => {
     const cols = this.columnasVisibles().length;
     const estimated = cols * 180 + 220;
@@ -80,7 +93,7 @@ export class CatalogoTablaComponent {
 
     let base = this._items();
 
-    if (cfg?.tieneActivo) {
+    if (cfg?.tieneActivo && this.hasActivoColumn()) {
       const f = this._estadoFiltro();
       if (f === 'activos') base = base.filter(i => !!i?.activo);
       if (f === 'inactivos') base = base.filter(i => !i?.activo);

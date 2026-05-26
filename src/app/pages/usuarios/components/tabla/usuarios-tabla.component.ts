@@ -147,6 +147,7 @@ export class UsuariosTablaComponent {
   }
 
   sincronizadoLabel(bd: any): string {
+    console.log('====',bd)
     return this.asBitBoolean(bd) ? 'Sincronizado' : 'No sincronizado';
   }
 

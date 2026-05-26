@@ -1,0 +1,122 @@
+<div class="page-title-area">
+    <h2><i class="bi bi-sliders" style="color:var(--color-primary)"></i> Parametros</h2>
+    <p class="page-subtitle">Bienvenido, <strong>{{ nombreCompleto() }}</strong>
+        @if (usuario()?.acopioNombre) {
+        — {{ usuario()?.acopioNombre }} ({{ usuario()?.serieGuia }})
+        }
+    </p>
+</div>
+
+<div class="sp-card" style="margin-bottom: 20px">
+  <div class="sp-card-body" style="padding:16px 20px">
+    <div class="row g-3 mt-2">
+      <div class="col-12 col-md-6">
+        <label class="form-label"><strong>Campaña</strong></label>
+        <app-advanced-select
+          table="campanias"
+          source="dexie"
+          placeholder="— Seleccionar campaña —"
+          idField="idproyecto"
+          [labelFields]="['idproyecto','descripcion']"
+          [disabled]="campanias().length === 0"
+          [value]="selectedCampaniaId()"
+          (valueChange)="onCampaniaChange($event)"
+        ></app-advanced-select>
+
+        @if (campanias().length === 0) {
+          <div class="text-muted mt-2" style="font-size:12px">
+            Primero sincroniza los catálogos con el botón <strong>Sincronizar</strong> para poder seleccionar una campaña.
+          </div>
+        }
+      </div>
+    </div>
+
+    @if (selectedCampania()) {
+      <div class="mt-3 p-3 rounded-3 border" style="background:#f8fbff; border-color:#d7e7ff !important">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <i class="bi bi-card-text" style="color:var(--color-primary)"></i>
+          <div style="font-weight:700">Detalle de campaña</div>
+        </div>
+        <div class="row g-3" style="font-size:13px">
+          <div class="col-12 col-md-6">
+            <div class="text-muted">Fundo</div>
+            <div><strong>{{ currentFundoLabel() }}</strong></div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="text-muted">Cultivo</div>
+            <div><strong>{{ currentCultivoLabel() }}</strong></div>
+          </div>
+
+          <!-- <div class="col-12 col-md-3">
+            <div class="text-muted">Fruta</div>
+            <div><strong>{{ selectedCampania()?.fruta || '—' }}</strong></div>
+          </div> -->
+          <div class="col-12 col-md-6">
+            <div class="text-muted">Fecha inicio</div>
+            <div><strong>{{ formatDate(selectedCampania()?.fecha_inicio) }}</strong></div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="text-muted">Fecha fin</div>
+            <div><strong>{{ formatDate(selectedCampania()?.fecha_fin) }}</strong></div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="text-muted">Aplicación</div>
+            <div><strong>{{ selectedCampania()?.aplicacion || '—' }}</strong></div>
+          </div>
+
+          <!-- <div class="col-12 col-md-3">
+            <div class="text-muted">RUC</div>
+            <div><strong>{{ selectedCampania()?.ruc || '—' }}</strong></div>
+          </div> -->
+        </div>
+      </div>
+    }
+
+    <div class="row g-2 justify-content-center mt-3">
+      <div class="col-12 col-sm-auto">
+        <button type="button" class="btn btn-primary w-100" (click)="sincronizarAsync()">
+          <i class="bi bi-arrow-clockwise"></i> Sincronizar
+        </button>
+      </div>
+      <div class="col-12 col-sm-auto">
+        <button type="button" class="btn btn-success w-100" (click)="guardarConfiguracion()">
+          <i class="bi bi-save"></i> Guardar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sp-card" style="margin-bottom: 20px">
+  <div class="sp-card-header">
+    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Configuración guardada</h5>
+  </div>
+  <div class="sp-card-body" style="padding:16px 20px">
+    <div class="row g-2" style="font-size:13px">
+      <div class="col-12 col-md-3">
+        <div class="text-muted">Nro documento</div>
+        <div><strong>{{ savedConfig()?.nrodocumento || '—' }}</strong></div>
+      </div>
+      <div class="col-12 col-md-3">
+        <div class="text-muted">Fundo</div>
+        <div><strong>{{ savedFundoLabel() }}</strong></div>
+      </div>
+      <div class="col-12 col-md-3">
+        <div class="text-muted">Cultivo</div>
+        <div><strong>{{ savedCultivoLabel() }}</strong></div>
+      </div>
+      <div class="col-12 col-md-3">
+        <div class="text-muted">Campaña</div>
+        <div><strong>{{ savedCampaniaLabel() }}</strong></div>
+      </div>
+    </div>
+
+    <div class="row g-2 justify-content-center mt-3">
+      <div class="col-12 col-sm-auto">
+        <button type="button" class="btn btn-outline-danger w-100" (click)="eliminarConfiguracion()" [disabled]="!savedConfig()">
+          <i class="bi bi-trash"></i> Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

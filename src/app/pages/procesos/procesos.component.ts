@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { ProcesoService } from '../../shared/services/proceso.service';
 import { CatalogoService } from '../../shared/services/catalogo.service';
 import { AuthService } from '../../shared/services/auth.service';
+import { AlertService } from '../../shared/services/alert.service';
 import { PermissionService } from '../../shared/services/permission.service';
 import { Proceso, PersonalDisponible } from '../../shared/interfaces/proceso.interface';
 import moment from 'moment';
@@ -20,6 +21,7 @@ export class ProcesosComponent implements OnInit {
   private readonly procesoService = inject(ProcesoService);
   private readonly catalogoService = inject(CatalogoService);
   private readonly auth = inject(AuthService);
+  private readonly alertService = inject(AlertService);
   readonly permissions = inject(PermissionService);
 
   procesos = signal<Proceso[]>([]);
@@ -28,8 +30,6 @@ export class ProcesosComponent implements OnInit {
   campanias = signal<any[]>([]);
   isLoading = signal(true);
   isCreating = signal(false);
-  errorMsg = signal('');
-  successMsg = signal('');
   filterFecha = signal('');
   acopioSeleccionado = signal<number | null>(null);
 
@@ -43,9 +43,7 @@ export class ProcesosComponent implements OnInit {
 
   readonly campaniaActiva = computed(() => {
     const lista = this.campanias();
-    console.log('🔍 Computando campaniaActiva, lista:', lista);
     const activa = lista.find(c => c.Activa) ?? lista[0] ?? null;
-    console.log('🔍 Campaña activa encontrada:', activa);
     return activa;
   });
 
@@ -54,8 +52,8 @@ export class ProcesosComponent implements OnInit {
     const lista = this.procesos();
     if (!fecha) return lista;
     return lista.filter(p => {
-      if (!p.FechaProceso) return false;
-      const fechaProceso = p.FechaProceso.split('T')[0];
+      if (!p.fechaProceso) return false;
+      const fechaProceso = p.fechaProceso.split('T')[0];
       return fechaProceso === fecha;
     });
   });
@@ -66,6 +64,15 @@ export class ProcesosComponent implements OnInit {
     supervisores: [],
     logisticos: []
   });
+
+  private syncProcesosActivosFromLista(lista: Proceso[]): void {
+    // Para ADMIN/COORDINACION la pantalla muestra procesos abiertos en una grilla
+    // usando la data del listado completo.
+    if (this.perfil() === 'ADMINISTRADOR' || this.perfil() === 'COORDINACION') {
+      const abiertos = (lista ?? []).filter(p => p.estado === 'ABIERTO');
+      this.procesosActivos.set(abiertos);
+    }
+  }
 
   ngOnInit(): void {
     this.cargarDatos();
@@ -83,29 +90,19 @@ export class ProcesosComponent implements OnInit {
     this.isLoading.set(true);
     
     // Cargar campaña activa específicamente
-    console.log('📋 Cargando campaña activa...');
     this.catalogoService.obtenerCampaniaActiva().subscribe({
       next: (res: any) => {
-        console.log('✅ Respuesta campaña activa:', res);
-        console.log('✅ Data:', res?.data);
-        console.log('✅ Res directo:', res);
-        
         const campaniaActiva = res?.data ?? res;
-        console.log('📋 Campaña activa procesada:', campaniaActiva);
         
         if (campaniaActiva && campaniaActiva.Id) {
           this.campanias.set([campaniaActiva]);
-          console.log('✅ Campaña establecida:', campaniaActiva.Nombre);
         } else {
           this.campanias.set([]);
-          console.log('❌ No se encontró campaña activa válida');
         }
       },
       error: (err: any) => {
-        console.error('❌ Error cargando campaña activa:', err);
-        console.error('❌ Status:', err?.status);
-        console.error('❌ Error completo:', err);
         this.campanias.set([]);
+        this.alertService.showAlert('Error', 'Error al cargar campaña activa', 'error');
       }
     });
     
@@ -114,9 +111,13 @@ export class ProcesosComponent implements OnInit {
         const raw = res?.data ?? res;
         const data = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : Array.isArray(raw?.items) ? raw.items : [];
         this.procesos.set(data);
+        this.syncProcesosActivosFromLista(data);
         this.isLoading.set(false);
       },
-      error: () => { this.errorMsg.set('Error al cargar procesos'); this.isLoading.set(false); }
+      error: () => {
+        this.alertService.showAlert('Error', 'Error al cargar procesos', 'error');
+        this.isLoading.set(false);
+      }
     });
     
     this.catalogoService.listarTodos().subscribe({
@@ -156,9 +157,9 @@ export class ProcesosComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (err: any) => {
-        console.error('❌ Error cargando procesos por acopio:', err);
         this.procesosActivos.set([]);
         this.isLoading.set(false);
+        this.alertService.showAlert('Error', 'Error al cargar procesos por acopio', 'error');
       }
     });
   }
@@ -193,39 +194,71 @@ export class ProcesosComponent implements OnInit {
     const select = event.target as HTMLSelectElement;
     const selectedIds = Array.from(select.selectedOptions).map(o => Number(o.value));
     if (selectedIds.length > 2) {
-      this.errorMsg.set('Máximo 2 supervisores permitidos');
+      this.alertService.showAlert('Validación', 'Máximo 2 supervisores permitidos', 'warning');
       return;
     }
     this.nuevoProceso.update(prev => ({ ...prev, supervisores: selectedIds }));
+  }
+
+  toggleSupervisor(id: number, checked: boolean): void {
+    const current = this.nuevoProceso().supervisores;
+    const next = checked
+      ? Array.from(new Set([...current, id]))
+      : current.filter(x => x !== id);
+    if (next.length > 2) {
+      this.alertService.showAlert('Validación', 'Máximo 2 supervisores permitidos', 'warning');
+      return;
+    }
+    this.nuevoProceso.update(prev => ({ ...prev, supervisores: next }));
+  }
+
+  isSupervisorSeleccionado(id: number): boolean {
+    return this.nuevoProceso().supervisores.includes(id);
   }
 
   onLogisticosChange(event: Event): void {
     const select = event.target as HTMLSelectElement;
     const selectedIds = Array.from(select.selectedOptions).map(o => Number(o.value));
     if (selectedIds.length > 5) {
-      this.errorMsg.set('Máximo 5 personal de logística permitidos');
+      this.alertService.showAlert('Validación', 'Máximo 5 personal de logística permitidos', 'warning');
       return;
     }
     this.nuevoProceso.update(prev => ({ ...prev, logisticos: selectedIds }));
+  }
+
+  toggleLogistico(id: number, checked: boolean): void {
+    const current = this.nuevoProceso().logisticos;
+    const next = checked
+      ? Array.from(new Set([...current, id]))
+      : current.filter(x => x !== id);
+    if (next.length > 5) {
+      this.alertService.showAlert('Validación', 'Máximo 5 personal de logística permitidos', 'warning');
+      return;
+    }
+    this.nuevoProceso.update(prev => ({ ...prev, logisticos: next }));
+  }
+
+  isLogisticoSeleccionado(id: number): boolean {
+    return this.nuevoProceso().logisticos.includes(id);
   }
 
   crearProceso(): void {
     const np = this.nuevoProceso();
     const usr = this.usuario();
     if (!np.fechaProceso || !np.turno) {
-      this.errorMsg.set('Complete la fecha y el turno.');
+      this.alertService.showAlert('Validación', 'Complete la fecha y el turno.', 'warning');
       return;
     }
     if (!np.supervisores || np.supervisores.length < 1 || np.supervisores.length > 2) {
-      this.errorMsg.set('Seleccione entre 1 y 2 supervisores.');
+      this.alertService.showAlert('Validación', 'Seleccione entre 1 y 2 supervisores.', 'warning');
       return;
     }
     if (!np.logisticos || np.logisticos.length < 1 || np.logisticos.length > 5) {
-      this.errorMsg.set('Seleccione entre 1 y 5 personal de logística.');
+      this.alertService.showAlert('Validación', 'Seleccione entre 1 y 5 personal de logística.', 'warning');
       return;
     }
     this.isCreating.set(true);
-    this.errorMsg.set('');
+    this.alertService.mostrarModalCarga();
     this.procesoService.crear({
       fechaProceso: np.fechaProceso,
       turno: np.turno,
@@ -235,44 +268,63 @@ export class ProcesosComponent implements OnInit {
       supervisores: np.supervisores,
       logisticos: np.logisticos
     }).subscribe({
-      next: () => {
+      next: (res: any) => {
         this.isCreating.set(false);
-        this.successMsg.set('Proceso abierto exitosamente');
+        this.alertService.cerrarModalCarga();
+
+        const ok = res?.success;
+        if (ok === false) {
+          const msg = res?.message ?? 'Error al crear proceso';
+          this.alertService.showAlertAcept('Error', String(msg), 'error');
+          return;
+        }
+
+        this.alertService.showAlert('Éxito', 'Proceso abierto exitosamente', 'success');
         this.nuevoProceso.set({ fechaProceso: new Date().toISOString().split('T')[0], turno: '', supervisores: [], logisticos: [] });
         this.cargarDatos();
-        setTimeout(() => this.successMsg.set(''), 3000);
       },
       error: (err: unknown) => {
         this.isCreating.set(false);
+        this.alertService.cerrarModalCarga();
         const errObj = err as Record<string, unknown>;
         const errBody = errObj['error'] as Record<string, string> | undefined;
         const msg = errBody?.['message'] ?? 'Error al crear proceso';
-        this.errorMsg.set(msg);
+        this.alertService.showAlertAcept('Error', msg, 'error');
       }
     });
   }
 
   cerrarProceso(p: Proceso): void {
     const usr = this.usuario();
-    this.procesoService.cerrar(p.Id, usr?.id ?? 1).subscribe({
+    this.alertService.mostrarModalCarga();
+    this.procesoService.cerrar(p.id, usr?.id ?? 1).subscribe({
       next: () => {
-        this.successMsg.set('Proceso cerrado exitosamente');
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Éxito', 'Proceso cerrado exitosamente', 'success');
         this.cargarDatos();
-        setTimeout(() => this.successMsg.set(''), 3000);
       },
-      error: () => this.errorMsg.set('Error al cerrar proceso')
+      error: () => {
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlertAcept('Error', 'Error al cerrar proceso', 'error');
+      }
     });
   }
 
-  reabrirProceso(p: Proceso): void {
-    if (!confirm('¿Reabrir este proceso? Se volverá a estado ABIERTO.')) return;
-    this.procesoService.reabrir(p.Id).subscribe({
+  async reabrirProceso(p: Proceso): Promise<void> {
+    const ok = await this.alertService.showConfirm('Confirmación', '¿Reabrir este proceso? Se volverá a estado ABIERTO.', 'warning');
+    if (!ok) return;
+
+    this.alertService.mostrarModalCarga();
+    this.procesoService.reabrir(p.id).subscribe({
       next: () => {
-        this.successMsg.set('Proceso reabierto exitosamente');
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Éxito', 'Proceso reabierto exitosamente', 'success');
         this.cargarDatos();
-        setTimeout(() => this.successMsg.set(''), 3000);
       },
-      error: () => this.errorMsg.set('Error al reabrir proceso')
+      error: () => {
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlertAcept('Error', 'Error al reabrir proceso', 'error');
+      }
     });
   }
 

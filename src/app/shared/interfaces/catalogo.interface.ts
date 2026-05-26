@@ -1,74 +1,98 @@
-export interface Formato {
+export interface Fundo {
   id: number;
+  codigoFundo: string;
+  empresa: number;
+  fundo: string;
+  nombreFundo: string;
+}
+
+export interface Cultivo {
+  id: number;
+  empresa: number;
+  cultivo: number;
   codigo: string;
   descripcion: string;
-  nombre?: string;
-  pesoPorCaja: number;
-  limiteCajasPorPalet: number;
-  activo: boolean;
+  estado: number;
+}
+
+export interface Campania {
+  idproyecto: string;
+  descripcion: string;
+  fecha_inicio: string;
+  fecha_fin: string;
+  ruc: string;
+  estado: number;
+  codcultivo: string;
+  codigoSpring: string;
+  aplicacion: string;
+  idfundo: string;
+  fruta: string;
+}
+
+
+export interface Formato {
+  id: number;
+  codigoCultivo: string,
+  codigo: string,
+  descripcion: string,
+  pesoPorCaja: number,
+  limiteCajasPorPalet: number,
+  activo:boolean,
+  fechaCreacion: string,
   bd?: number;
 }
 
 export interface Variedad {
-  id: number;
-  codigo: string;
-  nombre: string;
+  id: string;
+  idcultivo: string;
+  idmodulo: string;
+  idvariedad: string;
+  variedad: string
   procedencia: string;
   esEnsayo: boolean;
-  activo: boolean;
   bd?: number;
 }
 
 export interface Cliente {
   id: number;
-  codigo: string;
-  razonSocial: string;
-  activo: boolean;
-  bd?: number;
+  persona: number;
+  documentoFiscal: string;
+  documento: string;
+  tipoDocumento: string;
+  nombre: string;
+  esCliente: string;
 }
 
 export interface Destino {
-  id: number;
-  codigo: string;
-  nombre: string;
+  id: string;
   pais: string;
-  activo: boolean;
-  bd?: number;
+  nacionalidad: string;
 }
 
 export interface Consignatario {
   id: number;
-  codigo: string;
-  razonSocial: string;
+  persona: number;
+  documentoFiscal: string;
+  documento: string;
+  tipoDocumento: string;
   nombre: string;
-  activo: boolean;
-  bd?: number;
+  esCliente: string;
 }
 
 export interface TipoEmpaque {
   id: number;
+  codigoCultivo: string;
   codigo: string;
   descripcion: string;
   activo: boolean;
+  fechaCreacion: string;
   bd?: number;
 }
 
 export interface Calibre {
-  id: number;
-  codigo?: string;
-  nombre: string;
-  activo: boolean;
-  bd?: number;
-}
-
-export interface Campania {
-  Id: number;
-  Nombre: string;
-  FechaInicio: string | null;
-  FechaFin: string | null;
-  Activa: boolean;
-  FechaCreacion: string;
-  bd?: number;
+  id: string;
+  calibre: string;
+  idCultivo: string;
 }
 
 export interface TipoProcesoEmpacado {
@@ -81,17 +105,18 @@ export interface TipoProcesoEmpacado {
 
 export interface TipoEmpaqueGuia {
   id: number;
-  codigo?: string;
+  codigoCultivo: string;
+  codigo: string;
   nombre: string;
   activo: boolean;
-  fechaCreacion?: string;
+  fechaCreacion: string;
   bd?: number;
 }
 
 export interface Presentacion {
   id: number;
-  nombre: string;
-  descripcion?: string;
+  codigo: string;
+  nombre?: string;
   activo: boolean;
   fechaCreacion?: string;
   bd?: number;
@@ -99,28 +124,31 @@ export interface Presentacion {
 
 export interface TipoCaja {
   id: number;
-  codigo?: string;
-  nombre: string;
-  activo: boolean;
-  fechaCreacion?: string;
+  codigoCultivo:string;
+  codigo:string;
+  nombre:string;
+  activo:boolean;
+  fechaCreacion:string;
   bd?: number;
 }
 
 export interface TipoClamshell {
-  id: number;
-  codigo?: string;
+  id: string;
+  codigoCultivo: string;
+  codigo: string;
   nombre: string;
   activo: boolean;
-  fechaCreacion?: string;
+  fechaCreacion: string;
   bd?: number;
 }
 
 export interface LugarProduccion {
   id: number;
+  idproyecto: string;
   codigo: string;
-  nombre: string;
   descripcion: string;
   activo: boolean;
+  fechaCreacion: string;
   bd?: number;
 }
 
@@ -134,17 +162,14 @@ export interface CodigoRancho {
 }
 
 export interface Transporte {
-  id: number;
-  codigo?: string;
-  nombre: string;
-  descripcion?: string;
-  activo: boolean;
-  fechaCreacion?: string;
-  bd?: number;
+  id: string;
+  transporte: string;
+  factorTEUtoPallet: string;
 }
 
 export interface Categoria {
   id: number;
+  codigoCultivo: string;
   codigo: string;
   nombre: string;
   descripcion: string;
@@ -164,60 +189,65 @@ export interface ApiResponse<T> {
 
 export interface Conductor {
   id: number;
-  nombreCompleto: string;
+  idproyecto: string;
   documentoIdentidad: string;
   licenciaConducir?: string;
+  nombreCompleto: string;
   activo: boolean;
-  fechaCreacion?: string;
+  fechaCreacion: string;
   bd?: number;
 }
 
 export interface Vehiculo {
   id: number;
+  idproyecto: string;
   placaPrincipal: string;
   placaRemolque?: string;
   marca?: string;
   certificadoInscripcion?: string;
   activo: boolean;
-  fechaCreacion?: string;
+  fechaCreacion: string;
   bd?: number;
 }
 
-export interface Transportista{
+export interface Transportista {
   id: number;
+  idproyecto: string;
+  ruc_Transportistas: string;
   razonSocial: string;
+  activo: boolean;
+  fechaCreacion: string;
+  bd?: number;
+}
+
+export interface Supervisor {
+  id: number;
+  idproyecto: string;
+  dni: string;
+  nombreCompleto: string;
+  celular: string;
+  activo: boolean;
+  fechaCreacion: string;
+  bd?: number;
+}
+
+export interface PersonalLogistico {
+  id: number;
+  idproyecto:string;
+  dni:string;
+  nombreCompleto:string;
+  celular:string;
+  activo:boolean;
+  fechaCreacion:string;
+  bd?: number;
+}
+
+export interface Acopio {
+  id: number;
+  idempresa: string;
   ruc: string;
-  activo: boolean;
-  fechaCreacion?: string;
-  bd?: number;
-}
-
-export interface Supervisor{
-  id: number;
-  dni: string;
-  nombreCompleto: string;
-  celular?: string;
-  activo: boolean;
-  fechaCreacion?: string;
-  bd?: number;
-}
-
-export interface PersonalLogistico{
-  id: number;
-  dni: string;
-  nombreCompleto: string;
-  celular?: string;
-  activo: boolean;
-  fechaCreacion?: string;
-  bd?: number;
-}
-
-export interface Acopio{
-  id: number;
-  codigo: string;
-  nombre: string;
+  acopioId: string;
+  acopioNombre: string;
   serieGuia: string;
-  activo: boolean;
-  fechaCreacion?: string;
   bd?: number;
 }

@@ -6,14 +6,15 @@ import { firstValueFrom } from 'rxjs';
 import { AlertService } from '../../shared/services/alert.service';
 import { ConnectivityService } from '../../shared/services/connectivity.service';
 import { AdministracionService } from '../../shared/services/administracion.service';
-import { AdministracionRepository } from '../../shared/dixiedb/repository/administracion.repository';
-import { CatalogosRepository } from '../../shared/dixiedb/repository/catalogos.repository';
+import { AdministracionRepository } from '../../shared/dexiedb/repository/administracion.repository';
+import { CatalogosRepository } from '../../shared/dexiedb/repository/catalogos.repository';
 
-import { ReglaSobrePeso } from '../../shared/interfaces/administracion.interface';
+import { Configuracion, ReglaSobrePeso } from '../../shared/interfaces/administracion.interface';
 import { Consignatario, Destino, Formato, Transporte } from '../../shared/interfaces/catalogo.interface';
 
 import { SobrepesoTablaComponent } from './components/tabla/sobrepeso-tabla.component';
 import { SobrepesoModalComponent } from './components/modal/sobrepeso-modal.component';
+import { AuthService } from '../../shared/services/auth.service';
 
 export type EstadoFiltro = 'activos' | 'inactivos' | 'todos';
 
@@ -39,6 +40,10 @@ export class SobrepesoComponent implements OnInit {
   private readonly administracionRepository = inject(AdministracionRepository);
   private readonly catalogosRepository = inject(CatalogosRepository);
   private readonly connectivity = inject(ConnectivityService);
+  private readonly auth = inject(AuthService);
+  readonly usuario = this.auth.usuario;
+  readonly savedConfig = signal<Configuracion | null>(null);
+  
 
   readonly isLoading = signal(false);
   readonly searchTerm = signal('');
@@ -62,15 +67,15 @@ export class SobrepesoComponent implements OnInit {
   readonly totalRegistros = computed(() => this.filteredItems().length);
 
   readonly lookup = computed(() => {
-    const consignatarios = new Map<number, Consignatario>();
+    const consignatarios = new Map<string, Consignatario>();
     const formatos = new Map<number, Formato>();
-    const destinos = new Map<number, Destino>();
-    const transportes = new Map<number, Transporte>();
+    const destinos = new Map<string, Destino>();
+    const transportes = new Map<string, Transporte>();
 
-    for (const c of this.consignatarios()) consignatarios.set(Number(c.id), c);
+    for (const c of this.consignatarios()) consignatarios.set(String(c.documentoFiscal ?? '').trim(), c);
     for (const f of this.formatos()) formatos.set(Number(f.id), f);
-    for (const d of this.destinos()) destinos.set(Number(d.id), d);
-    for (const t of this.transportes()) transportes.set(Number(t.id), t);
+    for (const d of this.destinos()) destinos.set(String(d.id ?? '').trim(), d);
+    for (const t of this.transportes()) transportes.set(String((t as any)?.id ?? '').trim(), t);
 
     return { consignatarios, formatos, destinos, transportes };
   });
@@ -109,8 +114,21 @@ export class SobrepesoComponent implements OnInit {
   });
 
   async ngOnInit(): Promise<void> {
+    await this.cargarConfiguracionGuardada();
     await this.cargarCatalogos();
     await this.listarReglas();
+  }
+
+  private async cargarConfiguracionGuardada(): Promise<void> {
+        const nro = this.getNroDocumentoFromUsuario();
+        const cfg = await this.catalogosRepository.configuracionRepo.getByField('nrodocumento', nro);
+        this.savedConfig.set(cfg ?? null);
+  }
+
+  private getNroDocumentoFromUsuario(): string {
+      const u: any = this.usuario();
+      const v = u?.nrodocumento ?? u?.documentoidentidad ?? u?.documentoIdentidad ?? u?.documento ?? '';
+      return String(v ?? '').trim();
   }
 
   onSearchChange(v: string): void {
@@ -157,46 +175,68 @@ export class SobrepesoComponent implements OnInit {
 
   private enrichRow(row: any): ReglaSobrePesoRow {
     const lk = this.lookup();
-    const consignatario = lk.consignatarios.get(Number(row?.consignatarioId));
+    const consignatario = lk.consignatarios.get(String(row?.documentoConsignatario ?? '').trim());
     const formato = lk.formatos.get(Number(row?.formatoId));
-    const destino = lk.destinos.get(Number(row?.destinoId));
-    const transporte = lk.transportes.get(Number(row?.transporteId));
+    const destino = lk.destinos.get(String(row?.destinoId ?? '').trim());
+    const transporte = lk.transportes.get(String(row?.transporteId ?? '').trim());
 
     return {
       ...(row as any),
-      consignatarioNombre: consignatario ? `${consignatario.codigo} — ${consignatario.razonSocial}` : '—',
-      formatoNombre: formato ? `${formato.codigo} — ${formato.descripcion ?? formato.nombre ?? ''}`.trim() : '—',
-      destinoNombre: destino ? `${destino.codigo} — ${destino.nombre}` : '—',
-      transporteNombre: transporte ? `${transporte.nombre}` : '—',
+      consignatarioNombre: consignatario ? `${consignatario.nombre}` : '—',
+      formatoNombre: formato ? `${formato.descripcion ?? formato.descripcion ?? ''}`.trim() : '—',
+      destinoNombre: destino ? `${destino.pais}` : '—',
+      transporteNombre: transporte ? `${transporte.transporte}` : '—',
     };
   }
 
   private async listarReglasRepository(): Promise<boolean> {
-    const info: any[] = await this.administracionRepository.reglasSobrePesoRepository.getAll();
-    if (!info?.length) {
+    const cfg = this.savedConfig();
+    const idProyecto = String(cfg?.idProyecto ?? '').trim();
+    const codigoCultivo = String(cfg?.codigoCultivo ?? '').trim();
+
+    const info: any = await this.administracionRepository.reglasSobrePesoRepository.getAll();
+    const filtered = idProyecto && codigoCultivo
+      ? (info ?? []).filter((r:any) => String((r as any)?.idProyecto ?? '').trim() === idProyecto && String((r as any)?.codigoCultivo ?? '').trim() === codigoCultivo)
+      : (info ?? []);
+
+    if (!filtered?.length) {
       this.items.set([]);
       return false;
     }
-    this.items.set(info.map(r => this.enrichRow(r)));
+    this.items.set(filtered.map((r:any) => this.enrichRow(r)));
     return true;
   }
 
   private async apiListarReglas(): Promise<void> {
-    const resp: any = await firstValueFrom(this.administracionService.listarReglasSobrePeso({}));
-    if (resp?.error) {
+    const resp: any = await firstValueFrom(this.administracionService.listarReglasSobrePeso({idProyecto:this.savedConfig()?.idProyecto,codigoCultivo:this.savedConfig()?.codigoCultivo}));
+    if (resp[0]?.error) {
       this.alertService.showAlert('Error', resp?.mensaje ?? 'Error al listar reglas de sobrepeso', 'error');
       return;
     }
 
-    const list = Array.isArray(resp?.data) ? resp.data : [];
+    const list = Array.isArray(resp[0]?.data) ? resp[0].data : [];
+    const cfg = this.savedConfig();
+    const idProyectoCfg = String(cfg?.idProyecto ?? '').trim();
+    const idCultivoCfg = String(cfg?.codigoCultivo ?? '').trim();
+
     const normalized = list.map((r: any) => ({
       ...r,
+      idProyecto: String(r?.idProyecto ?? idProyectoCfg ?? '').trim(),
+      codigoCultivo: String(r?.codigoCultivo ?? idCultivoCfg ?? '').trim(),
+      documentoConsignatario: String(r?.documentoConsignatario ?? r?.documento_consignatario ?? r?.consignatarioDocumento ?? r?.consignatarioId ?? '').trim(),
+      formatoId: r?.formatoId === null || r?.formatoId === undefined ? null : Number(r?.formatoId),
+      destinoId: String(r?.destinoId ?? '').trim(),
+      transporteId: String(r?.transporteId ?? '').trim(),
+      porcentaje: r?.porcentaje === null || r?.porcentaje === undefined ? null : Number(r?.porcentaje),
+      vigenciaDesde: String(r?.vigenciaDesde ?? '').trim(),
+      vigenciaHasta: String(r?.vigenciaHasta ?? '').trim(),
+      descripcion: r?.descripcion ?? '',
+      activo: r?.activo === false ? false : true,
       bd: 1,
       modo: r?.modo ?? 'editado',
     }));
-
     await this.administracionRepository.reglasSobrePesoRepository.clear();
-    await this.administracionRepository.reglasSobrePesoRepository.bulkSave(normalized as any);
+    await this.administracionRepository.reglasSobrePesoRepository.bulkSave(normalized);
     await this.listarReglasRepository();
   }
 
@@ -228,8 +268,16 @@ export class SobrepesoComponent implements OnInit {
       const payload = (ev?.payload ?? ev ?? {}) as Partial<ReglaSobrePeso>;
       const pk = ev?._pk;
 
+      const cfg = this.savedConfig();
+      const idProyectoCfg = String(cfg?.idProyecto ?? '').trim();
+      const idCultivoCfg = String(cfg?.codigoCultivo ?? '').trim();
+      if (!idProyectoCfg || !idCultivoCfg) {
+        this.alertService.showAlert('Advertencia', 'Primero configure Proyecto/Cultivo en Parámetros.', 'warning');
+        return;
+      }
+
       if (
-        this.isEmpty(payload?.consignatarioId) ||
+        this.isEmpty(payload?.documentoConsignatario) ||
         this.isEmpty(payload?.formatoId) ||
         this.isEmpty(payload?.destinoId) ||
         this.isEmpty(payload?.transporteId) ||
@@ -242,12 +290,17 @@ export class SobrepesoComponent implements OnInit {
       const now = new Date().toISOString();
       const record: any = {
         ...(payload as any),
+        idProyecto: idProyectoCfg,
+        codigoCultivo: idCultivoCfg,
         id: modo === 'nuevo' ? this.nextId() : Number(payload?.id),
         bd: 0,
         activo: payload?.activo === false ? false : true,
-        fechaCreacion: modo === 'nuevo' ? null : (payload as any)?.fechaCreacion ?? null,
+        fechaCreacion: modo === 'nuevo' ? '' : (payload as any)?.fechaCreacion ?? '',
         fechaModificacion: now,
         modo: modo === 'nuevo' ? 'nuevo' : (payload as any)?.modo ?? 'editado',
+        descripcion: (payload as any)?.descripcion ?? '',
+        vigenciaDesde: (payload as any)?.vigenciaDesde ?? '',
+        vigenciaHasta: (payload as any)?.vigenciaHasta ?? '',
       };
 
       if (modo === 'editado') {

@@ -20,19 +20,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   readonly perfil = this.auth.perfil;
   readonly perfilName= computed(() => {
-    return this.perfil() === 'ADPLA' ? 'Administrador' : 
-           this.perfil() === 'LOPLA' ? 'Logistica' : 
-           this.perfil() === 'COPLA' ? 'Coordinador' : 
-           this.perfil() === 'OPPLA' ? 'Operaciones' : 
-           this.perfil();
+    return this.perfil() === 'ADMINISTRADOR' ? 'Administrador' :
+           this.perfil() === 'LOGISTICA' ? 'Logística' :
+           this.perfil() === 'COORDINACION' ? 'Coordinación' :
+           this.perfil() === 'OPERACIONES' ? 'Operaciones' :
+           (this.perfil() ?? '');
   })
   readonly nombreCompleto = this.auth.nombreCompleto;
   readonly inicialUsuario = this.auth.inicialUsuario;
   readonly usuario = this.auth.usuario;
 
   readonly procesos = signal<Proceso[]>([]);
-  readonly procesosAbiertos = computed(() => this.procesos().filter(p => p.Estado === 'ABIERTO'));
-  readonly procesosCerrados = computed(() => this.procesos().filter(p => p.Estado === 'CERRADO'));
+  readonly procesosAbiertos = computed(() => this.procesos().filter(p => p.estado === 'ABIERTO'));
+  readonly procesosCerrados = computed(() => this.procesos().filter(p => p.estado === 'CERRADO'));
   
   readonly kpis = signal<DashboardKPIs | null>(null);
   readonly alertas = signal<AlertaPalet[]>([]);

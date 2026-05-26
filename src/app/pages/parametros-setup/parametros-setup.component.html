@@ -1,0 +1,53 @@
+<div class="container" style="max-width: 880px; margin-bottom: 20px">
+  <div class="sp-card">
+    <div class="sp-card-body" style="padding:24px 22px">
+      <div class="row g-4 align-items-center">
+        <div class="col-12 col-md-4 text-center">
+          <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-warning-subtle" style="width: 88px; height: 88px;">
+            <i class="bi bi-sliders" style="font-size: 38px;"></i>
+          </div>
+          <div class="mt-3">
+            <span class="badge text-bg-warning">Acción requerida</span>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-8">
+          <h4 class="mb-1">Sincronice sus parámetros</h4>
+          <div class="text-muted mb-3">
+            No encontramos una configuración guardada en este dispositivo. Para continuar, primero sincroniza y guarda:
+            <strong>Fundo</strong>, <strong>Cultivo</strong> y <strong>Campaña</strong>.
+          </div>
+
+          <div class="p-3 rounded-3 bg-light border mb-3">
+            <div class="fw-semibold mb-2">¿Qué tienes que hacer?</div>
+            <div class="d-flex gap-2 mb-2">
+              <i class="bi bi-1-circle-fill"></i>
+              <div>Entra a <strong>Parámetros</strong>.</div>
+            </div>
+            <div class="d-flex gap-2 mb-2">
+              <i class="bi bi-2-circle-fill"></i>
+              <div>Presiona <strong>Sincronizar</strong> para cargar catálogos.</div>
+            </div>
+            <div class="d-flex gap-2">
+              <i class="bi bi-3-circle-fill"></i>
+              <div>Selecciona tus filtros y presiona <strong>Guardar</strong>.</div>
+            </div>
+          </div>
+
+          <div class="row g-2">
+            <div class="col-12 col-sm-auto">
+              <button type="button" class="btn btn-primary btn-lg w-100" (click)="irAParametros()">
+                <i class="bi bi-sliders"></i> Ir a Parámetros
+              </button>
+            </div>
+            <div class="col-12 col-sm">
+              <div class="text-muted" style="font-size: 13px; line-height: 1.2; padding-top: 8px;">
+                Una vez guardado, ya podrás navegar por todos los menús sin esta pantalla.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

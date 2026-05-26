@@ -18,10 +18,10 @@
               table="clientes"
               placeholder="— Seleccionar Cliente —"
               source="dexie"
-              [value]="form().clienteId"
-              (valueChange)="updateField('clienteId', $event)"
+              [value]="form().documentoCliente"
+              (valueChange)="updateField('documentoCliente', $event)"
             />
-            @if (isInvalid('clienteId')) {
+            @if (isInvalid('documentoCliente')) {
               <div class="invalid-feedback" style="display:block">Campo requerido</div>
             }
           </div>
@@ -32,10 +32,10 @@
               table="consignatarios"
               placeholder="— Seleccionar Consignatario —"
               source="dexie"
-              [value]="form().consignatarioId"
-              (valueChange)="updateField('consignatarioId', $event)"
+              [value]="form().documentoConsignatario"
+              (valueChange)="updateField('documentoConsignatario', $event)"
             />
-            @if (isInvalid('consignatarioId')) {
+            @if (isInvalid('documentoConsignatario')) {
               <div class="invalid-feedback" style="display:block">Campo requerido</div>
             }
           </div>
@@ -45,6 +45,7 @@
             <app-advanced-select
               table="destinos"
               placeholder="— Seleccionar Destino —"
+              [labelFields]="['id','pais']"
               source="dexie"
               [value]="form().destinoId"
               (valueChange)="updateField('destinoId', $event)"
@@ -59,6 +60,7 @@
             <app-advanced-select
               table="formatos"
               placeholder="— Seleccionar Formato —"
+              [labelFields]="['id','descripcion']"
               source="dexie"
               [value]="form().formatoId"
               (valueChange)="updateField('formatoId', $event)"
@@ -73,6 +75,7 @@
             <app-advanced-select
               table="calibres"
               placeholder="— Seleccionar Calibre —"
+              [labelFields]="['id','calibre']"
               source="dexie"
               [value]="form().calibreId"
               (valueChange)="updateField('calibreId', $event)"
@@ -88,10 +91,10 @@
               table="tiposEmpaque"
               placeholder="— Seleccionar —"
               source="dexie"
-              [value]="form().tipoEmpaqueId"
-              (valueChange)="updateField('tipoEmpaqueId', $event)"
+              [value]="form().tiposEmpaqueId"
+              (valueChange)="updateField('tiposEmpaqueId', $event)"
             />
-            @if (isInvalid('tipoEmpaqueId')) {
+            @if (isInvalid('tiposEmpaqueId')) {
               <div class="invalid-feedback" style="display:block">Campo requerido</div>
             }
           </div>

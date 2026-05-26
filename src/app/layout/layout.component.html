@@ -84,10 +84,23 @@
       </div>
 
       <div class="topbar-right">
+        @if (campaniaFrutaLabel()) {
+          <div class="conn-status campania-chip" aria-label="Campaña activa">
+            <span class="conn-status-icon">
+              <i class="bi bi-tag-fill"></i>
+            </span>
+            <span class="conn-status-text d-none d-lg-inline">Campaña</span>
+            <span class="campania-chip-value">{{ campaniaFrutaLabel() }}</span>
+          </div>
+        }
+
         @if (usuario()?.acopioId) {
-          <div class="topbar-acopio">
-            <i class="bi bi-geo-alt-fill"></i>
-            <span>{{ usuario()?.acopioNombre }} - {{ usuario()?.serieGuia }}</span>
+          <div class="conn-status topbar-acopio" aria-label="Acopio asignado">
+            <span class="conn-status-icon">
+              <i class="bi bi-geo-alt-fill"></i>
+            </span>
+            <span class="conn-status-text d-none d-lg-inline">Acopio</span>
+            <span class="topbar-acopio-value">{{ usuario()?.acopioNombre }} - {{ usuario()?.serieGuia }}</span>
           </div>
         }
 

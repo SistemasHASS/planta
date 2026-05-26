@@ -34,12 +34,12 @@
             <span>Cargando...</span>
           </div>
         } @else {
-          <button type="button" class="as-option as-option-placeholder" (click)="clear()">
+          <button type="button" class="as-option as-option-placeholder" (click)="clear($any($event))">
             {{ placeholder }}
           </button>
 
           @for (opt of filtered(); track opt?.[idField] ?? $index) {
-            <button type="button" class="as-option" [class.as-selected]="value && (opt?.[idField] == value)" (click)="selectItem(opt)">
+            <button type="button" class="as-option" [class.as-selected]="value && (opt?.[idField] == value)" (click)="selectItem(opt, $any($event))">
               {{ formatLabel(opt) }}
             </button>
           }

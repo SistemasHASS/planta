@@ -3,19 +3,6 @@
   <p class="page-subtitle">Administra los palets de tus procesos activos</p>
 </div>
 
-@if (successMsg()) {
-  <div class="alert alert-success alert-dismissible fade show" role="alert" style="border-radius:8px;font-size:13px">
-    <i class="bi bi-check-circle-fill me-1"></i> {{ successMsg() }}
-    <button type="button" class="btn-close" (click)="successMsg.set('')" aria-label="Close"></button>
-  </div>
-}
-@if (errorMsg()) {
-  <div class="alert alert-danger alert-dismissible fade show" role="alert" style="border-radius:8px;font-size:13px">
-    <i class="bi bi-exclamation-triangle-fill me-1"></i> {{ errorMsg() }}
-    <button type="button" class="btn-close" (click)="errorMsg.set('')" aria-label="Close"></button>
-  </div>
-}
-
 <div class="row">
   <!-- ═══ PROCESS SELECTOR (always visible) ═══ -->
   <div class="col-12 mb-4">
@@ -24,15 +11,15 @@
       <div class="sp-card-body">
         @if (procesosAbiertos().length > 0) {
           <div class="row g-3">
-            @for (p of procesosAbiertos(); track p.Id) {
+            @for (p of procesosAbiertos(); track p.id) {
               <div class="col-md-6">
-                <div class="sp-card" [style.border]="procesoSeleccionado()?.Id === p.Id ? '2px solid var(--color-primary)' : '2px solid var(--color-success)'" style="margin-bottom:0">
+                <div class="sp-card" [style.border]="procesoSeleccionado()?.id === p.id ? '2px solid var(--color-primary)' : '2px solid var(--color-success)'" style="margin-bottom:0">
                   <div class="sp-card-body" style="padding:16px">
                     <h5 style="font-size:15px;margin-bottom:8px">
-                      <i class="bi" [class]="p.Turno === 'DIA' ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i>
-                      Turno {{ p.Turno }}
+                      <i class="bi" [class]="p.turno === 'DIA' ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i>
+                      Turno {{ p.turno }}
                     </h5>
-                    <p class="mb-2" style="font-size:13px"><strong>Fecha:</strong> {{ formatearFechaLarga(p.FechaProceso) }}</p>
+                    <p class="mb-2" style="font-size:13px"><strong>Fecha:</strong> {{ formatearFechaLarga(p.fechaProceso) }}</p>
                     <button class="btn-sp-primary w-100" (click)="seleccionarProceso(p)">
                       <i class="bi bi-check-circle"></i> Trabajar en este proceso
                     </button>
@@ -368,8 +355,8 @@
                     [ngModelOptions]="{standalone: true}"
                     (ngModelChange)="onDestinoChange($event)">
               <option value="">Seleccione consignatario...</option>
-              @for (d of filteredDestinos(); track d.Id) {
-                <option [value]="d.Id">{{ d.Nombre }}</option>
+              @for (d of filteredDestinos(); track d.id) {
+                <option [value]="d.id">{{ d.nombre }}</option>
               }
             </select>
           </div>
@@ -381,8 +368,8 @@
                     [ngModelOptions]="{standalone: true}"
                     (ngModelChange)="onFormatoChange($event)">
               <option value="">Seleccione destino...</option>
-              @for (f of filteredFormatos(); track f.Id) {
-                <option [value]="f.Id">{{ f.Nombre || f.Descripcion }}</option>
+              @for (f of filteredFormatos(); track f.id) {
+                <option [value]="f.id">{{ f.nombre || f.descripcion }}</option>
               }
             </select>
           </div>
@@ -394,8 +381,8 @@
                     [ngModelOptions]="{standalone: true}"
                     (ngModelChange)="onTipoEmpaqueGuiaChange($event)">
               <option value="">Seleccione formato...</option>
-              @for (t of filteredTiposEmpaqueGuia(); track t.Id) {
-                <option [value]="t.Id">{{ t.Nombre }}</option>
+              @for (t of filteredTiposEmpaqueGuia(); track t.id) {
+                <option [value]="t.id">{{ t.nombre }}</option>
               }
             </select>
           </div>
@@ -416,8 +403,8 @@
                     [ngModelOptions]="{standalone: true}"
                     (ngModelChange)="onPresentacionChange($event)">
               <option value="">Seleccione tipo empaque guía...</option>
-              @for (p of filteredPresentaciones(); track p.Id) {
-                <option [value]="p.Id ?? 0">{{ p.Nombre }}</option>
+              @for (p of filteredPresentaciones(); track p.id) {
+                <option [value]="p.id ?? 0">{{ p.nombre }}</option>
               }
             </select>
           </div>
@@ -429,8 +416,8 @@
                     [ngModelOptions]="{standalone: true}"
                     (ngModelChange)="onTipoCajaChange($event)">
               <option value="">Esperando selección...</option>
-              @for (t of filteredTiposCaja(); track t.Id) {
-                <option [value]="t.Id">{{ t.Nombre }}</option>
+              @for (t of filteredTiposCaja(); track t.id) {
+                <option [value]="t.id">{{ t.nombre }}</option>
               }
             </select>
           </div>
@@ -442,8 +429,8 @@
                     [ngModelOptions]="{standalone: true}"
                     (ngModelChange)="onTipoClamshellChange($event)">
               <option value="">Seleccione tipo caja...</option>
-              @for (t of filteredTiposClamshell(); track t.Id) {
-                <option [value]="t.Id">{{ t.Nombre }}</option>
+              @for (t of filteredTiposClamshell(); track t.id) {
+                <option [value]="t.id">{{ t.nombre }}</option>
               }
             </select>
           </div>
@@ -467,7 +454,7 @@
                 <option [value]="v.id" 
                         [attr.data-procedencia]="v.procedencia"
                         [attr.data-es-ensayo]="v.esEnsayo ? '1' : '0'">
-                  {{ v.nombre }}
+                  {{ v.variedad }}
                 </option>
               }
             </select>
@@ -484,7 +471,7 @@
               <option value="">Seleccione variedad certificada...</option>
               @for (v of variedades(); track v.id) {
                 @if (!v.esEnsayo && v.procedencia && !v.procedencia.toLowerCase().includes('driscoll')) {
-                  <option [value]="v.id">{{ v.nombre }}</option>
+                  <option [value]="v.id">{{ v.variedad }}</option>
                 }
               }
             </select>
@@ -498,7 +485,7 @@
                     (ngModelChange)="onLugarProduccionChange($event)">
               <option value="">Seleccione...</option>
               @for (l of lugaresProduccion(); track l.id) {
-                <option [value]="l.id">{{ l.nombre }}</option>
+                <option [value]="l.id">{{ l.descripcion }}</option>
               }
             </select>
           </div>
@@ -515,8 +502,8 @@
                 <option value="">Sin códigos disponibles</option>
               } @else {
                 <option value="">Seleccione...</option>
-                @for (c of filteredCodigosRancho(); track c.id) {
-                  <option [value]="c.id">{{ c.codigo }}</option>
+                @for (c of filteredCodigosRancho(); track c.Id) {
+                  <option [value]="c.Id">{{ c.Codigo }}</option>
                 }
               }
             </select>
@@ -528,7 +515,7 @@
                     [ngModelOptions]="{standalone: true}"
                     (ngModelChange)="updateFormCajas('transporteId', +$event)">
               @for (t of transportes(); track t.id) {
-                <option [value]="t.id" [selected]="t.codigo === 'MAR'">{{ t.nombre }}</option>
+                <option [value]="t.id" [selected]="t.id === 'MAR'">{{ t.transporte }}</option>
               }
               @if (transportes().length === 0) {
                 <option value="1" selected>Marítimo</option>

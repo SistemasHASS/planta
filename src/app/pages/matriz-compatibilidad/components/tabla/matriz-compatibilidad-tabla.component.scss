@@ -24,9 +24,15 @@
   --mc-col-sync: 140px;
 }
 
-.catalogo-table th,
-.catalogo-table td {
+.catalogo-table th {
   white-space: nowrap;
+}
+
+.catalogo-table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.25;
 }
 
 .catalogo-table thead th {

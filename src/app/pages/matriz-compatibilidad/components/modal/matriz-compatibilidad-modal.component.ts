@@ -5,12 +5,12 @@ import { AdvancedSelectComponent } from '../../../../shared/components/advanced-
 import { MatrizCompatibilidad } from '../../../../shared/interfaces/administracion.interface';
 
 type MatrizCompatibilidadForm = {
-  clienteId: number | null;
-  consignatarioId: number | null;
-  destinoId: number | null;
+  documentoCliente: string | null;
+  documentoConsignatario: string | null;
+  destinoId: string | null;
   formatoId: number | null;
-  calibreId: number | null;
-  tipoEmpaqueId: number | null;
+  calibreId: string | null;
+  tiposEmpaqueId: number | null;
   tipoEmpaqueGuiaId: number | null;
   tipoCajaId: number | null;
   tipoClamshellId: number | null;
@@ -37,12 +37,12 @@ export class MatrizCompatibilidadModalComponent {
   readonly submitAttempted = signal(false);
   private readonly initialForm = signal<MatrizCompatibilidadForm | null>(null);
   readonly form = signal<MatrizCompatibilidadForm>({
-    clienteId: null,
-    consignatarioId: null,
+    documentoCliente: null,
+    documentoConsignatario: null,
     destinoId: null,
     formatoId: null,
     calibreId: null,
-    tipoEmpaqueId: null,
+    tiposEmpaqueId: null,
     tipoEmpaqueGuiaId: null,
     tipoCajaId: null,
     tipoClamshellId: null,
@@ -59,12 +59,12 @@ export class MatrizCompatibilidadModalComponent {
     if (!base) return false;
     const f = this.form();
     return (
-      base.clienteId !== f.clienteId ||
-      base.consignatarioId !== f.consignatarioId ||
+      base.documentoCliente !== f.documentoCliente ||
+      base.documentoConsignatario !== f.documentoConsignatario ||
       base.destinoId !== f.destinoId ||
       base.formatoId !== f.formatoId ||
       base.calibreId !== f.calibreId ||
-      base.tipoEmpaqueId !== f.tipoEmpaqueId ||
+      base.tiposEmpaqueId !== f.tiposEmpaqueId ||
       base.tipoEmpaqueGuiaId !== f.tipoEmpaqueGuiaId ||
       base.tipoCajaId !== f.tipoCajaId ||
       base.tipoClamshellId !== f.tipoClamshellId ||
@@ -83,12 +83,12 @@ export class MatrizCompatibilidadModalComponent {
   ngOnChanges(): void {
     const v = this.value ?? ({} as any);
     const next: MatrizCompatibilidadForm = {
-      clienteId: v.clienteId ?? null,
-      consignatarioId: v.consignatarioId ?? null,
+      documentoCliente: v.documentoCliente ?? null,
+      documentoConsignatario: v.documentoConsignatario ?? null,
       destinoId: v.destinoId ?? null,
       formatoId: v.formatoId ?? null,
       calibreId: v.calibreId ?? null,
-      tipoEmpaqueId: v.tipoEmpaqueId ?? null,
+      tiposEmpaqueId: v.tiposEmpaqueId ?? null,
       tipoEmpaqueGuiaId: v.tipoEmpaqueGuiaId ?? null,
       tipoCajaId: v.tipoCajaId ?? null,
       tipoClamshellId: v.tipoClamshellId ?? null,
@@ -116,12 +116,12 @@ export class MatrizCompatibilidadModalComponent {
   isFormValid(): boolean {
     const f = this.form();
     return !(
-      this.isEmpty(f?.clienteId) ||
-      this.isEmpty(f?.consignatarioId) ||
+      this.isEmpty(f?.documentoCliente) ||
+      this.isEmpty(f?.documentoConsignatario) ||
       this.isEmpty(f?.destinoId) ||
       this.isEmpty(f?.formatoId) ||
       this.isEmpty(f?.calibreId) ||
-      this.isEmpty(f?.tipoEmpaqueId) ||
+      this.isEmpty(f?.tiposEmpaqueId) ||
       this.isEmpty(f?.tipoEmpaqueGuiaId) ||
       this.isEmpty(f?.tipoCajaId) ||
       this.isEmpty(f?.tipoClamshellId)
@@ -141,6 +141,8 @@ export class MatrizCompatibilidadModalComponent {
   }
 
   updateField(field: string, value: any): void {
+    console.log(field)
+    console.log(value)
     this.form.update(f => ({ ...f, [field]: value }));
   }
 

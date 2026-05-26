@@ -7,9 +7,9 @@ import { UsuariosModalComponent } from './components/modal/usuarios-modal.compon
 import { Usuario } from '../../shared/interfaces/administracion.interface';
 import { AdministracionService } from '../../shared/services/administracion.service';
 import { firstValueFrom } from 'rxjs';
-import { AdministracionRepository } from '../../shared/dixiedb/repository/administracion.repository';
+import { AdministracionRepository } from '../../shared/dexiedb/repository/administracion.repository';
 import { ConnectivityService } from '../../shared/services/connectivity.service';
-import { CatalogosOperativosRepository } from '../../shared/dixiedb/repository/catalogos-operacionales.repository';
+import { CatalogosOperativosRepository } from '../../shared/dexiedb/repository/catalogos-operacionales.repository';
 
 @Component({
   selector: 'app-usuarios',
@@ -41,7 +41,7 @@ export class UsuariosComponent implements OnInit {
     const verTodos = !!this.mostrarTodos();
 
     let base = this.items();
-    if (!verTodos) base = base.filter(i => !!i?.activo);
+    if (!verTodos) base = base.filter(i => !!true);
 
     if (!term) return [...base].sort((a, b) => Number(b?.id ?? 0) - Number(a?.id ?? 0));
 
@@ -50,13 +50,13 @@ export class UsuariosComponent implements OnInit {
         const parts = [
           i.id,
           i.usuario,
-          i.nombreCompleto,
-          i.perfil,
-          i.acopioCodigo,
+          i.nombre,
+          i.idRol,
+          i.acopioId,
           i.acopioNombre,
           i.serieGuia,
-          i.activo ? 'activo' : 'inactivo',
-          i.fechaCreacion,
+          // i.activo ? 'activo' : 'inactivo',
+          // i.fechaCreacion,
         ]
           .map(v => String(v ?? ''))
           .join(' ')
@@ -155,6 +155,7 @@ export class UsuariosComponent implements OnInit {
       return
     }
     const data = resp?.data ?? resp;
+    console.log("aaaaaaaa",data)
     const apiItems = Array.isArray(data) ? data : (data?.usuarios ?? data?.items ?? []);
     const normalizados = await this.normalizarUsuariosDixie(apiItems);
     if (normalizados.length > 0) {
@@ -169,6 +170,7 @@ export class UsuariosComponent implements OnInit {
   }
 
   async normalizarUsuariosDixie(data: any[], bd: number = 1, withPassword: number = 0): Promise<any[]> {
+    console.log(data)
     const normalizar: Usuario[] = [];
 
     for (const item of (Array.isArray(data) ? data : [])) {
@@ -177,16 +179,15 @@ export class UsuariosComponent implements OnInit {
         id: item.id,
         idempresa: item.idempresa,
         ruc: item.ruc,
+        razonSocial: item.razonSocial,
         usuario: item.usuario,
-        password: withPassword === 1 ? item.contrasena : null,
-        nombreCompleto: item.nombreCompleto,
-        perfil: item.perfil,
-        acopioId: acopio?.id,
-        acopioCodigo: acopio?.codigo || null,
-        acopioNombre: acopio?.nombre || null,
+        nombre: item.nombre,
+        documentoIdentidad: item.documentoIdentidad,
+        idRol: item.idRol,
+        aplicacion: item.aplicacion ?? 'PLANTA',
+        acopioId: item?.acopioId ?? 0,
+        acopioNombre: acopio?.acopioNombre || '',
         serieGuia: item.serieGuia || null,
-        activo: item.activo,
-        fechaCreacion: item.fechaCreacion,
         modo: item?.modo ?? 'editado',
         bd: bd
       });
@@ -257,7 +258,7 @@ export class UsuariosComponent implements OnInit {
       const pk = ev?._pk;
       if (
         this.isEmpty(payload?.usuario) ||
-        this.isEmpty(payload?.perfil)
+        this.isEmpty(payload?.idRol)
       ) {
         this.alertService.showAlert('Advertencia', 'Complete los campos obligatorios (*)', 'warning');
         return;
@@ -274,7 +275,7 @@ export class UsuariosComponent implements OnInit {
         ...(payload as any),
         id: modo === 'nuevo' ? this.nextId() : Number(payload?.id),
         bd: 0,
-        activo: payload?.activo === false ? false : true,
+        // activo: payload?.activo === false ? false : true,
         fechaCreacion: modo === 'nuevo' ? null : (payload as any)?.fechaCreacion ?? null,
         fechaModificacion: now,
         modo: modo === 'nuevo' ? 'nuevo' : payload.modo

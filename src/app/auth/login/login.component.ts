@@ -25,6 +25,8 @@ export class LoginComponent implements OnInit{
   readonly loading = signal(false);
   readonly errorMsg = signal('');
 
+  readonly showPassword = signal(false);
+
   readonly form = this.fb.nonNullable.group({
     usuario: ['', Validators.required],
     password: ['', Validators.required]
@@ -45,7 +47,6 @@ export class LoginComponent implements OnInit{
     });
 
     this.auth.logout();
-
   }
 
   onSubmit(): void {
@@ -57,7 +58,7 @@ export class LoginComponent implements OnInit{
       next: res => {
         this.loading.set(false);
         if (res.user) {
-          this.router.navigate(['/dashboard']);
+          this.router.navigate(['/parametros']);
         } else {
           this.errorMsg.set('Credenciales incorrectas');
         }
@@ -67,5 +68,9 @@ export class LoginComponent implements OnInit{
         this.errorMsg.set(err.message);
       }
     });
+  }
+
+  togglePasswordVisibility(): void {
+    this.showPassword.update(v => !v);
   }
 }

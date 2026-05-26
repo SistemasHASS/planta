@@ -5,6 +5,7 @@ import { PaletService } from '../../shared/services/palet.service';
 import { ProcesoService } from '../../shared/services/proceso.service';
 import { CatalogoService } from '../../shared/services/catalogo.service';
 import { AuthService } from '../../shared/services/auth.service';
+import { AlertService } from '../../shared/services/alert.service';
 import { PermissionService } from '../../shared/services/permission.service';
 import { Palet, Composicion, AgregarComposicionRequest } from '../../shared/interfaces/palet.interface';
 import { Proceso } from '../../shared/interfaces/proceso.interface';
@@ -22,6 +23,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
   private readonly procesoService = inject(ProcesoService);
   private readonly catalogoService = inject(CatalogoService);
   private readonly auth = inject(AuthService);
+  private readonly alertService = inject(AlertService);
   readonly permissions = inject(PermissionService);
 
   private timerInterval: ReturnType<typeof setInterval> | null = null;
@@ -91,8 +93,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
 
   // UI state signals
   isLoading = signal(false);
-  successMsg = signal('');
-  errorMsg = signal('');
   seccionActivosAbierta = signal(true);
   seccionDespachadosAbierta = signal(true);
   seccionComposicionAbierta = signal(false);
@@ -124,6 +124,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('❌ Error cargando procesos:', err);
+        this.alertService.showAlert('Error', 'Error al cargar procesos', 'error');
       }
     });
     
@@ -137,20 +138,121 @@ export class PaletsComponent implements OnInit, OnDestroy {
         console.log('✅ Consignatarios count:', data?.consignatarios?.length ?? 0);
         console.log('✅ First consignatario:', data?.consignatarios?.[0]);
         
-        this.consignatarios.set(data?.consignatarios ?? []);
-        this.variedades.set(data?.variedades ?? []);
-        this.destinos.set(data?.destinos ?? []);
-        this.formatos.set(data?.formatos ?? []);
-        this.tiposEmpaqueGuia.set(data?.tiposEmpaqueGuia ?? []);
-        this.presentaciones.set(data?.presentaciones ?? []);
-        this.tiposCaja.set(data?.tiposCaja ?? []);
-        this.tiposClamshell.set(data?.tiposClamshell ?? []);
-        this.tiposEmpaque.set(data?.tiposEmpaque ?? []);
+        // Normalizar catálogos a camelCase (interfaces en Angular)
+        const consignatarios = (data?.consignatarios ?? []).map((x: any) => ({
+          id: x?.id ?? x?.Id ?? 0,
+          codigo: x?.codigo ?? x?.Codigo ?? '',
+          razonSocial: x?.razonSocial ?? x?.RazonSocial ?? '',
+          nombre: x?.nombre ?? x?.Nombre ?? '',
+          activo: x?.activo ?? x?.Activo ?? true,
+          bd: x?.bd ?? x?.BD
+        }));
+
+        const destinos = (data?.destinos ?? []).map((x: any) => ({
+          id: x?.id ?? x?.Id ?? 0,
+          codigo: x?.codigo ?? x?.Codigo ?? '',
+          nombre: x?.nombre ?? x?.Nombre ?? '',
+          pais: x?.pais ?? x?.Pais ?? '',
+          activo: x?.activo ?? x?.Activo ?? true,
+          bd: x?.bd ?? x?.BD
+        }));
+
+        const formatos = (data?.formatos ?? []).map((x: any) => ({
+          id: x?.id ?? x?.Id ?? 0,
+          codigo: x?.codigo ?? x?.Codigo ?? '',
+          descripcion: x?.descripcion ?? x?.Descripcion ?? '',
+          nombre: x?.nombre ?? x?.Nombre,
+          pesoPorCaja: x?.pesoPorCaja ?? x?.PesoPorCaja ?? 0,
+          limiteCajasPorPalet: x?.limiteCajasPorPalet ?? x?.LimiteCajasPorPalet ?? 0,
+          activo: x?.activo ?? x?.Activo ?? true,
+          bd: x?.bd ?? x?.BD
+        }));
+
+        const tiposEmpaque = (data?.tiposEmpaque ?? []).map((x: any) => ({
+          id: x?.id ?? x?.Id ?? 0,
+          codigo: x?.codigo ?? x?.Codigo ?? '',
+          descripcion: x?.descripcion ?? x?.Descripcion ?? '',
+          activo: x?.activo ?? x?.Activo ?? true,
+          bd: x?.bd ?? x?.BD
+        }));
+
+        const tiposEmpaqueGuia = (data?.tiposEmpaqueGuia ?? []).map((x: any) => ({
+          id: x?.id ?? x?.Id ?? 0,
+          codigo: x?.codigo ?? x?.Codigo,
+          nombre: x?.nombre ?? x?.Nombre ?? '',
+          activo: x?.activo ?? x?.Activo ?? true,
+          fechaCreacion: x?.fechaCreacion ?? x?.FechaCreacion,
+          bd: x?.bd ?? x?.BD
+        }));
+
+        const presentaciones = (data?.presentaciones ?? []).map((x: any) => ({
+          id: x?.id ?? x?.Id ?? 0,
+          nombre: x?.nombre ?? x?.Nombre ?? '',
+          descripcion: x?.descripcion ?? x?.Descripcion,
+          activo: x?.activo ?? x?.Activo ?? true,
+          fechaCreacion: x?.fechaCreacion ?? x?.FechaCreacion,
+          bd: x?.bd ?? x?.BD
+        }));
+
+        const variedades = (data?.variedades ?? []).map((x: any) => ({
+          id: x?.id ?? x?.Id ?? 0,
+          codigo: x?.codigo ?? x?.Codigo ?? '',
+          nombre: x?.nombre ?? x?.Nombre ?? '',
+          procedencia: x?.procedencia ?? x?.Procedencia ?? '',
+          esEnsayo: x?.esEnsayo ?? x?.EsEnsayo ?? false,
+          activo: x?.activo ?? x?.Activo ?? true,
+          bd: x?.bd ?? x?.BD
+        }));
+
+        const tiposCaja = (data?.tiposCaja ?? []).map((x: any) => ({
+          id: x?.id ?? x?.Id ?? 0,
+          codigo: x?.codigo ?? x?.Codigo,
+          nombre: x?.nombre ?? x?.Nombre ?? '',
+          activo: x?.activo ?? x?.Activo ?? true,
+          fechaCreacion: x?.fechaCreacion ?? x?.FechaCreacion,
+          bd: x?.bd ?? x?.BD
+        }));
+
+        const tiposClamshell = (data?.tiposClamshell ?? []).map((x: any) => ({
+          id: x?.id ?? x?.Id ?? 0,
+          codigo: x?.codigo ?? x?.Codigo,
+          nombre: x?.nombre ?? x?.Nombre ?? '',
+          activo: x?.activo ?? x?.Activo ?? true,
+          fechaCreacion: x?.fechaCreacion ?? x?.FechaCreacion,
+          bd: x?.bd ?? x?.BD
+        }));
+
+        const lugaresProduccion = (data?.lugaresProduccion ?? []).map((x: any) => ({
+          id: x?.id ?? x?.Id ?? 0,
+          codigo: x?.codigo ?? x?.Codigo ?? '',
+          nombre: x?.nombre ?? x?.Nombre ?? '',
+          descripcion: x?.descripcion ?? x?.Descripcion ?? '',
+          activo: x?.activo ?? x?.Activo ?? true,
+          bd: x?.bd ?? x?.BD
+        }));
+
+        const transportes = (data?.transportes ?? []).map((x: any) => ({
+          id: x?.id ?? x?.Id ?? 0,
+          codigo: x?.codigo ?? x?.Codigo,
+          nombre: x?.nombre ?? x?.Nombre ?? '',
+          descripcion: x?.descripcion ?? x?.Descripcion,
+          activo: x?.activo ?? x?.Activo ?? true,
+          fechaCreacion: x?.fechaCreacion ?? x?.FechaCreacion,
+          bd: x?.bd ?? x?.BD
+        }));
+
+        this.consignatarios.set(consignatarios);
+        this.destinos.set(destinos);
+        this.formatos.set(formatos);
+        this.tiposEmpaque.set(tiposEmpaque);
+        this.tiposEmpaqueGuia.set(tiposEmpaqueGuia);
+        this.presentaciones.set(presentaciones);
+        this.variedades.set(variedades);
+        this.tiposCaja.set(tiposCaja);
+        this.tiposClamshell.set(tiposClamshell);
+        this.lugaresProduccion.set(lugaresProduccion);
         this.codigosRancho.set(data?.codigosRancho ?? []);
-        console.log(' CodigosRancho loaded:', this.codigosRancho());
-        this.lugaresProduccion.set(data?.lugaresProduccion ?? []);
-        console.log(' LugaresProduccion loaded:', this.lugaresProduccion());
-        this.transportes.set(data?.transportes ?? []);
+        this.transportes.set(transportes);
         this.calibres.set(data?.calibres ?? []);
         this.categorias.set(data?.categorias ?? []);
         this.tiposProcesoEmpacado.set(data?.tiposProcesoEmpacado ?? []);
@@ -161,7 +263,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
       },
       error: (err: any) => {
         console.error('❌ Error cargando catálogos:', err);
-        alert('Error cargando catálogos: ' + JSON.stringify(err));
+        this.alertService.showAlertAcept('Error', 'Error al cargar catálogos', 'error');
       }
     });
     
@@ -177,11 +279,10 @@ export class PaletsComponent implements OnInit, OnDestroy {
     this.paletSeleccionado.set(null);
     this.composiciones.set([]);
     this.isLoading.set(true);
-    this.errorMsg.set('');
     
     // Load complete process details (including supervisores and logistics)
-    console.log('📋 Cargando detalles completos del proceso:', p.Id);
-    this.procesoService.obtenerPorId(p.Id).subscribe({
+    console.log('📋 Cargando detalles completos del proceso:', p.id);
+    this.procesoService.obtenerPorId(p.id).subscribe({
       next: (res: any) => {
         console.log('✅ Detalles del proceso cargados:', res);
         const procesoCompleto = res?.data ?? res;
@@ -201,14 +302,14 @@ export class PaletsComponent implements OnInit, OnDestroy {
             console.error('❌ Error cargando palets:', err);
             this.palets.set([]);
             this.isLoading.set(false);
-            this.errorMsg.set('Error al cargar palets del proceso');
+            this.alertService.showAlertAcept('Error', 'Error al cargar palets del proceso', 'error');
           }
         });
       },
       error: (err) => {
         console.error('❌ Error cargando detalles del proceso:', err);
         this.isLoading.set(false);
-        this.errorMsg.set('Error al cargar detalles del proceso');
+        this.alertService.showAlertAcept('Error', 'Error al cargar detalles del proceso', 'error');
       }
     });
   }
@@ -260,21 +361,33 @@ export class PaletsComponent implements OnInit, OnDestroy {
   crearPalet(): void {
     const proceso = this.procesoSeleccionado();
     if (!proceso) {
-      this.errorMsg.set('Debe seleccionar un proceso primero');
+      this.alertService.showAlert('Validación', 'Debe seleccionar un proceso primero', 'warning');
       return;
     }
     console.log('📋 Creando palet para proceso:', proceso);
-    
-    this.paletService.crear(proceso.Id, proceso.AcopioId, this.userId).subscribe({
+
+    this.alertService.mostrarModalCarga();
+    this.paletService.crear(proceso.id, proceso.acopioId, this.userId).subscribe({
       next: (res) => {
         console.log('✅ Palet creado:', res);
-        this.successMsg.set('Palet creado exitosamente');
+        this.alertService.cerrarModalCarga();
+
+        const ok = res?.success;
+        if (ok === false) {
+          const msg = res?.message ?? 'Error al crear palet';
+          this.alertService.showAlertAcept('Error', String(msg), 'error');
+          return;
+        }
+
+        this.alertService.showAlert('Éxito', 'Palet creado exitosamente', 'success');
         // Reload palets for the process
         this.seleccionarProceso(proceso);
       },
       error: (err) => {
         console.error('❌ Error creando palet:', err);
-        this.errorMsg.set('Error al crear palet');
+        this.alertService.cerrarModalCarga();
+        const msg = (err as any)?.error?.message ?? 'Error al crear palet';
+        this.alertService.showAlertAcept('Error', String(msg), 'error');
       }
     });
   }
@@ -295,7 +408,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
     this.filteredTiposClamshell.set([]);
     this.filteredCodigosRancho.set([]);
     this._matrizResults = [];
-    this.errorMsg.set('');
     this.formCajas.set({
       consignatarioId: 0,
       destinoId: 0,
@@ -327,21 +439,21 @@ export class PaletsComponent implements OnInit, OnDestroy {
     
     // Validación básica (calibreId/tipoEmpaqueId son auto-filled desde MatrizCompatibilidad)
     if (!f.consignatarioId || !f.destinoId || !f.formatoId || !f.variedadId || !f.cantidadCajas) {
-      this.errorMsg.set('Complete todos los campos requeridos');
+      this.alertService.showAlert('Validación', 'Complete todos los campos requeridos', 'warning');
       return;
     }
     if (!f.tipoEmpaqueGuiaId || !f.tipoCajaId || !f.tipoClamshellId) {
-      this.errorMsg.set('Complete la selección de empaque (Tipo Empaque Guía, Tipo Caja, Tipo Clamshell)');
+      this.alertService.showAlert('Validación', 'Complete la selección de empaque (Tipo Empaque Guía, Tipo Caja, Tipo Clamshell)', 'warning');
       return;
     }
     if (!f.lugarProduccionId || !f.codigoRanchoId) {
-      this.errorMsg.set('Seleccione Lugar de Producción y Código de Rancho');
+      this.alertService.showAlert('Validación', 'Seleccione Lugar de Producción y Código de Rancho', 'warning');
       return;
     }
 
     // Obtener pesoPorCaja del formato seleccionado
-    const formatoSel = this.filteredFormatos().find((fmt: any) => fmt.Id === f.formatoId);
-    const pesoPorCaja = formatoSel?.PesoPorCaja ?? 10;
+    const formatoSel = this.filteredFormatos().find((fmt: any) => fmt.id === f.formatoId);
+    const pesoPorCaja = formatoSel?.pesoPorCaja ?? 10;
 
     const request: AgregarComposicionRequest = {
       paletId: palet.Id,
@@ -372,13 +484,24 @@ export class PaletsComponent implements OnInit, OnDestroy {
     console.log('📋 Agregando cajas - Request completo:', JSON.stringify(request, null, 2));
     console.log('📋 Formulario actual:', JSON.stringify(f, null, 2));
     console.log('📋 Peso por caja:', pesoPorCaja);
-    
+
+    this.alertService.mostrarModalCarga();
     this.paletService.agregarCajas(request).subscribe({
       next: (res: any) => {
         console.log('✅ Cajas agregadas:', res);
         console.log('✅ Respuesta de agregar cajas:', res);
         console.log('✅ Palet antes de recargar:', palet);
-        this.successMsg.set('Cajas agregadas exitosamente');
+        this.alertService.cerrarModalCarga();
+
+        const ok = res?.success;
+        if (ok === false) {
+          const msg = res?.message ?? 'Error al agregar cajas';
+          this.alertService.showAlertAcept('Error', String(msg), 'error');
+          return;
+        }
+
+        const msg = res?.message ?? 'Cajas agregadas correctamente';
+        this.alertService.showAlert('Éxito', String(msg), 'success');
         this.cerrarModalAgregarCajas();
         // Reload palet details
         console.log('📋 Llamando a verDetalle después de agregar cajas...');
@@ -390,12 +513,9 @@ export class PaletsComponent implements OnInit, OnDestroy {
         console.error('❌ Error message:', err.message);
         console.error('❌ Error completo:', JSON.stringify(err, null, 2));
         
-        if (err.error && typeof err.error === 'object') {
-          console.error('❌ Error backend:', err.error);
-          this.errorMsg.set(err.error.message || 'Error al agregar cajas');
-        } else {
-          this.errorMsg.set('Error al agregar cajas');
-        }
+        this.alertService.cerrarModalCarga();
+        const msg = err?.error?.message ?? 'Error al agregar cajas';
+        this.alertService.showAlertAcept('Error', String(msg), 'error');
       }
     });
   }
@@ -421,32 +541,57 @@ export class PaletsComponent implements OnInit, OnDestroy {
     const medida = this.cerrarPaletMedida();
 
     console.log('📋 Cerrando palet:', palet, { tieneObs, obs, medida });
-    
+
+    this.alertService.mostrarModalCarga();
     this.paletService.cerrar(palet.Id, 'NORMAL', this.userId, tieneObs ? obs : undefined, medida || undefined).subscribe({
       next: (res) => {
         console.log('✅ Palet cerrado:', res);
+        this.alertService.cerrarModalCarga();
+        const ok = res?.success;
+        if (ok === false) {
+          const msg = res?.message ?? 'Error al cerrar el palet';
+          this.alertService.showAlertAcept('Error', String(msg), 'error');
+          return;
+        }
+        const msg = res?.message ?? 'Palet cerrado correctamente';
+        this.alertService.showAlert('Éxito', String(msg), 'success');
         this.cerrarModalCerrarPalet();
         // Reload palet details
         this.verDetalle(palet);
       },
       error: (err) => {
         console.error('❌ Error cerrando palet:', err);
+        this.alertService.cerrarModalCarga();
+        const msg = (err as any)?.error?.message ?? 'Error al cerrar el palet';
+        this.alertService.showAlertAcept('Error', String(msg), 'error');
       }
     });
   }
 
   abrirModalEliminarPalet(palet: Palet): void {
-    if (confirm(`¿Está seguro que desea eliminar el palet #${palet.Id}?`)) {
-      this.eliminarPalet(palet);
-    }
+    this.alertService
+      .showConfirm('Confirmación', `¿Está seguro que desea eliminar el palet #${palet.Id}?`, 'warning')
+      .then(ok => {
+        if (ok) this.eliminarPalet(palet);
+      });
   }
 
   eliminarPalet(palet: Palet): void {
     console.log('📋 Eliminando palet:', palet);
-    
+
+    this.alertService.mostrarModalCarga();
     this.paletService.eliminar(palet.Id).subscribe({
       next: (res) => {
         console.log('✅ Palet eliminado:', res);
+        this.alertService.cerrarModalCarga();
+        const ok = res?.success;
+        if (ok === false) {
+          const msg = res?.message ?? 'Error al eliminar el palet';
+          this.alertService.showAlertAcept('Error', String(msg), 'error');
+          return;
+        }
+        const msg = res?.message ?? 'Palet eliminado correctamente';
+        this.alertService.showAlert('Éxito', String(msg), 'success');
         // Reload palets for the process
         const proceso = this.procesoSeleccionado();
         if (proceso) {
@@ -455,45 +600,80 @@ export class PaletsComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('❌ Error eliminando palet:', err);
+        this.alertService.cerrarModalCarga();
+        const msg = (err as any)?.error?.message ?? 'Error al eliminar el palet';
+        this.alertService.showAlertAcept('Error', String(msg), 'error');
       }
     });
   }
 
   reabrirPalet(palet: Palet): void {
-    if (confirm(`¿Está seguro que desea reabrir el palet #${palet.Id}?`)) {
-      console.log('📋 Reabriendo palet:', palet);
-      
-      this.paletService.reabrir(palet.Id).subscribe({
-        next: (res) => {
-          console.log('✅ Palet reabierto:', res);
-          // Reload palet details
-          this.verDetalle(palet);
-        },
-        error: (err) => {
-          console.error('❌ Error reabriendo palet:', err);
-        }
+    this.alertService
+      .showConfirm('Confirmación', `¿Está seguro que desea reabrir el palet #${palet.Id}?`, 'warning')
+      .then(ok => {
+        if (!ok) return;
+        console.log('📋 Reabriendo palet:', palet);
+
+        this.alertService.mostrarModalCarga();
+        this.paletService.reabrir(palet.Id).subscribe({
+          next: (res) => {
+            console.log('✅ Palet reabierto:', res);
+            this.alertService.cerrarModalCarga();
+            const okRes = res?.success;
+            if (okRes === false) {
+              const msg = res?.message ?? 'Error al reabrir el palet';
+              this.alertService.showAlertAcept('Error', String(msg), 'error');
+              return;
+            }
+            const msg = res?.message ?? 'Palet reabierto correctamente';
+            this.alertService.showAlert('Éxito', String(msg), 'success');
+            // Reload palet details
+            this.verDetalle(palet);
+          },
+          error: (err) => {
+            console.error('❌ Error reabriendo palet:', err);
+            this.alertService.cerrarModalCarga();
+            const msg = (err as any)?.error?.message ?? 'Error al reabrir el palet';
+            this.alertService.showAlertAcept('Error', String(msg), 'error');
+          }
+        });
       });
-    }
   }
 
   eliminarComposicion(composicion: Composicion): void {
-    if (confirm(`¿Está seguro que desea eliminar esta composición?`)) {
-      console.log('📋 Eliminando composición:', composicion);
-      
-      this.paletService.eliminarComposicion(composicion.Id).subscribe({
-        next: (res) => {
-          console.log('✅ Composición eliminada:', res);
-          // Reload composiciones for the palet
-          const palet = this.paletSeleccionado();
-          if (palet) {
-            this.verDetalle(palet);
+    this.alertService
+      .showConfirm('Confirmación', '¿Está seguro que desea eliminar esta composición?', 'warning')
+      .then(ok => {
+        if (!ok) return;
+        console.log('📋 Eliminando composición:', composicion);
+
+        this.alertService.mostrarModalCarga();
+        this.paletService.eliminarComposicion(composicion.Id).subscribe({
+          next: (res) => {
+            console.log('✅ Composición eliminada:', res);
+            this.alertService.cerrarModalCarga();
+            const okRes = res?.success;
+            if (okRes === false) {
+              const msg = res?.message ?? 'Error al eliminar la composición';
+              this.alertService.showAlertAcept('Error', String(msg), 'error');
+              return;
+            }
+            const msg = res?.message ?? 'Composición eliminada correctamente';
+            this.alertService.showAlert('Éxito', String(msg), 'success');
+            // Reload composiciones for the palet
+            const palet = this.paletSeleccionado();
+            if (palet) {
+              this.verDetalle(palet);
+            }
+          },
+          error: (err) => {
+            console.error('❌ Error eliminando composición:', err);
+            this.alertService.cerrarModalCarga();
+            const msg = (err as any)?.error?.message ?? 'Error al eliminar la composición';
+            this.alertService.showAlertAcept('Error', String(msg), 'error');
           }
-        },
-        error: (err) => {
-          console.error('❌ Error eliminando composición:', err);
-        }
+        });
       });
-    }
   }
 
   // UI helpers
@@ -528,7 +708,17 @@ export class PaletsComponent implements OnInit, OnDestroy {
 
     if (!consignatarioId) return;
     this.catalogoService.listarDestinos({ consignatarioId }).subscribe({
-      next: (r: any) => { this.filteredDestinos.set(Array.isArray(r) ? r : r?.data ?? []); },
+      next: (r: any) => {
+        const items = Array.isArray(r) ? r : r?.data ?? [];
+        this.filteredDestinos.set(items.map((x: any) => ({
+          id: x?.id ?? x?.Id ?? 0,
+          codigo: x?.codigo ?? x?.Codigo ?? '',
+          nombre: x?.nombre ?? x?.Nombre ?? '',
+          pais: x?.pais ?? x?.Pais ?? '',
+          activo: x?.activo ?? x?.Activo ?? true,
+          bd: x?.bd ?? x?.BD
+        })));
+      },
       error: () => { this.filteredDestinos.set([]); }
     });
     // Also reload codigos rancho if LDP already selected
@@ -556,8 +746,20 @@ export class PaletsComponent implements OnInit, OnDestroy {
 
     if (!destinoId) return;
     const consignatarioId = this.formCajas().consignatarioId;
-    this.catalogoService.listarFormatos({ consignatarioId, destinoId }).subscribe({
-      next: (r: any) => { this.filteredFormatos.set(Array.isArray(r) ? r : r?.data ?? []); },
+    this.catalogoService.listarFormatos().subscribe({
+      next: (r: any) => {
+        const items = Array.isArray(r) ? r : r?.data ?? [];
+        this.filteredFormatos.set(items.map((x: any) => ({
+          id: x?.id ?? x?.Id ?? 0,
+          codigo: x?.codigo ?? x?.Codigo ?? '',
+          descripcion: x?.descripcion ?? x?.Descripcion ?? '',
+          nombre: x?.nombre ?? x?.Nombre,
+          pesoPorCaja: x?.pesoPorCaja ?? x?.PesoPorCaja ?? 0,
+          limiteCajasPorPalet: x?.limiteCajasPorPalet ?? x?.LimiteCajasPorPalet ?? 0,
+          activo: x?.activo ?? x?.Activo ?? true,
+          bd: x?.bd ?? x?.BD
+        })));
+      },
       error: () => { this.filteredFormatos.set([]); }
     });
   }
@@ -579,8 +781,19 @@ export class PaletsComponent implements OnInit, OnDestroy {
 
     if (!formatoId) return;
     const f = this.formCajas();
-    this.catalogoService.listarTiposEmpaqueGuia({ consignatarioId: f.consignatarioId, destinoId: f.destinoId, formatoId }).subscribe({
-      next: (r: any) => { this.filteredTiposEmpaqueGuia.set(Array.isArray(r) ? r : r?.data ?? []); },
+    // this.catalogoService.listarTiposEmpaqueGuia({ consignatarioId: f.consignatarioId, destinoId: f.destinoId, formatoId }).subscribe({
+    this.catalogoService.listarTiposEmpaqueGuia().subscribe({
+      next: (r: any) => {
+        const items = Array.isArray(r) ? r : r?.data ?? [];
+        this.filteredTiposEmpaqueGuia.set(items.map((x: any) => ({
+          id: x?.id ?? x?.Id ?? 0,
+          codigo: x?.codigo ?? x?.Codigo,
+          nombre: x?.nombre ?? x?.Nombre ?? '',
+          activo: x?.activo ?? x?.Activo ?? true,
+          fechaCreacion: x?.fechaCreacion ?? x?.FechaCreacion,
+          bd: x?.bd ?? x?.BD
+        })));
+      },
       error: () => { this.filteredTiposEmpaqueGuia.set([]); }
     });
   }
@@ -600,13 +813,22 @@ export class PaletsComponent implements OnInit, OnDestroy {
 
     if (!tipoEmpaqueGuiaId) return;
     const f = this.formCajas();
-    this.catalogoService.listarPresentaciones({ consignatarioId: f.consignatarioId, destinoId: f.destinoId, formatoId: f.formatoId, tipoEmpaqueGuiaId }).subscribe({
+    // this.catalogoService.listarPresentaciones({ consignatarioId: f.consignatarioId, destinoId: f.destinoId, formatoId: f.formatoId, tipoEmpaqueGuiaId }).subscribe({
+      this.catalogoService.listarPresentaciones().subscribe({
       next: (r: any) => {
-        const items = Array.isArray(r) ? r : r?.data ?? [];
+        const raw = Array.isArray(r) ? r : r?.data ?? [];
+        const items = raw.map((x: any) => ({
+          id: x?.id ?? x?.Id ?? 0,
+          nombre: x?.nombre ?? x?.Nombre ?? '',
+          descripcion: x?.descripcion ?? x?.Descripcion,
+          activo: x?.activo ?? x?.Activo ?? true,
+          fechaCreacion: x?.fechaCreacion ?? x?.FechaCreacion,
+          bd: x?.bd ?? x?.BD
+        }));
         this.filteredPresentaciones.set(items);
         // Auto-select if only one or none
         if (items.length === 1) {
-          const autoVal = items[0].Id ?? 0;
+          const autoVal = items[0].id ?? 0;
           this.updateFormCajas('presentacionId', autoVal);
           this.loadTiposCajaDinamicos(autoVal);
         } else if (items.length === 0) {
@@ -642,7 +864,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
         const items = Array.isArray(r) ? r : r?.data ?? [];
         // Extract unique TipoCaja from matrix results
         const cajaMap = new Map<number, any>();
-        items.forEach((i: any) => { if (i.TipoCajaId) cajaMap.set(i.TipoCajaId, { Id: i.TipoCajaId, Nombre: i.TipoCajaNombre }); });
+        items.forEach((i: any) => { if (i.TipoCajaId) cajaMap.set(i.TipoCajaId, { id: i.TipoCajaId, nombre: i.TipoCajaNombre }); });
         this.filteredTiposCaja.set(Array.from(cajaMap.values()));
         // Store full matrix results for later filtering
         this._matrizResults = items;
@@ -666,7 +888,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     const clamshellMap = new Map<number, any>();
     this._matrizResults
       .filter((i: any) => i.TipoCajaId === tipoCajaId)
-      .forEach((i: any) => { if (i.TipoClamshellId) clamshellMap.set(i.TipoClamshellId, { Id: i.TipoClamshellId, Nombre: i.TipoClamshellNombre }); });
+      .forEach((i: any) => { if (i.TipoClamshellId) clamshellMap.set(i.TipoClamshellId, { id: i.TipoClamshellId, nombre: i.TipoClamshellNombre }); });
     this.filteredTiposClamshell.set(Array.from(clamshellMap.values()));
   }
 

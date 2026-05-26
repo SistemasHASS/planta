@@ -10,38 +10,38 @@ export class PaletService {
   private readonly apiUrl = `${environment.apiUrl}/palets`;
 
   listarPorProceso(procesoId: number): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/obtener-por-proceso`, { procesoId });
+    return this.http.post<any>(`${this.apiUrl}/obtener-por-proceso`, { procesoId }, { withCredentials: true });
   }
 
   obtenerPorId(id: number): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/obtener-por-id`, { id });
+    return this.http.post<any>(`${this.apiUrl}/obtener-por-id`, { id }, { withCredentials: true });
   }
 
   crear(procesoId: number, acopioId: number, usuarioId: number): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/crear`, { procesoId, acopioId, usuarioId });
+    return this.http.post<any>(`${this.apiUrl}/crear`, { procesoId, acopioId, usuarioId }, { withCredentials: true });
   }
 
   agregarCajas(request: AgregarComposicionRequest): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/agregar-cajas`, request);
+    return this.http.post<any>(`${this.apiUrl}/agregar-cajas`, request, { withCredentials: true });
   }
 
   editarCajas(composicionId: number, request: AgregarComposicionRequest): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/editar-cajas`, { composicionId, ...request });
+    return this.http.post<any>(`${this.apiUrl}/editar-cajas`, { composicionId, ...request }, { withCredentials: true });
   }
 
   cerrar(id: number, tipoCierre: string, usuarioId: number, observaciones?: string, medidaCorrectiva?: string): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/cerrar-saldo`, { id, tipoCierre, usuarioId, observaciones, medidaCorrectiva });
+    return this.http.post<any>(`${this.apiUrl}/cerrar-saldo`, { id, tipoCierre, usuarioId, observaciones, medidaCorrectiva }, { withCredentials: true });
   }
 
   reabrir(id: number): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/reabrir`, { id });
+    return this.http.post<any>(`${this.apiUrl}/reabrir`, { id }, { withCredentials: true });
   }
 
   eliminar(id: number): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/eliminar`, { id });
+    return this.http.post<any>(`${this.apiUrl}/eliminar`, { id }, { withCredentials: true });
   }
 
   eliminarComposicion(composicionId: number): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/eliminar-composicion`, { composicionId });
+    return this.http.post<any>(`${this.apiUrl}/eliminar-composicion`, { composicionId }, { withCredentials: true });
   }
 }

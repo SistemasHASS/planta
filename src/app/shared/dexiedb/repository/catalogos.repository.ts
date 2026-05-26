@@ -1,12 +1,17 @@
 import { Injectable } from "@angular/core";
-import { Calibre, Categoria, Cliente, Consignatario, Destino, Formato, LugarProduccion, Presentacion, TipoCaja, TipoClamshell, TipoEmpaque, TipoEmpaqueGuia, Transporte, Variedad } from "../../interfaces/catalogo.interface";
+import { Calibre, Campania, Categoria, Cliente, Consignatario, Cultivo, Destino, Formato, Fundo, LugarProduccion, Presentacion, TipoCaja, TipoClamshell, TipoEmpaque, TipoEmpaqueGuia, Transporte, Variedad } from "../../interfaces/catalogo.interface";
 import { BaseRepository } from "../db-base.repository";
 import { DexieService } from "../dexie-db.service";
+import { Configuracion } from "../../interfaces/administracion.interface";
 
 
 @Injectable({ providedIn: 'root' })
 export class CatalogosRepository {
     constructor(
+        public readonly configuracionRepo: ConfiguracionRepository,
+        public readonly fundoRepo: FundoRepository,
+        public readonly campaniaRepo: CampaniaRepository,
+        public readonly cultivoRepo: CultivoRepository,
         public readonly clientesRepo: ClienteRepository,
         public readonly consignatariosRepo: ConsignatarioRepository,
         public readonly destinosRepo: DestinoRepository,
@@ -23,6 +28,34 @@ export class CatalogosRepository {
         public readonly transportesRepo: TransporteRepository,
     ) { }
 }
+
+@Injectable({ providedIn: 'root' })
+export class ConfiguracionRepository extends BaseRepository<Configuracion> {
+    constructor(db: DexieService) {
+        super(db, 'configuracion');
+    }
+}
+
+@Injectable({ providedIn: 'root' })
+export class FundoRepository extends BaseRepository<Fundo> {
+    constructor(db: DexieService) {
+        super(db, 'fundo');
+    }
+}
+@Injectable({ providedIn: 'root' })
+export class CultivoRepository extends BaseRepository<Cultivo> {
+    constructor(db: DexieService) {
+        super(db, 'cultivos');
+    }
+}
+
+@Injectable({ providedIn: 'root' })
+export class CampaniaRepository extends BaseRepository<Campania> {
+    constructor(db: DexieService) {
+        super(db, 'campanias');
+    }
+}
+
 
 @Injectable({ providedIn: 'root' })
 export class ClienteRepository extends BaseRepository<Cliente> {

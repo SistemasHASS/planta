@@ -15,10 +15,12 @@
                 table="consignatarios"
                 placeholder="— Seleccionar —"
                 source="dexie"
-                [value]="form().consignatarioId"
-                (valueChange)="updateField('consignatarioId', $event)"
+                idField="documentoFiscal"
+                [labelFields]="['documentoFiscal','nombre']"
+                [value]="form().documentoConsignatario"
+                (valueChange)="updateField('documentoConsignatario', $event)"
               />
-              @if (isInvalid('consignatarioId')) {
+              @if (isInvalid('documentoConsignatario')) {
                 <div class="invalid-feedback d-block">Requerido</div>
               }
             </div>
@@ -28,6 +30,7 @@
               <app-advanced-select
                 table="formatos"
                 placeholder="— Seleccionar —"
+                [labelFields]="['id','descripcion']"
                 source="dexie"
                 [value]="form().formatoId"
                 (valueChange)="updateField('formatoId', $event)"
@@ -43,6 +46,8 @@
                 table="destinos"
                 placeholder="— Seleccionar —"
                 source="dexie"
+                idField="id"
+                [labelFields]="['id','pais']"
                 [value]="form().destinoId"
                 (valueChange)="updateField('destinoId', $event)"
               />
@@ -57,6 +62,8 @@
                 table="transportes"
                 placeholder="— Seleccionar —"
                 source="dexie"
+                idField="id"
+                [labelFields]="['id','transporte']"
                 [value]="form().transporteId"
                 (valueChange)="updateField('transporteId', $event)"
               />
@@ -97,9 +104,13 @@
               <input
                 class="form-control"
                 type="date"
+                [class.is-invalid]="isInvalid('vigenciaDesde')"
                 [ngModel]="form().vigenciaDesde"
                 (ngModelChange)="updateField('vigenciaDesde', $event)"
               />
+              @if (isInvalid('vigenciaDesde')) {
+                <div class="invalid-feedback d-block">Rango de fechas inválido</div>
+              }
             </div>
 
             <div class="col-md-6">
@@ -107,9 +118,13 @@
               <input
                 class="form-control"
                 type="date"
+                [class.is-invalid]="isInvalid('vigenciaHasta')"
                 [ngModel]="form().vigenciaHasta"
                 (ngModelChange)="updateField('vigenciaHasta', $event)"
               />
+              @if (isInvalid('vigenciaHasta')) {
+                <div class="invalid-feedback d-block">Rango de fechas inválido</div>
+              }
             </div>
 
             <div class="col-12">

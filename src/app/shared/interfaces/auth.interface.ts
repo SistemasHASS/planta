@@ -11,8 +11,8 @@ export interface LoginResponse {
 export interface UsuarioAuth {  
   id: number;
   usuario: string;
-  nombreCompleto: string;
-  perfil: 'ADMINISTRADOR' | 'LOGISTICA' | 'COORDINACION' | 'OPERACIONES';
+  nombreCompleto?: string;
+  perfil?: 'ADMINISTRADOR' | 'LOGISTICA' | 'COORDINACION' | 'OPERACIONES' | null;
   acopioId?: number;
   acopioCodigo?: string;
   acopioNombre?: string;
@@ -23,7 +23,8 @@ export interface UsuarioAuth {
   proyecto: string,
   documentoidentidad: string,
   nombre: string,
-  idrol: string,
+  idrol?: string,
+  idRol?: string,
   rol: string,
   aplicacion: string,
   modotrabajo: number,

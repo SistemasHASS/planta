@@ -3,9 +3,10 @@ import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, HostListe
 import { firstValueFrom } from 'rxjs';
 import { CatalogoService } from '../../services/catalogo.service';
 import { ConnectivityService } from '../../services/connectivity.service';
-import { DexieService } from '../../dixiedb/dexie-db.service';
+import { DexieService } from '../../dexiedb/dexie-db.service';
 
 type OptionItem = Record<string, any>;
+type SelectValue = string | number | null;
 
 @Component({
   selector: 'app-advanced-select',
@@ -27,17 +28,32 @@ export class AdvancedSelectComponent {
   @Input() disabled = false;
   @Input() source: 'auto' | 'dexie' | 'api' = 'auto';
 
-  private readonly _value = signal<number | null>(null);
+  private readonly _value = signal<SelectValue>(null);
   @Input()
-  set value(v: number | null) {
+  set value(v: SelectValue) {
     this._value.set(v ?? null);
   }
-  get value(): number | null {
+  get value(): SelectValue {
     return this._value();
   }
-  @Output() valueChange = new EventEmitter<number | null>();
+  @Output() valueChange = new EventEmitter<SelectValue>();
 
   @Input() idField = 'id';
+  @Input() labelFields: string[] | null = null;
+  @Input() labelSeparator = ' — ';
+
+  private readonly _itemsInput = signal<OptionItem[] | null>(null);
+  @Input()
+  set itemsInput(v: OptionItem[] | null) {
+    this._itemsInput.set(Array.isArray(v) ? v : v === null ? null : []);
+    const arr = this._itemsInput();
+    if (arr !== null) {
+      this.items.set(arr);
+    }
+  }
+  get itemsInput(): OptionItem[] | null {
+    return this._itemsInput();
+  }
 
   readonly open = signal(false);
   readonly loading = signal(false);
@@ -52,7 +68,8 @@ export class AdvancedSelectComponent {
   readonly selectedItem = computed(() => {
     const v = this._value();
     if (v === null || v === undefined) return null;
-    return this.items().find(i => Number(i?.[this.idField]) === Number(v)) ?? null;
+    const vv = String(v);
+    return this.items().find(i => String(i?.[this.idField]) === vv) ?? null;
   });
 
   readonly selectedLabel = computed(() => {
@@ -77,6 +94,7 @@ export class AdvancedSelectComponent {
     if (v === null || v === undefined) return;
     if (!this.table) return;
     if (this.items().length > 0) return;
+    if (this.itemsInput !== null) return;
     void this.ensureLoaded();
   }
 
@@ -158,14 +176,18 @@ export class AdvancedSelectComponent {
     this.detachDropdownPortal();
   }
 
-  clear(): void {
+  clear(ev?: MouseEvent): void {
+    ev?.preventDefault();
+    ev?.stopPropagation();
     if (this.disabled) return;
     this._value.set(null);
     this.valueChange.emit(null);
     this.close();
   }
 
-  selectItem(item: OptionItem): void {
+  selectItem(item: OptionItem, ev?: MouseEvent): void {
+    ev?.preventDefault();
+    ev?.stopPropagation();
     if (this.disabled) return;
     const v = item?.[this.idField];
     this._value.set(v ?? null);
@@ -176,11 +198,12 @@ export class AdvancedSelectComponent {
   async ensureLoaded(): Promise<void> {
     if (!this.table) return;
     if (this.items().length > 0) return;
+    if (this.itemsInput !== null) return;
     this.loading.set(true);
     try {
       const shouldUseApi = this.source === 'api' || (this.source === 'auto' && this.online);
       if (shouldUseApi) {
-        const resp: any = await firstValueFrom(this.catalogoService.listarTodos());
+        const resp: any = await firstValueFrom(this.catalogoService.listarForTablaCatalogos(this.table));
         const data = resp?.data ?? resp;
         const arr = data?.[this.table] ?? [];
         this.items.set(Array.isArray(arr) ? arr : []);
@@ -195,26 +218,19 @@ export class AdvancedSelectComponent {
   }
 
   formatLabel(item: OptionItem): string {
-    const code =
-      item?.['codigo'] ??
-      item?.['ruc'] ??
-      item?.['dni'] ??
-      item?.['documentoIdentidad'] ??
-      item?.['placaPrincipal'] ??
-      item?.['nombre'] ??
-      item?.['descripcion'] ??
-      item?.['razonSocial'] ??
-      item?.['nombreCompleto'];
-    const name =
-      item?.['razonSocial'] ??
-      item?.['nombreCompleto'] ??
-      item?.['nombre'] ??
-      item?.['descripcion'] ??
-      '';
-    const left = String(code ?? '').trim();
-    const right = String(name ?? '').trim();
-    if (left && right && left !== right) return `${left} — ${right}`;
-    return left || right || String(item?.[this.idField] ?? '');
+    const fields = this.labelFields;
+    if (Array.isArray(fields) && fields.length > 0) {
+      const parts = fields
+        .map(f => String(item?.[f] ?? '').trim())
+        .filter(Boolean);
+      if (parts.length > 0) return parts.join(this.labelSeparator);
+    }
+
+    const fallback =
+      String(item?.['descripcion'] ?? '').trim() ||
+      String(item?.['nombre'] ?? '').trim() ||
+      String(item?.[this.idField] ?? '').trim();
+    return fallback;
   }
 
   @HostListener('document:click', ['$event'])
@@ -244,9 +260,6 @@ export class AdvancedSelectComponent {
         requestAnimationFrame(() => tryAttach(attemptsLeft - 1));
         return;
       }
-
-      const modal = this.el.nativeElement.closest('.modal-custom') as HTMLElement | null;
-      if (!modal) return;
 
       this.portalDropdownEl = dropdown;
       this.portalOriginalParent = dropdown.parentElement;
