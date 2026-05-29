@@ -7,51 +7,59 @@ import { environment } from '../../../environments/environment';
 export class CatalogoService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/catalogos`;
+  private readonly apiUrlProceso = `${environment.apiUrl}/procesos`;
 
   sincronizarCatalogos(tabla: string, json: any): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/sincronizar`, { tabla, json }, { withCredentials: true });
+  }
+
+  listarTipoProcesoEmpacado(idProyecto: string = ''): Observable<any> {
+    const json = JSON.stringify({
+      idproyecto: idProyecto
+    });
+    return this.http.get<any>(`${this.apiUrl}/get-tipoProcesoEmpacado`, { params: { json }, withCredentials: true });
   }
 
   listarUsuariosAcopios(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/get-listaUsuarios`, { withCredentials: true });
   }
 
-  listarPersonalLogistico(idProyecto: string=''): Observable<any> {
+  listarPersonalLogistico(idProyecto: string = ''): Observable<any> {
     const json = JSON.stringify({
       idproyecto: idProyecto
     });
     return this.http.get<any>(`${this.apiUrl}/get-personalLogistico`, { params: { json }, withCredentials: true });
   }
 
-  listarSupervisores(idProyecto: string=''): Observable<any> {
+  listarSupervisores(idProyecto: string = ''): Observable<any> {
     const json = JSON.stringify({
       idproyecto: idProyecto
     });
     return this.http.get<any>(`${this.apiUrl}/get-supervisores`, { params: { json }, withCredentials: true });
   }
 
-  listarTransportistas(idProyecto: string=''): Observable<any> {
+  listarTransportistas(idProyecto: string = ''): Observable<any> {
     const json = JSON.stringify({
       idproyecto: idProyecto
     });
     return this.http.get<any>(`${this.apiUrl}/get-transportistas`, { params: { json }, withCredentials: true });
   }
 
-  listarVehiculos(idProyecto: string=''): Observable<any> {
+  listarVehiculos(idProyecto: string = ''): Observable<any> {
     const json = JSON.stringify({
       idproyecto: idProyecto
     });
     return this.http.get<any>(`${this.apiUrl}/get-vehiculos`, { params: { json }, withCredentials: true });
   }
 
-  listarConductores(idProyecto: string=''): Observable<any> {
+  listarConductores(idProyecto: string = ''): Observable<any> {
     const json = JSON.stringify({
       idproyecto: idProyecto
     });
     return this.http.get<any>(`${this.apiUrl}/get-conductores`, { params: { json }, withCredentials: true });
   }
 
-  listarLugaresProduccion(idProyecto: string=''): Observable<any> {
+  listarLugaresProduccion(idProyecto: string = ''): Observable<any> {
     const json = JSON.stringify({
       idproyecto: idProyecto
     });
@@ -100,11 +108,11 @@ export class CatalogoService {
     return this.http.get<any>(`${this.apiUrl}/get-fundos`, { withCredentials: true });
   }
 
-  listarFormatos(codigoCultivo: string=''): Observable<any> {
+  listarFormatos(codigoCultivo: string = ''): Observable<any> {
     const json = JSON.stringify({
       codigoCultivo: codigoCultivo
     });
-    return this.http.get<any>(`${this.apiUrl}/get-formatos`,{ params: { json }, withCredentials: true });
+    return this.http.get<any>(`${this.apiUrl}/get-formatos`, { params: { json }, withCredentials: true });
   }
 
   listarClientes(): Observable<any> {
@@ -142,16 +150,36 @@ export class CatalogoService {
     return this.http.get<any>(`${this.apiUrl}/get-tiposClamshell`, { params: { json }, withCredentials: true });
   }
 
+  listarSupervisoresDisponibles(idProyecto: string = '',fecha: string=''): Observable<any> {
+    const json = JSON.stringify({
+      idproyecto: idProyecto,
+      fecha:fecha
+    });
+    return this.http.get<any>(`${this.apiUrlProceso}/get-supervisores-disponibles`, { params: { json }, withCredentials: true });
+  }
+
+  listarPersonaLogisticoDisponibles(idProyecto: string = '',fecha: string=''): Observable<any> {
+    const json = JSON.stringify({
+      idproyecto: idProyecto,
+      fecha:fecha
+    });
+    return this.http.get<any>(`${this.apiUrlProceso}/get-personal-logistica-disponibles`, { params: { json }, withCredentials: true });
+  }
+
   // ── Catálogos generales (todos los catálogos de una vez) ──
   listarTodos(filtros?: Record<string, unknown>): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/listar`, filtros ?? {});
   }
 
-  listarForTablaCatalogos(tabla: string, codicoCultivo: string = '',idproyecto:string='') {
+  listarForTablaCatalogos(tabla: string, codicoCultivo: string = '', idproyecto: string = '') {
     console.log(tabla)
     const t = String(tabla ?? '').trim();
 
     switch (t) {
+      case 'PLANTA_TipoProcesoEmpacado':
+      case 'TipoProcesoEmpacado':
+        return this.listarTipoProcesoEmpacado(idproyecto);
+
       case 'Destinos':
         return this.listarPaises()
 

@@ -1,25 +1,52 @@
-export interface Palet {
-  Id: number;
-  Numero: number;
-  NumeroPalet: number | null;
-  Estado: string;
-  CantidadCajas: number;
-  PesoTotal: number;
-  PorcentajeAvance: number;
-  FormatoId: number | null;
-  ProcesoId: number;
-  AcopioId: number;
-  FechaCreacion: string;
-  FechaCierre: string | null;
-  Observaciones: string | null;
-  MedidaCorrectiva: string | null;
-  FormatoDescripcion: string | null;
-  LimiteCajasPorPalet: number | null;
-  AcopioCodigo: string;
-  AcopioNombre: string;
-  Turno: string;
-  NumeroViaje: number | null;
-  PrimeraComposicionFecha: string | null;
+
+// export interface Palets {
+//   Id: number;
+//   Numero: number;
+//   NumeroPalet: number | null;
+//   Estado: string;
+//   CantidadCajas: number;
+//   PesoTotal: number;
+//   PorcentajeAvance: number;
+//   FormatoId: number | null;
+//   ProcesoId: number;
+//   AcopioId: number;
+//   FechaCreacion: string;
+//   FechaCierre: string | null;
+//   Observaciones: string | null;
+//   MedidaCorrectiva: string | null;
+//   FormatoDescripcion: string | null;
+//   LimiteCajasPorPalet: number | null;
+//   AcopioCodigo: string;
+//   AcopioNombre: string;
+//   Turno: string;
+//   NumeroViaje: number | null;
+//   PrimeraComposicionFecha: string | null;
+// }
+
+export interface Palet{
+  id: number;
+  idPalet:string,
+  idProceso: string;
+  numeroPalet?: number | null
+  codigoAcopio: string,
+  acopioNombre: string;
+  formatoId?: number | 0,
+  estado: string,
+  cantidadCajas: number | 0,
+  pesoTotal: number | 0,
+  porcentajeAvance: number | 0,
+  fechaApertura: string
+  fechaCierre?: string | '',
+  observaciones?: string,
+  medidaCorrectiva?: string, 
+  formatoDescripcion?: string | null;
+  limiteCajasPorPalet?: number | null;
+  turno?: string;
+  numeroViaje?: number | null;
+  primeraComposicionFecha?: string | null;
+  fechaCreacion?: string,
+  modo?:string
+  bd?:number
 }
 
 export interface Composicion {

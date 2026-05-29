@@ -1,35 +1,49 @@
+import { PersonalLogistico, Supervisor } from "./catalogo.interface";
+
 export interface Proceso {
-  id: number;
-  idProyecto: number;
-  acopioId: number;
+  id?: number;
+  idProceso: string;
+  idProyecto: string;
+  codigoAcopio: string;
   acopioNombre: string;
   fechaProceso: string;
   estado: string;
   fechaApertura: string;
-  fechaCierre: string | null;
+  fechaCierre?: string | null;
   turno: string;
-  idUsuarioApertura: string;
-  idRolApertura: string;
-  idUsuarioCierre: string;
-  idRolCierre: string;
-  supervisores: string | null;
-  logisticos: string | null;
+  idUsuarioApertura?: string;
+  idRolApertura?: string;
+  idUsuarioCierre?: string;
+  idRolCierre?: string;
   db?:number;
 }
 
+
+export interface DProcesoLogistico{
+  id?: number;
+  idProceso: string;
+  idLogistico: number; 
+  fechaCreacion?: string;
+  db?:number
+}
+
+export interface DProcesoSupervisor{
+  id?: number;
+  idProceso: string;
+  idSupervisor: number;
+  fechaCreacion?: string;
+  db?:number
+}
+
+// supervisores: string | null;
+// logisticos: string | null;
+
 export interface CrearProcesoRequest {
   fechaProceso: string;
-  acopioId: number;
+  codigoAcopio: string;
   turno: string;
   usuarioId: number;
   campaniaId?: number | null;
-  supervisores?: number[];
-  logisticos?: number[];
-}
-
-export interface PersonalDisponible {
-  Id: number;
-  NombreCompleto: string;
-  DNI: string | null;
-  ocupado: boolean;
+  supervisores?: Supervisor[];
+  logisticos?: PersonalLogistico[];
 }

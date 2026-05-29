@@ -44,7 +44,7 @@ export interface MatrizCompatibilidad {
 
 export interface Usuario {
     id: string,
-    acopioId: number,
+    codigoAcopio: string,
     acopioNombre: string,
     aplicacion: string,
     documentoIdentidad: string,

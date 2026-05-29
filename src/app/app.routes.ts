@@ -79,6 +79,12 @@ const childRoutes: Routes = [
     data: { title: 'Reglas Sobrepeso', subtitle: 'Configurar reglas de sobrepeso', icon: 'bi-speedometer2' }
   },
   {
+    path: 'admin/acopio_configuracion',
+    loadComponent: () =>
+      import('./pages/acopios-config/acopios-config.component').then((m) => m.AcopiosConfigComponent),
+    data: { title: 'Acopio Configuración', subtitle: 'Configurar acopio', icon: 'bi-building-gear' }
+  },
+  {
     path: 'admin/catalogos/:tipo',
     loadComponent: () =>
       import('./pages/catalogos/catalogos.component').then((m) => m.CatalogosComponent),

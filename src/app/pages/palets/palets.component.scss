@@ -6,6 +6,89 @@
   overflow: hidden;
 }
 
+.palets-procesos-scroll {
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+}
+
+.palets-procesos-scroll.palets-procesos-scroll-compact {
+  max-height: 210px;
+}
+
+.palets-proceso-card-seleccionado {
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15), 0 10px 24px rgba(79, 70, 229, 0.10);
+}
+
+.palets-badge-seleccionado {
+  background: #4f46e5;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 6px 14px rgba(79, 70, 229, 0.25);
+  letter-spacing: 0.6px;
+}
+
+.palets-proceso-seleccionado {
+  border: 1px solid #bfdbfe;
+  background: linear-gradient(90deg, #eef6ff 0%, #f8fbff 40%, #ffffff 100%);
+  box-shadow: 0 10px 24px rgba(29, 78, 216, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.palets-proceso-seleccionado::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #4f46e5 0%, #2563eb 100%);
+}
+
+:host ::ng-deep .palets-proceso-seleccionado .fw-semibold {
+  color: #1d4ed8;
+}
+
+:host ::ng-deep .palets-proceso-seleccionado .sp-badge-primary {
+  background: #ede9fe;
+  color: #4f46e5;
+  border: 1px solid #ddd6fe;
+}
+
+:host ::ng-deep .palets-proceso-seleccionado .btn-sp-outline {
+  border-color: #c7d2fe;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+:host ::ng-deep .palets-proceso-seleccionado .btn-sp-outline:hover {
+  border-color: #4f46e5;
+  background: #eef2ff;
+}
+
+@media (max-width: 991.98px) {
+  .palets-procesos-scroll {
+    max-height: 420px;
+  }
+
+  .palets-procesos-scroll.palets-procesos-scroll-compact {
+    max-height: 260px;
+  }
+}
+
+.btn-sp-primary.palets-btn-crear {
+  padding: 7px 12px;
+  font-size: 12px;
+  border-radius: 10px;
+  min-height: 34px;
+}
+
+.btn-sp-primary.palets-btn-crear > i {
+  font-size: 12px;
+}
+
 .palet-section-header {
   display: flex;
   justify-content: space-between;
@@ -39,8 +122,8 @@
   &::before {
     content: 'SELECCIONADO';
     position: absolute;
-    top: 8px;
-    left: 12px;
+    bottom: 8px;
+    right: 10px;
     background: #2563eb;
     color: #fff;
     font-size: 9px;
@@ -48,6 +131,54 @@
     padding: 2px 7px;
     border-radius: 999px;
     letter-spacing: 0.4px;
+  }
+}
+
+:host ::ng-deep .palets-card-activos {
+  background: #f3f9ff;
+  border-color: #bfdbfe;
+}
+
+:host ::ng-deep .palets-card-activos .sp-card-header {
+  background: #eaf4ff;
+}
+
+:host ::ng-deep .palets-card-despachados {
+  background: #f3fff7;
+  border-color: #bbf7d0;
+}
+
+:host ::ng-deep .palets-card-despachados .sp-card-header {
+  background: #eafff1;
+}
+
+.palets-work-area-row {
+  --bs-gutter-x: 1rem;
+  --bs-gutter-y: 1rem;
+}
+
+:host ::ng-deep .palets-work-area-row .sp-card.mb-3 {
+  margin-bottom: 12px !important;
+}
+
+:host ::ng-deep .palets-work-area-row .sp-card-body.text-center {
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.palets-list-scroll {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.palets-list-scroll {
+  scrollbar-gutter: stable;
+}
+
+@media (max-width: 991.98px) {
+  .palets-list-scroll {
+    max-height: 260px;
   }
 }
 

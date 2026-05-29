@@ -1,0 +1,231 @@
+:host {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.catalogo-table-scroll {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  max-height: calc(100vh - 320px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.catalogo-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+
+  --mc-col-actions: 120px;
+  --mc-col-sync: 140px;
+}
+
+.catalogo-table th,
+.catalogo-table td {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.catalogo-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #f8fafc;
+}
+
+.th-sticky-actions,
+.td-sticky-actions {
+  position: sticky;
+  right: 0;
+  z-index: 4;
+  background: #fff;
+  min-width: var(--mc-col-actions);
+  width: var(--mc-col-actions);
+}
+
+.th-sticky-sync,
+.td-sticky-sync {
+  position: sticky;
+  right: var(--mc-col-actions);
+  z-index: 4;
+  background: #fff;
+  min-width: var(--mc-col-sync);
+  width: var(--mc-col-sync);
+  box-shadow: -1px 0 0 rgba(226, 232, 240, 0.9);
+}
+
+.catalogo-table thead .th-sticky-actions,
+.catalogo-table thead .th-sticky-sync {
+  background: #f8fafc;
+  z-index: 6;
+}
+
+.th-actions {
+  text-align: right;
+}
+
+.catalogo-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.catalogo-action-btn {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: #fff;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+
+  &:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: var(--color-primary-light);
+  }
+}
+
+.catalogo-action-btn-edit {
+  border-color: #82f252;
+  color: #82f252;
+
+  &:hover {
+    border-color: #90ec68;
+    color: #fff;
+    background: #90ec68;
+  }
+}
+
+.mc-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-top: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.mc-pagination-left {
+  min-width: 0;
+}
+
+.mc-range {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.mc-pagination-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.mc-page-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mc-page-size-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.mc-pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+
+.mc-page-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: var(--color-text-muted);
+  transition: var(--transition);
+
+  &:hover:not(:disabled) {
+    border-color: rgba(79, 70, 229, 0.35);
+    color: var(--color-primary);
+    background: rgba(79, 70, 229, 0.08);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.mc-page-number {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-weight: 800;
+  font-size: 12px;
+  transition: var(--transition);
+
+  &:hover {
+    background: rgba(79, 70, 229, 0.08);
+    color: var(--color-primary);
+  }
+
+  &.active {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: #fff;
+    box-shadow: 0 10px 20px rgba(79, 70, 229, 0.25);
+  }
+}
+
+.mc-ellipsis {
+  width: 24px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-weight: 800;
+}
+
+@media (max-width: 576px) {
+  .mc-pagination {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mc-pagination-right {
+    justify-content: space-between;
+  }
+
+  .th-sticky-actions,
+  .td-sticky-actions,
+  .th-sticky-sync,
+  .td-sticky-sync {
+    position: static;
+    right: auto;
+    z-index: auto;
+    width: auto;
+    min-width: auto;
+    box-shadow: none;
+  }
+}

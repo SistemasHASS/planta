@@ -70,17 +70,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    this.procesoService.listar().subscribe({
-      next: (res) => this.procesos.set(res.data ?? []),
-      error: (err: unknown) => console.error('Error cargando procesos:', err)
-    });
+    // this.procesoService.listar().subscribe({
+    //   next: (res) => this.procesos.set(res.data ?? []),
+    //   error: (err: unknown) => console.error('Error cargando procesos:', err)
+    // });
 
-    if (this.perfil() === 'ADMINISTRADOR') {
-      this.cargarKPIsAdmin();
-    }
+    // if (this.perfil() === 'ADMINISTRADOR') {
+    //   this.cargarKPIsAdmin();
+    // }
 
-    this.cargarAlertas();
-    this.alertasInterval = window.setInterval(() => this.cargarAlertas(), 60000);
+    // this.cargarAlertas();
+    // this.alertasInterval = window.setInterval(() => this.cargarAlertas(), 60000);
   }
 
   ngOnDestroy(): void {

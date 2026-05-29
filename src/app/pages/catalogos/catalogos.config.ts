@@ -2,6 +2,26 @@ import { CatalogoConfig, CatalogoKey } from "./catalogos.type";
 
 
 export const CATALOGOS_CONFIG: Record<CatalogoKey, CatalogoConfig> = {
+    tipoProcesoEmpacado: {
+    tabla: 'PLANTA_TipoProcesoEmpacado',
+    label: 'Tipo Proceso Empacado',
+    icon: 'bi-building',
+    columnas: [
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'idproyecto', label: 'idProyecto', tipo: 'varchar', maxLength: 10, visible: false,editable:false},
+      { campo: 'codigo', label: 'Código', tipo: 'varchar', maxLength: 5, required: true, unique: true},
+      { campo: 'nombre', label: 'Nombre', tipo: 'varchar', maxLength: 100, required: true },
+      { campo: 'activo', label: 'Estado', tipo: 'bit', required: true },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'fechaCreacion', label: 'Fecha Creación', tipo: 'datetime2', auto: true, visible: true, editable: false }
+    ],
+    displayField: 'nombre',
+    codigoField: 'codigo',
+    tieneActivo: true,
+    editable: true,
+    fkTablas: [],
+    dixieRepo: 'tipoProcesoEmpacadoRepo'
+  },
   clientes: {
     tabla: 'Clientes',
     label: 'Clientes - Maestro',

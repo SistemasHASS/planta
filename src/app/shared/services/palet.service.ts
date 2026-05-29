@@ -9,16 +9,26 @@ export class PaletService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/palets`;
 
-  listarPorProceso(procesoId: number): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/obtener-por-proceso`, { procesoId }, { withCredentials: true });
+  listarPorProceso(idproceso:string): Observable<any>{
+    const json = JSON.stringify({
+      idproceso: idproceso,
+    });
+    return this.http.get<any>(`${this.apiUrl}/get-palets-por-proceso`, { params: { json }, withCredentials: true });
+  }
+  
+  sincronizar(palets:any){
+    const payload = JSON.stringify({
+      palets: palets
+    });
+    return this.http.post<any>(`${this.apiUrl}/sincronizar`, payload, { withCredentials: true , headers: { 'Content-Type': 'application/json' }} );
   }
 
   obtenerPorId(id: number): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/obtener-por-id`, { id }, { withCredentials: true });
   }
 
-  crear(procesoId: number, acopioId: number, usuarioId: number): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/crear`, { procesoId, acopioId, usuarioId }, { withCredentials: true });
+  crear(procesoId: number, codigoAcopio: string, usuarioId: number): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/crear`, { procesoId, codigoAcopio, usuarioId }, { withCredentials: true });
   }
 
   agregarCajas(request: AgregarComposicionRequest): Observable<any> {

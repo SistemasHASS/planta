@@ -10,6 +10,12 @@ import { PermissionService } from '../../shared/services/permission.service';
 import { Palet, Composicion, AgregarComposicionRequest } from '../../shared/interfaces/palet.interface';
 import { Proceso } from '../../shared/interfaces/proceso.interface';
 import { Consignatario, Destino, Formato, Variedad, TipoEmpaque, TipoEmpaqueGuia, Presentacion, TipoCaja, TipoClamshell, LugarProduccion, CodigoRancho, Transporte, TipoProcesoEmpacado, Calibre, Categoria } from '../../shared/interfaces/catalogo.interface';
+import { ConnectivityService } from '../../shared/services/connectivity.service';
+import { ProcesoRepository } from '../../shared/dexiedb/repository/proceso.repository';
+import { firstValueFrom } from 'rxjs';
+import { Configuracion } from '../../shared/interfaces/administracion.interface';
+import { CatalogosRepository } from '../../shared/dexiedb/repository/catalogos.repository';
+import { formatDateTime, formatTimeClave } from '../../shared/utils/datetime.utils';
 
 @Component({
   selector: 'app-palets',
@@ -20,14 +26,22 @@ import { Consignatario, Destino, Formato, Variedad, TipoEmpaque, TipoEmpaqueGuia
 })
 export class PaletsComponent implements OnInit, OnDestroy {
   private readonly paletService = inject(PaletService);
+  private readonly procesoRepo = inject(ProcesoRepository);
   private readonly procesoService = inject(ProcesoService);
   private readonly catalogoService = inject(CatalogoService);
+  private readonly catalogosRepo = inject(CatalogosRepository);
   private readonly auth = inject(AuthService);
   private readonly alertService = inject(AlertService);
   readonly permissions = inject(PermissionService);
+  private readonly connectivity = inject(ConnectivityService);
+  readonly savedConfig = signal<Configuracion | null>(null);
+  readonly activeCampaniaId = signal<string | null>(null);
 
   private timerInterval: ReturnType<typeof setInterval> | null = null;
-
+  get online(): boolean {
+    return this.connectivity.isOnline();
+  }
+  campania = signal<any>({});
   procesosAbiertos = signal<Proceso[]>([]);
   procesoSeleccionado = signal<Proceso | null>(null);
   palets = signal<Palet[]>([]);
@@ -101,237 +115,346 @@ export class PaletsComponent implements OnInit, OnDestroy {
   showModalCerrarPalet = computed(() => this.modalCerrarPaletAbierto());
 
   readonly paletsActivos = computed(() =>
-    this.palets().filter(p => p.Estado !== 'DESPACHADO')
+    this.palets().filter(p => p.estado !== 'DESPACHADO')
   );
 
   readonly paletsDespachados = computed(() =>
-    this.palets().filter(p => p.Estado === 'DESPACHADO')
+    this.palets().filter(p => p.estado === 'DESPACHADO')
   );
+
+  sincronizadoLabel(db?: number): string {
+    return db === 1 ? 'Sincronizado' : 'No sincronizado';
+  }
+
+  sincronizadoClass(db?: number): string {
+    return db === 1 ? 'sp-badge sp-badge-success' : 'sp-badge sp-badge-danger';
+  }
 
   private get userId(): number {
     return this.auth.usuario()?.id ?? 0;
   }
 
-  ngOnInit(): void {
-    console.log('🚀 PaletsComponent - Iniciando ngOnInit');
-    
-    // Load procesos
-    console.log('📋 Cargando procesos...');
-    this.procesoService.listar({ estado: 'ABIERTO' }).subscribe({
-      next: (res) => {
-        console.log('✅ Procesos cargados:', res);
-        this.procesosAbiertos.set(Array.isArray(res) ? res : (res.data ?? []));
-      },
-      error: (err) => {
-        console.error('❌ Error cargando procesos:', err);
-        this.alertService.showAlert('Error', 'Error al cargar procesos', 'error');
-      }
-    });
-    
-    // Load all catalogs at once via SP
-    console.log('📋 Cargando catálogos...');
-    this.catalogoService.listarTodos().subscribe({
-      next: (r: any) => {
-        console.log('✅ Catálogos cargados - Raw response:', r);
-        const data = r?.data ?? r;
-        console.log('✅ Catálogos - Data object:', data);
-        console.log('✅ Consignatarios count:', data?.consignatarios?.length ?? 0);
-        console.log('✅ First consignatario:', data?.consignatarios?.[0]);
-        
-        // Normalizar catálogos a camelCase (interfaces en Angular)
-        const consignatarios = (data?.consignatarios ?? []).map((x: any) => ({
-          id: x?.id ?? x?.Id ?? 0,
-          codigo: x?.codigo ?? x?.Codigo ?? '',
-          razonSocial: x?.razonSocial ?? x?.RazonSocial ?? '',
-          nombre: x?.nombre ?? x?.Nombre ?? '',
-          activo: x?.activo ?? x?.Activo ?? true,
-          bd: x?.bd ?? x?.BD
-        }));
-
-        const destinos = (data?.destinos ?? []).map((x: any) => ({
-          id: x?.id ?? x?.Id ?? 0,
-          codigo: x?.codigo ?? x?.Codigo ?? '',
-          nombre: x?.nombre ?? x?.Nombre ?? '',
-          pais: x?.pais ?? x?.Pais ?? '',
-          activo: x?.activo ?? x?.Activo ?? true,
-          bd: x?.bd ?? x?.BD
-        }));
-
-        const formatos = (data?.formatos ?? []).map((x: any) => ({
-          id: x?.id ?? x?.Id ?? 0,
-          codigo: x?.codigo ?? x?.Codigo ?? '',
-          descripcion: x?.descripcion ?? x?.Descripcion ?? '',
-          nombre: x?.nombre ?? x?.Nombre,
-          pesoPorCaja: x?.pesoPorCaja ?? x?.PesoPorCaja ?? 0,
-          limiteCajasPorPalet: x?.limiteCajasPorPalet ?? x?.LimiteCajasPorPalet ?? 0,
-          activo: x?.activo ?? x?.Activo ?? true,
-          bd: x?.bd ?? x?.BD
-        }));
-
-        const tiposEmpaque = (data?.tiposEmpaque ?? []).map((x: any) => ({
-          id: x?.id ?? x?.Id ?? 0,
-          codigo: x?.codigo ?? x?.Codigo ?? '',
-          descripcion: x?.descripcion ?? x?.Descripcion ?? '',
-          activo: x?.activo ?? x?.Activo ?? true,
-          bd: x?.bd ?? x?.BD
-        }));
-
-        const tiposEmpaqueGuia = (data?.tiposEmpaqueGuia ?? []).map((x: any) => ({
-          id: x?.id ?? x?.Id ?? 0,
-          codigo: x?.codigo ?? x?.Codigo,
-          nombre: x?.nombre ?? x?.Nombre ?? '',
-          activo: x?.activo ?? x?.Activo ?? true,
-          fechaCreacion: x?.fechaCreacion ?? x?.FechaCreacion,
-          bd: x?.bd ?? x?.BD
-        }));
-
-        const presentaciones = (data?.presentaciones ?? []).map((x: any) => ({
-          id: x?.id ?? x?.Id ?? 0,
-          nombre: x?.nombre ?? x?.Nombre ?? '',
-          descripcion: x?.descripcion ?? x?.Descripcion,
-          activo: x?.activo ?? x?.Activo ?? true,
-          fechaCreacion: x?.fechaCreacion ?? x?.FechaCreacion,
-          bd: x?.bd ?? x?.BD
-        }));
-
-        const variedades = (data?.variedades ?? []).map((x: any) => ({
-          id: x?.id ?? x?.Id ?? 0,
-          codigo: x?.codigo ?? x?.Codigo ?? '',
-          nombre: x?.nombre ?? x?.Nombre ?? '',
-          procedencia: x?.procedencia ?? x?.Procedencia ?? '',
-          esEnsayo: x?.esEnsayo ?? x?.EsEnsayo ?? false,
-          activo: x?.activo ?? x?.Activo ?? true,
-          bd: x?.bd ?? x?.BD
-        }));
-
-        const tiposCaja = (data?.tiposCaja ?? []).map((x: any) => ({
-          id: x?.id ?? x?.Id ?? 0,
-          codigo: x?.codigo ?? x?.Codigo,
-          nombre: x?.nombre ?? x?.Nombre ?? '',
-          activo: x?.activo ?? x?.Activo ?? true,
-          fechaCreacion: x?.fechaCreacion ?? x?.FechaCreacion,
-          bd: x?.bd ?? x?.BD
-        }));
-
-        const tiposClamshell = (data?.tiposClamshell ?? []).map((x: any) => ({
-          id: x?.id ?? x?.Id ?? 0,
-          codigo: x?.codigo ?? x?.Codigo,
-          nombre: x?.nombre ?? x?.Nombre ?? '',
-          activo: x?.activo ?? x?.Activo ?? true,
-          fechaCreacion: x?.fechaCreacion ?? x?.FechaCreacion,
-          bd: x?.bd ?? x?.BD
-        }));
-
-        const lugaresProduccion = (data?.lugaresProduccion ?? []).map((x: any) => ({
-          id: x?.id ?? x?.Id ?? 0,
-          codigo: x?.codigo ?? x?.Codigo ?? '',
-          nombre: x?.nombre ?? x?.Nombre ?? '',
-          descripcion: x?.descripcion ?? x?.Descripcion ?? '',
-          activo: x?.activo ?? x?.Activo ?? true,
-          bd: x?.bd ?? x?.BD
-        }));
-
-        const transportes = (data?.transportes ?? []).map((x: any) => ({
-          id: x?.id ?? x?.Id ?? 0,
-          codigo: x?.codigo ?? x?.Codigo,
-          nombre: x?.nombre ?? x?.Nombre ?? '',
-          descripcion: x?.descripcion ?? x?.Descripcion,
-          activo: x?.activo ?? x?.Activo ?? true,
-          fechaCreacion: x?.fechaCreacion ?? x?.FechaCreacion,
-          bd: x?.bd ?? x?.BD
-        }));
-
-        this.consignatarios.set(consignatarios);
-        this.destinos.set(destinos);
-        this.formatos.set(formatos);
-        this.tiposEmpaque.set(tiposEmpaque);
-        this.tiposEmpaqueGuia.set(tiposEmpaqueGuia);
-        this.presentaciones.set(presentaciones);
-        this.variedades.set(variedades);
-        this.tiposCaja.set(tiposCaja);
-        this.tiposClamshell.set(tiposClamshell);
-        this.lugaresProduccion.set(lugaresProduccion);
-        this.codigosRancho.set(data?.codigosRancho ?? []);
-        this.transportes.set(transportes);
-        this.calibres.set(data?.calibres ?? []);
-        this.categorias.set(data?.categorias ?? []);
-        this.tiposProcesoEmpacado.set(data?.tiposProcesoEmpacado ?? []);
-        
-        console.log('🔍 After setting - consignatarios signal length:', this.consignatarios().length);
-        console.log('🔍 LugaresProduccion loaded:', this.lugaresProduccion());
-        console.log('🔍 LugaresProduccion count:', this.lugaresProduccion().length);
-      },
-      error: (err: any) => {
-        console.error('❌ Error cargando catálogos:', err);
-        this.alertService.showAlertAcept('Error', 'Error al cargar catálogos', 'error');
-      }
-    });
-    
-    console.log('🎯 PaletsComponent - ngOnInit completado');
+  async ngOnInit(): Promise<void> {
+    await this.cargarConfiguracion();
+    await this.cargarDesdeDexieCampania();
+    await this.cargarProcesos()
   }
 
   ngOnDestroy(): void {
     if (this.timerInterval) clearInterval(this.timerInterval);
   }
 
-  seleccionarProceso(p: Proceso): void {
+  private async cargarDesdeDexieCampania(): Promise<void> {
+    try {
+      const campania = await this.catalogosRepo.campaniaRepo.getByField('idproyecto', this.savedConfig()?.idProyecto || '');
+      this.campania.set(campania);
+    } catch (error) {
+      console.log('Error cargando campanias desde Dexie', error);
+      this.campania.set([]);
+    }
+  }
+
+
+  private async cargarConfiguracion(): Promise<void> {
+    try {
+      const nro = this.getNroDocumentoFromUsuario();
+      const cfg = await this.catalogosRepo.configuracionRepo.getByField('nrodocumento', nro);
+      this.savedConfig.set(cfg ?? null);
+    } catch (error) {
+      console.log('Error cargando configuracion desde Dexie', error);
+      this.activeCampaniaId.set(null);
+    }
+  }
+
+  private getNroDocumentoFromUsuario(): string {
+    const u: any = this.auth.usuario();
+    const v = u?.nrodocumento ?? u?.documentoidentidad ?? u?.documentoIdentidad ?? u?.documento ?? '';
+    return String(v ?? '').trim();
+  }
+
+  async cargarProcesos(): Promise<void> {
+    this.procesosAbiertos.set([])
+    if (this.online) {
+      await this.listarProcesosApi()
+    } else {
+      const listaProcesos = await this.procesoRepo.procesosRepo.getAll();
+      let procesosAbiertos = listaProcesos.filter((p: Proceso) => p.estado === 'ABIERTO');
+      this.procesosAbiertos.set(procesosAbiertos);
+    }
+  }
+
+
+  async listarProcesosApi(): Promise<void> {
+    console.log('Listar Procesos API...')
+    this.isLoading.set(true);
+    let resp = await firstValueFrom(this.procesoService.listarProcesoForAcopio(this.savedConfig()?.codigoCultivo || '', this.savedConfig()?.idProyecto || ''));
+    if (resp.length == 0) {
+      this.alertService.showAlert('Error', 'No se encontraron procesos para la campaña activa.', 'error');
+      this.isLoading.set(false);
+      return;
+    } else {
+      if (resp[0].error) {
+        this.alertService.showAlert('Error', resp[0].mensaje, 'error');
+        this.isLoading.set(false);
+        return;
+      } else {
+        const data = Array.isArray(resp?.[0]?.data) ? resp[0].data : [];
+        const normalizados: {
+          proceso: Proceso;
+        }[] = data.map((x: any) => this.normalizarProceso(x));
+
+        const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
+
+        const localesNoSync = await this.procesoRepo.procesosRepo.getNoSincronizados();
+        const localNoSyncById = new Map<string, Proceso>(
+          (localesNoSync ?? []).map((p) => [String((p as any)?.idProceso ?? '').trim(), p])
+        );
+
+        const conflictos = Array.from(
+          new Set(
+            normalizados
+              .map((n) => String((n.proceso as any)?.idProceso ?? '').trim())
+              .filter((id) => id.length > 0 && localNoSyncById.has(id))
+          )
+        );
+
+        let normalizadosFiltrados = normalizados;
+        if (conflictos.length > 0) {
+          const msg =
+            `Se encontraron procesos locales NO sincronizados con el mismo idProceso que viene del servidor (ej: ${conflictos.slice(0, 3).join(', ')}${conflictos.length > 3 ? '...' : ''}).\n\n` +
+            '¿Deseas reemplazar el/los procesos locales por los del servidor?\n' +
+            '- Aceptar: elimina los locales NO sincronizados en conflicto y guarda los del servidor.\n' +
+            '- Cancelar: mantiene los locales y omite los del servidor con ese idProceso.';
+
+          const reemplazar = await this.alertService.showConfirm('Conflicto de procesos', msg, 'warning');
+
+          if (reemplazar) {
+            for (const idProceso of conflictos) {
+              await this.procesoRepo.procesosRepo.deleteByIdProceso(idProceso);
+              await this.procesoRepo.dProcesoLogisticosRepo.deleteByIdProceso(idProceso);
+              await this.procesoRepo.dProcesoSupervisoresRepo.deleteByIdProceso(idProceso);
+            }
+          } else {
+            normalizadosFiltrados = normalizados.filter(
+              (n) => !conflictos.includes(String((n.proceso as any)?.idProceso ?? '').trim())
+            );
+          }
+        }
+
+        if (idProyecto) {
+          const idsEliminados = await this.procesoRepo.procesosRepo.clearSincronizadosByProyecto(idProyecto);
+          await this.procesoRepo.dProcesoLogisticosRepo.clearSincronizadosByIdProcesos(idsEliminados);
+          await this.procesoRepo.dProcesoSupervisoresRepo.clearSincronizadosByIdProcesos(idsEliminados);
+        }
+
+        for (const n of normalizadosFiltrados) {
+          await this.procesoRepo.procesosRepo.saveFordec(n.proceso as any);
+        }
+        const listaProcesos = await this.procesoRepo.procesosRepo.getAll();
+        let procesosAbiertos = listaProcesos.filter((p: Proceso) => p.estado === 'ABIERTO');
+        this.procesosAbiertos.set(procesosAbiertos);
+
+        this.isLoading.set(false);
+        return;
+      }
+    }
+  }
+
+
+  normalizarProceso(proceso: any): { proceso: Proceso } {
+    const p: Proceso = {
+      id: proceso?.id ?? undefined,
+      idProceso: String(proceso?.idProceso ?? '').trim(),
+      idProyecto: String(proceso?.idProyecto ?? '').trim(),
+      codigoAcopio: String(proceso?.codigoAcopio ?? '').trim(),
+      acopioNombre: String(proceso?.acopioNombre ?? '').trim(),
+      fechaProceso: String(proceso?.fechaProceso ?? '').trim(),
+      estado: String(proceso?.estado ?? '').trim(),
+      fechaApertura: String(proceso?.fechaApertura ?? '').trim(),
+      fechaCierre: proceso?.fechaCierre ?? null,
+      turno: String(proceso?.turno ?? '').trim(),
+      idUsuarioApertura: proceso?.idUsuarioApertura ?? undefined,
+      idRolApertura: proceso?.idRolApertura ?? undefined,
+      idUsuarioCierre: proceso?.idUsuarioCierre ?? undefined,
+      idRolCierre: proceso?.idRolCierre ?? undefined,
+      db: 1
+    };
+
+    return { proceso: p };
+  }
+
+  async listarPaletsForProceso(idproceso: string, options?: { showLoading?: boolean }): Promise<void> {
+    const idProceso = String(idproceso ?? '').trim();
+    if (!idProceso) {
+      this.palets.set([]);
+      return;
+    }
+    const showLoading = options?.showLoading ?? true;
+    if (showLoading) this.alertService.mostrarModalCarga();
+    try {
+      if (this.online) {
+        console.log('Obteniendo palets del proceso api...');
+        const resp = await firstValueFrom(this.paletService.listarPorProceso(idProceso));
+
+        if (!resp?.length) {
+          this.alertService.showAlert('Error', 'Error al obtener los palets del proceso', 'error');
+          return;
+        }
+
+        const first = resp[0] as any;
+        if (first?.error) {
+          this.alertService.showAlert('Error', first?.mensaje ?? 'Error al obtener los palets del proceso', 'error');
+          return;
+        }
+
+        const apiPalets: Palet[] = (Array.isArray(first) ? first : (first?.data ?? [])) as any;
+
+        await this.procesoRepo.paletsRepo.clearSincronizadosByIdProceso(idProceso);
+
+        for (const p of (apiPalets ?? [])) {
+          const anyP = p as any;
+          const idPalet = String(anyP?.idPalet ?? '').trim() || `${idProceso}-${String(anyP?.id ?? '')}`;
+          const row: Palet = {
+            ...(p as any),
+            idProceso,
+            idPalet,
+            bd: 1,
+          };
+          await this.procesoRepo.paletsRepo.saveByIdPalet(row);
+        }
+      } else {
+        console.log('Obteniendo palets del proceso desde Dexie...');
+      }
+
+      const paletsDb = await this.procesoRepo.paletsRepo.getByIdProceso(idProceso);
+      const ordenados = (paletsDb ?? []).slice().sort((a: any, b: any) => {
+        const ak = String(a?.idPalet ?? '').trim();
+        const bk = String(b?.idPalet ?? '').trim();
+        if (ak && bk) return bk.localeCompare(ak);
+        if (ak) return 1;
+        if (bk) return -1;
+        return Number(a?.id ?? 0) - Number(b?.id ?? 0);
+      });
+      this.palets.set(ordenados);
+    } catch (error: any) {
+      console.log(error);
+      this.alertService.showAlert('Error', `${error?.error?.message ?? 'Error al obtener los palets del proceso'}`, 'error');
+    } finally {
+      if (showLoading) this.alertService.cerrarModalCarga();
+    }
+  }
+
+  async onSincronizar(): Promise<void> {
+    try {
+      if (!this.online) {
+        this.alertService.showAlert('Error', 'No tiene conexión a internet', 'error');
+        return;
+      }
+
+      const confirmar = await this.alertService.showConfirm(
+        'Confirmar sincronización',
+        'Se subirán a BD los palets pendientes. ¿Desea continuar?',
+        'question',
+      );
+
+      if (!confirmar) return;
+
+      this.alertService.mostrarModalCarga();
+
+      const dataSend = await this.procesoRepo.paletsRepo.getNoSincronizados();
+
+      if ((dataSend ?? []).length === 0) {
+        for (const p of (this.procesosAbiertos() ?? [])) {
+          await this.listarPaletsForProceso(p.idProceso, { showLoading: false });
+        }
+        await this.listarPaletsForProceso(this.procesoSeleccionado()!.idProceso, { showLoading: false });
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Éxito', 'No hay palets pendientes de sincronización', 'success');
+        return;
+      }
+
+      const payloads = structuredClone(dataSend) as any[];
+      payloads.forEach((item: any) => {
+        delete item.bd;
+        delete item._pk;
+      });
+
+      const resp = await firstValueFrom(this.paletService.sincronizar(payloads));
+      const first = resp?.[0] as any;
+
+      if (first?.error) {
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Error', first?.mensaje ?? 'Error al sincronizar palets', 'error');
+        return;
+      }
+
+      for (const local of (dataSend ?? []) as any[]) {
+        if (local?._pk != null) {
+          await this.procesoRepo.paletsRepo.delete(local._pk);
+        }
+      }
+
+      for (const proc of (this.procesosAbiertos() ?? [])) {
+        await this.listarPaletsForProceso(proc.idProceso, { showLoading: false });
+      }
+      // if(this.procesoSeleccionado()){
+        await this.listarPaletsForProceso(this.procesoSeleccionado()!.idProceso, { showLoading: false });
+      // }
+
+      this.alertService.cerrarModalCarga();
+      this.alertService.showAlert('Éxito', first?.mensaje ?? 'Sincronización completada', 'success');
+    } catch (error: any) {
+      console.error('Error en sincronización palets:', error);
+      this.alertService.cerrarModalCarga();
+      this.alertService.showAlert('Error', `${error?.error?.message ?? 'Error en sincronización'}`, 'error');
+    }
+  }
+
+  async seleccionarProceso(p: Proceso): Promise<void> {
+    this.alertService.mostrarModalCarga()
     this.procesoSeleccionado.set(p);
     this.paletSeleccionado.set(null);
     this.composiciones.set([]);
     this.isLoading.set(true);
-    
-    // Load complete process details (including supervisores and logistics)
-    console.log('📋 Cargando detalles completos del proceso:', p.id);
-    this.procesoService.obtenerPorId(p.id).subscribe({
-      next: (res: any) => {
-        console.log('✅ Detalles del proceso cargados:', res);
-        const procesoCompleto = res?.data ?? res;
-        
-        // Update selected process with complete data
-        this.procesoSeleccionado.set(procesoCompleto);
-        
-        // Now load palets for this process
-        console.log('📋 Cargando palets para proceso:', procesoCompleto.Id);
-        this.paletService.listarPorProceso(procesoCompleto.Id).subscribe({
-          next: (res) => {
-            console.log('✅ Palets cargados para proceso:', res);
-            this.palets.set(Array.isArray(res) ? res : (res.data ?? []));
-            this.isLoading.set(false);
-          },
-          error: (err) => {
-            console.error('❌ Error cargando palets:', err);
-            this.palets.set([]);
-            this.isLoading.set(false);
-            this.alertService.showAlertAcept('Error', 'Error al cargar palets del proceso', 'error');
-          }
-        });
-      },
-      error: (err) => {
-        console.error('❌ Error cargando detalles del proceso:', err);
-        this.isLoading.set(false);
-        this.alertService.showAlertAcept('Error', 'Error al cargar detalles del proceso', 'error');
-      }
-    });
+
+    await this.listarPaletsForProceso(p.idProceso, { showLoading: false })
+
+    //======================================
+    this.isLoading.set(false);
+    this.alertService.cerrarModalCarga();
+  }
+
+  cambiarProceso(): void {
+    this.procesoSeleccionado.set(null);
+    this.paletSeleccionado.set(null);
+    this.palets.set([]);
+    this.composiciones.set([]);
+  }
+
+  paletKey(p: any): any {
+    if (!p) return null;
+    const k = String(p?.idPalet ?? '').trim();
+    return k || p?.id;
   }
 
   verDetalle(p: Palet): void {
     this.paletSeleccionado.set(p);
-    
+
     // Load palet detail with composiciones
-    console.log('📋 Cargando detalle para palet:', p.Id);
+    console.log('📋 Cargando detalle para palet:', p.id);
     console.log('📋 Palet actual antes de cargar:', p);
-    this.paletService.obtenerPorId(p.Id).subscribe({
+    this.paletService.obtenerPorId(p.id).subscribe({
       next: (res: any) => {
         console.log('✅ Respuesta completa del backend:', res);
         console.log('✅ Data recibida:', res?.data);
         console.log('✅ Palet data:', res?.data?.palet);
         console.log('✅ Composiciones:', res?.data?.composiciones);
-        
+
         const data = res?.data ?? res;
-        
+
         // Update composiciones
         this.composiciones.set(data?.composiciones ?? data?.Composiciones ?? []);
-        
+
         // Update palet data (CantidadCajas, PesoTotal, etc.)
         if (data && (data.Id || data.palet)) {
           const updatedPalet = data.palet || data;
@@ -339,15 +462,20 @@ export class PaletsComponent implements OnInit, OnDestroy {
           console.log('✅ CantidadCajas:', updatedPalet.CantidadCajas);
           console.log('✅ LimiteCajasPorPalet:', updatedPalet.LimiteCajasPorPalet);
           console.log('✅ PorcentajeAvance:', updatedPalet.PorcentajeAvance);
-          
+
           // Update the selected palet with new data
           this.paletSeleccionado.set(updatedPalet);
-          
+
           // Also update the palet in the list
-          this.palets.update(palets => 
-            palets.map(p => p.Id === updatedPalet.Id ? updatedPalet : p)
+          this.palets.update(palets =>
+            palets.map((p: any) => {
+              const pKey = String(p?.idPalet ?? '').trim();
+              const uKey = String(updatedPalet?.idPalet ?? '').trim();
+              if (pKey && uKey) return pKey === uKey ? updatedPalet : p;
+              return p?.id === updatedPalet?.Id ? updatedPalet : p;
+            })
           );
-          
+
           console.log('✅ Palet seleccionado después de actualizar:', this.paletSeleccionado());
         }
       },
@@ -358,38 +486,60 @@ export class PaletsComponent implements OnInit, OnDestroy {
     });
   }
 
-  crearPalet(): void {
+  async crearPalet(): Promise<void> {
     const proceso = this.procesoSeleccionado();
     if (!proceso) {
       this.alertService.showAlert('Validación', 'Debe seleccionar un proceso primero', 'warning');
       return;
     }
-    console.log('📋 Creando palet para proceso:', proceso);
-
-    this.alertService.mostrarModalCarga();
-    this.paletService.crear(proceso.id, proceso.acopioId, this.userId).subscribe({
-      next: (res) => {
-        console.log('✅ Palet creado:', res);
-        this.alertService.cerrarModalCarga();
-
-        const ok = res?.success;
-        if (ok === false) {
-          const msg = res?.message ?? 'Error al crear palet';
-          this.alertService.showAlertAcept('Error', String(msg), 'error');
-          return;
+    try {
+      this.alertService.mostrarModalCarga();
+        let fecha = new Date();
+        let fechaApertura = formatDateTime(fecha);
+        let newPalets: Palet = {
+          id: 0,
+          idPalet: this.createIdPalet(proceso.idProceso),
+          idProceso: proceso.idProceso,
+          codigoAcopio: proceso.codigoAcopio,
+          acopioNombre: proceso.acopioNombre,
+          formatoId: 0,
+          estado: 'ABIERTO',
+          fechaApertura: fechaApertura || '',
+          cantidadCajas: 0,
+          pesoTotal: 0,
+          porcentajeAvance: 0,
+          observaciones: '',
+          medidaCorrectiva: '',
+          modo: 'nuevo'
         }
+        if(!this.online){
+            let resp = await firstValueFrom(this.paletService.sincronizar(newPalets))
+            if (resp.length > 0) {
+              if (resp[0].error) {
+                this.alertService.showAlertAcept('Error', resp[0].mensaje, 'error');
+              } else {
+                await this.listarPaletsForProceso(proceso.idProceso, { showLoading: false })
+                this.alertService.showAlertAcept('Éxito', 'Palet creado exitosamente.', 'success');
+              }
+            } else {
+              this.alertService.showAlertAcept('Error', 'Error al crear el Palet, por favor vuelva a Iniciar Sesión.', 'error');
+            }
+        }else{
+          newPalets.bd=0
+          await this.procesoRepo.paletsRepo.saveByIdPalet(newPalets);
+          await this.listarPaletsForProceso(proceso.idProceso, { showLoading: false })
+          this.alertService.showAlertAcept('Éxito', 'Palet creado exitosamente. - No Sincronizado', 'success');
+        }
+    } catch (error) {
+      console.error('Error creando palet:', error);
+      this.alertService.cerrarModalCarga();
+    }
+  }
 
-        this.alertService.showAlert('Éxito', 'Palet creado exitosamente', 'success');
-        // Reload palets for the process
-        this.seleccionarProceso(proceso);
-      },
-      error: (err) => {
-        console.error('❌ Error creando palet:', err);
-        this.alertService.cerrarModalCarga();
-        const msg = (err as any)?.error?.message ?? 'Error al crear palet';
-        this.alertService.showAlertAcept('Error', String(msg), 'error');
-      }
-    });
+  createIdPalet(idproceso :string){
+    let dateTime= new Date();
+    let dateTimeString = formatTimeClave(dateTime);
+    return [idproceso,dateTimeString].join('');
   }
 
   abrirModalAgregarCajas(palet: Palet): void {
@@ -436,7 +586,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     if (!palet) return;
 
     const f = this.formCajas();
-    
+
     // Validación básica (calibreId/tipoEmpaqueId son auto-filled desde MatrizCompatibilidad)
     if (!f.consignatarioId || !f.destinoId || !f.formatoId || !f.variedadId || !f.cantidadCajas) {
       this.alertService.showAlert('Validación', 'Complete todos los campos requeridos', 'warning');
@@ -456,7 +606,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     const pesoPorCaja = formatoSel?.pesoPorCaja ?? 10;
 
     const request: AgregarComposicionRequest = {
-      paletId: palet.Id,
+      paletId: palet.id,
       consignatarioId: f.consignatarioId,
       destinoId: f.destinoId,
       formatoId: f.formatoId,
@@ -512,7 +662,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
         console.error('❌ Error status:', err.status);
         console.error('❌ Error message:', err.message);
         console.error('❌ Error completo:', JSON.stringify(err, null, 2));
-        
+
         this.alertService.cerrarModalCarga();
         const msg = err?.error?.message ?? 'Error al agregar cajas';
         this.alertService.showAlertAcept('Error', String(msg), 'error');
@@ -543,7 +693,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     console.log('📋 Cerrando palet:', palet, { tieneObs, obs, medida });
 
     this.alertService.mostrarModalCarga();
-    this.paletService.cerrar(palet.Id, 'NORMAL', this.userId, tieneObs ? obs : undefined, medida || undefined).subscribe({
+    this.paletService.cerrar(palet.id, 'NORMAL', this.userId, tieneObs ? obs : undefined, medida || undefined).subscribe({
       next: (res) => {
         console.log('✅ Palet cerrado:', res);
         this.alertService.cerrarModalCarga();
@@ -570,7 +720,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
 
   abrirModalEliminarPalet(palet: Palet): void {
     this.alertService
-      .showConfirm('Confirmación', `¿Está seguro que desea eliminar el palet #${palet.Id}?`, 'warning')
+      .showConfirm('Confirmación', `¿Está seguro que desea eliminar el palet #${palet.id}?`, 'warning')
       .then(ok => {
         if (ok) this.eliminarPalet(palet);
       });
@@ -580,7 +730,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     console.log('📋 Eliminando palet:', palet);
 
     this.alertService.mostrarModalCarga();
-    this.paletService.eliminar(palet.Id).subscribe({
+    this.paletService.eliminar(palet.id).subscribe({
       next: (res) => {
         console.log('✅ Palet eliminado:', res);
         this.alertService.cerrarModalCarga();
@@ -609,13 +759,13 @@ export class PaletsComponent implements OnInit, OnDestroy {
 
   reabrirPalet(palet: Palet): void {
     this.alertService
-      .showConfirm('Confirmación', `¿Está seguro que desea reabrir el palet #${palet.Id}?`, 'warning')
+      .showConfirm('Confirmación', `¿Está seguro que desea reabrir el palet #${palet.id}?`, 'warning')
       .then(ok => {
         if (!ok) return;
         console.log('📋 Reabriendo palet:', palet);
 
         this.alertService.mostrarModalCarga();
-        this.paletService.reabrir(palet.Id).subscribe({
+        this.paletService.reabrir(palet.id).subscribe({
           next: (res) => {
             console.log('✅ Palet reabierto:', res);
             this.alertService.cerrarModalCarga();
@@ -814,7 +964,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     if (!tipoEmpaqueGuiaId) return;
     const f = this.formCajas();
     // this.catalogoService.listarPresentaciones({ consignatarioId: f.consignatarioId, destinoId: f.destinoId, formatoId: f.formatoId, tipoEmpaqueGuiaId }).subscribe({
-      this.catalogoService.listarPresentaciones().subscribe({
+    this.catalogoService.listarPresentaciones().subscribe({
       next: (r: any) => {
         const raw = Array.isArray(r) ? r : r?.data ?? [];
         const items = raw.map((x: any) => ({
@@ -929,7 +1079,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     console.log('📋 Cargando códigos rancho para:', { lugarProduccionId, consignatarioId });
     console.log(this.lugaresProduccion())
     console.log(this.consignatarios())
-    
+
     if (!lugarProduccionId || !consignatarioId) {
       this.filteredCodigosRancho.set([]);
       this.updateFormCajas('codigoRanchoId', 0);
@@ -944,14 +1094,14 @@ export class PaletsComponent implements OnInit, OnDestroy {
     this.catalogoService.listarCodigosRancho(formato).subscribe({
       next: (r: any) => {
         console.log('✅ Códigos rancho response:', r);
-        
+
         // Manejar respuesta como el sistema original: {success: true, codigosRancho: [...]}
         const codigos = r?.codigosRancho || r?.data || r || [];
         const codigosArray = Array.isArray(codigos) ? codigos : [];
-        
+
         console.log('✅ Códigos rancho procesados:', codigosArray);
         this.filteredCodigosRancho.set(codigosArray);
-        
+
         if (codigosArray.length === 1) {
           // Auto-seleccionar y deshabilitar (como en el código jQuery)
           const codigo = codigosArray[0];
@@ -1020,17 +1170,24 @@ export class PaletsComponent implements OnInit, OnDestroy {
 
   getEstadoBadgeClass(estado: string): string {
     switch (estado) {
-      case 'ABIERTO': return 'bg-blue-100 text-blue-800';
-      case 'CERRADO': return 'bg-purple-100 text-purple-800';
-      case 'DESPACHADO': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'ABIERTO':
+        return 'badge-abierto';
+      case 'CERRADO_COMPLETO':
+        return 'badge-cerrado-completo';
+      case 'CERRADO_SALDO':
+        return 'badge-cerrado-saldo';
+      case 'DESPACHADO':
+        return 'badge-despachado';
+      default:
+        return 'bg-secondary';
     }
   }
 
   getEstadoLabel(estado: string): string {
     switch (estado) {
       case 'ABIERTO': return 'ABIERTO';
-      case 'CERRADO': return 'CERRADO';
+      case 'CERRADO_COMPLETO': return 'CERRADO';
+      case 'CERRADO_SALDO': return 'CERRADO';
       case 'DESPACHADO': return 'DESPACHADO';
       default: return 'DESCONOCIDO';
     }

@@ -1,0 +1,139 @@
+<div class="table-responsive procesos-table-scroll">
+  <table class="sp-table procesos-table">
+    <thead>
+      <tr>
+        @if (perfil !== 'LOGISTICA') {
+          <th>Acopio</th>
+        }
+        <th>Turno</th>
+        <th>Fecha</th>
+        <th style="min-width:140px">Sincronizado</th>
+        <th>Estado</th>
+        <th>Apertura</th>
+        <th>Cierre</th>
+        <th>Abierto por</th>
+        <th>Supervisores</th>
+        <th>Logísticos</th>
+        <th style="width:60px"></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (p of items; track trackById($index, p)) {
+        <tr [style.opacity]="p.estado === 'CERRADO' ? '0.65' : '1'">
+          @if (perfil !== 'LOGISTICA') {
+            <td><strong>{{ p.codigoAcopio }}</strong></td>
+          }
+          <td>
+            <span class="sp-badge" [class]="p.turno === 'DIA' ? 'sp-badge-warning' : 'sp-badge-primary'">
+              <i class="bi" [class]="p.turno === 'DIA' ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i> {{ p.turno }}
+            </span>
+          </td>
+          <td><strong>{{ formatearFechaCorta(p.fechaProceso) }}</strong></td>
+          <td><span [class]="sincronizadoClass(p.db)">{{ sincronizadoLabel(p.db) }}</span></td>
+          <td>
+            @if (p.estado === 'ABIERTO') {
+              <span class="sp-badge sp-badge-success">ABIERTO</span>
+            } @else {
+              <span class="sp-badge sp-badge-muted">CERRADO</span>
+            }
+          </td>
+          <td>{{ formatearFechaHora(p.fechaApertura) }}</td>
+          <td>{{ formatearFechaHora(p.fechaCierre || null) }}</td>
+          <td>{{ p.idUsuarioApertura || '—' }}</td>
+
+          <td>
+            @let supPreview = getPreviewNombres(getSupList(p));
+            <span>{{ supPreview.texto }}</span>
+            @if (supPreview.hasMore) {
+              <button type="button" class="btn btn-link btn-link-sm" (click)="abrirModal('SUP', p)">
+                ... mostrar más
+              </button>
+            }
+          </td>
+
+          <td>
+            @let logPreview = getPreviewNombres(getLogList(p));
+            <span>{{ logPreview.texto }}</span>
+            @if (logPreview.hasMore) {
+              <button type="button" class="btn btn-link btn-link-sm" (click)="abrirModal('LOG', p)">
+                ... mostrar más
+              </button>
+            }
+          </td>
+
+          <td class="text-center">
+            @if (p.estado === 'CERRADO' && puedeReabrir) {
+              <button class="btn btn-sm btn-outline-warning" (click)="onReabrir(p)" title="Reabrir proceso">
+                <i class="bi bi-arrow-counterclockwise"></i>
+              </button>
+            }
+            @if (p.estado === 'ABIERTO' && puedeCerrarAdmin) {
+              <button class="btn btn-sm btn-outline-danger" (click)="onCerrar(p)" title="Cerrar proceso">
+                <i class="bi bi-stop-circle"></i>
+              </button>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+@if (modalAbierto()) {
+  <div class="modal-backdrop-custom" (click)="onBackdrop()"></div>
+  <div class="modal-custom" role="dialog" aria-modal="true">
+    <div class="modal-header-custom">
+      <h5>
+        @if (modalTipo() === 'SUP') {
+          <i class="bi bi-person-badge"></i> Supervisores
+        } @else {
+          <i class="bi bi-people"></i> Logísticos
+        }
+      </h5>
+      <button type="button" class="btn-close btn-close-white" (click)="cerrarModal()" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body-custom">
+      <div class="sp-card" style="margin-bottom:0">
+        <div class="sp-card-body" style="padding:0">
+          <div class="table-responsive procesos-modal-table-scroll">
+            <table class="sp-table procesos-modal-table">
+              <thead>
+                <tr>
+                  <th style="width:60px">#</th>
+                  <th>Nombre</th>
+                  <th>DNI</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (modalProceso()) {
+                  @if (modalTipo() === 'SUP') {
+                    @for (s of getSupList(modalProceso()!); track s.id) {
+                      <tr>
+                        <td>{{ $index + 1 }}</td>
+                        <td>{{ s.nombreCompleto }}</td>
+                        <td>{{ s.dni || '—' }}</td>
+                      </tr>
+                    }
+                  } @else {
+                    @for (l of getLogList(modalProceso()!); track l.id) {
+                      <tr>
+                        <td>{{ $index + 1 }}</td>
+                        <td>{{ l.nombreCompleto }}</td>
+                        <td>{{ l.dni || '—' }}</td>
+                      </tr>
+                    }
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer-custom">
+      <button type="button" class="btn btn-sp-outline" (click)="cerrarModal()">Cerrar</button>
+    </div>
+  </div>
+}

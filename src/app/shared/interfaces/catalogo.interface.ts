@@ -1,3 +1,13 @@
+export interface TipoProcesoEmpacado {
+  id: number;
+  idproyecto: string;
+  codigo: string;
+  nombre: string;
+  activo: boolean;
+  fechaCreacion: string;
+  bd?: number;
+}
+
 export interface Fundo {
   id: number;
   codigoFundo: string;
@@ -228,6 +238,7 @@ export interface Supervisor {
   celular: string;
   activo: boolean;
   fechaCreacion: string;
+  ocupado?: boolean;
   bd?: number;
 }
 
@@ -239,6 +250,7 @@ export interface PersonalLogistico {
   celular:string;
   activo:boolean;
   fechaCreacion:string;
+  ocupado?: boolean;
   bd?: number;
 }
 
@@ -246,8 +258,18 @@ export interface Acopio {
   id: number;
   idempresa: string;
   ruc: string;
-  acopioId: string;
+  codigoAcopio: string;
   acopioNombre: string;
   serieGuia: string;
+  bd?: number;
+}
+
+export interface AcopioDetalle{
+  id: number;
+  codigoAcopio: string;
+  codigoTipoProcesoEmpacado: string;
+  nombreTipoProcesoEmpacado: string;
+  fechaCreacion: string;
+  activo?: boolean;
   bd?: number;
 }

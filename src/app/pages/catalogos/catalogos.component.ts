@@ -27,6 +27,7 @@ const OPERARIOS_KEYS = new Set<CatalogoKey>([
 ]);
 
 const CATALOGO_DATA_KEY_MAP: Record<CatalogoKey, string> = {
+  tipoProcesoEmpacado: 'tipoProcesoEmpacado',
   acopios: 'acopios',
   formatos: 'formatos',
   clientes: 'clientes',
@@ -106,6 +107,7 @@ export class CatalogosComponent implements OnInit {
     const d = this.data();
 
     const mapKey: Partial<Record<CatalogoKey, string>> = {
+      tipoProcesoEmpacado: 'tipoProcesoEmpacado',
       acopios: 'acopios',
       formatos: 'formatos',
       clientes: 'clientes',
@@ -409,6 +411,7 @@ export class CatalogosComponent implements OnInit {
         } else {
           const payloads = structuredClone(dataSend);
           if( this.config().tabla == 'PLANTA_LugaresProduccion' 
+            || this.config().tabla == 'PLANTA_TipoProcesoEmpacado'
             || this.config().tabla == 'PLANTA_Transportistas'
             || this.config().tabla == 'PLANTA_Vehiculos'
             || this.config().tabla == 'PLANTA_Supervisores'
@@ -482,6 +485,7 @@ export class CatalogosComponent implements OnInit {
     try {
       const payloadArray = Array.isArray(payloads) ? payloads : [payloads];
       if( this.config().tabla == 'PLANTA_LugaresProduccion' 
+          || this.config().tabla == 'PLANTA_TipoProcesoEmpacado'
           || this.config().tabla == 'PLANTA_Transportistas'
           || this.config().tabla == 'PLANTA_Vehiculos'
           || this.config().tabla == 'PLANTA_Supervisores'

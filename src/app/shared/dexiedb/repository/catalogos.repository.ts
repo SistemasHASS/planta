@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { Calibre, Campania, Categoria, Cliente, Consignatario, Cultivo, Destino, Formato, Fundo, LugarProduccion, Presentacion, TipoCaja, TipoClamshell, TipoEmpaque, TipoEmpaqueGuia, Transporte, Variedad } from "../../interfaces/catalogo.interface";
+import { Calibre, Campania, Categoria, Cliente, Consignatario, Cultivo, Destino, Formato, Fundo, LugarProduccion, Presentacion, TipoCaja, TipoClamshell, TipoEmpaque, TipoEmpaqueGuia, TipoProcesoEmpacado, Transporte, Variedad } from "../../interfaces/catalogo.interface";
 import { BaseRepository } from "../db-base.repository";
 import { DexieService } from "../dexie-db.service";
 import { Configuracion } from "../../interfaces/administracion.interface";
@@ -26,7 +26,15 @@ export class CatalogosRepository {
         public readonly variedadesRepo: VariedadRepository,
         public readonly lugaresProduccionRepo: LugarProduccionRepository,
         public readonly transportesRepo: TransporteRepository,
+        public readonly tipoProcesoEmpacadoRepo: TipoProcesoEmpacadoRepository,
     ) { }
+}
+
+@Injectable({ providedIn: 'root' })
+export class TipoProcesoEmpacadoRepository extends BaseRepository<TipoProcesoEmpacado> {
+    constructor(db: DexieService) {
+        super(db, 'tipoProcesoEmpacado');
+    }
 }
 
 @Injectable({ providedIn: 'root' })

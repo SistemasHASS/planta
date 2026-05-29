@@ -1,4 +1,5 @@
 export type CatalogoKey =
+    | 'tipoProcesoEmpacado'
     | 'clientes'
     | 'consignatarios'
     | 'destinos'

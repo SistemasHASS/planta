@@ -664,6 +664,12 @@ body {
   font-size: 13px;
   transition: var(--transition);
   font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  line-height: 1.2;
+  text-decoration: none;
   cursor: pointer;
 }
 
@@ -803,7 +809,7 @@ body {
   padding: 40px 20px;
 }
 
-.empty-state i {
+.empty-state .empty-state-icon {
   font-size: 48px;
   color: #d1d5db;
   margin-bottom: 12px;
@@ -814,6 +820,11 @@ body {
   color: var(--color-text-muted);
   font-size: 14px;
   margin: 0;
+}
+
+.btn-sp-primary > i {
+  font-size: 1em;
+  line-height: 1;
 }
 
 /* ── Quick Access Cards ── */

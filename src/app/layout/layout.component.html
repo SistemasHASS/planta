@@ -85,23 +85,25 @@
 
       <div class="topbar-right">
         @if (campaniaFrutaLabel()) {
-          <div class="conn-status campania-chip" aria-label="Campaña activa">
-            <span class="conn-status-icon">
+          <button type="button" class="conn-status campania-chip" aria-label="Campaña activa" (click)="abrirTopbarModal('CAMPANIA')">
+            <span class="conn-status-icon topbar-info-btn" aria-hidden="true">
               <i class="bi bi-tag-fill"></i>
             </span>
             <span class="conn-status-text d-none d-lg-inline">Campaña</span>
-            <span class="campania-chip-value">{{ campaniaFrutaLabel() }}</span>
-          </div>
+            <span class="campania-chip-value d-none d-lg-inline">{{ campaniaFrutaLabel() }}</span>
+            <span class="campania-chip-value d-inline d-lg-none">{{ getCampaniaResumen() }}</span>
+          </button>
         }
 
-        @if (usuario()?.acopioId) {
-          <div class="conn-status topbar-acopio" aria-label="Acopio asignado">
-            <span class="conn-status-icon">
+        @if (usuario()?.codigoAcopio) {
+          <button type="button" class="conn-status topbar-acopio" aria-label="Acopio asignado" (click)="abrirTopbarModal('ACOPIO')">
+            <span class="conn-status-icon topbar-info-btn" aria-hidden="true">
               <i class="bi bi-geo-alt-fill"></i>
             </span>
             <span class="conn-status-text d-none d-lg-inline">Acopio</span>
-            <span class="topbar-acopio-value">{{ usuario()?.acopioNombre }} - {{ usuario()?.serieGuia }}</span>
-          </div>
+            <span class="topbar-acopio-value d-none d-lg-inline">{{ usuario()?.acopioNombre }} - {{ usuario()?.serieGuia }}</span>
+            <span class="topbar-acopio-value d-inline d-lg-none">{{ getAcopioResumen() }}</span>
+          </button>
         }
 
         <button type="button"
@@ -143,6 +145,39 @@
         </div>
       </div>
     </div>
+
+    @if (topbarInfoModalAbierto()) {
+      <div class="modal-backdrop-custom" (click)="cerrarTopbarModal()"></div>
+      <div class="modal-custom" role="dialog" aria-modal="true">
+        <div class="modal-header-custom">
+          <h5>
+            @if (topbarInfoModalTab() === 'CAMPANIA') {
+              <i class="bi bi-tag-fill"></i> Campaña
+            } @else {
+              <i class="bi bi-geo-alt-fill"></i> Acopio
+            }
+          </h5>
+          <button type="button" class="btn-close btn-close-white" (click)="cerrarTopbarModal()" aria-label="Close"></button>
+        </div>
+        <div class="modal-body-custom">
+          <div class="sp-card" style="margin-bottom:0">
+            <div class="sp-card-body">
+              @if (topbarInfoModalTab() === 'CAMPANIA') {
+                <div class="mb-2"><strong>Fruta:</strong> {{ campaniaFrutaLabel() || '—' }}</div>
+                <div class="mb-2"><strong>Proyecto:</strong> {{ selectedCampania()?.idproyecto || savedConfig()?.idProyecto || '—' }}</div>
+                <div><strong>Periodo:</strong> {{ fmtDate(selectedCampania()?.fecha_inicio) }} — {{ fmtDate(selectedCampania()?.fecha_fin) }}</div>
+              } @else {
+                <div class="mb-2"><strong>Nombre:</strong> {{ usuario()?.acopioNombre || '—' }}</div>
+                <div><strong>Serie:</strong> {{ usuario()?.serieGuia || '—' }}</div>
+              }
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer-custom">
+          <button type="button" class="btn btn-sp-outline" (click)="cerrarTopbarModal()">Cerrar</button>
+        </div>
+      </div>
+    }
 
     <!-- Page Content -->
     <div class="app-content">

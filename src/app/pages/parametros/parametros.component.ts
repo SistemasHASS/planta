@@ -9,9 +9,12 @@ import { AlertService } from "../../shared/services/alert.service";
 import { ConnectivityService } from "../../shared/services/connectivity.service";
 import { Configuracion, MatrizCompatibilidad, Usuario } from "../../shared/interfaces/administracion.interface";
 import { AdvancedSelectComponent } from "../../shared/components/advanced-select/advanced-select.component";
-import { Fundo, Cultivo, Campania } from "../../shared/interfaces/catalogo.interface";
+import { Fundo, Cultivo, Campania, AcopioDetalle } from "../../shared/interfaces/catalogo.interface";
 import { AdministracionRepository } from "../../shared/dexiedb/repository/administracion.repository";
 import { AdministracionService } from "../../shared/services/administracion.service";
+import { ProcesoService } from "../../shared/services/proceso.service";
+import { DProcesoLogistico, DProcesoSupervisor, Proceso } from "../../shared/interfaces/proceso.interface";
+import { ProcesoRepository } from "../../shared/dexiedb/repository/proceso.repository";
 
 
 @Component({
@@ -30,6 +33,9 @@ export class ParametrosComponent implements OnInit {
     private readonly alertService = inject(AlertService);
     private readonly connectivity = inject(ConnectivityService);
     private readonly administracionService = inject(AdministracionService);
+    private readonly procesoService = inject(ProcesoService)
+    private readonly procesoRepo = inject(ProcesoRepository);
+    
 
     readonly nombreCompleto = this.auth.nombreCompleto;
     readonly inicialUsuario = this.auth.inicialUsuario;
@@ -319,10 +325,10 @@ export class ParametrosComponent implements OnInit {
     }
 
     private async apiListarReglasSobrePeso(): Promise<void> {
-        const resp: any = await firstValueFrom(this.administracionService.listarReglasSobrePeso({idProyecto:this.savedConfig()?.idProyecto,codigoCultivo:this.savedConfig()?.codigoCultivo}));
+        const resp: any = await firstValueFrom(this.administracionService.listarReglasSobrePeso({ idProyecto: this.savedConfig()?.idProyecto, codigoCultivo: this.savedConfig()?.codigoCultivo }));
         if (resp[0]?.error) {
-        this.alertService.showAlert('Error', resp?.mensaje ?? 'Error al listar reglas de sobrepeso', 'error');
-        return;
+            this.alertService.showAlert('Error', resp?.mensaje ?? 'Error al listar reglas de sobrepeso', 'error');
+            return;
         }
         let apiItems = resp[0].data
         const normalizados = await this.normalizarReglasSobrePeso(apiItems);
@@ -333,39 +339,81 @@ export class ParametrosComponent implements OnInit {
         }
     }
 
-    async normalizarReglasSobrePeso(data:any[]):Promise<any[]>{
-        const list = Array.isArray(data) && data.length >0 ? data : [];
+    normalizarProceso(proceso: any): {
+        proceso: Proceso;
+        dProcesoLogisticos: DProcesoLogistico[];
+        dProcesoSupervisores: DProcesoSupervisor[];
+    } {
+        const p: Proceso = {
+        id: proceso?.id ?? undefined,
+        idProceso: String(proceso?.idProceso ?? '').trim(),
+        idProyecto: String(proceso?.idProyecto ?? '').trim(),
+        codigoAcopio: String(proceso?.codigoAcopio ?? '').trim(),
+        acopioNombre: String(proceso?.acopioNombre ?? '').trim(),
+        fechaProceso: String(proceso?.fechaProceso ?? '').trim(),
+        estado: String(proceso?.estado ?? '').trim(),
+        fechaApertura: String(proceso?.fechaApertura ?? '').trim(),
+        fechaCierre: proceso?.fechaCierre ?? null,
+        turno: String(proceso?.turno ?? '').trim(),
+        idUsuarioApertura: proceso?.idUsuarioApertura ?? undefined,
+        idRolApertura: proceso?.idRolApertura ?? undefined,
+        idUsuarioCierre: proceso?.idUsuarioCierre ?? undefined,
+        idRolCierre: proceso?.idRolCierre ?? undefined,
+        db: 1
+        };
+
+        const dProcesoLogisticos: DProcesoLogistico[] = (Array.isArray(proceso?.logisticos) ? proceso.logisticos : []).map((it: any) => ({
+        id: it?.id ?? undefined,
+        idProceso: String(it?.idProceso ?? p.idProceso ?? '').trim(),
+        idLogistico: Number(it?.idLogistico ?? 0),
+        fechaCreacion: it?.fechaCreacion ?? undefined,
+        db: 1
+        }));
+
+        const dProcesoSupervisores: DProcesoSupervisor[] = (Array.isArray(proceso?.supervisores) ? proceso.supervisores : []).map((it: any) => ({
+        id: it?.id ?? undefined,
+        idProceso: String(it?.idProceso ?? p.idProceso ?? '').trim(),
+        idSupervisor: Number(it?.idSupervisor ?? 0),
+        fechaCreacion: it?.fechaCreacion ?? undefined,
+        db: 1
+        }));
+
+        return { proceso: p, dProcesoLogisticos, dProcesoSupervisores };
+    }
+
+    async normalizarReglasSobrePeso(data: any[]): Promise<any[]> {
+        const list = Array.isArray(data) && data.length > 0 ? data : [];
         const cfg = this.savedConfig();
         const idProyectoCfg = String(cfg?.idProyecto ?? '').trim();
         const idCultivoCfg = String(cfg?.codigoCultivo ?? '').trim();
 
         const normalized = list.map((r: any) => ({
-        ...r,
-        idProyecto: String(r?.idProyecto ?? idProyectoCfg ?? '').trim(),
-        codigoCultivo: String(r?.codigoCultivo ?? idCultivoCfg ?? '').trim(),
-        documentoConsignatario: String(r?.documentoConsignatario ?? r?.documento_consignatario ?? r?.consignatarioDocumento ?? r?.consignatarioId ?? '').trim(),
-        formatoId: r?.formatoId === null || r?.formatoId === undefined ? null : Number(r?.formatoId),
-        destinoId: String(r?.destinoId ?? '').trim(),
-        transporteId: String(r?.transporteId ?? '').trim(),
-        porcentaje: r?.porcentaje === null || r?.porcentaje === undefined ? null : Number(r?.porcentaje),
-        vigenciaDesde: String(r?.vigenciaDesde ?? '').trim(),
-        vigenciaHasta: String(r?.vigenciaHasta ?? '').trim(),
-        descripcion: r?.descripcion ?? '',
-        activo: r?.activo === false ? false : true,
-        bd: 1,
-        modo: r?.modo ?? 'editado',
+            ...r,
+            idProyecto: String(r?.idProyecto ?? idProyectoCfg ?? '').trim(),
+            codigoCultivo: String(r?.codigoCultivo ?? idCultivoCfg ?? '').trim(),
+            documentoConsignatario: String(r?.documentoConsignatario ?? r?.documento_consignatario ?? r?.consignatarioDocumento ?? r?.consignatarioId ?? '').trim(),
+            formatoId: r?.formatoId === null || r?.formatoId === undefined ? null : Number(r?.formatoId),
+            destinoId: String(r?.destinoId ?? '').trim(),
+            transporteId: String(r?.transporteId ?? '').trim(),
+            porcentaje: r?.porcentaje === null || r?.porcentaje === undefined ? null : Number(r?.porcentaje),
+            vigenciaDesde: String(r?.vigenciaDesde ?? '').trim(),
+            vigenciaHasta: String(r?.vigenciaHasta ?? '').trim(),
+            descripcion: r?.descripcion ?? '',
+            activo: r?.activo === false ? false : true,
+            bd: 1,
+            modo: r?.modo ?? 'editado',
         }));
 
         return normalized
     }
 
     async apiListarMatricesCompatibilidad() {
-        const resp: any = await firstValueFrom(this.administracionService.listarMatricesCompatibilidad({idProyecto:this.savedConfig()?.idProyecto,idCultivo:this.savedConfig()?.codigoCultivo}));
-        if (resp[0]?.error ) {
-        this.alertService.showAlert('Error', 'Error al listar las matrices de compatibilidad', 'error');
-        return
+        const resp: any = await firstValueFrom(this.administracionService.listarMatricesCompatibilidad({ idProyecto: this.savedConfig()?.idProyecto, idCultivo: this.savedConfig()?.codigoCultivo }));
+        if (resp[0]?.error) {
+            this.alertService.showAlert('Error', 'Error al listar las matrices de compatibilidad', 'error');
+            return
         }
-         let apiItems = resp[0].data
+        let apiItems = resp[0].data
         const normalizados = await this.normalizarMatricesCompatibilidadDixie(apiItems);
         if (normalizados.length > 0) {
             for (const item of normalizados) {
@@ -374,118 +422,190 @@ export class ParametrosComponent implements OnInit {
         }
     }
 
-      async normalizarMatricesCompatibilidadDixie(data: any[]): Promise<any[]> {
+    async normalizarMatricesCompatibilidadDixie(data: any[]): Promise<any[]> {
         const normalizar: MatrizCompatibilidad[] = [];
         for (const item of (Array.isArray(data) ? data : [])) {
-          const cliente = item?.documentoCliente ? await this.catalogosRepo.clientesRepo.getByField('id', Number(item.documentoCliente)) : undefined;
-          const consignatario = item?.documentoConsignatario ? await this.catalogosRepo.consignatariosRepo.getByField('id', Number(item.documentoConsignatario)) : undefined;
-          const destino = item?.destinoId ? await this.catalogosRepo.destinosRepo.getByField('id', item.destinoId) : undefined;
-          const formato = item?.formatoId ? await this.catalogosRepo.formatosRepo.getByField('id', item.formatoId) : undefined;
-          const tipoEmpaque = item?.tiposEmpaqueId ? await this.catalogosRepo.tiposEmpaqueRepo.getByField('id', item.tiposEmpaqueId) : undefined;
-          const tipoEmpaqueGuia = item?.tipoEmpaqueGuiaId ? await this.catalogosRepo.tiposEmpaqueGuiaRepo.getByField('id', item.tipoEmpaqueGuiaId) : undefined;
-          const calibre = item?.calibreId ? await this.catalogosRepo.calibresRepo.getByField('id', item.calibreId) : undefined;
-          const tipoCaja = item?.tipoCajaId ? await this.catalogosRepo.tiposCajaRepo.getByField('id', item.tipoCajaId) : undefined;
-          const tipoClamshell = item?.tipoClamshellId ? await this.catalogosRepo.tiposClamshellRepo.getByField('id', item.tipoClamshellId) : undefined;
-          const presentacion = item?.presentacionId ? await this.catalogosRepo.presentacionesRepo.getByField('id', item.presentacionId) : undefined;
-          const categoria = item?.categoriaId ? await this.catalogosRepo.categoriasRepo.getByField('id', item.categoriaId) : undefined;
-          const row: MatrizCompatibilidad = {
-            id: Number(item?.id ?? 0),
-            idProyecto: item?.idProyecto ?? this.savedConfig()?.idProyecto,
-            codigoCultivo: item?.codigoCultivo  ?? this.savedConfig()?.codigoCultivo,
-            documentoCliente: (item?.documentoCliente ?? ''),
-            clienteNombre: (cliente as any)?.razonSocial ?? (cliente as any)?.nombre ?? (cliente as any)?.descripcion,
-    
-            documentoConsignatario: (item?.documentoConsignatario ?? ''),
-            consignatarioNombre: (consignatario as any)?.razonSocial ?? (consignatario as any)?.nombre ?? (consignatario as any)?.descripcion,
-    
-            destinoId: (item?.destinoId ?? ''),
-            destinoNombre: (destino as any)?.pais ?? (destino as any)?.nacionalidad,
-    
-            formatoId: Number(item?.formatoId ?? 0),
-            formatoNombre: (formato as any)?.descripcion ?? (formato as any)?.descripcion2,
-            formatoCodigo: (formato as any)?.descripcion2,
-    
-            tiposEmpaqueId: Number(item?.tiposEmpaqueId ?? 0),
-            tipoEmpaqueNombre: (tipoEmpaque as any)?.descripcion ?? (tipoEmpaque as any)?.codigo,
-    
-            tipoEmpaqueGuiaId: Number(item?.tipoEmpaqueGuiaId ?? 0),
-            tipoEmpaqueGuiaNombre: (tipoEmpaqueGuia as any)?.nombre ?? (tipoEmpaqueGuia as any)?.descripcion,
-    
-            calibreId: item?.calibreId ?? '',
-            calibreNombre: (calibre as any)?.calibre ?? (calibre as any)?.calibreId,
-    
-            tipoCajaId: Number(item?.tipoCajaId ?? 0),
-            tipoCajaNombre: (tipoCaja as any)?.nombre ?? (tipoCaja as any)?.descripcion,
-    
-            tipoClamshellId: Number(item?.tipoClamshellId ?? 0),
-            tipoClamshellNombre: (tipoClamshell as any)?.nombre ?? (tipoClamshell as any)?.descripcion,
-    
-            presentacionId: Number(item?.presentacionId ?? 0),
-            presentacionNombre: (presentacion as any)?.nombre ?? (presentacion as any)?.descripcion,
-    
-            categoriaId: Number(item?.categoriaId ?? 0),
-            categoriaNombre: (categoria as any)?.nombre ?? (categoria as any)?.descripcion,
-    
-            activo: !!item?.activo,
-            fechaCreacion: item?.fechaCreacion,
-            modo: item?.modo ?? 'editado',
-            bd: 1,
-          };
-    
-          normalizar.push(row);
-        }
-    
-        return normalizar;
-      }
+            const cliente = item?.documentoCliente ? await this.catalogosRepo.clientesRepo.getByField('id', Number(item.documentoCliente)) : undefined;
+            const consignatario = item?.documentoConsignatario ? await this.catalogosRepo.consignatariosRepo.getByField('id', Number(item.documentoConsignatario)) : undefined;
+            const destino = item?.destinoId ? await this.catalogosRepo.destinosRepo.getByField('id', item.destinoId) : undefined;
+            const formato = item?.formatoId ? await this.catalogosRepo.formatosRepo.getByField('id', item.formatoId) : undefined;
+            const tipoEmpaque = item?.tiposEmpaqueId ? await this.catalogosRepo.tiposEmpaqueRepo.getByField('id', item.tiposEmpaqueId) : undefined;
+            const tipoEmpaqueGuia = item?.tipoEmpaqueGuiaId ? await this.catalogosRepo.tiposEmpaqueGuiaRepo.getByField('id', item.tipoEmpaqueGuiaId) : undefined;
+            const calibre = item?.calibreId ? await this.catalogosRepo.calibresRepo.getByField('id', item.calibreId) : undefined;
+            const tipoCaja = item?.tipoCajaId ? await this.catalogosRepo.tiposCajaRepo.getByField('id', item.tipoCajaId) : undefined;
+            const tipoClamshell = item?.tipoClamshellId ? await this.catalogosRepo.tiposClamshellRepo.getByField('id', item.tipoClamshellId) : undefined;
+            const presentacion = item?.presentacionId ? await this.catalogosRepo.presentacionesRepo.getByField('id', item.presentacionId) : undefined;
+            const categoria = item?.categoriaId ? await this.catalogosRepo.categoriasRepo.getByField('id', item.categoriaId) : undefined;
+            const row: MatrizCompatibilidad = {
+                id: Number(item?.id ?? 0),
+                idProyecto: item?.idProyecto ?? this.savedConfig()?.idProyecto,
+                codigoCultivo: item?.codigoCultivo ?? this.savedConfig()?.codigoCultivo,
+                documentoCliente: (item?.documentoCliente ?? ''),
+                clienteNombre: (cliente as any)?.razonSocial ?? (cliente as any)?.nombre ?? (cliente as any)?.descripcion,
 
-    async getListarCatalogosUsuarios(): Promise<void>{
-        const parametros= await this.catalogosRepo.configuracionRepo.getAll()
+                documentoConsignatario: (item?.documentoConsignatario ?? ''),
+                consignatarioNombre: (consignatario as any)?.razonSocial ?? (consignatario as any)?.nombre ?? (consignatario as any)?.descripcion,
+
+                destinoId: (item?.destinoId ?? ''),
+                destinoNombre: (destino as any)?.pais ?? (destino as any)?.nacionalidad,
+
+                formatoId: Number(item?.formatoId ?? 0),
+                formatoNombre: (formato as any)?.descripcion ?? (formato as any)?.descripcion2,
+                formatoCodigo: (formato as any)?.descripcion2,
+
+                tiposEmpaqueId: Number(item?.tiposEmpaqueId ?? 0),
+                tipoEmpaqueNombre: (tipoEmpaque as any)?.descripcion ?? (tipoEmpaque as any)?.codigo,
+
+                tipoEmpaqueGuiaId: Number(item?.tipoEmpaqueGuiaId ?? 0),
+                tipoEmpaqueGuiaNombre: (tipoEmpaqueGuia as any)?.nombre ?? (tipoEmpaqueGuia as any)?.descripcion,
+
+                calibreId: item?.calibreId ?? '',
+                calibreNombre: (calibre as any)?.calibre ?? (calibre as any)?.calibreId,
+
+                tipoCajaId: Number(item?.tipoCajaId ?? 0),
+                tipoCajaNombre: (tipoCaja as any)?.nombre ?? (tipoCaja as any)?.descripcion,
+
+                tipoClamshellId: Number(item?.tipoClamshellId ?? 0),
+                tipoClamshellNombre: (tipoClamshell as any)?.nombre ?? (tipoClamshell as any)?.descripcion,
+
+                presentacionId: Number(item?.presentacionId ?? 0),
+                presentacionNombre: (presentacion as any)?.nombre ?? (presentacion as any)?.descripcion,
+
+                categoriaId: Number(item?.categoriaId ?? 0),
+                categoriaNombre: (categoria as any)?.nombre ?? (categoria as any)?.descripcion,
+
+                activo: !!item?.activo,
+                fechaCreacion: item?.fechaCreacion,
+                modo: item?.modo ?? 'editado',
+                bd: 1,
+            };
+
+            normalizar.push(row);
+        }
+
+        return normalizar;
+    }
+
+    async getListarCatalogosUsuarios(): Promise<void> {
+        const parametros = await this.catalogosRepo.configuracionRepo.getAll()
         try {
             if (!this.online) {
                 this.alertService.showAlert('Error', 'No hay conexión a internet', 'error');
                 return;
             }
             this.alertService.mostrarModalCarga();
+            let tareas: any = [];
+            switch (this.usuario()?.idRol) {
+                case 'ADPLA': //admin
+                    tareas = [
+                        this.getAcopiosMaestros(),
+                        this.getTipoProcesoEmpacado(parametros[0].idProyecto),
+                        this.getFormatosMaestros(parametros[0].codigoCultivo),
+                        this.getVariedadesMaestros(parametros[0].codigoCultivo),
+                        this.getClientesMaestros(),
+                        this.getPaisesMaestros(),
+                        this.getCalibresMaestros(parametros[0].codigoCultivo),
+                        this.getTransportesMaestros(),
+                        this.getTiposClamshellMaestros(parametros[0].codigoCultivo),
+                        this.getCategoriaMaestros(parametros[0].codigoCultivo),
+                        this.getTiposEmpaquesMaestros(parametros[0].codigoCultivo),
+                        this.getTiposEmpaqueGuiaMaestros(parametros[0].codigoCultivo),
+                        this.getPresentacionesMaestros(parametros[0].codigoCultivo),
+                        this.getTiposCajaMaestros(parametros[0].codigoCultivo),
+                        this.getLugaresProduccionMaestros(parametros[0].idProyecto),
+                        this.getConductoresMaestros(parametros[0].idProyecto),
+                        this.getVehiculosMaestros(parametros[0].idProyecto),
+                        this.getTransportistasMaestros(parametros[0].idProyecto),
+                        this.getSupervisoresMaestros(parametros[0].idProyecto),
+                        this.getPersonalLogisticoMaestros(parametros[0].idProyecto),
+                        this.getListarUsuariosAcopio()
+                    ];
+                    break;
+                case 'LOPLA':
+                    tareas = [
+                        this.getAcopiosMaestros(),
+                        this.getTipoProcesoEmpacado(parametros[0].idProyecto),
+                        this.getFormatosMaestros(parametros[0].codigoCultivo),
+                        this.getVariedadesMaestros(parametros[0].codigoCultivo),
+                        this.getClientesMaestros(),
+                        this.getPaisesMaestros(),
+                        this.getCalibresMaestros(parametros[0].codigoCultivo),
+                        this.getTransportesMaestros(),
+                        this.getTiposClamshellMaestros(parametros[0].codigoCultivo),
+                        this.getCategoriaMaestros(parametros[0].codigoCultivo),
+                        this.getTiposEmpaquesMaestros(parametros[0].codigoCultivo),
+                        this.getTiposEmpaqueGuiaMaestros(parametros[0].codigoCultivo),
+                        this.getPresentacionesMaestros(parametros[0].codigoCultivo),
+                        this.getTiposCajaMaestros(parametros[0].codigoCultivo),
+                        this.getLugaresProduccionMaestros(parametros[0].idProyecto),
+                        this.getConductoresMaestros(parametros[0].idProyecto),
+                        this.getVehiculosMaestros(parametros[0].idProyecto),
+                        this.getTransportistasMaestros(parametros[0].idProyecto),
+                        this.getSupervisoresMaestros(parametros[0].idProyecto, true),
+                        this.getPersonalLogisticoMaestros(parametros[0].idProyecto, true),
+                        this.getProcesosForAcopioMaestros(parametros[0].idProyecto, parametros[0].codigoCultivo)
 
-            const tareas = [
-                this.getAcopiosMaestros(),
-                this.getFormatosMaestros(parametros[0].codigoCultivo),
-                this.getVariedadesMaestros(parametros[0].codigoCultivo),
-                this.getClientesMaestros(),
-                this.getPaisesMaestros(),
-                this.getCalibresMaestros(parametros[0].codigoCultivo),
-                this.getTransportesMaestros(),
-                this.getTiposClamshellMaestros(parametros[0].codigoCultivo),
-                this.getCategoriaMaestros(parametros[0].codigoCultivo),
-                this.getTiposEmpaquesMaestros(parametros[0].codigoCultivo),
-                this.getTiposEmpaqueGuiaMaestros(parametros[0].codigoCultivo),
-                this.getPresentacionesMaestros(parametros[0].codigoCultivo),
-                this.getTiposCajaMaestros(parametros[0].codigoCultivo),
-                this.getLugaresProduccionMaestros(parametros[0].idProyecto),
-                this.getConductoresMaestros(parametros[0].idProyecto),
-                this.getVehiculosMaestros(parametros[0].idProyecto),
-                this.getTransportistasMaestros(parametros[0].idProyecto),
-                this.getSupervisoresMaestros(parametros[0].idProyecto),
-                this.getPersonalLogisticoMaestros(parametros[0].idProyecto),
-                this.getListarUsuariosAcopio()
-            ];
+                    ];
+                    break;
 
-            const resultados = await Promise.allSettled(tareas);
+                default:
+                    tareas = [];
+                    break;
 
-            resultados.forEach((r, index) => {
-                if (r.status === 'rejected') {
-                    console.error(`Error sincronizando tarea ${index + 1}`, r.reason);
-                }
-            });
+            };
+            if (tareas.length > 0) {
 
-            await this.apiListarMatricesCompatibilidad()
-            await this.apiListarReglasSobrePeso()
-            this.alertService.cerrarModalCarga();
-            this.alertService.showAlert('Listo', 'Sincronización completada', 'success');
+                const resultados = await Promise.allSettled(tareas);
+
+                resultados.forEach((r, index) => {
+                    if (r.status === 'rejected') {
+                        console.error(`Error sincronizando tarea ${index + 1}`, r.reason);
+                    }
+                });
+
+                await this.apiListarMatricesCompatibilidad()
+                await this.apiListarReglasSobrePeso()
+                this.alertService.cerrarModalCarga();
+                this.alertService.showAlert('Listo', 'Sincronización completada', 'success');
+            } else {
+                this.alertService.cerrarModalCarga();
+                this.alertService.showAlert('Error', `No tiene Permisos para esta acción: ${this.usuario()?.idRol}`, 'error');
+            }
         } catch (error) {
             console.log('Error sincronizando parámetros', error);
             this.alertService.cerrarModalCarga();
-            this.alertService.showAlertAcept('Error', 'Error sincronizando parámetros', 'error');
+            this.alertService.showAlert('Error', 'Error sincronizando parámetros', 'error');
+        }
+    }
+
+    async getProcesosForAcopioMaestros(idproyecto:string, codigoCultivo:string): Promise<void>{
+        try{    
+            const resp: any =await firstValueFrom(this.procesoService.listarProcesoForAcopio(codigoCultivo, idproyecto))
+            console.log('resp', resp)
+            if(resp.length > 0){
+                if(!resp[0].error){
+                    if(resp[0].data.length >0){
+                        const data = Array.isArray(resp?.[0]?.data) ? resp[0].data : [];
+                        const normalizados: {
+                                  proceso: Proceso;
+                                  dProcesoLogisticos: DProcesoLogistico[];
+                                  dProcesoSupervisores: DProcesoSupervisor[];
+                                }[] = data.map((x: any) => this.normalizarProceso(x));
+                        for (const n of normalizados) {
+                            await this.procesoRepo.procesosRepo.saveFordec(n.proceso as any);
+
+                            for (const d of n.dProcesoLogisticos) {
+                                await this.procesoRepo.dProcesoLogisticosRepo.saveByCompoundId(d as any);
+                            }
+                            for (const d of n.dProcesoSupervisores) {
+                                await this.procesoRepo.dProcesoSupervisoresRepo.saveByCompoundId(d as any);
+                            }
+                        }
+                    }
+                }
+            }
+        }catch(error){
+            console.log('Error listando Procesos acopios', error);
         }
     }
 
@@ -508,9 +628,36 @@ export class ParametrosComponent implements OnInit {
             console.log('Error listando usuarios acopios', error);
         }
     }
-    async getPersonalLogisticoMaestros(idProyecto: string): Promise<void> {
+
+    async getTipoProcesoEmpacado(idproyecto:string): Promise<void>{
+        try{
+            const resp: any = await firstValueFrom(this.catalogoService.listarTipoProcesoEmpacado(idproyecto))
+            if (!resp.error) {
+                if (resp.data.length > 0) {
+                    let dexiedb = await this.catalogosRepo.tipoProcesoEmpacadoRepo.getAll()
+                    if (dexiedb.length > 0) {
+                        await this.catalogosRepo.tipoProcesoEmpacadoRepo.clear()
+                    }
+                    for (const tipoProcesoEmpacado of resp.data) {
+                        tipoProcesoEmpacado.bd = 1
+                        await this.catalogosRepo.tipoProcesoEmpacadoRepo.save(tipoProcesoEmpacado as any)
+                    }
+                }
+            }
+        }catch (error){
+            console.log('Error listando TipoProcesoEmpacado', error)
+        }
+    }
+
+    async getPersonalLogisticoMaestros(idProyecto: string, disponibles: boolean = false): Promise<void> {
         try {
-            const resp: any = await firstValueFrom(this.catalogoService.listarPersonalLogistico(idProyecto))
+            let resp: any
+            if (!disponibles) {
+                resp = await firstValueFrom(this.catalogoService.listarPersonalLogistico(idProyecto))
+            } else {
+                let respDisponibles = await firstValueFrom(this.catalogoService.listarPersonaLogisticoDisponibles(idProyecto, new Date().toISOString().split('T')[0]))
+                resp = respDisponibles[0]
+            }
             if (!resp.error) {
                 if (resp.data.length > 0) {
                     let dexiedb = await this.catalogosOperativosRepo.personalLogisticoRepo.getAll()
@@ -528,9 +675,18 @@ export class ParametrosComponent implements OnInit {
         }
     }
 
-    async getSupervisoresMaestros(idProyecto: string): Promise<void> {
+    async getSupervisoresMaestros(idProyecto: string, disponibles: boolean = false): Promise<void> {
         try {
-            const resp: any = await firstValueFrom(this.catalogoService.listarSupervisores(idProyecto))
+            let resp: any
+            if (!disponibles) {
+                resp = await firstValueFrom(this.catalogoService.listarSupervisores(idProyecto))
+            } else {
+                let respDisponibles = await firstValueFrom(this.catalogoService.listarSupervisoresDisponibles(idProyecto, new Date().toISOString().split('T')[0]))
+                if (respDisponibles.length == 0) {
+                    return
+                }
+                resp = respDisponibles[0]
+            }
             if (!resp.error) {
                 if (resp.data.length > 0) {
                     let dexiedb = await this.catalogosOperativosRepo.supervisoresRepo.getAll()
@@ -628,7 +784,7 @@ export class ParametrosComponent implements OnInit {
         }
     }
 
-    async getTiposCajaMaestros(codigoCultivo:string): Promise<void> {
+    async getTiposCajaMaestros(codigoCultivo: string): Promise<void> {
         try {
             const resp: any = await firstValueFrom(this.catalogoService.listarTiposCaja(codigoCultivo))
             if (!resp.error) {
@@ -738,7 +894,7 @@ export class ParametrosComponent implements OnInit {
                 }
             }
             for (const tc of (resp.data ?? [])) {
-                tc.bd=1
+                tc.bd = 1
                 this.catalogosRepo.tiposClamshellRepo.save(tc);
             }
         } catch (error) {
@@ -763,7 +919,7 @@ export class ParametrosComponent implements OnInit {
         }
     }
 
-    async getCalibresMaestros(codigoCultivo:string): Promise<void> {
+    async getCalibresMaestros(codigoCultivo: string): Promise<void> {
         try {
             const resp: any = await firstValueFrom(this.catalogoService.listarCalibres())
             if (resp.length > 0) {
@@ -771,7 +927,7 @@ export class ParametrosComponent implements OnInit {
                 if (dexiedb.length > 0) {
                     await this.catalogosRepo.calibresRepo.clear()
                 }
-                let calibresCultivos= resp.filter((p:any) => p.idCultivo == codigoCultivo)
+                let calibresCultivos = resp.filter((p: any) => p.idCultivo == codigoCultivo)
                 for (const c of (calibresCultivos ?? [])) {
                     this.catalogosRepo.calibresRepo.save(c);
                 }
@@ -798,7 +954,7 @@ export class ParametrosComponent implements OnInit {
         }
     }
 
-    async getVariedadesMaestros(codigoCultivo:string): Promise<void> {
+    async getVariedadesMaestros(codigoCultivo: string): Promise<void> {
         try {
             const resp: any = await firstValueFrom(this.catalogoService.listarVariedades())
             if (!resp?.error) {
@@ -807,7 +963,7 @@ export class ParametrosComponent implements OnInit {
                     if (dexiedb.length > 0) {
                         await this.catalogosRepo.variedadesRepo.clear()
                     }
-                    let variedadesCultivos= resp.data.filter((p:any) => p.idcultivo == codigoCultivo)
+                    let variedadesCultivos = resp.data.filter((p: any) => p.idcultivo == codigoCultivo)
                     for (const v of (variedadesCultivos ?? [])) {
                         v.bd = 1
                         this.catalogosRepo.variedadesRepo.save(v)
@@ -837,7 +993,7 @@ export class ParametrosComponent implements OnInit {
         }
     }
 
-    async getFormatosMaestros(codigoCultivo:string): Promise<void> {
+    async getFormatosMaestros(codigoCultivo: string): Promise<void> {
         try {
             const resp: any = await firstValueFrom(this.catalogoService.listarFormatos(codigoCultivo))
             if (!resp.error) {
@@ -847,7 +1003,7 @@ export class ParametrosComponent implements OnInit {
                 }
             }
             for (const f of (resp.data ?? [])) {
-                f.bd=1
+                f.bd = 1
                 this.catalogosRepo.formatosRepo.save(f)
             }
         } catch (error) {
@@ -858,14 +1014,30 @@ export class ParametrosComponent implements OnInit {
     async getAcopiosMaestros(): Promise<void> {
         try {
             const resp: any = await firstValueFrom(this.catalogoService.listarAcopios())
+            console.log(resp)
             if (!resp.error) {
                 let dexiedb = await this.catalogosOperativosRepo.acopiosRepo.getAll()
                 if (dexiedb.length > 0) {
                     await this.catalogosOperativosRepo.acopiosRepo.clear()
+                    await this.catalogosOperativosRepo.acopiosDetallesRepo.clear()
                 }
                 for (const a of (resp.data ?? [])) {
                     a.bd = 1
                     this.catalogosOperativosRepo.acopiosRepo.save(a)
+                    if(a.tiposProcesoEmpacado.length >0){
+                        for(const ad of (a.tiposProcesoEmpacado?? [])){
+                                const detalle:AcopioDetalle = {
+                                    id:ad.id,
+                                    codigoAcopio: a.codigoAcopio,
+                                    codigoTipoProcesoEmpacado: ad.codigo,
+                                    nombreTipoProcesoEmpacado: ad.nombre,
+                                    fechaCreacion: ad.fechaCreacion,
+                                    activo:ad.activo,
+                                    bd: 1,
+                                };
+                            this.catalogosOperativosRepo.acopiosDetallesRepo.save(detalle)
+                        }
+                    }
                 }
             }
         } catch (error) {

@@ -1,4 +1,5 @@
 export const CATELOGO_SCHEMA_V1 = {
+    tipoProcesoEmpacado: '++_pk,id,idproyecto,&codigo,nombre,activo,fechaCreacion,bd',
     configuracion:'++_pk,&nrodocumento,idFundo,codigoCultivo,idProyecto',
     fundo: '++_pk,id,&codigoFundo,empresa,fundo,nombreFundo',
     cultivos: '++_pk,id,empresa,cultivo,&codigo,descripcion,estado,bd',

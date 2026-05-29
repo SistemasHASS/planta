@@ -12,6 +12,7 @@ import { from, of } from 'rxjs';
 import { CatalogosRepository } from '../shared/dexiedb/repository/catalogos.repository';
 import { Campania } from '../shared/interfaces/catalogo.interface';
 import { Configuracion } from '../shared/interfaces/administracion.interface';
+import { formatDate } from '../shared/utils/datetime.utils';
 
 interface NavItem {
   label: string;
@@ -56,10 +57,40 @@ export class LayoutComponent {
   readonly savedConfig = signal<Configuracion | null>(null);
   readonly selectedCampania = signal<Campania | null>(null);
 
+  readonly topbarInfoModalAbierto = signal(false);
+  readonly topbarInfoModalTab = signal<'CAMPANIA' | 'ACOPIO'>('CAMPANIA');
+
   readonly campaniaFrutaLabel = computed(() => {
     const fruta = String(this.selectedCampania()?.fruta ?? '').trim();
     return fruta ? fruta : null;
   });
+
+  fmtDate(value: unknown): string {
+    return formatDate(value) ?? '—';
+  }
+
+  getCampaniaResumen(maxWords = 2): string {
+    const fruta = String(this.campaniaFrutaLabel() ?? '').trim();
+    const parts = fruta.split(/\s+/).filter(Boolean);
+    if (parts.length <= maxWords) return fruta;
+    return `${parts.slice(0, maxWords).join(' ')}...`;
+  }
+
+  getAcopioResumen(maxWords = 2): string {
+    const nombre = String((this.usuario() as any)?.acopioNombre ?? '').trim();
+    const parts = nombre.split(/\s+/).filter(Boolean);
+    if (parts.length <= maxWords) return nombre;
+    return `${parts.slice(0, maxWords).join(' ')}...`;
+  }
+
+  abrirTopbarModal(tab: 'CAMPANIA' | 'ACOPIO'): void {
+    this.topbarInfoModalTab.set(tab);
+    this.topbarInfoModalAbierto.set(true);
+  }
+
+  cerrarTopbarModal(): void {
+    this.topbarInfoModalAbierto.set(false);
+  }
 
   constructor() {
     this.globalError.forbidden$
@@ -119,6 +150,7 @@ export class LayoutComponent {
         title: 'Administración',
         items: [
           { label: 'Campañas', path: '/admin/campanias', icon: 'bi-calendar-range-fill' },
+          { label: 'Acopio Configuración', path: '/admin/acopio_configuracion', icon: 'bi-building-gear' },
           { label: 'Gestión de Usuarios', path: '/admin/usuarios', icon: 'bi-people-fill' },
           { label: 'Matriz Compatibilidad', path: '/admin/matriz', icon: 'bi-diagram-3-fill' },
           { label: 'Reglas Sobrepeso', path: '/admin/sobrepeso', icon: 'bi-speedometer2' },
@@ -127,6 +159,7 @@ export class LayoutComponent {
             path: '#catalogos',
             icon: 'bi-collection-fill',
             submenu: [
+              { label: 'Tipo Proceso Empacado', path: '/admin/catalogos/tipoProcesoEmpacado', icon: 'bi-dot' },
               { label: 'Clientes - Maestro', path: '/admin/catalogos/clientes', icon: 'bi-dot' },
               { label: 'Consignatarios - Maestro', path: '/admin/catalogos/consignatarios', icon: 'bi-dot' },
               { label: 'Destinos - Maestro', path: '/admin/catalogos/destinos', icon: 'bi-dot' },
@@ -153,7 +186,7 @@ export class LayoutComponent {
               { label: 'Transportistas', path: '/admin/catalogos/transportistas', icon: 'bi-dot' },
               { label: 'Supervisores', path: '/admin/catalogos/supervisores', icon: 'bi-dot' },
               { label: 'Personal Logística', path: '/admin/catalogos/personalLogistica', icon: 'bi-dot' },
-              { label: 'Acopios - Maestro', path: '/admin/catalogos/acopios', icon: 'bi-dot' },
+              // { label: 'Acopios - Maestro', path: '/admin/catalogos/acopios', icon: 'bi-dot' },
             ]
           },
         ]

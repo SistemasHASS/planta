@@ -80,6 +80,23 @@ export abstract class BaseRepository<T, K extends IndexableType = any> {
     return this.table.put(anyItem);
   }
 
+  async saveFordecForUsuario(item: T): Promise<K>  {
+    const anyItem = item as any;
+
+    if (anyItem.usuario != null) {
+      const existente = await this.table
+        .where('usuario')
+        .equals(anyItem.usuario)
+        .first();
+
+      if (existente) {
+        anyItem._pk = (existente as any)._pk;
+      }
+    }
+
+    return this.table.put(anyItem);
+  }
+
   save(item: T): Promise<K> {
     return this.table.put(item);
   }
@@ -98,6 +115,11 @@ export abstract class BaseRepository<T, K extends IndexableType = any> {
 
   update(key: K, changes: UpdateSpec<T>): Promise<number> {
     return this.table.update(key, changes);
+  }
+
+  async getActivos(): Promise<T[]> {
+    let listado= await this.table.toArray();
+    return listado.filter((item: any) => item?.activo === true || item?.activo === 1 || item?.activo === '1');
   }
 
 }

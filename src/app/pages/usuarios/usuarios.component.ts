@@ -52,7 +52,7 @@ export class UsuariosComponent implements OnInit {
           i.usuario,
           i.nombre,
           i.idRol,
-          i.acopioId,
+          i.codigoAcopio,
           i.acopioNombre,
           i.serieGuia,
           // i.activo ? 'activo' : 'inactivo',
@@ -155,7 +155,6 @@ export class UsuariosComponent implements OnInit {
       return
     }
     const data = resp?.data ?? resp;
-    console.log("aaaaaaaa",data)
     const apiItems = Array.isArray(data) ? data : (data?.usuarios ?? data?.items ?? []);
     const normalizados = await this.normalizarUsuariosDixie(apiItems);
     if (normalizados.length > 0) {
@@ -170,11 +169,10 @@ export class UsuariosComponent implements OnInit {
   }
 
   async normalizarUsuariosDixie(data: any[], bd: number = 1, withPassword: number = 0): Promise<any[]> {
-    console.log(data)
     const normalizar: Usuario[] = [];
 
     for (const item of (Array.isArray(data) ? data : [])) {
-      const acopio = item?.acopioId ? await this.catalogosOperativosRepository.acopiosRepo.getByField('id', item.acopioId) : undefined;
+      const acopio = item?.codigoAcopio ? await this.catalogosOperativosRepository.acopiosRepo.getByField('acopioId', item.codigoAcopio) : undefined;
       normalizar.push({
         id: item.id,
         idempresa: item.idempresa,
@@ -185,7 +183,7 @@ export class UsuariosComponent implements OnInit {
         documentoIdentidad: item.documentoIdentidad,
         idRol: item.idRol,
         aplicacion: item.aplicacion ?? 'PLANTA',
-        acopioId: item?.acopioId ?? 0,
+        codigoAcopio: item?.codigoAcopio ?? 0,
         acopioNombre: acopio?.acopioNombre || '',
         serieGuia: item.serieGuia || null,
         modo: item?.modo ?? 'editado',
@@ -313,7 +311,7 @@ export class UsuariosComponent implements OnInit {
         }
         // TODO: sincronizar con API
       } else {
-        await this.administracionRepository.usuariosRepository.save(normalizado[0]);
+        await this.administracionRepository.usuariosRepository.saveFordecForUsuario(normalizado[0]);
         await this.listarUsuariosRespository();
         this.alertService.cerrarModalCarga()
         this.modalAbierto.set(false);

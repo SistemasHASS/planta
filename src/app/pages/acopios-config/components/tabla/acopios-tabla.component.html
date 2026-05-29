@@ -1,0 +1,85 @@
+<div class="catalogo-table-scroll">
+  <table class="catalogo-table table table-hover">
+    <thead>
+      <tr>
+        <th style="min-width:50px">#</th>
+        <th style="min-width:120px">Código</th>
+        <th style="min-width:220px">Acopio</th>
+        <th style="min-width:140px">Serie Guía</th>
+        <th style="min-width:150px">Tipos Proceso</th>
+        <th class="th-sticky-sync" style="min-width:140px">Sincronizado</th>
+        <th class="th-actions th-sticky-actions">Acciones</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      @for (row of pagedItems(); track trackById($index, row)) {
+        <tr>
+          <td>{{ ((page() - 1) * pageSize()) + $index + 1 }}</td>
+          <td class="fw-semibold">{{ row.codigoAcopio }}</td>
+          <td>{{ row.acopioNombre }}</td>
+          <td><strong>{{ serieLabel(row.serieGuia) }}</strong></td>
+          <td>
+            <span class="sp-badge sp-badge-muted">{{ row.tiposActivosCount ?? 0 }} activo(s)</span>
+          </td>
+          <td class="td-sticky-sync">
+            <span [class]="sincronizadoClass(row.bd)">{{ sincronizadoLabel(row.bd) }}</span>
+          </td>
+          <td class="td-sticky-actions">
+            <div class="catalogo-actions">
+              <button type="button" class="catalogo-action-btn catalogo-action-btn-edit" (click)="onEditar(row)" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      }
+
+      @if (total() === 0) {
+        <tr>
+          <td colspan="7" class="text-center py-4" style="color:var(--color-text-muted);font-size:13px">
+            Sin registros
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<div class="mc-pagination">
+  <div class="mc-pagination-left">
+    <span class="mc-range">Mostrando {{ rangeLabel() }}</span>
+  </div>
+
+  <div class="mc-pagination-right">
+    <div class="mc-page-size">
+      <span class="mc-page-size-label">Filas</span>
+      <select class="form-select" style="width:90px" [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)">
+        <option value="10">10</option>
+        <option value="15">15</option>
+        <option value="25">25</option>
+        <option value="50">50</option>
+      </select>
+    </div>
+
+    <nav class="mc-pager" aria-label="Paginación">
+      <button type="button" class="mc-page-btn" (click)="prev()" [disabled]="page() === 1" aria-label="Anterior">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+
+      @for (p of pageNumbers(); track $index) {
+        @if (p === '...') {
+          <span class="mc-ellipsis">…</span>
+        } @else {
+          <button type="button" class="mc-page-number" [class.active]="page() === p" (click)="setPage(p)">
+            {{ p }}
+          </button>
+        }
+      }
+
+      <button type="button" class="mc-page-btn" (click)="next()" [disabled]="page() === totalPages()" aria-label="Siguiente">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </nav>
+  </div>
+</div>

@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { Acopio, Conductor, PersonalLogistico, Supervisor, Transportista, Vehiculo } from "../../interfaces/catalogo.interface";
+import { Acopio, AcopioDetalle, Conductor, PersonalLogistico, Supervisor, Transportista, Vehiculo } from "../../interfaces/catalogo.interface";
 import { BaseRepository } from "../db-base.repository";
 import { DexieService } from "../dexie-db.service";
 
@@ -12,9 +12,19 @@ export class CatalogosOperativosRepository {
         public readonly supervisoresRepo: SupervisorRepository,
         public readonly personalLogisticoRepo: PersonalLogisticoRepository,
         public readonly acopiosRepo: AcopioRepository,
+        public readonly acopiosDetallesRepo: AcopioDetalleRepository,
     ) { }
 }
 
+@Injectable({ providedIn: 'root' })
+export class AcopioDetalleRepository extends BaseRepository<AcopioDetalle> {
+    constructor(db: DexieService) {
+        super(db, 'acopiosDetalles');
+    }
+    async getAcopioDetalle(codigoAcopio:string):Promise<AcopioDetalle[]> {
+        return this.db.table('acopiosDetalles').where('codigoAcopio').equals(codigoAcopio).toArray();
+    }
+}
 
 @Injectable({ providedIn: 'root' })
 export class ConductorRepository extends BaseRepository<Conductor> {

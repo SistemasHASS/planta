@@ -11,6 +11,7 @@ export class DexieService extends Dexie {
     constructor() {
         super('PlantaDB');
         this.version(1).stores(DB_SCHEMA);
+        this.version(2).stores(DB_SCHEMA);
     }
 
     getTable<T, K = any>(tableName: string): Table<T, K> {

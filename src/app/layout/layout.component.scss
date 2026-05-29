@@ -44,6 +44,13 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
+button.conn-status {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  text-align: left;
+}
+
 .conn-status:hover {
   transform: translateY(-1px);
   box-shadow:
@@ -59,6 +66,12 @@
   align-items: center;
   justify-content: center;
   font-size: 16px;
+}
+
+.topbar-info-btn {
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 
 .conn-status-text {
@@ -126,6 +139,62 @@
   font-weight: 800;
   letter-spacing: 0.2px;
   color: #07343a;
+}
+
+.modal-backdrop-custom {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1040;
+}
+
+.modal-custom {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  border-radius: 12px;
+  z-index: 1050;
+  width: 92%;
+  max-width: 560px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header-custom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #fff;
+  border-radius: 12px 12px 0 0;
+}
+
+.modal-header-custom h5 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.modal-body-custom {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-footer-custom {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid #e2e8f0;
 }
 
 @media (max-width: 991.98px) {

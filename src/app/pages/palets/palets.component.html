@@ -4,33 +4,48 @@
 </div>
 
 <div class="row">
-  <!-- ═══ PROCESS SELECTOR (always visible) ═══ -->
-  <div class="col-12 mb-4">
+  <!-- ═══ Selector de proceso (siempre visible) ═══ -->
+  <div class="col-12">
     <div class="sp-card">
       <div class="sp-card-header"><h5><i class="bi bi-calendar-check"></i> Selecciona un Proceso</h5></div>
       <div class="sp-card-body">
         @if (procesosAbiertos().length > 0) {
-          <div class="row g-3">
-            @for (p of procesosAbiertos(); track p.id) {
-              <div class="col-md-6">
-                <div class="sp-card" [style.border]="procesoSeleccionado()?.id === p.id ? '2px solid var(--color-primary)' : '2px solid var(--color-success)'" style="margin-bottom:0">
-                  <div class="sp-card-body" style="padding:16px">
-                    <h5 style="font-size:15px;margin-bottom:8px">
-                      <i class="bi" [class]="p.turno === 'DIA' ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i>
-                      Turno {{ p.turno }}
-                    </h5>
-                    <p class="mb-2" style="font-size:13px"><strong>Fecha:</strong> {{ formatearFechaLarga(p.fechaProceso) }}</p>
-                    <button class="btn-sp-primary w-100" (click)="seleccionarProceso(p)">
-                      <i class="bi bi-check-circle"></i> Trabajar en este proceso
-                    </button>
+          <div class="palets-procesos-scroll" [class.palets-procesos-scroll-compact]="!!procesoSeleccionado()">
+            <div class="row g-3">
+              @for (p of procesosAbiertos(); track p.id) {
+                <div class="col-md-6">
+                  <div
+                    class="sp-card"
+                    [class.palets-proceso-card-seleccionado]="procesoSeleccionado()?.id === p.id"
+                    [style.border]="procesoSeleccionado()?.id === p.id ? '2px solid var(--color-primary)' : '2px solid var(--color-success)'"
+                    style="margin-bottom:0"
+                  >
+                    <div class="sp-card-body" style="padding:16px">
+                      <div class="d-flex justify-content-between align-items-center" style="margin-bottom:8px">
+                        <h5 class="mb-0" style="font-size:15px">
+                          <i class="bi" [class]="p.turno === 'DIA' ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i>
+                          Turno {{ p.turno }}
+                        </h5>
+                        <div class="d-flex align-items-center gap-2">
+                          @if (procesoSeleccionado()?.id === p.id) {
+                            <span class="sp-badge palets-badge-seleccionado">SELECCIONADO</span>
+                          }
+                          <span [class]="sincronizadoClass(p.db)">{{ sincronizadoLabel(p.db) }}</span>
+                        </div>
+                      </div>
+                      <p class="mb-2" style="font-size:13px"><strong>Fecha:</strong> {{ formatearFechaLarga(p.fechaProceso) }}</p>
+                      <button class="btn-sp-primary w-100" (click)="seleccionarProceso(p)">
+                        <i class="bi bi-check-circle"></i> Trabajar en este proceso
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            }
+              }
+            </div>
           </div>
         } @else {
           <div class="empty-state">
-            <i class="bi bi-exclamation-circle"></i>
+            <i class="bi bi-exclamation-circle empty-state-icon"></i>
             <p>No tienes procesos abiertos</p>
             <a routerLink="/procesos" class="btn-sp-primary mt-2" style="text-decoration:none">
               <i class="bi bi-plus-circle"></i> Abrir Proceso
@@ -41,100 +56,141 @@
     </div>
   </div>
 
-  <!-- ═══ WORK AREA (visible after selecting a process) ═══ -->
+  <!-- ═══ Área de trabajo (visible al seleccionar un proceso) ═══ -->
   @if (procesoSeleccionado()) {
     <div class="col-12">
-      <div class="row">
-        <!-- Left Column: Create + Palet List -->
+      <!-- Proceso seleccionado: resumen visible -->
+      <div class="sp-card mb-3 palets-proceso-seleccionado">
+        <div class="sp-card-body" style="padding:12px 14px">
+          <div class="d-flex justify-content-between align-items-center flex-wrap" style="gap:10px">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <span class="sp-badge sp-badge-primary"><i class="bi bi-check-circle"></i> Proceso seleccionado</span>
+              <span class="fw-semibold">
+                <i class="bi" [class]="procesoSeleccionado()!.turno === 'DIA' ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i>
+                Turno {{ procesoSeleccionado()!.turno }}
+              </span>
+              <span class="text-muted" style="font-size:12px">
+                <strong>Fecha:</strong> {{ formatearFechaLarga(procesoSeleccionado()!.fechaProceso) }}
+              </span>
+              <span [class]="sincronizadoClass(procesoSeleccionado()!.db)">{{ sincronizadoLabel(procesoSeleccionado()!.db) }}</span>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <button class="btn-sp-primary" type="button" (click)="onSincronizar()">
+                <i class="bi bi-arrow-repeat"></i> Sincronizar
+              </button>
+              <button class="btn-sp-outline" type="button" (click)="cambiarProceso()">
+                <i class="bi bi-arrow-left-right"></i> Cambiar proceso
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 palets-work-area-row">
+        <!-- Columna izquierda: acciones + listado de palets -->
         <div class="col-lg-4">
-          <div class="sp-card">
+          <!-- Card: Crear nuevo palet -->
+          <div class="sp-card mb-3">
             <div class="sp-card-header"><h5><i class="bi bi-plus-square-fill"></i> Crear Nuevo Palet</h5></div>
             <div class="sp-card-body text-center">
               <p class="text-muted" style="font-size:13px">Puedes crear múltiples palets abiertos simultáneamente</p>
               @if (permissions.puedeCrearPalet()) {
-                <button class="btn-sp-primary btn-lg" (click)="crearPalet()"><i class="bi bi-plus-circle"></i> Crear Palet</button>
+                <button class="btn-sp-primary palets-btn-crear" (click)="crearPalet()"><i class="bi bi-plus-circle"></i> Crear Palet</button>
               } @else {
                 <p class="text-muted" style="font-size:12px"><i class="bi bi-info-circle"></i> Solo ADMINISTRADOR y LOGISTICA pueden crear palets</p>
               }
             </div>
           </div>
 
-          <div class="sp-card">
-            <div class="sp-card-header"><h5><i class="bi bi-list-ul"></i> Palets del Proceso</h5></div>
-            <div class="sp-card-body" style="padding:12px;max-height:500px;overflow-y:auto">
+          <!-- Card: Palets en proceso / cerrados -->
+          <div class="sp-card mb-2 palets-card-activos">
+            <div class="sp-card-header">
+              <h5 class="d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-hourglass-split"></i> En Proceso / Cerrados</span>
+                <button class="btn btn-link p-0" type="button" (click)="toggleSeccionActivos()" style="text-decoration:none">
+                  <i class="bi" [class]="seccionActivosAbierta() ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                </button>
+              </h5>
+            </div>
+            <div class="sp-card-body" style="padding:0">
               @if (isLoading()) {
                 <div class="text-center py-3"><span class="spinner-border spinner-border-sm text-primary"></span></div>
-              } @else {
-                <!-- Section: En Proceso / Cerrados -->
-                <div class="palet-section-box mb-2">
-                  <h6 class="palet-section-header" (click)="toggleSeccionActivos()">
-                    <span><i class="bi bi-hourglass-split"></i> En Proceso / Cerrados</span>
-                    <i class="bi" [class]="seccionActivosAbierta() ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
-                  </h6>
-                  @if (seccionActivosAbierta()) {
-                    <div class="palet-section-body">
-                      @if (paletsActivos().length > 0) {
-                        @for (p of paletsActivos(); track p.Id) {
-                          <div class="palet-card"
-                               [class.palet-abierto]="p.Estado === 'ABIERTO'"
-                               [class.palet-cerrado-completo]="p.Estado === 'CERRADO_COMPLETO'"
-                               [class.palet-cerrado-saldo]="p.Estado === 'CERRADO_SALDO'"
-                               [class.palet-card-activo]="paletSeleccionado()?.Id === p.Id"
-                               (click)="verDetalle(p)">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                              <h6 class="mb-0">Palet #{{ p.NumeroPalet ?? p.Id }}</h6>
-                              <div class="text-end">
-                                <span class="badge" [class]="getEstadoBadgeClass(p.Estado)">{{ getEstadoLabel(p.Estado) }}</span>
-                                @if (p.NumeroViaje) {
-                                  <span class="badge bg-info text-dark ms-1">Viaje #{{ p.NumeroViaje }}</span>
-                                }
-                              </div>
-                            </div>
-                            <p class="mb-1 small"><strong>Cajas:</strong> {{ p.CantidadCajas }}{{ p.LimiteCajasPorPalet ? ' / ' + p.LimiteCajasPorPalet : '' }}</p>
-                            @if (p.LimiteCajasPorPalet) {
-                              <div class="progress" style="height:8px">
-                                <div class="progress-bar progress-bar-custom" [style.width.%]="p.PorcentajeAvance"></div>
-                              </div>
-                              <small class="text-muted">{{ p.PorcentajeAvance }}% lleno</small>
+              } @else if (seccionActivosAbierta()) {
+                <div class="palets-list-scroll">
+                  @if (paletsActivos().length > 0) {
+                    @for (p of paletsActivos(); track paletKey(p)) {
+                      <div class="palet-card"
+                           [class.palet-abierto]="p.estado === 'ABIERTO'"
+                           [class.palet-cerrado-completo]="p.estado === 'CERRADO_COMPLETO'"
+                           [class.palet-cerrado-saldo]="p.estado === 'CERRADO_SALDO'"
+                           [class.palet-card-activo]="paletKey(paletSeleccionado()) === paletKey(p)"
+                           (click)="verDetalle(p)">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                          <h6 class="mb-0 d-flex align-items-center gap-2">
+                            <span>Palet #{{ p.numeroPalet == 0 ? p.id : p.numeroPalet }}</span>
+                            <span [class]="sincronizadoClass(p.bd)">{{ sincronizadoLabel(p.bd) }}</span>
+                          </h6>
+                          <div class="text-end">
+                            <span class="badge" [class]="getEstadoBadgeClass(p.estado)">{{ getEstadoLabel(p.estado) }}</span>
+                            @if (p.numeroViaje) {
+                              <span class="badge bg-info text-dark ms-1">Viaje #{{ p.numeroViaje }}</span>
                             }
                           </div>
+                        </div>
+                        <p class="mb-1 small"><strong>Cajas:</strong> {{ p.cantidadCajas }}{{ p.limiteCajasPorPalet ? ' / ' + p.limiteCajasPorPalet : '' }}</p>
+                        @if (p.limiteCajasPorPalet) {
+                          <div class="progress" style="height:8px">
+                            <div class="progress-bar progress-bar-custom" [style.width.%]="p.porcentajeAvance"></div>
+                          </div>
+                          <small class="text-muted">{{ p.porcentajeAvance }}% lleno</small>
                         }
-                      } @else {
-                        <p class="text-muted text-center mb-0" style="font-size:12px">Sin palets activos</p>
-                      }
-                    </div>
+                      </div>
+                    }
+                  } @else {
+                    <p class="text-muted text-center mb-0" style="font-size:12px">Sin palets activos</p>
                   }
                 </div>
+              }
+            </div>
+          </div>
 
-                <!-- Section: Despachados -->
-                <div class="palet-section-box">
-                  <h6 class="palet-section-header" (click)="toggleSeccionDespachados()">
-                    <span><i class="bi bi-truck"></i> Despachados</span>
-                    <i class="bi" [class]="seccionDespachadosAbierta() ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
-                  </h6>
-                  @if (seccionDespachadosAbierta()) {
-                    <div class="palet-section-body">
-                      @if (paletsDespachados().length > 0) {
-                        @for (p of paletsDespachados(); track p.Id) {
-                          <div class="palet-card palet-cerrado-completo"
-                               [class.palet-card-activo]="paletSeleccionado()?.Id === p.Id"
-                               (click)="verDetalle(p)" style="opacity:0.8">
-                            <div class="d-flex justify-content-between align-items-start mb-1">
-                              <h6 class="mb-0" style="font-size:13px">Palet #{{ p.NumeroPalet ?? p.Id }}</h6>
-                              <div class="text-end">
-                                <span class="badge bg-success" style="font-size:10px">DESPACHADO</span>
-                                @if (p.NumeroViaje) {
-                                  <span class="badge bg-info text-dark ms-1">Viaje #{{ p.NumeroViaje }}</span>
-                                }
-                              </div>
-                            </div>
-                            <p class="mb-0 small"><strong>Cajas:</strong> {{ p.CantidadCajas }}</p>
+          <!-- Card: Palets despachados -->
+          <div class="sp-card palets-card-despachados">
+            <div class="sp-card-header">
+              <h5 class="d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-truck"></i> Despachados</span>
+                <button class="btn btn-link p-0" type="button" (click)="toggleSeccionDespachados()" style="text-decoration:none">
+                  <i class="bi" [class]="seccionDespachadosAbierta() ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                </button>
+              </h5>
+            </div>
+            <div class="sp-card-body" style="padding:0">
+              @if (isLoading()) {
+                <div class="text-center py-3"><span class="spinner-border spinner-border-sm text-primary"></span></div>
+              } @else if (seccionDespachadosAbierta()) {
+                <div class="palets-list-scroll">
+                  @if (paletsDespachados().length > 0) {
+                    @for (p of paletsDespachados(); track paletKey(p)) {
+                      <div class="palet-card palet-cerrado-completo"
+                           [class.palet-card-activo]="paletKey(paletSeleccionado()) === paletKey(p)"
+                           (click)="verDetalle(p)" style="opacity:0.8">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                          <h6 class="mb-0 d-flex align-items-center gap-2" style="font-size:13px">
+                            <span>Palet #{{ p.numeroPalet == 0 ? p.id : p.numeroPalet }}</span>
+                            <span [class]="sincronizadoClass(p.bd)">{{ sincronizadoLabel(p.bd) }}</span>
+                          </h6>
+                          <div class="text-end">
+                            <span class="badge bg-success" style="font-size:10px">DESPACHADO</span>
+                            @if (p.numeroViaje) {
+                              <span class="badge bg-info text-dark ms-1">Viaje #{{ p.numeroViaje }}</span>
+                            }
                           </div>
-                        }
-                      } @else {
-                        <p class="text-muted text-center mb-0" style="font-size:12px">Sin despachos aún</p>
-                      }
-                    </div>
+                        </div>
+                        <p class="mb-0 small"><strong>Cajas:</strong> {{ p.cantidadCajas }}</p>
+                      </div>
+                    }
+                  } @else {
+                    <p class="text-muted text-center mb-0" style="font-size:12px">Sin despachos aún</p>
                   }
                 </div>
               }
@@ -142,58 +198,59 @@
           </div>
         </div>
 
-        <!-- Right Column: Palet Detail -->
+        <!-- Columna derecha: detalle del palet seleccionado -->
         <div class="col-lg-8">
           <div class="sp-card">
             <div class="sp-card-header"><h5><i class="bi bi-box"></i> Detalle del Palet</h5></div>
             <div class="sp-card-body" id="detallePalet">
               @if (paletSeleccionado()) {
-                <!-- Title + Badge -->
+                <!-- Cabecera del palet: número + estado -->
                 <div class="mb-3">
                   <h4>
-                    Palet #{{ paletSeleccionado()!.NumeroPalet ?? paletSeleccionado()!.Id }}
-                    <span class="badge" [class]="getEstadoBadgeClass(paletSeleccionado()!.Estado)">{{ getEstadoLabel(paletSeleccionado()!.Estado) }}</span>
-                    @if (paletSeleccionado()!.NumeroViaje) {
-                      <span class="badge bg-info text-dark">Viaje #{{ paletSeleccionado()!.NumeroViaje }}</span>
+                    Palet #{{ paletSeleccionado()!.numeroPalet == 0 ? paletSeleccionado()!.id : paletSeleccionado()!.numeroPalet }}
+                    <span [class]="sincronizadoClass(paletSeleccionado()!.bd)">{{ sincronizadoLabel(paletSeleccionado()!.bd) }}</span>
+                    <span class="badge" [class]="getEstadoBadgeClass(paletSeleccionado()!.estado)">{{ getEstadoLabel(paletSeleccionado()!.estado) }}</span>
+                    @if (paletSeleccionado()!.numeroViaje) {
+                      <span class="badge bg-info text-dark">Viaje #{{ paletSeleccionado()!.numeroViaje }}</span>
                     }
                   </h4>
                   <p class="text-muted mb-2">
-                    <strong>Acopio:</strong> {{ paletSeleccionado()!.AcopioNombre }} ({{ paletSeleccionado()!.AcopioCodigo }}) |
-                    <strong>Turno:</strong> {{ paletSeleccionado()!.Turno }}
+                    <strong>Acopio:</strong> {{ paletSeleccionado()!.acopioNombre }} ({{ paletSeleccionado()!.codigoAcopio }}) |
+                    <strong>Turno:</strong> {{ procesoSeleccionado()!.turno }}
                   </p>
                 </div>
 
-                <!-- KPI Cards (matching reference: Total de Cajas + Peso Total) -->
+                <!-- KPIs del palet: cajas y peso -->
                 <div class="row mb-3">
                   <div class="col-md-6">
                     <div class="card bg-light"><div class="card-body">
                       <h6>Total de Cajas</h6>
-                      <h3 class="mb-0">{{ paletSeleccionado()!.CantidadCajas }}{{ paletSeleccionado()!.LimiteCajasPorPalet ? ' / ' + paletSeleccionado()!.LimiteCajasPorPalet : '' }}</h3>
-                      @if (paletSeleccionado()!.LimiteCajasPorPalet) {
+                      <h3 class="mb-0">{{ paletSeleccionado()!.cantidadCajas }}{{ paletSeleccionado()!.limiteCajasPorPalet ? ' / ' + paletSeleccionado()!.limiteCajasPorPalet : '' }}</h3>
+                      @if (paletSeleccionado()!.limiteCajasPorPalet) {
                         <div class="progress mt-2" style="height:10px">
-                          <div class="progress-bar progress-bar-custom" [style.width.%]="paletSeleccionado()!.PorcentajeAvance"></div>
+                          <div class="progress-bar progress-bar-custom" [style.width.%]="paletSeleccionado()!.porcentajeAvance"></div>
                         </div>
-                        <small class="text-muted">{{ paletSeleccionado()!.PorcentajeAvance }}% lleno</small>
+                        <small class="text-muted">{{ paletSeleccionado()!.porcentajeAvance }}% lleno</small>
                       }
                     </div></div>
                   </div>
                   <div class="col-md-6">
                     <div class="card bg-light"><div class="card-body">
                       <h6>Peso Total</h6>
-                      <h3 class="mb-0">{{ paletSeleccionado()!.PesoTotal }} kg</h3>
+                      <h3 class="mb-0">{{ paletSeleccionado()!.pesoTotal }} kg</h3>
                     </div></div>
                   </div>
                 </div>
 
-                <!-- Action Buttons (matching reference) -->
-                @if (paletSeleccionado()!.Estado === 'ABIERTO') {
+                <!-- Acciones principales (según estado del palet) -->
+                @if (paletSeleccionado()!.estado === 'ABIERTO') {
                   <div class="mb-3 d-flex gap-2 flex-wrap acciones-palet">
                     @if (permissions.puedeAgregarCajas()) {
                       <button class="btn btn-agregar" (click)="abrirModalAgregarCajas(paletSeleccionado()!)">
                         <i class="bi bi-plus-circle"></i> Agregar Cajas
                       </button>
                     }
-                    @if (paletSeleccionado()!.CantidadCajas > 0 && permissions.puedeCerrarPalet()) {
+                    @if (paletSeleccionado()!.cantidadCajas > 0 && permissions.puedeCerrarPalet()) {
                       <button class="btn btn-cerrar-saldo" (click)="abrirModalCerrarPalet(paletSeleccionado()!)">
                         <i class="bi bi-check-circle"></i> Cerrar Palet
                       </button>
@@ -203,7 +260,7 @@
                     </button>
                   </div>
                 }
-                @if (paletSeleccionado()!.Estado === 'CERRADO_COMPLETO' || paletSeleccionado()!.Estado === 'CERRADO_SALDO') {
+                @if (paletSeleccionado()!.estado === 'CERRADO_COMPLETO' || paletSeleccionado()!.estado === 'CERRADO_SALDO') {
                   <div class="mb-3 d-flex gap-2 flex-wrap acciones-palet">
                     <button class="btn btn-warning" (click)="reabrirPalet(paletSeleccionado()!)">
                       <i class="bi bi-unlock"></i> Reabrir Palet
@@ -216,7 +273,7 @@
 
                 <hr>
 
-                <!-- Accordion: Composición del Palet -->
+                <!-- Sección: Composición del palet -->
                 <div class="accordion-custom mb-2">
                   <div class="accordion-header-custom" (click)="toggleSeccionComposicion()">
                     <span><i class="bi bi-box-seam me-2"></i> Composición del Palet</span>
@@ -237,8 +294,8 @@
                                 <th>Cantidad</th>
                                 <th>Peso</th>
                                 <th>Tipo</th>
-                                @if (paletSeleccionado()!.Estado === 'ABIERTO') {
-                                  <th>Acciones</th>
+                                @if (paletSeleccionado()!.estado === 'ABIERTO') {
+                                  <th>Acciones</th> 
                                 }
                               </tr>
                             </thead>
@@ -261,7 +318,7 @@
                                       <span class="badge bg-success">PROD</span>
                                     }
                                   </td>
-                                  @if (paletSeleccionado()!.Estado === 'ABIERTO') {
+                                  @if (paletSeleccionado()!.estado === 'ABIERTO') {
                                     <td class="text-nowrap">
                                       <button class="btn btn-sm btn-outline-danger" (click)="eliminarComposicion(c)"><i class="bi bi-trash"></i></button>
                                     </td>
@@ -279,7 +336,7 @@
                 </div>
 
                 <!-- Accordion: Observaciones (if present) -->
-                @if (paletSeleccionado()!.Observaciones || paletSeleccionado()!.MedidaCorrectiva) {
+                @if (paletSeleccionado()!.observaciones || paletSeleccionado()!.medidaCorrectiva) {
                   <div class="accordion-custom">
                     <div class="accordion-header-custom" (click)="toggleSeccionObservaciones()">
                       <span><i class="bi bi-exclamation-triangle me-2 text-warning"></i> Observaciones y Medidas Correctivas</span>
@@ -290,11 +347,11 @@
                         <div class="row">
                           <div class="col-md-6">
                             <h6 class="fw-bold text-danger" style="font-size:12px"><i class="bi bi-eye"></i> Observación</h6>
-                            <p class="mb-0">{{ paletSeleccionado()!.Observaciones || '—' }}</p>
+                            <p class="mb-0">{{ paletSeleccionado()!.observaciones || '—' }}</p>
                           </div>
                           <div class="col-md-6">
                             <h6 class="fw-bold text-success" style="font-size:12px"><i class="bi bi-check-circle"></i> Medida Correctiva</h6>
-                            <p class="mb-0">{{ paletSeleccionado()!.MedidaCorrectiva || '—' }}</p>
+                            <p class="mb-0">{{ paletSeleccionado()!.medidaCorrectiva || '—' }}</p>
                           </div>
                         </div>
                       </div>

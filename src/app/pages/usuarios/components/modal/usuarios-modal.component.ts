@@ -16,7 +16,7 @@ type UsuarioForm = {
   contrasena: string;
   idRol: string;
   acopioId?: number;
-  acopioCodigo: string;
+  codigoAcopio: string;
   acopioNombre: string;
   serieGuia: string;
   activo: boolean;
@@ -55,7 +55,7 @@ export class UsuariosModalComponent {
     contrasena: '',
     idRol: '',
     acopioId: undefined,
-    acopioCodigo: '',
+    codigoAcopio: '',
     acopioNombre: '',
     serieGuia: '',
     activo: true,
@@ -75,7 +75,7 @@ export class UsuariosModalComponent {
       base.nombre !== f.nombre ||
       base.idRol !== f.idRol ||
       (base.acopioId ?? undefined) !== (f.acopioId ?? undefined) ||
-      base.acopioCodigo !== f.acopioCodigo ||
+      base.codigoAcopio !== f.codigoAcopio ||
       base.acopioNombre !== f.acopioNombre ||
       base.serieGuia !== f.serieGuia ||
       base.activo !== f.activo
@@ -98,7 +98,7 @@ export class UsuariosModalComponent {
       contrasena: '',
       idRol: v.idRol ?? '',
       acopioId: typeof v.acopioId === 'number' ? v.acopioId : undefined,
-      acopioCodigo: (v.acopioCodigo ?? '') as any,
+      codigoAcopio: (v.codigoAcopio ?? '') as any,
       acopioNombre: (v.acopioNombre ?? '') as any,
       serieGuia: (v.serieGuia ?? '') as any,
       activo: typeof v.activo === 'boolean' ? v.activo : true,
@@ -143,17 +143,16 @@ export class UsuariosModalComponent {
     if (this.acopios().length > 0) return;
     try {
       const list = await this.catalogosOperativosRepository.acopiosRepo.getAll();
-      console.log(list)
-      this.acopios.set([...(list ?? [])].sort((a, b) => String(a?.acopioId ?? '').localeCompare(String(b?.acopioId ?? ''))));
+      this.acopios.set([...(list ?? [])].sort((a, b) => String(a?.codigoAcopio ?? '').localeCompare(String(b?.codigoAcopio ?? ''))));
 
       const f = this.form();
       let acopio: Acopio | undefined;
 
-      if (typeof f.acopioId === 'number') {
-        acopio = this.acopios().find(a => Number(a?.id) === Number(f.acopioId));
-      } else if (String(f.acopioCodigo ?? '').trim()) {
-        const codigo = String(f.acopioCodigo ?? '').trim().toUpperCase();
-        acopio = this.acopios().find(a => String(a?.acopioId ?? '').trim().toUpperCase() === codigo);
+      if (typeof f.codigoAcopio === 'number') {
+        acopio = this.acopios().find(a => Number(a?.id) === Number(f.codigoAcopio));
+      } else if (String(f.codigoAcopio ?? '').trim()) {
+        const codigo = String(f.codigoAcopio ?? '').trim().toUpperCase();
+        acopio = this.acopios().find(a => String(a?.codigoAcopio ?? '').trim().toUpperCase() === codigo);
         if (acopio) {
           this.form.update(cur => ({ ...cur, acopioId: acopio?.id }));
         }
@@ -162,7 +161,7 @@ export class UsuariosModalComponent {
       if (acopio) {
         this.form.update(cur => ({
           ...cur,
-          acopioCodigo: cur.acopioCodigo || acopio.acopioId || '',
+          codigoAcopio: cur.codigoAcopio || acopio.codigoAcopio || '',
           acopioNombre: cur.acopioNombre || acopio.acopioNombre || '',
           serieGuia: cur.serieGuia || acopio.serieGuia || '',
         }));
@@ -171,8 +170,8 @@ export class UsuariosModalComponent {
         if (this.modo === 'editado' && !this.submitAttempted()) {
           const base = this.initialForm();
           const cur = this.form();
-          const acopioIdAutofill = (base?.acopioId === undefined || base?.acopioId === null) && typeof cur.acopioId === 'number';
-          const codigoAutofill = !String(base?.acopioCodigo ?? '').trim() && !!String(cur.acopioCodigo ?? '').trim();
+          const acopioIdAutofill = (base?.codigoAcopio === undefined || base?.codigoAcopio === null) && typeof cur.codigoAcopio === 'number';
+          const codigoAutofill = !String(base?.codigoAcopio ?? '').trim() && !!String(cur.codigoAcopio ?? '').trim();
           const nombreAutofill = !String(base?.acopioNombre ?? '').trim() && !!String(cur.acopioNombre ?? '').trim();
           const guiaAutofill = !String(base?.serieGuia ?? '').trim() && !!String(cur.serieGuia ?? '').trim();
 
@@ -193,7 +192,7 @@ export class UsuariosModalComponent {
       this.form.update(f => ({
         ...f,
         acopioId: undefined,
-        acopioCodigo: '',
+        codigoAcopio: '',
         acopioNombre: '',
         serieGuia: '',
       }));
@@ -204,7 +203,7 @@ export class UsuariosModalComponent {
     this.form.update(f => ({
       ...f,
       acopioId,
-      acopioCodigo: acopio?.acopioId ?? '',
+      codigoAcopio: acopio?.codigoAcopio ?? '',
       acopioNombre: acopio?.acopioNombre ?? '',
       serieGuia: acopio?.serieGuia ?? '',
     }));
@@ -236,7 +235,7 @@ export class UsuariosModalComponent {
       nombre: f.nombre,
       idRol: f.idRol,
       acopioId: typeof f.acopioId === 'number' ? f.acopioId : undefined,
-      acopioCodigo: this.isEmpty(f.acopioCodigo) ? null : f.acopioCodigo,
+      codigoAcopio: this.isEmpty(f.codigoAcopio) ? null : f.codigoAcopio,
       acopioNombre: this.isEmpty(f.acopioNombre) ? null : f.acopioNombre,
       serieGuia: this.isEmpty(f.serieGuia) ? null : f.serieGuia,
       activo: !!f.activo,

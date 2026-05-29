@@ -20,7 +20,7 @@
                 <tr>
                   <td><strong>#{{ p.id }}</strong></td>
                   <td>{{ p.fechaProceso }}</td>
-                  <td>{{ p.acopioId }} - {{ p.acopioNombre }}</td>
+                  <td>{{ p.codigoAcopio }} - {{ p.acopioNombre }}</td>
                   <td>
                     <i class="bi" [class]="p.turno === 'DIA' ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i>
                     {{ p.turno }}
@@ -55,7 +55,7 @@
   @case ('guias') {
     <div class="page-title-area">
       <h2><i class="bi bi-truck" style="color:var(--color-primary)"></i> Guías de Remisión</h2>
-      <p class="page-subtitle">Proceso #{{ procesoSeleccionado()?.id }} — {{ procesoSeleccionado()?.acopioId }} — Turno {{ procesoSeleccionado()?.turno }}</p>
+      <p class="page-subtitle">Proceso #{{ procesoSeleccionado()?.id }} — {{ procesoSeleccionado()?.codigoAcopio }} — Turno {{ procesoSeleccionado()?.turno }}</p>
     </div>
 
     <div class="sp-card">
