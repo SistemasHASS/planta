@@ -2,25 +2,89 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Palet, Composicion, AgregarComposicionRequest } from '../interfaces/palet.interface';
+import { DPalet } from '../interfaces/palet.interface';
 
 @Injectable({ providedIn: 'root' })
 export class PaletService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/palets`;
 
-  listarPorProceso(idproceso:string): Observable<any>{
+  listarPaletPorProceso(idproceso:string): Observable<any>{
     const json = JSON.stringify({
       idproceso: idproceso,
     });
     return this.http.get<any>(`${this.apiUrl}/get-palets-por-proceso`, { params: { json }, withCredentials: true });
   }
-  
+
+  getTipoProcesoEmpacadoPorAcopio(idproyecto: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/getTipoProcesoEmpacado-Acopio`, { params: { idproyecto }, withCredentials: true });
+  }
+
+  getDestinosPorMatrizCompatibilidad(idproyecto: string, documentoConsignatario: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/get-destinos-por-matriz-compatibilidad`, {
+      params: { idproyecto, documentoConsignatario },
+      withCredentials: true
+    });
+  }
+
+  getFormatosPorMatriz(codigoCultivo: string, documentoConsignatario: string, destinoId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/get-formatos-por-matriz`, {
+      params: { codigoCultivo, documentoConsignatario, destinoId },
+      withCredentials: true
+    });
+  }
+
+  getTiposEmpaqueGuiaPorMatriz(codigoCultivo: string, documentoConsignatario: string, destinoId: string, formatoId: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/get-tipos-empaque-guia-por-matriz`, {
+      params: { codigoCultivo, documentoConsignatario, destinoId, formatoId: String(formatoId) },
+      withCredentials: true
+    });
+  }
+
+  getPresentacionesPorMatriz(codigoCultivo: string, documentoConsignatario: string, destinoId: string, formatoId: number, tipoEmpaqueGuiaId: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/get-presentaciones-por-matriz`, {
+      params: { codigoCultivo, documentoConsignatario, destinoId, formatoId: String(formatoId), tipoEmpaqueGuiaId: String(tipoEmpaqueGuiaId) },
+      withCredentials: true
+    });
+  }
+
+  getTiposCajaPorMatriz(codigoCultivo: string, documentoConsignatario: string, destinoId: string, formatoId: number, tipoEmpaqueGuiaId: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/get-tipos-caja-por-matriz`, {
+      params: { codigoCultivo, documentoConsignatario, destinoId, formatoId: String(formatoId), tipoEmpaqueGuiaId: String(tipoEmpaqueGuiaId) },
+      withCredentials: true
+    });
+  }
+
+  getTiposClamshellPorMatriz(codigoCultivo: string, documentoConsignatario: string, destinoId: string, formatoId: number, tipoEmpaqueGuiaId: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/get-tipos-clamshell-por-matriz`, {
+      params: { codigoCultivo, documentoConsignatario, destinoId, formatoId: String(formatoId), tipoEmpaqueGuiaId: String(tipoEmpaqueGuiaId) },
+      withCredentials: true
+    });
+  }
+
+  listarCodigosRanchoPorLugarProduccion(idproyecto: string, idLugaresDeProduccion: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/get-codigos-rancho-por-lugar-produccion`, {
+      params: { idproyecto, idLugaresDeProduccion: idLugaresDeProduccion.toString() },
+      withCredentials: true
+    });
+  }
+
+  getDPaletsPorAcopio(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/get-dpalets-por-acopio`, { withCredentials: true });
+  }
+
   sincronizar(palets:any){
     const payload = JSON.stringify({
       palets: palets
     });
     return this.http.post<any>(`${this.apiUrl}/sincronizar`, payload, { withCredentials: true , headers: { 'Content-Type': 'application/json' }} );
+  }
+
+  sincronizarDPalets(dPalets: any[]) {
+    const payload = JSON.stringify({
+      DPalets: JSON.stringify(dPalets)
+    });
+    return this.http.post<any>(`${this.apiUrl}/sincronizar-dpalet`, payload, { withCredentials: true, headers: { 'Content-Type': 'application/json' } });
   }
 
   obtenerPorId(id: number): Observable<any> {
@@ -29,14 +93,6 @@ export class PaletService {
 
   crear(procesoId: number, codigoAcopio: string, usuarioId: number): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/crear`, { procesoId, codigoAcopio, usuarioId }, { withCredentials: true });
-  }
-
-  agregarCajas(request: AgregarComposicionRequest): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/agregar-cajas`, request, { withCredentials: true });
-  }
-
-  editarCajas(composicionId: number, request: AgregarComposicionRequest): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/editar-cajas`, { composicionId, ...request }, { withCredentials: true });
   }
 
   cerrar(id: number, tipoCierre: string, usuarioId: number, observaciones?: string, medidaCorrectiva?: string): Observable<any> {
@@ -54,4 +110,5 @@ export class PaletService {
   eliminarComposicion(composicionId: number): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/eliminar-composicion`, { composicionId }, { withCredentials: true });
   }
+
 }

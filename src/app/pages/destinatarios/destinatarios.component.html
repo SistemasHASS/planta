@@ -1,0 +1,68 @@
+<div class="page-title-area">
+  <h2><i class="bi bi-geo-alt-fill" style="color:var(--color-primary)"></i> Gestión de Destinatarios</h2>
+  <p class="page-subtitle">Administración de destinatarios para guías de remisión</p>
+</div>
+
+<div class="sp-card catalogos-card">
+  <div class="sp-card-body" style="padding:16px">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div style="min-width:260px;flex:1">
+        <input
+          class="form-control"
+          id="destinatariosSearch"
+          name="destinatariosSearchFilter"
+          type="search"
+          autocomplete="off"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          placeholder="Buscar por doc. fiscal, nombre, domicilio..."
+          [ngModel]="searchTerm()"
+          (ngModelChange)="onSearchChange($event)"
+        />
+      </div>
+
+      <div class="d-flex align-items-center gap-2 flex-wrap" style="justify-content:flex-end">
+        <div class="btn-group" role="group">
+          <button type="button" class="btn-sp-outline" [class.active-tab]="estadoFiltro() === 'activos'" (click)="setEstadoFiltro('activos')">
+            <i class="bi bi-check-circle"></i> Activos
+          </button>
+          <button type="button" class="btn-sp-outline" [class.active-tab]="estadoFiltro() === 'inactivos'" (click)="setEstadoFiltro('inactivos')">
+            <i class="bi bi-x-circle"></i> Inactivos
+          </button>
+          <button type="button" class="btn-sp-outline" [class.active-tab]="estadoFiltro() === 'todos'" (click)="setEstadoFiltro('todos')">
+            <i class="bi bi-list"></i> Todos
+          </button>
+        </div>
+        <button type="button" class="btn btn-success" (click)="onSincronizar()">
+          <i class="bi bi-arrow-repeat"></i> Sincronizar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sp-card-body" style="padding:0">
+    @if (isLoading()) {
+      <div class="text-center py-4">
+        <span class="spinner-border text-primary"></span>
+        <p class="mt-2" style="color:var(--color-text-muted);font-size:13px">Cargando destinatarios...</p>
+      </div>
+    } @else {
+      <app-destinatarios-tabla
+        [items]="filteredItems()"
+        [showToggleActivo]="true"
+        (editar)="abrirEditar($event)"
+        (toggleActivo)="onToggleActivo($event)"
+      />
+    }
+  </div>
+</div>
+
+@if (modalAbierto()) {
+  <app-destinatarios-modal
+    [modo]="modalModo()"
+    [value]="modalValue()"
+    (cerrar)="cerrarModal()"
+    (guardar)="guardarModal($event)"
+  />
+}

@@ -95,7 +95,7 @@
           </button>
         }
 
-        @if (usuario()?.codigoAcopio) {
+        @if (usuario()?.codigoAcopio !== '0') {
           <button type="button" class="conn-status topbar-acopio" aria-label="Acopio asignado" (click)="abrirTopbarModal('ACOPIO')">
             <span class="conn-status-icon topbar-info-btn" aria-hidden="true">
               <i class="bi bi-geo-alt-fill"></i>

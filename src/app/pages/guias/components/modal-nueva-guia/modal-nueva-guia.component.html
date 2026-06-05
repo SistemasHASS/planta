@@ -1,0 +1,167 @@
+<div class="modal-backdrop-custom" (click)="onBackdrop()"></div>
+
+<div class="modal-custom modal-guia-form" role="dialog" aria-modal="true">
+  <div class="modal-header-custom" style="background: linear-gradient(135deg, var(--color-primary) 0%, #5a4ad1 100%);">
+    <h3 class="modal-title"><i class="bi bi-plus-circle-fill"></i> Nueva Guía de Remisión</h3>
+    <button type="button" class="modal-close" (click)="onCerrar()" aria-label="Cerrar">×</button>
+  </div>
+
+  <div class="modal-body-custom">
+    <div class="sp-card" style="margin:0">
+      <div class="sp-card-body" style="padding:14px">
+        <div class="row g-2">
+          <!-- Proceso y Destino -->
+          <div class="col-12">
+            <div class="form-section-title-modal"><i class="bi bi-geo-alt"></i> Proceso y Destino</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:11px;font-weight:700">Proceso <span class="text-danger">*</span></label>
+            <app-advanced-select
+              table="procesos"
+              placeholder="Seleccione un proceso..."
+              [itemsInput]="procesos"
+              idField="id"
+              [labelFields]="['label']"
+              [value]="form().procesoId"
+              (valueChange)="updateField('procesoId', $event)" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:11px;font-weight:700">Destinatario <span class="text-danger">*</span></label>
+            <app-advanced-select
+              placeholder="Seleccione..."
+              [itemsInput]="destinatariosActivos()"
+              idField="id"
+              [labelFields]="['nombre','documentoFiscal']"
+              [value]="form().destinatarioId"
+              (valueChange)="updateField('destinatarioId', $event)" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:11px;font-weight:700">Punto Partida <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" [class.is-invalid]="isInvalid('puntoPartida')" [ngModel]="form().puntoPartida" (ngModelChange)="updateField('puntoPartida', $event)" placeholder="Punto de partida">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:11px;font-weight:700">Punto Llegada <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" [class.is-invalid]="isInvalid('puntoLlegada')" [ngModel]="form().puntoLlegada" (ngModelChange)="updateField('puntoLlegada', $event)" placeholder="Punto de llegada">
+          </div>
+
+          <!-- Transporte -->
+          <div class="col-12 mt-1">
+            <div class="form-section-title-modal"><i class="bi bi-truck"></i> Transporte</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:11px;font-weight:700">Transporte <span class="text-danger">*</span></label>
+            <app-advanced-select
+              table="transportistas"
+              placeholder="Seleccione..."
+              [itemsInput]="transportistas"
+              idField="id"
+              [labelFields]="['razonSocial']"
+              [value]="form().transportistaId"
+              (valueChange)="updateField('transportistaId', $event)" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:11px;font-weight:700">Conductor <span class="text-danger">*</span></label>
+            <app-advanced-select
+              table="conductores"
+              placeholder="Seleccione..."
+              [itemsInput]="conductores"
+              idField="id"
+              [labelFields]="['documentoIdentidad','nombreCompleto']"
+              [value]="form().conductorId"
+              (valueChange)="updateField('conductorId', $event)" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:11px;font-weight:700">Vehículo <span class="text-danger">*</span></label>
+            <app-advanced-select
+              table="vehiculos"
+              placeholder="Seleccione..."
+              [itemsInput]="vehiculos"
+              idField="id"
+              [labelFields]="['placaPrincipal','marca']"
+              [value]="form().vehiculoId"
+              (valueChange)="updateField('vehiculoId', $event)" />
+          </div>
+
+          <!-- Detalles -->
+          <div class="col-12 mt-1">
+            <div class="form-section-title-modal"><i class="bi bi-clipboard-check"></i> Detalles</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:11px;font-weight:700">Motivo Traslado <span class="text-danger">*</span></label>
+            <select class="form-select form-select-sm" [ngModel]="form().motivoTraslado" (ngModelChange)="updateField('motivoTraslado', $event)">
+              <option value="OTROS" selected>OTROS</option>
+              <option value="MATERIAL">MATERIAL</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:11px;font-weight:700">Precinto <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" [class.is-invalid]="isInvalid('precinto')" [ngModel]="form().precinto" (ngModelChange)="updateField('precinto', $event)" placeholder="Ej: 017373">
+          </div>
+          <div class="col-12">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <label class="form-label mb-0" style="font-size:11px;font-weight:700">Palets Cerrados <span class="text-danger">*</span>
+                @if (tienePalets()) {
+                  <span class="ms-1 badge" style="font-size:10px;background:rgba(0,0,0,0.05);color:var(--color-text);font-weight:600">{{ nroPaletsSeleccionados() }} de {{ palets().length }}</span>
+                }
+              </label>
+              @if (tienePalets()) {
+                <button type="button" class="btn btn-link p-0" style="font-size:11px;text-decoration:none;font-weight:600;" (click)="todosSeleccionados() ? deseleccionarTodos() : seleccionarTodos()">
+                  <i class="bi" [class.bi-square]="!todosSeleccionados()" [class.bi-check-square]="todosSeleccionados()"></i>
+                  {{ todosSeleccionados() ? 'Deseleccionar todos' : 'Seleccionar todos' }}
+                </button>
+              }
+            </div>
+            <div id="listaPaletsGuia" class="palets-box-modal" [class.is-invalid-palets]="isInvalidPalets()" style="min-height:152px;max-height:200px;overflow-y:auto;padding:6px;border-radius:8px;background:#fafafb;border:1px solid #e4e6ef;">
+              @if (!tienePalets()) {
+                <div class="d-flex flex-column align-items-center justify-content-center h-100 text-muted" style="gap:4px;padding:12px 0;">
+                  <i class="bi bi-box-seam" style="font-size:20px;opacity:0.5"></i>
+                  <span style="font-size:11px">Seleccione un proceso para ver palets</span>
+                </div>
+              } @else {
+                <div class="d-flex flex-column" style="gap:4px">
+                  @for (p of palets(); track p.idPalet) {
+                    <label class="d-flex align-items-center gap-2 rounded" [class.palet-selected]="paletsSeleccionados().has(p.idPalet)" style="cursor:pointer;font-size:12px;padding:8px 10px;background:#fff;border:1px solid #e9eaf0;transition:all .15s ease;">
+                      <input type="checkbox" class="form-check-input m-0" style="width:16px;height:16px;cursor:pointer;accent-color:var(--color-primary);flex-shrink:0;"
+                             [checked]="paletsSeleccionados().has(p.idPalet)"
+                             (change)="togglePaletSeleccionado(p.idPalet)" />
+                      <span style="font-weight:700;color:var(--color-primary);white-space:nowrap;min-width:55px">#{{ p.numeroPalet ?? p.idPalet }}</span>
+                      <span class="text-muted" style="white-space:nowrap;font-size:11px">{{ p.cantidadCajas || 0 }} caj</span>
+                      <span class="text-muted" style="white-space:nowrap;font-size:11px">{{ ((p.pesoTotal || 0)).toFixed(2) }} kg</span>
+                      <span class="ms-auto rounded-pill px-2 py-1" style="font-size:10px;font-weight:600;"
+                            [style.background]="p.estado === 'CERRADO_COMPLETO' ? '#e6f4ea' : '#fff7e0'"
+                            [style.color]="p.estado === 'CERRADO_COMPLETO' ? '#1a7f37' : '#b06000'">
+                        {{ p.estado === 'CERRADO_COMPLETO' ? 'Completo' : 'Saldo' }}
+                      </span>
+                    </label>
+                  }
+                </div>
+              }
+            </div>
+            @if (isInvalidPalets()) {
+              <div class="invalid-feedback d-block" style="font-size:11px">Debe seleccionar al menos un palet.</div>
+            }
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" style="font-size:11px;font-weight:700">Parihuelas <span class="text-danger">*</span></label>
+            <input type="number" class="form-control form-control-sm" [class.is-invalid]="isInvalidParihuelas()"
+                   [ngModel]="form().parihuelas" (ngModelChange)="updateField('parihuelas', $event)" min="0" max="99" placeholder="0">
+            @if (isInvalidParihuelas()) {
+              <div class="invalid-feedback d-block" style="font-size:11px">Máximo 99 parihuelas.</div>
+            }
+          </div>
+          <div class="col-md-8">
+            <label class="form-label" style="font-size:11px;font-weight:700">Observaciones <small class="text-muted">(máx 200)</small></label>
+            <input type="text" class="form-control form-control-sm" [ngModel]="form().observacionesUsuario" (ngModelChange)="updateField('observacionesUsuario', $event)" maxlength="200" placeholder="Opcional">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-footer-custom">
+    <div class="footer-actions">
+      <button type="button" class="btn btn-sp-outline btn-cancel" (click)="onCerrar()">Cancelar</button>
+      <button type="button" class="btn btn-sp-primary btn-save" (click)="onCrear()"><i class="bi bi-file-earmark-plus"></i> Crear Guía</button>
+    </div>
+  </div>
+</div>

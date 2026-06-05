@@ -1,0 +1,132 @@
+<div class="modal-backdrop-custom" (click)="onCerrar()"></div>
+
+<div class="modal-custom" role="dialog" aria-modal="true">
+  <div class="modal-header-custom" style="background: linear-gradient(135deg, var(--color-primary) 0%, #5a4ad1 100%);">
+    <h3 class="modal-title"><i class="bi bi-clipboard-check"></i> Parámetros de Inspección</h3>
+    <button type="button" class="modal-close" (click)="onCerrar()" aria-label="Cerrar">×</button>
+  </div>
+
+  <div class="modal-body-custom">
+    <p class="text-muted small mb-3">Complete la inspección de la unidad de transporte. Estos datos se registrarán en el formato de despacho de producto terminado.</p>
+
+    <div class="row">
+      <div class="col-6 mb-3">
+        <label class="form-label fw-bold">Temperatura (°C) <span class="text-danger">*</span></label>
+        <input type="number" step="0.1" class="form-control" [class.is-invalid]="isInvalidTemperatura()"
+               [ngModel]="temperatura()" (ngModelChange)="temperatura.set($event)" placeholder="Ej: 18.4">
+        @if (isInvalidTemperatura()) {
+          <div class="invalid-feedback d-block">Requerido</div>
+        }
+      </div>
+      <div class="col-6 mb-3">
+        <label class="form-label fw-bold">N° de Viaje <span class="text-danger">*</span></label>
+        <input type="number" min="1" class="form-control" [class.is-invalid]="isInvalidNumeroViaje()"
+               [ngModel]="numeroViaje()" (ngModelChange)="numeroViaje.set($event)" placeholder="Ej: 1, 2, 3...">
+        @if (isInvalidNumeroViaje()) {
+          <div class="invalid-feedback d-block">Requerido</div>
+        }
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" role="switch" id="chkUltimoViaje"
+               [ngModel]="ultimoViaje()" (ngModelChange)="ultimoViaje.set($event)">
+        <label class="form-check-label fw-bold" for="chkUltimoViaje">
+          <i class="bi bi-flag-fill text-danger"></i> Último Viaje
+        </label>
+        <small class="text-muted d-block">Al marcar esta opción, se cerrará automáticamente el proceso de este acopio y turno.</small>
+      </div>
+    </div>
+
+    <hr>
+    <p class="fw-bold mb-2">Inspección de la unidad de transporte:</p>
+
+    <div class="mb-2">
+      <label class="form-label small">¿Libre de olores extraños?</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="libreOlores" value="si" [ngModel]="libreOlores()" (ngModelChange)="libreOlores.set($event)">
+          <label class="form-check-label">Sí</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="libreOlores" value="no" [ngModel]="libreOlores()" (ngModelChange)="libreOlores.set($event)">
+          <label class="form-check-label">No</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-2">
+      <label class="form-label small">¿Libre de insectos/plagas?</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="libreInsectos" value="si" [ngModel]="libreInsectos()" (ngModelChange)="libreInsectos.set($event)">
+          <label class="form-check-label">Sí</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="libreInsectos" value="no" [ngModel]="libreInsectos()" (ngModelChange)="libreInsectos.set($event)">
+          <label class="form-check-label">No</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-2">
+      <label class="form-label small">¿Libre de materias extrañas/aceites/combustible?</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="libreMaterias" value="si" [ngModel]="libreMaterias()" (ngModelChange)="libreMaterias.set($event)">
+          <label class="form-check-label">Sí</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="libreMaterias" value="no" [ngModel]="libreMaterias()" (ngModelChange)="libreMaterias.set($event)">
+          <label class="form-check-label">No</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-2">
+      <label class="form-label small">¿Unidad limpia / buen estado?</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="unidadLimpia" value="si" [ngModel]="unidadLimpia()" (ngModelChange)="unidadLimpia.set($event)">
+          <label class="form-check-label">Sí</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="unidadLimpia" value="no" [ngModel]="unidadLimpia()" (ngModelChange)="unidadLimpia.set($event)">
+          <label class="form-check-label">No</label>
+        </div>
+      </div>
+    </div>
+
+    @if (hayAlgunoNo()) {
+      <hr>
+      <div class="mb-2">
+        <label class="form-label fw-bold text-danger">Observaciones <span class="text-danger">*</span></label>
+        <textarea class="form-control" rows="2" placeholder="Obligatorio si alguna inspección es No"
+                  [class.is-invalid]="isInvalidObservaciones()"
+                  [ngModel]="observaciones()" (ngModelChange)="observaciones.set($event)"></textarea>
+        @if (isInvalidObservaciones()) {
+          <div class="invalid-feedback d-block">Requerido</div>
+        }
+      </div>
+      <div class="mb-2">
+        <label class="form-label fw-bold text-danger">Medida correctiva <span class="text-danger">*</span></label>
+        <textarea class="form-control" rows="2" placeholder="Obligatorio si alguna inspección es No"
+                  [class.is-invalid]="isInvalidMedida()"
+                  [ngModel]="medidaCorrectiva()" (ngModelChange)="medidaCorrectiva.set($event)"></textarea>
+        @if (isInvalidMedida()) {
+          <div class="invalid-feedback d-block">Requerido</div>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="modal-footer-custom">
+    <div class="footer-actions">
+      <button type="button" class="btn btn-sp-outline btn-cancel" (click)="onCerrar()">Cancelar</button>
+      <button type="button" class="btn btn-sp-primary btn-save" (click)="onConfirmar()">
+        <i class="bi bi-file-earmark-plus"></i> Confirmar y Crear Guía
+      </button>
+    </div>
+  </div>
+</div>

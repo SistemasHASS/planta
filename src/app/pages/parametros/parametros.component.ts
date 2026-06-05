@@ -13,6 +13,8 @@ import { Fundo, Cultivo, Campania, AcopioDetalle } from "../../shared/interfaces
 import { AdministracionRepository } from "../../shared/dexiedb/repository/administracion.repository";
 import { AdministracionService } from "../../shared/services/administracion.service";
 import { ProcesoService } from "../../shared/services/proceso.service";
+import { PaletService } from "../../shared/services/palet.service";
+import { DPalet } from "../../shared/interfaces/palet.interface";
 import { DProcesoLogistico, DProcesoSupervisor, Proceso } from "../../shared/interfaces/proceso.interface";
 import { ProcesoRepository } from "../../shared/dexiedb/repository/proceso.repository";
 
@@ -34,6 +36,7 @@ export class ParametrosComponent implements OnInit {
     private readonly connectivity = inject(ConnectivityService);
     private readonly administracionService = inject(AdministracionService);
     private readonly procesoService = inject(ProcesoService)
+    private readonly paletService = inject(PaletService);
     private readonly procesoRepo = inject(ProcesoRepository);
     
 
@@ -506,6 +509,8 @@ export class ParametrosComponent implements OnInit {
                         this.getPaisesMaestros(),
                         this.getCalibresMaestros(parametros[0].codigoCultivo),
                         this.getTransportesMaestros(),
+                        this.getCodigosRanchoMaestros(parametros[0].idProyecto),
+                        this.getLugaresProduccionConfigMaestros(parametros[0].idProyecto),
                         this.getTiposClamshellMaestros(parametros[0].codigoCultivo),
                         this.getCategoriaMaestros(parametros[0].codigoCultivo),
                         this.getTiposEmpaquesMaestros(parametros[0].codigoCultivo),
@@ -516,9 +521,11 @@ export class ParametrosComponent implements OnInit {
                         this.getConductoresMaestros(parametros[0].idProyecto),
                         this.getVehiculosMaestros(parametros[0].idProyecto),
                         this.getTransportistasMaestros(parametros[0].idProyecto),
+                        this.getDestinatariosMaestros(),
                         this.getSupervisoresMaestros(parametros[0].idProyecto),
                         this.getPersonalLogisticoMaestros(parametros[0].idProyecto),
-                        this.getListarUsuariosAcopio()
+                        this.getListarUsuariosAcopio(),
+                        this.getProcesosForAcopioMaestros(parametros[0].idProyecto, parametros[0].codigoCultivo)
                     ];
                     break;
                 case 'LOPLA':
@@ -531,6 +538,8 @@ export class ParametrosComponent implements OnInit {
                         this.getPaisesMaestros(),
                         this.getCalibresMaestros(parametros[0].codigoCultivo),
                         this.getTransportesMaestros(),
+                        this.getCodigosRanchoMaestros(parametros[0].idProyecto),
+                        this.getLugaresProduccionConfigMaestros(parametros[0].idProyecto),
                         this.getTiposClamshellMaestros(parametros[0].codigoCultivo),
                         this.getCategoriaMaestros(parametros[0].codigoCultivo),
                         this.getTiposEmpaquesMaestros(parametros[0].codigoCultivo),
@@ -541,6 +550,7 @@ export class ParametrosComponent implements OnInit {
                         this.getConductoresMaestros(parametros[0].idProyecto),
                         this.getVehiculosMaestros(parametros[0].idProyecto),
                         this.getTransportistasMaestros(parametros[0].idProyecto),
+                        this.getDestinatariosMaestros(),
                         this.getSupervisoresMaestros(parametros[0].idProyecto, true),
                         this.getPersonalLogisticoMaestros(parametros[0].idProyecto, true),
                         this.getProcesosForAcopioMaestros(parametros[0].idProyecto, parametros[0].codigoCultivo)
@@ -565,6 +575,7 @@ export class ParametrosComponent implements OnInit {
 
                 await this.apiListarMatricesCompatibilidad()
                 await this.apiListarReglasSobrePeso()
+                await this.sincronizarDPaletsPorAcopio()
                 this.alertService.cerrarModalCarga();
                 this.alertService.showAlert('Listo', 'Sincronización completada', 'success');
             } else {
@@ -601,11 +612,125 @@ export class ParametrosComponent implements OnInit {
                                 await this.procesoRepo.dProcesoSupervisoresRepo.saveByCompoundId(d as any);
                             }
                         }
+
+                        // Obtener palets de cada proceso
+                        for (const n of normalizados) {
+                            const idProceso = String(n.proceso.idProceso ?? '').trim();
+                            if (!idProceso) continue;
+                            try {
+                                const respPalets: any = await firstValueFrom(this.paletService.listarPaletPorProceso(idProceso));
+                                if (!respPalets?.length) continue;
+                                const firstPalet = respPalets[0] as any;
+                                if (firstPalet?.error) continue;
+                                const apiPalets = (Array.isArray(firstPalet) ? firstPalet : (firstPalet?.data ?? [])) as any;
+                                await this.procesoRepo.paletsRepo.clearSincronizadosByIdProceso(idProceso);
+                                for (const p of (apiPalets ?? [])) {
+                                    const row: any = { ...(p as any), bd: 1 };
+                                    await this.procesoRepo.paletsRepo.saveByIdPalet(row);
+                                }
+                            } catch (err) {
+                                console.error('Error obteniendo palets para proceso', idProceso, err);
+                            }
+                        }
                     }
                 }
             }
         }catch(error){
             console.log('Error listando Procesos acopios', error);
+        }
+    }
+
+    private async resolverNombresDPalets(dpalets: any[]): Promise<DPalet[]> {
+        const [
+            consignatarios, destinos, formatos, presentaciones, variedades,
+            lugares, codigosRancho, tiposEmpaqueGuia, transportes, tiposProceso
+        ] = await Promise.all([
+            this.catalogosRepo.consignatariosRepo.getAll(),
+            this.catalogosRepo.destinosRepo.getAll(),
+            this.catalogosRepo.formatosRepo.getAll(),
+            this.catalogosRepo.presentacionesRepo.getAll(),
+            this.catalogosRepo.variedadesRepo.getAll(),
+            this.catalogosRepo.lugaresProduccionRepo.getAll(),
+            this.catalogosRepo.codigosRanchoRepo.getAll(),
+            this.catalogosRepo.tiposEmpaqueGuiaRepo.getAll(),
+            this.catalogosRepo.transportesRepo.getAll(),
+            this.catalogosRepo.tipoProcesoEmpacadoRepo.getAll(),
+        ]);
+
+        const consigMap = new Map(consignatarios.map(c => [String(c.documentoFiscal ?? '').trim(), c.nombre]));
+        const destMap = new Map(destinos.map(d => [String(d.id ?? '').trim(), d.pais]));
+        const fmtMap = new Map(formatos.map(f => [String(f.id ?? '').trim(), f.descripcion]));
+        const presMap = new Map(presentaciones.map(p => [String(p.id ?? '').trim(), p.nombre ?? '']));
+        const varMap = new Map(variedades.map(v => [String(v.codigo ?? '').trim(), v.variedad]));
+        const lugMap = new Map(lugares.map(l => [String(l.id ?? '').trim(), l.descripcion]));
+        const ranMap = new Map(codigosRancho.map(r => [String(r.id ?? '').trim(), r.codigo]));
+        const tegMap = new Map(tiposEmpaqueGuia.map(t => [String(t.id ?? '').trim(), t.nombre]));
+        const transMap = new Map(transportes.map(t => [String(t.id ?? '').trim(), t.transporte]));
+        const tpeMap = new Map(tiposProceso.map(t => [String(t.id ?? '').trim(), t.nombre]));
+
+        return dpalets.map((d: any) => {
+            const docCons = String(d.documentoConsignatario ?? '').trim();
+            const destId = String(d.destinoId ?? '').trim();
+            const fmtId = String(d.formatoId ?? '').trim();
+            const presId = String(d.presentacionId ?? '').trim();
+            const varId = String(d.variedadId ?? '').trim();
+            const lugId = String(d.lugarProduccionId ?? '').trim();
+            const ranId = String(d.codigoRanchoId ?? '').trim();
+            const tegId = String(d.tipoEmpaqueGuiaId ?? '').trim();
+            const transId = String(d.transporteId ?? '').trim();
+            const tpeId = String(d.tipoProcesoEmpacadoId ?? '').trim();
+
+            return {
+                ...d,
+                consignatarioNombre: consigMap.get(docCons) ?? d.consignatarioNombre ?? '',
+                destinoNombre: destMap.get(destId) ?? d.destinoNombre ?? '',
+                formatoNombre: fmtMap.get(fmtId) ?? d.formatoNombre ?? '',
+                presentacionNombre: presMap.get(presId) ?? d.presentacionNombre ?? '',
+                variedadNombre: varMap.get(varId) ?? d.variedadNombre ?? '',
+                lugarProduccionNombre: lugMap.get(lugId) ?? d.lugarProduccionNombre ?? '',
+                codigoRanchoNombre: ranMap.get(ranId) ?? d.codigoRanchoNombre ?? '',
+                tipoEmpaqueGuiaNombre: tegMap.get(tegId) ?? d.tipoEmpaqueGuiaNombre ?? '',
+                transporteNombre: transMap.get(transId) ?? d.transporteNombre ?? '',
+                tipoProcesoEmpacadoNombre: tpeMap.get(tpeId) ?? d.tipoProcesoEmpacadoNombre ?? '',
+            } as DPalet;
+        });
+    }
+
+    async sincronizarDPaletsPorAcopio(): Promise<void> {
+        try {
+            const resp: any = await firstValueFrom(this.paletService.getDPaletsPorAcopio());
+            const first = Array.isArray(resp) ? resp[0] : resp;
+            if (first?.error) {
+                console.error('Error obteniendo DPalets por acopio:', first?.mensaje);
+                return;
+            }
+            const items: any[] = first?.data ?? [];
+
+            // Siempre limpiar DPalets sincronizados previos (bd=1)
+            const dpaletsLocales = await this.procesoRepo.dPaletsRepo.getAll();
+            const sincronizados = (dpaletsLocales ?? []).filter((d: any) => (d.bd ?? 0) === 1);
+            for (const d of sincronizados) {
+                if ((d as any)._pk != null) {
+                    await this.procesoRepo.dPaletsRepo.delete((d as any)._pk);
+                }
+            }
+
+            if (!items.length) {
+                console.log('No hay DPalets remotos — locales bd=1 eliminados');
+                return;
+            }
+
+            const enriquecidos = await this.resolverNombresDPalets(items);
+            for (const d of enriquecidos) {
+                const row: DPalet = {
+                    ...d,
+                    bd: 1,
+                };
+                await this.procesoRepo.dPaletsRepo.saveByIdDPalet(row);
+            }
+            console.log('DPalets sincronizados:', enriquecidos.length);
+        } catch (err) {
+            console.error('Error sincronizando DPalets por acopio:', err);
         }
     }
 
@@ -621,6 +746,11 @@ export class ParametrosComponent implements OnInit {
                     for (const usuarioAcopio of resp.data) {
                         usuarioAcopio.bd = 1
                         await this.adminRepo.usuariosRepository.save(usuarioAcopio as any)
+                    }
+                } else {
+                    let dexiedb = await this.adminRepo.usuariosRepository.getAll()
+                    if (dexiedb.length > 0) {
+                        await this.adminRepo.usuariosRepository.clear()
                     }
                 }
             }
@@ -641,6 +771,11 @@ export class ParametrosComponent implements OnInit {
                     for (const tipoProcesoEmpacado of resp.data) {
                         tipoProcesoEmpacado.bd = 1
                         await this.catalogosRepo.tipoProcesoEmpacadoRepo.save(tipoProcesoEmpacado as any)
+                    }
+                } else {
+                    let dexiedb = await this.catalogosRepo.tipoProcesoEmpacadoRepo.getAll()
+                    if (dexiedb.length > 0) {
+                        await this.catalogosRepo.tipoProcesoEmpacadoRepo.clear()
                     }
                 }
             }
@@ -667,6 +802,11 @@ export class ParametrosComponent implements OnInit {
                     for (const personalLogistico of resp.data) {
                         personalLogistico.bd = 1
                         await this.catalogosOperativosRepo.personalLogisticoRepo.save(personalLogistico);
+                    }
+                } else {
+                    let dexiedb = await this.catalogosOperativosRepo.personalLogisticoRepo.getAll()
+                    if (dexiedb.length > 0) {
+                        await this.catalogosOperativosRepo.personalLogisticoRepo.clear()
                     }
                 }
             }
@@ -697,6 +837,11 @@ export class ParametrosComponent implements OnInit {
                         supervisor.bd = 1
                         await this.catalogosOperativosRepo.supervisoresRepo.save(supervisor);
                     }
+                } else {
+                    let dexiedb = await this.catalogosOperativosRepo.supervisoresRepo.getAll()
+                    if (dexiedb.length > 0) {
+                        await this.catalogosOperativosRepo.supervisoresRepo.clear()
+                    }
                 }
             }
         } catch (error) {
@@ -716,6 +861,11 @@ export class ParametrosComponent implements OnInit {
                     for (const transportista of resp.data) {
                         transportista.bd = 1
                         await this.catalogosOperativosRepo.transportistasRepo.save(transportista);
+                    }
+                } else {
+                    let dexiedb = await this.catalogosOperativosRepo.transportistasRepo.getAll()
+                    if (dexiedb.length > 0) {
+                        await this.catalogosOperativosRepo.transportistasRepo.clear()
                     }
                 }
             }
@@ -737,6 +887,11 @@ export class ParametrosComponent implements OnInit {
                         vehiculo.bd = 1
                         await this.catalogosOperativosRepo.vehiculosRepo.save(vehiculo);
                     }
+                } else {
+                    let dexiedb = await this.catalogosOperativosRepo.vehiculosRepo.getAll()
+                    if (dexiedb.length > 0) {
+                        await this.catalogosOperativosRepo.vehiculosRepo.clear()
+                    }
                 }
             }
         } catch (error) {
@@ -757,10 +912,40 @@ export class ParametrosComponent implements OnInit {
                         conductor.bd = 1
                         await this.catalogosOperativosRepo.conductoresRepo.save(conductor);
                     }
+                } else {
+                    let dexiedb = await this.catalogosOperativosRepo.conductoresRepo.getAll()
+                    if (dexiedb.length > 0) {
+                        await this.catalogosOperativosRepo.conductoresRepo.clear()
+                    }
                 }
             }
         } catch (error) {
             console.log('Error obteniendo conductores', error);
+        }
+    }
+
+    async getDestinatariosMaestros(): Promise<void> {
+        try {
+            const resp: any = await firstValueFrom(this.catalogoService.listarDestinatarios())
+            if (!resp.error) {
+                if (resp.data.length > 0) {
+                    let dexiedb = await this.catalogosRepo.destinatariosRepo.getAll()
+                    if (dexiedb.length > 0) {
+                        await this.catalogosRepo.destinatariosRepo.clear()
+                    }
+                    for (const destinatario of resp.data) {
+                        destinatario.bd = 1
+                        await this.catalogosRepo.destinatariosRepo.save(destinatario);
+                    }
+                } else {
+                    let dexiedb = await this.catalogosRepo.destinatariosRepo.getAll()
+                    if (dexiedb.length > 0) {
+                        await this.catalogosRepo.destinatariosRepo.clear()
+                    }
+                }
+            }
+        } catch (error) {
+            console.log('Error obteniendo destinatarios', error);
         }
     }
 
@@ -776,6 +961,11 @@ export class ParametrosComponent implements OnInit {
                     for (const lugarProduccion of resp.data) {
                         lugarProduccion.bd = 1
                         await this.catalogosRepo.lugaresProduccionRepo.save(lugarProduccion);
+                    }
+                } else {
+                    let dexiedb = await this.catalogosRepo.lugaresProduccionRepo.getAll()
+                    if (dexiedb.length > 0) {
+                        await this.catalogosRepo.lugaresProduccionRepo.clear()
                     }
                 }
             }
@@ -797,6 +987,11 @@ export class ParametrosComponent implements OnInit {
                         tipoCaja.bd = 1
                         await this.catalogosRepo.tiposCajaRepo.save(tipoCaja);
                     }
+                } else {
+                    let dexiedb = await this.catalogosRepo.tiposCajaRepo.getAll()
+                    if (dexiedb.length > 0) {
+                        await this.catalogosRepo.tiposCajaRepo.clear()
+                    }
                 }
             }
         } catch (error) {
@@ -816,6 +1011,11 @@ export class ParametrosComponent implements OnInit {
                     for (const presentacion of resp.data) {
                         presentacion.bd = 1
                         await this.catalogosRepo.presentacionesRepo.save(presentacion);
+                    }
+                } else {
+                    let dexiedb = await this.catalogosRepo.presentacionesRepo.getAll()
+                    if (dexiedb.length > 0) {
+                        await this.catalogosRepo.presentacionesRepo.clear()
                     }
                 }
             }
@@ -837,6 +1037,11 @@ export class ParametrosComponent implements OnInit {
                         tipoEmpaque.bd = 1
                         await this.catalogosRepo.tiposEmpaqueGuiaRepo.save(tipoEmpaque);
                     }
+                } else {
+                    let dexiedb = await this.catalogosRepo.tiposEmpaqueGuiaRepo.getAll()
+                    if (dexiedb.length > 0) {
+                        await this.catalogosRepo.tiposEmpaqueGuiaRepo.clear()
+                    }
                 }
             }
         } catch (error) {
@@ -856,6 +1061,11 @@ export class ParametrosComponent implements OnInit {
                     for (const tipoEmpaque of resp.data) {
                         tipoEmpaque.bd = 1
                         await this.catalogosRepo.tiposEmpaqueRepo.save(tipoEmpaque);
+                    }
+                } else {
+                    let dexiedb = await this.catalogosRepo.tiposEmpaqueRepo.getAll()
+                    if (dexiedb.length > 0) {
+                        await this.catalogosRepo.tiposEmpaqueRepo.clear()
                     }
                 }
             }
@@ -877,6 +1087,11 @@ export class ParametrosComponent implements OnInit {
                         categoria.bd = 1
                         await this.catalogosRepo.categoriasRepo.save(categoria);
                     }
+                } else {
+                    let dexiedb = await this.catalogosRepo.categoriasRepo.getAll()
+                    if (dexiedb.length > 0) {
+                        await this.catalogosRepo.categoriasRepo.clear()
+                    }
                 }
             }
         } catch (error) {
@@ -892,10 +1107,15 @@ export class ParametrosComponent implements OnInit {
                 if (dexiedb.length > 0) {
                     await this.catalogosRepo.tiposClamshellRepo.clear()
                 }
-            }
-            for (const tc of (resp.data ?? [])) {
-                tc.bd = 1
-                this.catalogosRepo.tiposClamshellRepo.save(tc);
+                for (const tc of (resp.data ?? [])) {
+                    tc.bd = 1
+                    this.catalogosRepo.tiposClamshellRepo.save(tc);
+                }
+            } else {
+                let dexiedb = await this.catalogosRepo.tiposClamshellRepo.getAll()
+                if (dexiedb.length > 0) {
+                    await this.catalogosRepo.tiposClamshellRepo.clear()
+                }
             }
         } catch (error) {
             console.log("Error sincronizando TiposClamshell", error);
@@ -910,12 +1130,65 @@ export class ParametrosComponent implements OnInit {
                 if (dexiedb.length > 0) {
                     await this.catalogosRepo.transportesRepo.clear()
                 }
-            }
-            for (const t of (resp ?? [])) {
-                this.catalogosRepo.transportesRepo.save(t);
+                for (const t of (resp ?? [])) {
+                    this.catalogosRepo.transportesRepo.save(t);
+                }
+            } else {
+                let dexiedb = await this.catalogosRepo.transportesRepo.getAll()
+                if (dexiedb.length > 0) {
+                    await this.catalogosRepo.transportesRepo.clear()
+                }
             }
         } catch (error) {
             console.log("Error sincronizando Transportes", error);
+        }
+    }
+
+    async getCodigosRanchoMaestros(idProyecto: string): Promise<void> {
+        try {
+            const resp: any = await firstValueFrom(this.catalogoService.listarCodigosRanchoCatalogo(idProyecto));
+            const data = Array.isArray(resp) ? resp : (resp?.data ?? []);
+            if (data.length > 0) {
+                let dexiedb = await this.catalogosRepo.codigosRanchoRepo.getAll();
+                if (dexiedb.length > 0) {
+                    await this.catalogosRepo.codigosRanchoRepo.clear();
+                }
+                for (const c of data) {
+                    c.bd = 1;
+                    await this.catalogosRepo.codigosRanchoRepo.save(c);
+                }
+            } else {
+                let dexiedb = await this.catalogosRepo.codigosRanchoRepo.getAll();
+                if (dexiedb.length > 0) {
+                    await this.catalogosRepo.codigosRanchoRepo.clear();
+                }
+            }
+        } catch (error) {
+            console.log("Error sincronizando Códigos Rancho", error);
+        }
+    }
+
+    async getLugaresProduccionConfigMaestros(idProyecto: string): Promise<void> {
+        try {
+            const resp: any = await firstValueFrom(this.catalogoService.listarLugaresProduccionConfig(idProyecto));
+            const data = Array.isArray(resp) ? resp : (resp?.data ?? []);
+            if (data.length > 0) {
+                let dexiedb = await this.catalogosRepo.lugaresProduccionConfigRepo.getAll();
+                if (dexiedb.length > 0) {
+                    await this.catalogosRepo.lugaresProduccionConfigRepo.clear();
+                }
+                for (const c of data) {
+                    c.bd = 1;
+                    await this.catalogosRepo.lugaresProduccionConfigRepo.save(c);
+                }
+            }else{
+                let dexiedb = await this.catalogosRepo.lugaresProduccionConfigRepo.getAll();
+                if (dexiedb.length > 0) {
+                    await this.catalogosRepo.lugaresProduccionConfigRepo.clear();
+                }
+            }
+        } catch (error) {
+            console.log("Error sincronizando Lugares Producción Config", error);
         }
     }
 
@@ -931,6 +1204,11 @@ export class ParametrosComponent implements OnInit {
                 for (const c of (calibresCultivos ?? [])) {
                     this.catalogosRepo.calibresRepo.save(c);
                 }
+            } else {
+                let dexiedb = await this.catalogosRepo.calibresRepo.getAll()
+                if (dexiedb.length > 0) {
+                    await this.catalogosRepo.calibresRepo.clear()
+                }
             }
         } catch (error) {
             console.log("Error sincronizando Calibres", error);
@@ -945,9 +1223,14 @@ export class ParametrosComponent implements OnInit {
                 if (dexiedb.length > 0) {
                     await this.catalogosRepo.destinosRepo.clear()
                 }
-            }
-            for (const p of (resp ?? [])) {
-                this.catalogosRepo.destinosRepo.save(p);
+                for (const p of (resp ?? [])) {
+                    this.catalogosRepo.destinosRepo.save(p);
+                }
+            } else {
+                let dexiedb = await this.catalogosRepo.destinosRepo.getAll()
+                if (dexiedb.length > 0) {
+                    await this.catalogosRepo.destinosRepo.clear()
+                }
             }
         } catch (error) {
             console.log("Error sincronizando Paises", error);
@@ -968,6 +1251,11 @@ export class ParametrosComponent implements OnInit {
                         v.bd = 1
                         this.catalogosRepo.variedadesRepo.save(v)
                     }
+                } else {
+                    let dexiedb = await this.catalogosRepo.variedadesRepo.getAll()
+                    if (dexiedb.length > 0) {
+                        await this.catalogosRepo.variedadesRepo.clear()
+                    }
                 }
             }
         } catch (error) {
@@ -987,6 +1275,15 @@ export class ParametrosComponent implements OnInit {
                 for (const c of (resp ?? [])) {
                     this.catalogosRepo.consignatariosRepo.save(c)
                 }
+            } else {
+                let dexiedbClientes = await this.catalogosRepo.clientesRepo.getAll()
+                if (dexiedbClientes.length > 0) {
+                    await this.catalogosRepo.clientesRepo.clear()
+                }
+                let dexiedbConsig = await this.catalogosRepo.consignatariosRepo.getAll()
+                if (dexiedbConsig.length > 0) {
+                    await this.catalogosRepo.consignatariosRepo.clear()
+                }
             }
         } catch (error) {
             console.log("Error sincronizando Clientes", error);
@@ -1001,10 +1298,15 @@ export class ParametrosComponent implements OnInit {
                 if (dexiedb.length > 0) {
                     await this.catalogosRepo.formatosRepo.clear()
                 }
-            }
-            for (const f of (resp.data ?? [])) {
-                f.bd = 1
-                this.catalogosRepo.formatosRepo.save(f)
+                for (const f of (resp.data ?? [])) {
+                    f.bd = 1
+                    this.catalogosRepo.formatosRepo.save(f)
+                }
+            } else {
+                let dexiedb = await this.catalogosRepo.formatosRepo.getAll()
+                if (dexiedb.length > 0) {
+                    await this.catalogosRepo.formatosRepo.clear()
+                }
             }
         } catch (error) {
             console.log("Error sincronizando Formatos", error);
@@ -1039,6 +1341,12 @@ export class ParametrosComponent implements OnInit {
                         }
                     }
                 }
+            } else {
+                let dexiedb = await this.catalogosOperativosRepo.acopiosRepo.getAll()
+                if (dexiedb.length > 0) {
+                    await this.catalogosOperativosRepo.acopiosRepo.clear()
+                    await this.catalogosOperativosRepo.acopiosDetallesRepo.clear()
+                }
             }
         } catch (error) {
             console.log("Error sincronizando Acopios", error);
@@ -1055,6 +1363,11 @@ export class ParametrosComponent implements OnInit {
                 }
                 for (const c of (resp ?? [])) {
                     this.catalogosRepo.campaniaRepo.save(c)
+                }
+            } else {
+                let dexiedb = await this.catalogosRepo.campaniaRepo.getAll()
+                if (dexiedb.length > 0) {
+                    await this.catalogosRepo.campaniaRepo.clear()
                 }
             }
         } catch (error) {
@@ -1073,6 +1386,11 @@ export class ParametrosComponent implements OnInit {
                 for (const c of (resp ?? [])) {
                     this.catalogosRepo.cultivoRepo.save(c)
                 }
+            } else {
+                let dexiedb = await this.catalogosRepo.cultivoRepo.getAll()
+                if (dexiedb.length > 0) {
+                    await this.catalogosRepo.cultivoRepo.clear()
+                }
             }
         } catch (error) {
             console.log("Error sincronizando Cultivos", error);
@@ -1089,6 +1407,11 @@ export class ParametrosComponent implements OnInit {
                 }
                 for (const f of (resp ?? [])) {
                     this.catalogosRepo.fundoRepo.save(f)
+                }
+            } else {
+                let dexiedb = await this.catalogosRepo.fundoRepo.getAll()
+                if (dexiedb.length > 0) {
+                    await this.catalogosRepo.fundoRepo.clear()
                 }
             }
         } catch (error) {

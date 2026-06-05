@@ -12,6 +12,7 @@ export type CatalogoKey =
     | 'variedades'
     | 'lugaresProduccion'
     | 'transportes'
+    | 'codigosRancho'
     | 'calibres'
     | 'categorias'
     | 'conductores'

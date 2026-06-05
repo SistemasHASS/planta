@@ -152,6 +152,7 @@ export class LayoutComponent {
           { label: 'Campañas', path: '/admin/campanias', icon: 'bi-calendar-range-fill' },
           { label: 'Acopio Configuración', path: '/admin/acopio_configuracion', icon: 'bi-building-gear' },
           { label: 'Gestión de Usuarios', path: '/admin/usuarios', icon: 'bi-people-fill' },
+          { label: 'Gestión de Destinatarios', path: '/admin/destinatarios', icon: 'bi-geo-alt-fill' },
           { label: 'Matriz Compatibilidad', path: '/admin/matriz', icon: 'bi-diagram-3-fill' },
           { label: 'Reglas Sobrepeso', path: '/admin/sobrepeso', icon: 'bi-speedometer2' },
           {
@@ -174,6 +175,7 @@ export class LayoutComponent {
               { label: 'Variedades - Maestro', path: '/admin/catalogos/variedades', icon: 'bi-dot' },
               { label: 'Lugares de Producción', path: '/admin/catalogos/lugaresProduccion', icon: 'bi-dot' },
               { label: 'Transportes - Maestro', path: '/admin/catalogos/transportes', icon: 'bi-dot' },
+              { label: 'Códigos Rancho', path: '/admin/catalogos/codigosRancho', icon: 'bi-dot' },
             ]
           },
           {

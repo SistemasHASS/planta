@@ -172,7 +172,7 @@ export class UsuariosComponent implements OnInit {
     const normalizar: Usuario[] = [];
 
     for (const item of (Array.isArray(data) ? data : [])) {
-      const acopio = item?.codigoAcopio ? await this.catalogosOperativosRepository.acopiosRepo.getByField('acopioId', item.codigoAcopio) : undefined;
+      const acopio = item?.codigoAcopio ? await this.catalogosOperativosRepository.acopiosRepo.getByField('codigoAcopio', item.codigoAcopio) : undefined;
       normalizar.push({
         id: item.id,
         idempresa: item.idempresa,

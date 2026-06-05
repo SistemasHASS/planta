@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { DexieService } from '../dexie-db.service';
 import { BaseRepository } from '../db-base.repository';
 import { DProcesoLogistico, DProcesoSupervisor, Proceso } from '../../interfaces/proceso.interface';
-import { Palet } from '../../interfaces/palet.interface';
+import { Palet, DPalet } from '../../interfaces/palet.interface';
 
 @Injectable({ providedIn: 'root' })
 export class ProcesoRepository {
@@ -10,7 +10,8 @@ export class ProcesoRepository {
     public readonly procesosRepo: ProcesosRepo,
     public readonly dProcesoLogisticosRepo: DProcesoLogisticosRepo,
     public readonly dProcesoSupervisoresRepo: DProcesoSupervisoresRepo,
-    public readonly paletsRepo: PaletsRepo
+    public readonly paletsRepo: PaletsRepo,
+    public readonly dPaletsRepo: DPaletsRepo
   ) {}
 }
 
@@ -208,5 +209,51 @@ export class PaletsRepo extends BaseRepository<Palet> {
       }
     }
     return this.table.put(anyItem);
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class DPaletsRepo extends BaseRepository<DPalet> {
+  constructor(db: DexieService) {
+    super(db, 'dpalets');
+  }
+
+  async getByIdPalet(idPalet: string): Promise<DPalet[]> {
+    const id = String(idPalet ?? '').trim();
+    if (!id) return [];
+    return this.table.where('idPalet' as any).equals(id as any).toArray();
+  }
+
+  async deleteByIdPalet(idPalet: string): Promise<void> {
+    const id = String(idPalet ?? '').trim();
+    if (!id) return;
+    const keys = await this.table.where('idPalet' as any).equals(id as any).primaryKeys();
+    if (keys?.length) await this.table.bulkDelete(keys as any);
+  }
+
+  async saveByIdDPalet(item: DPalet): Promise<any> {
+    const anyItem = item as any;
+    const idDPalet = String(anyItem?.idDPalet ?? '').trim();
+    if (idDPalet) {
+      const existente = await this.table.where('idDPalet' as any).equals(idDPalet as any).first();
+      if (existente) {
+        anyItem._pk = (existente as any)._pk;
+      }
+    }
+    return this.table.put(anyItem);
+  }
+
+  async deleteByIdDPalet(idDPalet: string): Promise<void> {
+    const id = String(idDPalet ?? '').trim();
+    if (!id) return;
+    const existente = await this.table.where('idDPalet' as any).equals(id as any).first();
+    if (existente) {
+      await this.table.delete((existente as any)._pk);
+    }
+  }
+
+  async getNoSincronizados(): Promise<DPalet[]> {
+    const rows = await this.table.toArray();
+    return (rows ?? []).filter((r: any) => (r as any)?.bd === 0);
   }
 }

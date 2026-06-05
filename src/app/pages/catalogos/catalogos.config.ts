@@ -200,11 +200,12 @@ export const CATALOGOS_CONFIG: Record<CatalogoKey, CatalogoConfig> = {
   },
 
   variedades: {
-    tabla: 'PLANTA_Variedades',
+    tabla: 'PLANTA_VariedadAuxiliar',
     label: 'Variedades - Maestro',
     icon: 'bi-flower1',
     columnas: [
-      { campo: 'id', label: 'ID', tipo: 'varchar', visible: true, editable: false, unique: true },
+      { campo: 'id', label: 'ID', tipo: 'varchar', visible: false, editable: false},
+      { campo: 'codigo', label: 'codigo', tipo: 'varchar', maxLength: 100, required: true,editable: false,unique:true},
       { campo: 'idcultivo', label: 'IdCultivo', tipo: 'varchar', maxLength: 50, required: true,editable: false },
       // { campo: 'nombreCultivo', label: 'Cultivo', tipo: 'varchar', maxLength: 100, required: true },
       { campo: 'idmodulo', label: 'Modulo', tipo: 'varchar', maxLength: 100, required: true,editable: false },
@@ -256,6 +257,25 @@ export const CATALOGOS_CONFIG: Record<CatalogoKey, CatalogoConfig> = {
     editable: false,
     fkTablas: ['ComposicionPalets', 'ReglasSobrepeso'],
     dixieRepo: 'transportesRepo'
+  },
+
+  codigosRancho: {
+    tabla: 'PLANTA_CodigosRancho',
+    label: 'Códigos Rancho',
+    icon: 'bi-geo-alt',
+    columnas: [
+      { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
+      { campo: 'codigo', label: 'Código', tipo: 'varchar', maxLength: 50, required: true, unique: true },
+      { campo: 'activo', label: 'Estado', tipo: 'bit', required: true },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'fechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
+    ],
+    displayField: 'Codigo',
+    codigoField: 'codigo',
+    tieneActivo: true,
+    editable: true,
+    fkTablas: ['ComposicionPalets'],
+    dixieRepo: 'codigosRanchoRepo'
   },
 
   calibres: {

@@ -67,6 +67,12 @@ const childRoutes: Routes = [
     data: { title: 'Gestión de Usuarios', subtitle: 'Administrar usuarios del sistema', icon: 'bi-people-fill' }
   },
   {
+    path: 'admin/destinatarios',
+    loadComponent: () =>
+      import('./pages/destinatarios/destinatarios.component').then((m) => m.DestinatariosComponent),
+    data: { title: 'Gestión de Destinatarios', subtitle: 'Administrar destinatarios de guías', icon: 'bi-geo-alt-fill' }
+  },
+  {
     path: 'admin/matriz',
     loadComponent: () =>
       import('./pages/matriz-compatibilidad/matriz-compatibilidad.component').then((m) => m.MatrizCompatibilidadComponent),

@@ -41,6 +41,7 @@ const CATALOGO_DATA_KEY_MAP: Record<CatalogoKey, string> = {
   tiposClamshell: 'tiposClamshell',
   lugaresProduccion: 'lugaresProduccion',
   transportes: 'transportes',
+  codigosRancho: 'codigosRancho',
   calibres: 'calibres',
   categorias: 'categorias',
   conductores: 'conductores',
@@ -121,6 +122,7 @@ export class CatalogosComponent implements OnInit {
       tiposClamshell: 'tiposClamshell',
       lugaresProduccion: 'lugaresProduccion',
       transportes: 'transportes',
+      codigosRancho: 'codigosRancho',
       calibres: 'calibres',
       categorias: 'categorias',
       conductores: 'conductores',
@@ -285,7 +287,7 @@ export class CatalogosComponent implements OnInit {
     console.log('getCatalogoOperativosTipoApi');
     this.isLoading.set(true);
     try {
-      const resp: any = await firstValueFrom(this.catalogoService.listarForTablaCatalogos(tabla, this.savedConfig()?.codigoCultivo,this.savedConfig()?.idProyecto));
+      const resp: any = await firstValueFrom(this.catalogoService.listarForTablaCatalogos(tabla, this.savedConfig()?.codigoCultivo, this.savedConfig()?.idProyecto));
       const data = resp?.data ?? resp;
       const confTemp = CATALOGOS_CONFIG[this.tipo() as keyof typeof CATALOGOS_CONFIG];
       const repo = this.catalogosOperativosRepo[confTemp.dixieRepo as keyof CatalogosOperativosRepository];
@@ -324,31 +326,44 @@ export class CatalogosComponent implements OnInit {
     console.log('getCatalogoTipoApi');
     this.isLoading.set(true);
     try {
-      const resp: any = await firstValueFrom(this.catalogoService.listarForTablaCatalogos(tabla, this.savedConfig()?.codigoCultivo,this.savedConfig()?.idProyecto));
-      const data = resp?.data ?? resp;
-      const confTemp = CATALOGOS_CONFIG[this.tipo() as keyof typeof CATALOGOS_CONFIG];
-      const repo = this.catalogosRepo[confTemp.dixieRepo as keyof CatalogosRepository];
-      const uniqueField = confTemp.codigoField || 'codigo';
-      for (const item of data) {
-        const apiId = (item as any)?.id;
-        const uniqueValue = (item as any)?.[uniqueField];
-        const existing = apiId
-          ? await repo.getByField('id', apiId)
-          : (uniqueValue !== undefined && uniqueValue !== null && `${uniqueValue}`.trim() !== '')
-            ? await repo.getByField(uniqueField, uniqueValue)
-            : undefined;
-
-        if (existing) {
-          if ((existing as any)?.bd === 0) {
-            continue;
+      const resp: any = await firstValueFrom(this.catalogoService.listarForTablaCatalogos(tabla, this.savedConfig()?.codigoCultivo, this.savedConfig()?.idProyecto));
+      if (tabla === 'PLANTA_VariedadAuxiliar') {
+        if (resp.data.length > 0) {
+          let dexiedb = await this.catalogosRepo.variedadesRepo.getAll()
+          if (dexiedb.length > 0) {
+            await this.catalogosRepo.variedadesRepo.clear()
           }
-          (item as any)._pk = (existing as any)._pk;
+          let variedadesCultivos = resp.data.filter((p: any) => p.idcultivo == this.savedConfig()?.codigoCultivo)
+          for (const v of (variedadesCultivos ?? [])) {
+            v.bd = 1
+            this.catalogosRepo.variedadesRepo.save(v)
+          }
         }
+      } else {
+        const data = resp?.data ?? resp;
+        const confTemp = CATALOGOS_CONFIG[this.tipo() as keyof typeof CATALOGOS_CONFIG];
+        const repo = this.catalogosRepo[confTemp.dixieRepo as keyof CatalogosRepository];
+        const uniqueField = confTemp.codigoField || 'codigo';
+        for (const item of data) {
+          const apiId = (item as any)?.id;
+          const uniqueValue = (item as any)?.[uniqueField];
+          const existing = apiId
+            ? await repo.getByField('id', apiId)
+            : (uniqueValue !== undefined && uniqueValue !== null && `${uniqueValue}`.trim() !== '')
+              ? await repo.getByField(uniqueField, uniqueValue)
+              : undefined;
 
-        (item as any).bd = 1;
-        await repo.save(item);
+          if (existing) {
+            if ((existing as any)?.bd === 0) {
+              continue;
+            }
+            (item as any)._pk = (existing as any)._pk;
+          }
+
+          (item as any).bd = 1;
+          await repo.save(item);
+        }
       }
-
       await this.getDataCatalogosDixie();
 
     } catch (err) {
@@ -409,27 +424,41 @@ export class CatalogosComponent implements OnInit {
           this.alertService.showAlert('Éxito', 'No hay registros pendientes de sincronización', 'success');
           return
         } else {
-          const payloads = structuredClone(dataSend);
-          if( this.config().tabla == 'PLANTA_LugaresProduccion' 
+          let payloads = structuredClone(dataSend);
+          if (this.config().tabla == 'PLANTA_LugaresProduccion'
             || this.config().tabla == 'PLANTA_TipoProcesoEmpacado'
             || this.config().tabla == 'PLANTA_Transportistas'
             || this.config().tabla == 'PLANTA_Vehiculos'
             || this.config().tabla == 'PLANTA_Supervisores'
             || this.config().tabla == 'PLANTA_PersonalLogistica'
+            || this.config().tabla == 'PLANTA_CodigosRancho'
             || this.config().tabla == 'PLANTA_Conductores'
-          ){
+          ) {
             payloads.forEach((item: any) => {
               delete item.bd
               delete item._pk
               item.idproyecto = this.savedConfig()?.idProyecto
             })
-          }else{
-             payloads.forEach((item: any) => {
+          } else {
+            payloads.forEach((item: any) => {
               delete item.bd
               delete item._pk
               item.codigoCultivo = this.savedConfig()?.codigoCultivo
             })
           }
+
+          if (this.config().tabla == 'PLANTA_VariedadAuxiliar') {
+            payloads = payloads
+              .filter((item: any) => item != null)
+              .map((item: any) => {
+                const { id, ruc, idempresa, idcultivo, ...resto } = item;
+                return {
+                  ...resto,
+                  ...(Number(id) > 0 ? { id } : {})
+                };
+              });
+          }
+
           let { error, data, mensaje } = await firstValueFrom(this.catalogoService.sincronizarCatalogos(this.config().tabla, payloads));
           if (error) {
             this.alertService.showAlert('Error', mensaje, 'error');
@@ -484,25 +513,33 @@ export class CatalogosComponent implements OnInit {
     const tipo = this.tipo();
     try {
       const payloadArray = Array.isArray(payloads) ? payloads : [payloads];
-      if( this.config().tabla == 'PLANTA_LugaresProduccion' 
-          || this.config().tabla == 'PLANTA_TipoProcesoEmpacado'
-          || this.config().tabla == 'PLANTA_Transportistas'
-          || this.config().tabla == 'PLANTA_Vehiculos'
-          || this.config().tabla == 'PLANTA_Supervisores'
-          || this.config().tabla == 'PLANTA_PersonalLogistica'
-          || this.config().tabla == 'PLANTA_Conductores'
-        ){
+      if (this.config().tabla == 'PLANTA_LugaresProduccion'
+        || this.config().tabla == 'PLANTA_TipoProcesoEmpacado'
+        || this.config().tabla == 'PLANTA_Transportistas'
+        || this.config().tabla == 'PLANTA_Vehiculos'
+        || this.config().tabla == 'PLANTA_Supervisores'
+        || this.config().tabla == 'PLANTA_PersonalLogistica'
+        || this.config().tabla == 'PLANTA_CodigosRancho'
+        || this.config().tabla == 'PLANTA_Conductores'
+      ) {
         payloads = payloadArray.map(item => ({
           ...item,
           idproyecto: this.savedConfig()?.idProyecto
         }));
-      }else{
+      } else {
         payloads = payloadArray.map(item => ({
           ...item,
           codigoCultivo: this.savedConfig()?.codigoCultivo
         }));
       }
-      console.log(this.config().tabla)
+
+      if (this.config().tabla == 'PLANTA_VariedadAuxiliar') {
+        payloads = payloads.map(({ id, ruc, idempresa, idcultivo, ...resto }) => ({
+          ...resto,
+          ...(id !== 0 ? { id } : {})
+        }));
+      }
+
       let { error, data, mensaje } = await firstValueFrom(this.catalogoService.sincronizarCatalogos(this.config().tabla, payloads));
 
       if (error) {

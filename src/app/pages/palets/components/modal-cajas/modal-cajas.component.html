@@ -1,0 +1,240 @@
+@if (visible) {
+<div class="modal-backdrop-custom" (click)="onCerrar()"></div>
+<div class="modal-custom modal-lg">
+  <div class="modal-header-custom">
+    <h5><i class="bi" [class.bi-pencil-square]="modoEdicion" [class.bi-plus-circle]="!modoEdicion"></i> {{ titulo }}</h5>
+    <button type="button" class="btn-close btn-close-white" (click)="onCerrar()" aria-label="Close"></button>
+  </div>
+  <div class="modal-body-custom">
+    @if (palet) {
+    <div class="alert" [class.alert-info]="composiciones.length === 0" [class.alert-warning]="composiciones.length > 0"
+      style="padding:10px 14px; margin-bottom:14px; font-size:13px;">
+      <div class="d-flex flex-wrap gap-3 align-items-center">
+        <span><i class="bi bi-box-seam"></i> <strong>Palet #{{ palet.numeroPalet == 0 ? palet.id : palet.numeroPalet }}</strong></span>
+        <span><i class="bi bi-layers"></i> Cajas actuales: <strong>{{ palet.cantidadCajas || 0 }}</strong></span>
+        @if (palet.limiteCajasPorPalet) {
+        <span><i class="bi bi-layers-fill"></i> Límite: <strong>{{ palet.limiteCajasPorPalet }}</strong></span>
+        <span><i class="bi bi-plus-circle"></i> Faltantes: <strong>{{ (palet.limiteCajasPorPalet || 0) - (palet.cantidadCajas || 0) > 0 ? (palet.limiteCajasPorPalet || 0) - (palet.cantidadCajas || 0) : 0 }}</strong></span>
+        }
+      </div>
+      @if (composiciones.length > 0) {
+      <div class="mt-1" style="border-top:1px solid rgba(0,0,0,0.1); padding-top:6px; margin-top:6px;">
+        <small><i class="bi bi-info-circle"></i> Este palet tiene cajas registradas. Formato fijado a:
+          <strong>{{ composiciones[0]?.formatoNombre || ('Formato #' + composiciones[0]?.formatoId) }}</strong>. Los
+          campos Consignatario, Destino y Formato están bloqueados.</small>
+      </div>
+      }
+    </div>
+    }
+    <form id="formAgregarCajas">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label form-label-required">Tipo Proceso Empacado</label>
+          <select class="form-select" name="tipoProcesoEmpacadoId" id="selectTipoProcesoEmpacado" required
+            [ngModel]="formCajas.tipoProcesoEmpacadoId" [attr.disabled]="tipoProcesoEmpacadoDisabled ? true : null"
+            [ngModelOptions]="{standalone: true}" (ngModelChange)="onCampoChange('tipoProcesoEmpacadoId', +$event)">
+            @if (!tipoProcesoEmpacadoDisabled) {
+            <option [ngValue]="0">Seleccione...</option>
+            }
+            @for (t of tiposProcesoEmpacadoModal; track t.id) {
+            <option [ngValue]="t.id">{{ t.nombre }}</option>
+            }
+          </select>
+          <small class="text-muted" id="helpTipoProceso">
+            @if (tipoProcesoEmpacadoDisabled) {
+            Tipo de proceso fijo para este acopio
+            } @else {
+            Seleccione un tipo de proceso
+            }
+          </small>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label form-label-required">Consignatario</label>
+          <select class="form-select" name="consignatarioId" id="selectConsignatario" required
+            [disabled]="composiciones.length > 0 && !modoEdicion"
+            [ngModel]="formCajas.consignatarioId" [ngModelOptions]="{standalone: true}"
+            (ngModelChange)="onCampoChange('consignatarioId', +$event)">
+            <option [ngValue]="0">Seleccione...</option>
+            @for (c of consignatarios; track c.id) {
+            <option [ngValue]="c.id">{{ c.nombre }}</option>
+            }
+          </select>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label form-label-required">Destino</label>
+          <select class="form-select" name="destinoId" id="selectDestino" required
+            [disabled]="filteredDestinos.length==0 || (composiciones.length > 0 && !modoEdicion)" [ngModel]="formCajas.destinoId"
+            [ngModelOptions]="{standalone: true}" (ngModelChange)="onCampoChange('destinoId', $event)">
+            <option value="">Seleccione consignatario...</option>
+            @for (d of filteredDestinos; track d.id) {
+            <option [value]="d.id">{{ d.pais }}</option>
+            }
+          </select>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label form-label-required">Formato</label>
+          <select class="form-select" name="formatoId" id="selectFormato" required [disabled]="formatoDisabled || (composiciones.length > 0 && !modoEdicion)"
+            [ngModel]="formCajas.formatoId" [ngModelOptions]="{standalone: true}"
+            (ngModelChange)="onCampoChange('formatoId', +$event)">
+            <option [ngValue]="0">Seleccione destino...</option>
+            @for (f of filteredFormatos; track f.id) {
+            <option [ngValue]="f.id">{{ f.nombre || f.descripcion }}</option>
+            }
+          </select>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label form-label-required">Tipo de Empaque Guía</label>
+          <select class="form-select" name="tipoEmpaqueGuiaId" id="selectTipoEmpaqueGuia" required
+            [disabled]="tipoEmpaqueGuiaDisabled" [ngModel]="formCajas.tipoEmpaqueGuiaId"
+            [ngModelOptions]="{standalone: true}" (ngModelChange)="onCampoChange('tipoEmpaqueGuiaId', +$event)">
+            <option [ngValue]="0">Seleccione formato...</option>
+            @for (t of filteredTiposEmpaqueGuia; track t.id) {
+            <option [ngValue]="t.id">{{ t.nombre }}</option>
+            }
+          </select>
+        </div>
+        <input type="hidden" name="calibreId" id="selectCalibre" [ngModel]="formCajas.calibreId"
+          [ngModelOptions]="{standalone: true}">
+        <input type="hidden" name="categoriaId" id="selectCategoria" [ngModel]="formCajas.categoriaId"
+          [ngModelOptions]="{standalone: true}">
+        <input type="hidden" name="tipoEmpaqueId" id="selectTipoEmpaque" [ngModel]="formCajas.tipoEmpaqueId"
+          [ngModelOptions]="{standalone: true}">
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Presentación</label>
+          <select class="form-select" name="presentacionId" id="selectPresentacion" [disabled]="presentacionDisabled"
+            [ngModel]="formCajas.presentacionId" [ngModelOptions]="{standalone: true}"
+            (ngModelChange)="onCampoChange('presentacionId', +$event)">
+            <option [ngValue]="0">Seleccione tipo empaque guía...</option>
+            @for (p of filteredPresentaciones; track p.id) {
+            <option [ngValue]="p.id ?? 0">{{ p.nombre }}</option>
+            }
+          </select>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label form-label-required">Tipo de Caja</label>
+          <select class="form-select" name="tipoCajaId" id="selectTipoCaja" required [disabled]="tipoCajaDisabled"
+            [ngModel]="formCajas.tipoCajaId" [ngModelOptions]="{standalone: true}"
+            (ngModelChange)="onCampoChange('tipoCajaId', +$event)">
+            <option [ngValue]="0">Esperando selección...</option>
+            @for (t of filteredTiposCaja; track t.id) {
+            <option [ngValue]="t.id">{{ t.nombre }}</option>
+            }
+          </select>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label form-label-required">Tipo de Clamshell</label>
+          <select class="form-select" name="tipoClamshellId" id="selectTipoClamshell" required
+            [disabled]="tipoClamshellDisabled" [ngModel]="formCajas.tipoClamshellId"
+            [ngModelOptions]="{standalone: true}" (ngModelChange)="onCampoChange('tipoClamshellId', +$event)">
+            <option [ngValue]="0">Seleccione tipo caja...</option>
+            @for (t of filteredTiposClamshell; track t.id) {
+            <option [ngValue]="t.id">{{ t.nombre }}</option>
+            }
+          </select>
+        </div>
+        <div class="col-md-6 mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <label class="form-label form-label-required mb-0">Variedad</label>
+            <div class="form-check form-switch m-0">
+              <input class="form-check-input" type="checkbox" id="switchEsEnsayo" [ngModel]="formCajas.esEnsayo"
+                [ngModelOptions]="{standalone: true}" (ngModelChange)="onCampoChange('esEnsayo', $event)">
+              <label class="form-check-label small" for="switchEsEnsayo">¿Es ensayo?</label>
+            </div>
+          </div>
+          <select class="form-select" name="variedadId" id="selectVariedad" required [ngModel]="formCajas.variedadId"
+            [ngModelOptions]="{standalone: true}" (ngModelChange)="onCampoChange('variedadId', $event)">
+            <option value="">Seleccione...</option>
+            @for (v of filteredVariedades; track v.codigo) {
+            <option [value]="v.codigo" [attr.data-procedencia]="v.procedencia"
+              [attr.data-es-ensayo]="v.esEnsayo ? '1' : '0'">
+              {{'MODULO: ' + v.idmodulo+' - ' +'VARIEDAD: ' +v.variedad }}
+            </option>
+            }
+          </select>
+        </div>
+        <!-- Select condicional: Variedad en Guía (solo para ensayos) -->
+        <div class="col-md-6 mb-3" id="contenedorVariedadGuia"
+          [style.display]="formCajas.esEnsayo ? 'block' : 'none'">
+          <label class="form-label form-label-required" style="color: #d97706;">
+            <i class="bi bi-arrow-repeat"></i> Variedad en Guía (ensayo)
+          </label>
+          <select class="form-select" name="variedadGuiaId" id="selectVariedadGuia"
+            [ngModel]="formCajas.variedadGuiaId" [ngModelOptions]="{standalone: true}"
+            (ngModelChange)="onCampoChange('variedadGuiaId', $event)">
+            <option value="">Seleccione variedad certificada...</option>
+            @for (v of variedades; track v.codigo) {
+            @if (!v.esEnsayo ) {
+            <option [value]="v.codigo">{{'MODULO: ' + v.idmodulo+' | ' +'VARIEDAD: ' +v.variedad }}</option>
+            }
+            }
+          </select>
+          <small class="text-muted" style="color: #d97706 !important;">Esta variedad aparecerá en la guía de
+            remisión</small>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label form-label-required">Lugar de Producción (LDP)</label>
+          <select class="form-select" name="lugarProduccionId" id="selectLDP" required
+            [ngModel]="formCajas.lugarProduccionId" [ngModelOptions]="{standalone: true}"
+            (ngModelChange)="onCampoChange('lugarProduccionId', +$event)">
+            <option [ngValue]="0">Seleccione...</option>
+            @for (l of lugaresProduccion; track l.id) {
+            <option [ngValue]="l.id">{{ l.descripcion }}</option>
+            }
+          </select>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label form-label-required">Código de Rancho</label>
+          <select class="form-select" name="codigoRanchoId" id="selectCodigoRancho" required
+            [disabled]="codigoRanchoDisabled" [ngModel]="formCajas.codigoRanchoId"
+            [ngModelOptions]="{standalone: true}" (ngModelChange)="onCampoChange('codigoRanchoId', +$event)"
+            [style.background-color]="filteredCodigosRancho.length === 1 ? '#e9ecef' : ''"
+            [style.cursor]="filteredCodigosRancho.length === 1 ? 'not-allowed' : 'pointer'">
+            @if (filteredCodigosRancho.length === 0) {
+            <option [ngValue]="0">Sin códigos disponibles</option>
+            } @else {
+            <option [ngValue]="0">Seleccione...</option>
+            @for (c of filteredCodigosRancho; track c.id) {
+            <option [ngValue]="c.id">{{ c.codigo }}</option>
+            }
+            }
+          </select>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label form-label-required">Vía de Transporte</label>
+          <select class="form-select" name="transporteId" id="selectTransporte" required
+            [ngModel]="formCajas.transporteId" [ngModelOptions]="{standalone: true}"
+            (ngModelChange)="onCampoChange('transporteId', $event)">
+            <option value="">Seleccione...</option>
+            @for (t of transportes; track t.id) {
+            <option [value]="t.id">{{ t.transporte }}</option>
+            }
+          </select>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label form-label-required">Cantidad de Cajas</label>
+          <input type="number" class="form-control" id="inputCantidadCajas" name="cantidadCajas" min="1" required
+            [ngModel]="formCajas.cantidadCajas" [ngModelOptions]="{standalone: true}"
+            (ngModelChange)="onCampoChange('cantidadCajas', +$event)">
+        </div>
+      </div>
+      <!-- Switch de Reposición -->
+      <div class="mb-3">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="switchEsReposicion" name="esReposicion"
+            [ngModel]="formCajas.esReposicion" (ngModelChange)="onCampoChange('esReposicion', $event)">
+          <label class="form-check-label" for="switchEsReposicion">¿Es reposición?</label>
+        </div>
+        <div id="labelReposicion" class="mt-1" [style.display]="formCajas.esReposicion ? 'block' : 'none'">
+          <span class="badge bg-warning text-dark"><i class="bi bi-arrow-repeat"></i> REPOSICIÓN</span>
+          <small class="text-muted ms-1">Esta línea NO contará como producción del día</small>
+        </div>
+      </div>
+      <div class="text-end mt-3">
+        <button type="button" class="btn btn-sp-outline" (click)="onCerrar()">Cancelar</button>
+        <button type="button" class="btn btn-sp-success" (click)="onSubmit()"><i
+            class="bi bi-check-circle"></i> {{ textoSubmit }}</button>
+      </div>
+    </form>
+  </div>
+</div>
+}

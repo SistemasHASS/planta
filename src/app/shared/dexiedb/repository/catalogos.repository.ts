@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { Calibre, Campania, Categoria, Cliente, Consignatario, Cultivo, Destino, Formato, Fundo, LugarProduccion, Presentacion, TipoCaja, TipoClamshell, TipoEmpaque, TipoEmpaqueGuia, TipoProcesoEmpacado, Transporte, Variedad } from "../../interfaces/catalogo.interface";
+import { Calibre, Campania, Categoria, Cliente, CodigoRancho, Consignatario, Cultivo, Destinatario, Destino, Formato, Fundo, LugarProduccion, LugarProduccionConfig, Presentacion, TipoCaja, TipoClamshell, TipoEmpaque, TipoEmpaqueGuia, TipoProcesoEmpacado, Transporte, Variedad } from "../../interfaces/catalogo.interface";
 import { BaseRepository } from "../db-base.repository";
 import { DexieService } from "../dexie-db.service";
 import { Configuracion } from "../../interfaces/administracion.interface";
@@ -27,6 +27,9 @@ export class CatalogosRepository {
         public readonly lugaresProduccionRepo: LugarProduccionRepository,
         public readonly transportesRepo: TransporteRepository,
         public readonly tipoProcesoEmpacadoRepo: TipoProcesoEmpacadoRepository,
+        public readonly codigosRanchoRepo: CodigoRanchoRepository,
+        public readonly lugaresProduccionConfigRepo: LugarProduccionConfigRepository,
+        public readonly destinatariosRepo: DestinatarioRepository,
     ) { }
 }
 
@@ -159,5 +162,26 @@ export class LugarProduccionRepository extends BaseRepository<LugarProduccion> {
 export class TransporteRepository extends BaseRepository<Transporte> {
     constructor(db: DexieService) {
         super(db, 'transportes');
+    }
+}
+
+@Injectable({ providedIn: 'root' })
+export class CodigoRanchoRepository extends BaseRepository<CodigoRancho> {
+    constructor(db: DexieService) {
+        super(db, 'codigosRancho');
+    }
+}
+
+@Injectable({ providedIn: 'root' })
+export class LugarProduccionConfigRepository extends BaseRepository<LugarProduccionConfig> {
+    constructor(db: DexieService) {
+        super(db, 'lugaresProduccionConfig');
+    }
+}
+
+@Injectable({ providedIn: 'root' })
+export class DestinatarioRepository extends BaseRepository<Destinatario> {
+    constructor(db: DexieService) {
+        super(db, 'destinatarios');
     }
 }

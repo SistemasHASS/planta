@@ -7,7 +7,7 @@ import { CatalogoService } from '../../shared/services/catalogo.service';
 import { AuthService } from '../../shared/services/auth.service';
 import { AlertService } from '../../shared/services/alert.service';
 import { PermissionService } from '../../shared/services/permission.service';
-import { Palet, Composicion, AgregarComposicionRequest } from '../../shared/interfaces/palet.interface';
+import { Palet, DPalet } from '../../shared/interfaces/palet.interface';
 import { Proceso } from '../../shared/interfaces/proceso.interface';
 import { Consignatario, Destino, Formato, Variedad, TipoEmpaque, TipoEmpaqueGuia, Presentacion, TipoCaja, TipoClamshell, LugarProduccion, CodigoRancho, Transporte, TipoProcesoEmpacado, Calibre, Categoria } from '../../shared/interfaces/catalogo.interface';
 import { ConnectivityService } from '../../shared/services/connectivity.service';
@@ -15,12 +15,14 @@ import { ProcesoRepository } from '../../shared/dexiedb/repository/proceso.repos
 import { firstValueFrom } from 'rxjs';
 import { Configuracion } from '../../shared/interfaces/administracion.interface';
 import { CatalogosRepository } from '../../shared/dexiedb/repository/catalogos.repository';
+import { CatalogosOperativosRepository } from '../../shared/dexiedb/repository/catalogos-operacionales.repository';
+import { AdministracionRepository } from '../../shared/dexiedb/repository/administracion.repository';
 import { formatDateTime, formatTimeClave } from '../../shared/utils/datetime.utils';
-
+import { ModalCajasComponent } from './components/modal-cajas/modal-cajas.component';
 @Component({
   selector: 'app-palets',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, ModalCajasComponent],
   templateUrl: './palets.component.html',
   styleUrl: './palets.component.scss'
 })
@@ -30,6 +32,8 @@ export class PaletsComponent implements OnInit, OnDestroy {
   private readonly procesoService = inject(ProcesoService);
   private readonly catalogoService = inject(CatalogoService);
   private readonly catalogosRepo = inject(CatalogosRepository);
+  private readonly catalogosOperativosRepo = inject(CatalogosOperativosRepository);
+  private readonly administracionRepo = inject(AdministracionRepository);
   private readonly auth = inject(AuthService);
   private readonly alertService = inject(AlertService);
   readonly permissions = inject(PermissionService);
@@ -37,6 +41,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
   readonly savedConfig = signal<Configuracion | null>(null);
   readonly activeCampaniaId = signal<string | null>(null);
 
+  private _cargandoCascada = false;
   private timerInterval: ReturnType<typeof setInterval> | null = null;
   get online(): boolean {
     return this.connectivity.isOnline();
@@ -46,9 +51,8 @@ export class PaletsComponent implements OnInit, OnDestroy {
   procesoSeleccionado = signal<Proceso | null>(null);
   palets = signal<Palet[]>([]);
   paletSeleccionado = signal<Palet | null>(null);
-  composiciones = signal<Composicion[]>([]);
+  composiciones = signal<DPalet[]>([]);
 
-  // Catalog signals (static - loaded once)  
   consignatarios = signal<Consignatario[]>([]);
   variedades = signal<Variedad[]>([]);
   lugaresProduccion = signal<LugarProduccion[]>([]);
@@ -58,7 +62,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
   tiposProcesoEmpacado = signal<TipoProcesoEmpacado[]>([]);
   tiposEmpaque = signal<TipoEmpaque[]>([]);
 
-  // Catalog signals (dynamic - loaded via cascading selects)
   filteredDestinos = signal<any[]>([]);
   filteredFormatos = signal<any[]>([]);
   filteredTiposEmpaqueGuia = signal<any[]>([]);
@@ -66,8 +69,8 @@ export class PaletsComponent implements OnInit, OnDestroy {
   filteredTiposCaja = signal<any[]>([]);
   filteredTiposClamshell = signal<any[]>([]);
   filteredCodigosRancho = signal<any[]>([]);
+  filteredVariedades = signal<Variedad[]>([]);
 
-  // Static catalog signals (for catalog page, not used in cascading)
   destinos = signal<Destino[]>([]);
   formatos = signal<Formato[]>([]);
   tiposEmpaqueGuia = signal<TipoEmpaqueGuia[]>([]);
@@ -76,9 +79,32 @@ export class PaletsComponent implements OnInit, OnDestroy {
   tiposClamshell = signal<TipoClamshell[]>([]);
   codigosRancho = signal<CodigoRancho[]>([]);
 
-  // Form signals for Agregar Cajas modal
   modalAgregarCajasAbierto = signal(false);
-  formCajas = signal<Pick<AgregarComposicionRequest, 'consignatarioId' | 'destinoId' | 'formatoId' | 'tipoEmpaqueId' | 'calibreId' | 'categoriaId' | 'tipoEmpaqueGuiaId' | 'tipoCajaId' | 'tipoClamshellId' | 'presentacionId' | 'tipoProcesoEmpacadoId' | 'variedadId' | 'variedadGuiaId' | 'lugarProduccionId' | 'codigoRanchoId' | 'transporteId' | 'cantidadCajas' | 'esReposicion' | 'esEnsayo'>>({
+  modoEdicionCajas = signal(false);
+  dpaletEditando = signal<DPalet | undefined>(undefined);
+  tiposProcesoEmpacadoModal = signal<TipoProcesoEmpacado[]>([]);
+  tipoProcesoEmpacadoDisabled = signal(false);
+  formCajas = signal<{
+    consignatarioId: number;
+    destinoId: number | string;
+    formatoId: number;
+    tipoEmpaqueId: number;
+    calibreId: number;
+    categoriaId: number;
+    tipoEmpaqueGuiaId: number;
+    tipoCajaId: number;
+    tipoClamshellId: number;
+    presentacionId: number;
+    tipoProcesoEmpacadoId: number;
+    variedadId: number | string;
+    variedadGuiaId: number | string;
+    lugarProduccionId: number;
+    codigoRanchoId: number;
+    transporteId: string;
+    cantidadCajas: number;
+    esReposicion: boolean;
+    esEnsayo: boolean;
+  }>({
     consignatarioId: 0,
     destinoId: 0,
     formatoId: 0,
@@ -94,7 +120,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     variedadGuiaId: 0,
     lugarProduccionId: 0,
     codigoRanchoId: 0,
-    transporteId: 1,
+    transporteId: '',
     cantidadCajas: 0,
     esReposicion: false,
     esEnsayo: false,
@@ -109,7 +135,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
   isLoading = signal(false);
   seccionActivosAbierta = signal(true);
   seccionDespachadosAbierta = signal(true);
-  seccionComposicionAbierta = signal(false);
+  seccionComposicionAbierta = signal(true);
   seccionObservacionesAbierta = signal(false);
   showModalAgregarCajas = computed(() => this.modalAgregarCajasAbierto());
   showModalCerrarPalet = computed(() => this.modalCerrarPaletAbierto());
@@ -130,6 +156,67 @@ export class PaletsComponent implements OnInit, OnDestroy {
     return db === 1 ? 'sp-badge sp-badge-success' : 'sp-badge sp-badge-danger';
   }
 
+  formatPeso(valor: number | undefined | null): string {
+    const n = Number(valor ?? 0);
+    return String(Math.ceil(n * 1000) / 1000);
+  }
+
+  private async resolverNombresDPalets(dpalets: any[]): Promise<DPalet[]> {
+    const [
+      consignatarios, destinos, formatos, presentaciones, variedades,
+      lugares, codigosRancho, tiposEmpaqueGuia, transportes, tiposProceso
+    ] = await Promise.all([
+      this.catalogosRepo.consignatariosRepo.getAll(),
+      this.catalogosRepo.destinosRepo.getAll(),
+      this.catalogosRepo.formatosRepo.getAll(),
+      this.catalogosRepo.presentacionesRepo.getAll(),
+      this.catalogosRepo.variedadesRepo.getAll(),
+      this.catalogosRepo.lugaresProduccionRepo.getAll(),
+      this.catalogosRepo.codigosRanchoRepo.getAll(),
+      this.catalogosRepo.tiposEmpaqueGuiaRepo.getAll(),
+      this.catalogosRepo.transportesRepo.getAll(),
+      this.catalogosRepo.tipoProcesoEmpacadoRepo.getAll(),
+    ]);
+
+    const consigMap = new Map(consignatarios.map(c => [String(c.documentoFiscal ?? '').trim(), c.nombre]));
+    const destMap = new Map(destinos.map(d => [String(d.id ?? '').trim(), d.pais]));
+    const fmtMap = new Map(formatos.map(f => [String(f.id ?? '').trim(), f.descripcion]));
+    const presMap = new Map(presentaciones.map(p => [String(p.id ?? '').trim(), p.nombre ?? '']));
+    const varMap = new Map(variedades.map(v => [String(v.codigo ?? '').trim(), v.variedad]));
+    const lugMap = new Map(lugares.map(l => [String(l.id ?? '').trim(), l.descripcion]));
+    const ranMap = new Map(codigosRancho.map(r => [String(r.id ?? '').trim(), r.codigo]));
+    const tegMap = new Map(tiposEmpaqueGuia.map(t => [String(t.id ?? '').trim(), t.nombre]));
+    const transMap = new Map(transportes.map(t => [String(t.id ?? '').trim(), t.transporte]));
+    const tpeMap = new Map(tiposProceso.map(t => [String(t.id ?? '').trim(), t.nombre]));
+
+    return dpalets.map((d: any) => {
+      const docCons = String(d.documentoConsignatario ?? '').trim();
+      const destId = String(d.destinoId ?? '').trim();
+      const fmtId = String(d.formatoId ?? '').trim();
+      const presId = String(d.presentacionId ?? '').trim();
+      const varId = String(d.variedadId ?? '').trim();
+      const lugId = String(d.lugarProduccionId ?? '').trim();
+      const ranId = String(d.codigoRanchoId ?? '').trim();
+      const tegId = String(d.tipoEmpaqueGuiaId ?? '').trim();
+      const transId = String(d.transporteId ?? '').trim();
+      const tpeId = String(d.tipoProcesoEmpacadoId ?? '').trim();
+
+      return {
+        ...d,
+        consignatarioNombre: consigMap.get(docCons) ?? d.consignatarioNombre ?? '',
+        destinoNombre: destMap.get(destId) ?? d.destinoNombre ?? '',
+        formatoNombre: fmtMap.get(fmtId) ?? d.formatoNombre ?? '',
+        presentacionNombre: presMap.get(presId) ?? d.presentacionNombre ?? '',
+        variedadNombre: varMap.get(varId) ?? d.variedadNombre ?? '',
+        lugarProduccionNombre: lugMap.get(lugId) ?? d.lugarProduccionNombre ?? '',
+        codigoRanchoNombre: ranMap.get(ranId) ?? d.codigoRanchoNombre ?? '',
+        tipoEmpaqueGuiaNombre: tegMap.get(tegId) ?? d.tipoEmpaqueGuiaNombre ?? '',
+        transporteNombre: transMap.get(transId) ?? d.transporteNombre ?? '',
+        tipoProcesoEmpacadoNombre: tpeMap.get(tpeId) ?? d.tipoProcesoEmpacadoNombre ?? '',
+      } as DPalet;
+    });
+  }
+
   private get userId(): number {
     return this.auth.usuario()?.id ?? 0;
   }
@@ -137,7 +224,10 @@ export class PaletsComponent implements OnInit, OnDestroy {
   async ngOnInit(): Promise<void> {
     await this.cargarConfiguracion();
     await this.cargarDesdeDexieCampania();
-    await this.cargarProcesos()
+    await this.cargarProcesos();
+    if (this.online) {
+      await this.sincronizarDPaletsPorAcopio();
+    }
   }
 
   ngOnDestroy(): void {
@@ -294,8 +384,8 @@ export class PaletsComponent implements OnInit, OnDestroy {
     try {
       if (this.online) {
         console.log('Obteniendo palets del proceso api...');
-        const resp = await firstValueFrom(this.paletService.listarPorProceso(idProceso));
-
+        const resp = await firstValueFrom(this.paletService.listarPaletPorProceso(idProceso));
+        console.log('listarPalets', resp)
         if (!resp?.length) {
           this.alertService.showAlert('Error', 'Error al obtener los palets del proceso', 'error');
           return;
@@ -312,12 +402,8 @@ export class PaletsComponent implements OnInit, OnDestroy {
         await this.procesoRepo.paletsRepo.clearSincronizadosByIdProceso(idProceso);
 
         for (const p of (apiPalets ?? [])) {
-          const anyP = p as any;
-          const idPalet = String(anyP?.idPalet ?? '').trim() || `${idProceso}-${String(anyP?.id ?? '')}`;
           const row: Palet = {
             ...(p as any),
-            idProceso,
-            idPalet,
             bd: 1,
           };
           await this.procesoRepo.paletsRepo.saveByIdPalet(row);
@@ -327,7 +413,8 @@ export class PaletsComponent implements OnInit, OnDestroy {
       }
 
       const paletsDb = await this.procesoRepo.paletsRepo.getByIdProceso(idProceso);
-      const ordenados = (paletsDb ?? []).slice().sort((a: any, b: any) => {
+      const activos = (paletsDb ?? []).filter((p: any) => !(p as any)?.eliminado);
+      const ordenados = activos.slice().sort((a: any, b: any) => {
         const ak = String(a?.idPalet ?? '').trim();
         const bk = String(b?.idPalet ?? '').trim();
         if (ak && bk) return bk.localeCompare(ak);
@@ -341,6 +428,43 @@ export class PaletsComponent implements OnInit, OnDestroy {
       this.alertService.showAlert('Error', `${error?.error?.message ?? 'Error al obtener los palets del proceso'}`, 'error');
     } finally {
       if (showLoading) this.alertService.cerrarModalCarga();
+    }
+  }
+
+  async sincronizarDPaletsPorAcopio(): Promise<void> {
+    try {
+      const resp: any = await firstValueFrom(this.paletService.getDPaletsPorAcopio());
+      const first = Array.isArray(resp) ? resp[0] : resp;
+      if (first?.error) {
+        console.error('Error obteniendo DPalets por acopio:', first?.mensaje);
+        return;
+      }
+      const items: any[] = first?.data ?? [];
+      if (!items.length) {
+        console.log('No hay DPalets remotos para sincronizar');
+        return;
+      }
+
+      // Limpiar DPalets sincronizados previos
+      const dpaletsLocales = await this.procesoRepo.dPaletsRepo.getAll();
+      const sincronizados = (dpaletsLocales ?? []).filter((d: any) => (d.bd ?? 0) === 1);
+      for (const d of sincronizados) {
+        if ((d as any)._pk != null) {
+          await this.procesoRepo.dPaletsRepo.delete((d as any)._pk);
+        }
+      }
+
+      const enriquecidos = await this.resolverNombresDPalets(items);
+      for (const d of enriquecidos) {
+        const row: DPalet = {
+          ...d,
+          bd: 1,
+        };
+        await this.procesoRepo.dPaletsRepo.saveByIdDPalet(row);
+      }
+      console.log('DPalets sincronizados:', enriquecidos.length);
+    } catch (err) {
+      console.error('Error sincronizando DPalets por acopio:', err);
     }
   }
 
@@ -358,51 +482,142 @@ export class PaletsComponent implements OnInit, OnDestroy {
       );
 
       if (!confirmar) return;
-
       this.alertService.mostrarModalCarga();
 
-      const dataSend = await this.procesoRepo.paletsRepo.getNoSincronizados();
+      const paletsNoSync = await this.procesoRepo.paletsRepo.getNoSincronizados();
+      const dpaletsNoSync = await this.procesoRepo.dPaletsRepo.getNoSincronizados();
+      const hayPalets = (paletsNoSync ?? []).length > 0;
+      const hayDPalets = (dpaletsNoSync ?? []).length > 0;
 
-      if ((dataSend ?? []).length === 0) {
+      if (!hayPalets && !hayDPalets) {
         for (const p of (this.procesosAbiertos() ?? [])) {
           await this.listarPaletsForProceso(p.idProceso, { showLoading: false });
         }
         await this.listarPaletsForProceso(this.procesoSeleccionado()!.idProceso, { showLoading: false });
+        await this.sincronizarDPaletsPorAcopio();
+        const paletSel = this.paletSeleccionado();
+        if (paletSel) await this.verDetalle(paletSel);
         this.alertService.cerrarModalCarga();
         this.alertService.showAlert('Éxito', 'No hay palets pendientes de sincronización', 'success');
         return;
       }
 
-      const payloads = structuredClone(dataSend) as any[];
-      payloads.forEach((item: any) => {
-        delete item.bd;
-        delete item._pk;
-      });
+      const resultadosPalet: { idPalet: string; success: boolean; mensaje: string }[] = [];
+      const resultadosDPalet: { idDPalet: string; success: boolean; mensaje: string }[] = [];
 
-      const resp = await firstValueFrom(this.paletService.sincronizar(payloads));
-      const first = resp?.[0] as any;
-
-      if (first?.error) {
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Error', first?.mensaje ?? 'Error al sincronizar palets', 'error');
-        return;
-      }
-
-      for (const local of (dataSend ?? []) as any[]) {
-        if (local?._pk != null) {
-          await this.procesoRepo.paletsRepo.delete(local._pk);
+      // Sincronizar Palets
+      if (hayPalets) {
+        const payloads = structuredClone(paletsNoSync) as any[];
+        payloads.forEach((item: any) => {
+          delete item.bd;
+          delete item._pk;
+          item.modo = item.id == 0 ? 'nuevo' : 'editado';
+        });
+        const resp = await firstValueFrom(this.paletService.sincronizar(payloads));
+        console.log('respPalets', resp);
+        const first = resp?.[0] as any;
+        if (first?.error) {
+          this.alertService.cerrarModalCarga();
+          this.alertService.showAlert('Error', first?.mensaje ?? 'Error al sincronizar palets', 'error');
+          return;
+        }
+        const dataResults: any[] = Array.isArray(first?.data) ? first.data : [];
+        const localMap = new Map<string, number>();
+        for (const local of paletsNoSync as any[]) {
+          const key = String(local?.idPalet ?? '').trim();
+          if (key && local?._pk != null) localMap.set(key, local._pk);
+        }
+        for (const r of dataResults) {
+          const idPalet = String(r?.idPalet ?? '').trim();
+          const success = !!r?.success;
+          resultadosPalet.push({ idPalet, success, mensaje: r?.mensaje ?? '-' });
+          if (success && idPalet && localMap.has(idPalet)) {
+            const pk = localMap.get(idPalet)!;
+            const reg = await this.procesoRepo.paletsRepo.getByKey(pk);
+            if (reg) {
+              (reg as any).bd = 1;
+              await this.procesoRepo.paletsRepo.saveByIdPalet(reg as any);
+            }
+          }
         }
       }
 
+      // Sincronizar DPalets
+      if (hayDPalets) {
+        const payloads = structuredClone(dpaletsNoSync) as any[];
+        payloads.forEach((item: any) => {
+          delete item.bd;
+          delete item._pk;
+        });
+        const resp = await firstValueFrom(this.paletService.sincronizarDPalets(payloads));
+        console.log('respDPalets', resp);
+        const dataResults: any[] = Array.isArray(resp) ? resp : [];
+        const localMap = new Map<string, number>();
+        for (const local of dpaletsNoSync as any[]) {
+          const key = String(local?.idDPalet ?? '').trim();
+          if (key && local?._pk != null) localMap.set(key, local._pk);
+        }
+        for (const r of dataResults) {
+          const idDPalet = String(r?.idDPalet ?? '').trim();
+          const success = !!r?.success;
+          resultadosDPalet.push({ idDPalet, success, mensaje: r?.mensaje ?? '-' });
+          if (success && idDPalet && localMap.has(idDPalet)) {
+            const pk = localMap.get(idDPalet)!;
+            const reg = await this.procesoRepo.dPaletsRepo.getByKey(pk);
+            if (reg) {
+              (reg as any).bd = 1;
+              await this.procesoRepo.dPaletsRepo.saveByIdDPalet(reg as any);
+            }
+          }
+        }
+      }
+
+      this.alertService.cerrarModalCarga();
+
+      const paletsOk = resultadosPalet.filter(r => r.success).length;
+      const paletsErr = resultadosPalet.filter(r => !r.success).length;
+      const dpaletsOk = resultadosDPalet.filter(r => r.success).length;
+      const dpaletsErr = resultadosDPalet.filter(r => !r.success).length;
+
+      let mensajeFinal = '';
+      if (paletsOk > 0 || dpaletsOk > 0) {
+        mensajeFinal = `Sincronización completada. Palets: ${paletsOk} OK${paletsErr > 0 ? ', ' + paletsErr + ' error' : ''}. Detalles: ${dpaletsOk} OK${dpaletsErr > 0 ? ', ' + dpaletsErr + ' error' : ''}.`;
+      } else {
+        mensajeFinal = `Sincronización completada con errores. Palets: ${paletsErr} error. Detalles: ${dpaletsErr} error.`;
+      }
+      this.alertService.showAlert('Listo', mensajeFinal, paletsErr > 0 || dpaletsErr > 0 ? 'warning' : 'success');
+
+      // Recargar desde servidor para ambos roles
+      this.alertService.mostrarModalCarga();
+      for (const proc of (this.procesosAbiertos() ?? [])) {
+        const idProceso = String(proc.idProceso ?? '').trim();
+        if (!idProceso) continue;
+        try {
+          const respPalets: any = await firstValueFrom(this.paletService.listarPaletPorProceso(idProceso));
+          if (!respPalets?.length) continue;
+          const firstPalet = respPalets[0] as any;
+          if (firstPalet?.error) continue;
+          const apiPalets = (Array.isArray(firstPalet) ? firstPalet : (firstPalet?.data ?? [])) as any[];
+          await this.procesoRepo.paletsRepo.clearSincronizadosByIdProceso(idProceso);
+          for (const p of (apiPalets ?? [])) {
+            const row: any = { ...(p as any), bd: 1 };
+            await this.procesoRepo.paletsRepo.saveByIdPalet(row);
+          }
+        } catch (err) {
+          console.error('Error obteniendo palets para proceso', idProceso, err);
+        }
+      }
+      await this.sincronizarDPaletsPorAcopio();
+
+      // Actualizar UI
       for (const proc of (this.procesosAbiertos() ?? [])) {
         await this.listarPaletsForProceso(proc.idProceso, { showLoading: false });
       }
-      // if(this.procesoSeleccionado()){
-        await this.listarPaletsForProceso(this.procesoSeleccionado()!.idProceso, { showLoading: false });
-      // }
+      await this.listarPaletsForProceso(this.procesoSeleccionado()!.idProceso, { showLoading: false });
+      const paletSel = this.paletSeleccionado();
+      if (paletSel) await this.verDetalle(paletSel);
 
       this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Éxito', first?.mensaje ?? 'Sincronización completada', 'success');
     } catch (error: any) {
       console.error('Error en sincronización palets:', error);
       this.alertService.cerrarModalCarga();
@@ -437,53 +652,40 @@ export class PaletsComponent implements OnInit, OnDestroy {
     return k || p?.id;
   }
 
-  verDetalle(p: Palet): void {
+  async verDetalle(p: Palet): Promise<void> {
     this.paletSeleccionado.set(p);
 
-    // Load palet detail with composiciones
-    console.log('📋 Cargando detalle para palet:', p.id);
-    console.log('📋 Palet actual antes de cargar:', p);
-    this.paletService.obtenerPorId(p.id).subscribe({
-      next: (res: any) => {
-        console.log('✅ Respuesta completa del backend:', res);
-        console.log('✅ Data recibida:', res?.data);
-        console.log('✅ Palet data:', res?.data?.palet);
-        console.log('✅ Composiciones:', res?.data?.composiciones);
+    // SIEMPRE cargar composiciones desde Dexie
+    try {
+      const dpalets = await this.procesoRepo.dPaletsRepo.getByIdPalet(p.idPalet ?? '');
+      const activos = (dpalets ?? []).filter((d: any) => !(d as any)?.eliminado);
+      this.composiciones.set(activos);
 
-        const data = res?.data ?? res;
+      // Recalcular totales del palet solo con dpalets no eliminados
+      const totalCajas = activos.reduce((sum: number, d: any) => sum + (d?.cantidadCajas || 0), 0);
+      const totalPeso = activos.reduce((sum: number, d: any) => sum + (d?.pesoTotal || 0), 0);
+      const limite = p?.limiteCajasPorPalet ?? 0;
+      const porcentaje = limite > 0 ? Math.round((totalCajas / limite) * 100) : 0;
 
-        // Update composiciones
-        this.composiciones.set(data?.composiciones ?? data?.Composiciones ?? []);
+      const paletActualizado: Palet = {
+        ...p,
+        cantidadCajas: totalCajas,
+        pesoTotal: totalPeso,
+        porcentajeAvance: porcentaje
+      };
 
-        // Update palet data (CantidadCajas, PesoTotal, etc.)
-        if (data && (data.Id || data.palet)) {
-          const updatedPalet = data.palet || data;
-          console.log('✅ Palet actualizado con datos:', updatedPalet);
-          console.log('✅ CantidadCajas:', updatedPalet.CantidadCajas);
-          console.log('✅ LimiteCajasPorPalet:', updatedPalet.LimiteCajasPorPalet);
-          console.log('✅ PorcentajeAvance:', updatedPalet.PorcentajeAvance);
-
-          // Update the selected palet with new data
-          this.paletSeleccionado.set(updatedPalet);
-
-          // Also update the palet in the list
-          this.palets.update(palets =>
-            palets.map((p: any) => {
-              const pKey = String(p?.idPalet ?? '').trim();
-              const uKey = String(updatedPalet?.idPalet ?? '').trim();
-              if (pKey && uKey) return pKey === uKey ? updatedPalet : p;
-              return p?.id === updatedPalet?.Id ? updatedPalet : p;
-            })
-          );
-
-          console.log('✅ Palet seleccionado después de actualizar:', this.paletSeleccionado());
-        }
-      },
-      error: (err: any) => {
-        console.error('❌ Error cargando detalle palet:', err);
-        this.composiciones.set([]);
-      }
-    });
+      this.paletSeleccionado.set(paletActualizado);
+      this.palets.update(palets =>
+        palets.map(item => {
+          const pk = String(item?.idPalet ?? '').trim();
+          const uk = String(paletActualizado?.idPalet ?? '').trim();
+          return pk && uk && pk === uk ? paletActualizado : item;
+        })
+      );
+    } catch (err) {
+      console.error('Error cargando detalle desde Dexie:', err);
+      this.composiciones.set([]);
+    }
   }
 
   async crearPalet(): Promise<void> {
@@ -494,62 +696,555 @@ export class PaletsComponent implements OnInit, OnDestroy {
     }
     try {
       this.alertService.mostrarModalCarga();
-        let fecha = new Date();
-        let fechaApertura = formatDateTime(fecha);
-        let newPalets: Palet = {
-          id: 0,
-          idPalet: this.createIdPalet(proceso.idProceso),
-          idProceso: proceso.idProceso,
-          codigoAcopio: proceso.codigoAcopio,
-          acopioNombre: proceso.acopioNombre,
-          formatoId: 0,
-          estado: 'ABIERTO',
-          fechaApertura: fechaApertura || '',
-          cantidadCajas: 0,
-          pesoTotal: 0,
-          porcentajeAvance: 0,
-          observaciones: '',
-          medidaCorrectiva: '',
-          modo: 'nuevo'
+      let fecha = new Date();
+      let fechaApertura = formatDateTime(fecha);
+      let newPalets: Palet = {
+        id: 0,
+        idPalet: this.createIdPalet(proceso.idProceso),
+        idProceso: proceso.idProceso,
+        codigoAcopio: proceso.codigoAcopio,
+        acopioNombre: proceso.acopioNombre,
+        formatoId: 0,
+        estado: 'ABIERTO',
+        fechaApertura: fechaApertura || '',
+        cantidadCajas: 0,
+        pesoTotal: 0,
+        porcentajeAvance: 0,
+        observaciones: '',
+        medidaCorrectiva: '',
+        modo: 'nuevo'
+      }
+      if (this.online) {
+        let resp = await firstValueFrom(this.paletService.sincronizar(newPalets))
+        if (resp.length > 0) {
+          if (resp[0].error) {
+            this.alertService.showAlertAcept('Error', resp[0].mensaje, 'error');
+          } else {
+            await this.listarPaletsForProceso(proceso.idProceso, { showLoading: false })
+            this.alertService.showAlertAcept('Éxito', 'Palet creado exitosamente.', 'success');
+          }
+        } else {
+          this.alertService.showAlertAcept('Error', 'Error al crear el Palet, por favor vuelva a Iniciar Sesión.', 'error');
         }
-        if(!this.online){
-            let resp = await firstValueFrom(this.paletService.sincronizar(newPalets))
-            if (resp.length > 0) {
-              if (resp[0].error) {
-                this.alertService.showAlertAcept('Error', resp[0].mensaje, 'error');
-              } else {
-                await this.listarPaletsForProceso(proceso.idProceso, { showLoading: false })
-                this.alertService.showAlertAcept('Éxito', 'Palet creado exitosamente.', 'success');
-              }
-            } else {
-              this.alertService.showAlertAcept('Error', 'Error al crear el Palet, por favor vuelva a Iniciar Sesión.', 'error');
-            }
-        }else{
-          newPalets.bd=0
-          await this.procesoRepo.paletsRepo.saveByIdPalet(newPalets);
-          await this.listarPaletsForProceso(proceso.idProceso, { showLoading: false })
-          this.alertService.showAlertAcept('Éxito', 'Palet creado exitosamente. - No Sincronizado', 'success');
-        }
+      } else {
+        newPalets.bd = 0
+        await this.procesoRepo.paletsRepo.saveByIdPalet(newPalets);
+        await this.listarPaletsForProceso(proceso.idProceso, { showLoading: false })
+        this.alertService.showAlertAcept('Éxito', 'Palet creado exitosamente. - No Sincronizado', 'success');
+      }
     } catch (error) {
       console.error('Error creando palet:', error);
       this.alertService.cerrarModalCarga();
     }
   }
 
-  createIdPalet(idproceso :string){
-    let dateTime= new Date();
+  createIdPalet(idproceso: string) {
+    let dateTime = new Date();
     let dateTimeString = formatTimeClave(dateTime);
-    return [idproceso,dateTimeString].join('');
+    return [idproceso, dateTimeString].join('');
   }
 
-  abrirModalAgregarCajas(palet: Palet): void {
+  async abrirModalAgregarCajas(palet: Palet): Promise<void> {
+    const codigoAcopio = String(palet?.codigoAcopio ?? this.procesoSeleccionado()?.codigoAcopio ?? '').trim();
+    if (!codigoAcopio) {
+      this.alertService.showAlert('Validación', 'No se pudo determinar el acopio del palet.', 'warning');
+      return;
+    }
+
     this.paletSeleccionado.set(palet);
+    this.alertService.mostrarModalCarga();
+
+    let tipos: TipoProcesoEmpacado[] = [];
+
+    try {
+      if (this.online) {
+        const idproyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
+        const resp: any = await firstValueFrom(this.paletService.getTipoProcesoEmpacadoPorAcopio(idproyecto));
+        const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
+        tipos = (items[0]?.data ?? []).map((x: any) => ({
+          id: x?.id ?? x?.Id ?? 0,
+          codigo: String(x?.codigo ?? x?.Codigo ?? '').trim(),
+          nombre: String(x?.nombre ?? x?.Nombre ?? '').trim(),
+          idproyecto: idproyecto,
+          activo: true,
+          fechaCreacion: '',
+        }));
+      } else {
+        const detalles = await this.catalogosOperativosRepo.acopiosDetallesRepo.getAcopioDetalle(codigoAcopio);
+        const activos = (detalles ?? []).filter((d: any) => d?.activo === true);
+        for (const d of activos) {
+          const codigoTipo = String((d as any)?.codigoTipoProcesoEmpacado ?? '').trim();
+          if (!codigoTipo) continue;
+          const tipo = await this.catalogosRepo.tipoProcesoEmpacadoRepo.getByField('codigo', codigoTipo);
+          if (tipo) {
+            tipos.push(tipo);
+          }
+        }
+      }
+
+      await this.cargarConsignatarios();
+      await this.cargarVariedadesYLugares();
+      await this.cargarTransportes();
+    } catch (err) {
+      console.error('Error cargando tipos proceso empacado:', err);
+    } finally {
+      this.alertService.cerrarModalCarga();
+    }
+
+    if (tipos.length === 0) {
+      this.alertService.showAlert('Información', 'El acopio no tiene configurado ese tipo proceso empacado.', 'warning');
+      return;
+    }
+    console.log(tipos)
+    this.tiposProcesoEmpacadoModal.set(tipos);
+
+    if (tipos.length === 1) {
+      this.tipoProcesoEmpacadoDisabled.set(true);
+      this.updateFormCajas('tipoProcesoEmpacadoId', tipos[0].id);
+    } else {
+      this.tipoProcesoEmpacadoDisabled.set(false);
+      this.updateFormCajas('tipoProcesoEmpacadoId', 0);
+    }
+
+    // Si el palet ya tiene composiciones, precargar consignatario/destino/formato y bloquear
+    const comps = this.composiciones();
+    if (comps.length > 0) {
+      const comp = comps[0];
+      const consignatario = this.consignatarios().find(c => c.documentoFiscal === comp.documentoConsignatario);
+      if (consignatario) {
+        this._cargandoCascada = true;
+        const origMostrar = this.alertService.mostrarModalCarga.bind(this.alertService);
+        const origCerrar = this.alertService.cerrarModalCarga.bind(this.alertService);
+        (this.alertService as any).mostrarModalCarga = () => { };
+        (this.alertService as any).cerrarModalCarga = () => { };
+        try {
+          await this.onConsignatarioChange(String(consignatario.id));
+          if (comp.destinoId) {
+            await this.onDestinoChange(String(comp.destinoId));
+          }
+          if (comp.formatoId) {
+            await this.onFormatoChange(String(comp.formatoId));
+          }
+        } catch (err) {
+          console.error('Error precargando cascada del palet:', err);
+        } finally {
+          (this.alertService as any).mostrarModalCarga = origMostrar;
+          (this.alertService as any).cerrarModalCarga = origCerrar;
+          this._cargandoCascada = false;
+        }
+      }
+    }
+
+    this.modoEdicionCajas.set(false);
+    this.dpaletEditando.set(undefined);
     this.modalAgregarCajasAbierto.set(true);
+  }
+
+  async abrirModalEditarCajas(dpalet: DPalet): Promise<void> {
+    const palet = this.paletSeleccionado();
+    if (!palet) return;
+    this.paletSeleccionado.set(palet);
+    this.dpaletEditando.set(dpalet);
+    this.modoEdicionCajas.set(true);
+
+    this.formCajas.set({
+      consignatarioId: 0,
+      destinoId: (dpalet.destinoId as any) || 0,
+      formatoId: dpalet.formatoId || 0,
+      tipoEmpaqueId: dpalet.tiposEmpaqueId || 0,
+      calibreId: Number(dpalet.calibreId) || 0,
+      categoriaId: 0,
+      tipoEmpaqueGuiaId: dpalet.tipoEmpaqueGuiaId ?? 0,
+      tipoCajaId: dpalet.tipoCajaId || 0,
+      tipoClamshellId: dpalet.tipoClamshellId || 0,
+      presentacionId: dpalet.presentacionId ?? 0,
+      tipoProcesoEmpacadoId: dpalet.tipoProcesoEmpacadoId ?? 1,
+      variedadId: dpalet.variedadId || 0,
+      variedadGuiaId: dpalet.variedadGuiaId ?? 0,
+      lugarProduccionId: dpalet.lugarProduccionId || 0,
+      codigoRanchoId: dpalet.codigoRanchoId || 0,
+      transporteId: dpalet.transporteId || '',
+      cantidadCajas: dpalet.cantidadCajas || 0,
+      esReposicion: dpalet.esReposicion ?? false,
+      esEnsayo: dpalet.esEnsayo ?? false,
+    });
+
+    const codigoAcopio = String(palet?.codigoAcopio ?? this.procesoSeleccionado()?.codigoAcopio ?? '').trim();
+    this.alertService.mostrarModalCarga();
+    let tipos: TipoProcesoEmpacado[] = [];
+    try {
+      if (this.online) {
+        const idproyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
+        const resp: any = await firstValueFrom(this.paletService.getTipoProcesoEmpacadoPorAcopio(idproyecto));
+        const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
+        tipos = (items[0]?.data ?? []).map((x: any) => ({
+          id: x?.id ?? x?.Id ?? 0,
+          codigo: String(x?.codigo ?? x?.Codigo ?? '').trim(),
+          nombre: String(x?.nombre ?? x?.Nombre ?? '').trim(),
+          idproyecto: idproyecto,
+          activo: true,
+          fechaCreacion: '',
+        }));
+      } else {
+        const detalles = await this.catalogosOperativosRepo.acopiosDetallesRepo.getAcopioDetalle(codigoAcopio);
+        for (const d of (detalles ?? []).filter((d: any) => d?.activo === true)) {
+          const codigoTipo = String((d as any)?.codigoTipoProcesoEmpacado ?? '').trim();
+          if (!codigoTipo) continue;
+          const tipo = await this.catalogosRepo.tipoProcesoEmpacadoRepo.getByField('codigo', codigoTipo);
+          if (tipo) tipos.push(tipo);
+        }
+      }
+      await this.cargarConsignatarios();
+      await this.cargarVariedadesYLugares();
+      await this.cargarTransportes();
+    } catch (err) { console.error('Error cargando tipos proceso empacado:', err); }
+    finally { this.alertService.cerrarModalCarga(); }
+
+    this.tiposProcesoEmpacadoModal.set(tipos);
+    if (tipos.length === 1) { this.tipoProcesoEmpacadoDisabled.set(true); }
+    else { this.tipoProcesoEmpacadoDisabled.set(false); }
+
+    const consignatarioReal = this.consignatarios().find(c => c.documentoFiscal === dpalet.documentoConsignatario);
+    const consignatarioIdReal = consignatarioReal?.id ?? 0;
+    if (consignatarioIdReal) {
+      this.updateFormCajas('consignatarioId', consignatarioIdReal);
+    }
+
+    // Ejecutar cascada desde consignatario para poblar listas filtradas
+    const valoresPrevios = { ...this.formCajas() };
+    this._cargandoCascada = true;
+    const origMostrar = this.alertService.mostrarModalCarga.bind(this.alertService);
+    const origCerrar = this.alertService.cerrarModalCarga.bind(this.alertService);
+    (this.alertService as any).mostrarModalCarga = () => { };
+    (this.alertService as any).cerrarModalCarga = () => { };
+    try {
+      if (consignatarioIdReal) {
+        await this.onConsignatarioChange(String(consignatarioIdReal));
+        this.updateFormCajas('destinoId', valoresPrevios.destinoId);
+        if (valoresPrevios.destinoId) await this.onDestinoChange(String(valoresPrevios.destinoId));
+        this.updateFormCajas('formatoId', valoresPrevios.formatoId);
+        if (valoresPrevios.formatoId) await this.onFormatoChange(String(valoresPrevios.formatoId));
+        this.updateFormCajas('tipoEmpaqueGuiaId', valoresPrevios.tipoEmpaqueGuiaId);
+        if (valoresPrevios.tipoEmpaqueGuiaId) await this.onTipoEmpaqueGuiaChange(String(valoresPrevios.tipoEmpaqueGuiaId));
+        this.updateFormCajas('presentacionId', valoresPrevios.presentacionId);
+        if (valoresPrevios.presentacionId) this.onPresentacionChange(String(valoresPrevios.presentacionId));
+        // onPresentacionChange resetea tipoCajaId a 0; restaurarlo después
+        this.updateFormCajas('tipoCajaId', valoresPrevios.tipoCajaId);
+        if (valoresPrevios.tipoCajaId) await this.onTipoCajaChange(String(valoresPrevios.tipoCajaId));
+        this.updateFormCajas('tipoClamshellId', valoresPrevios.tipoClamshellId);
+        this.updateFormCajas('calibreId', valoresPrevios.calibreId);
+        this.updateFormCajas('tipoEmpaqueId', valoresPrevios.tipoEmpaqueId);
+        if (valoresPrevios.lugarProduccionId) await this.onLugarProduccionChange(String(valoresPrevios.lugarProduccionId));
+        this.updateFormCajas('codigoRanchoId', valoresPrevios.codigoRanchoId);
+      }
+      this._filtrarVariedadesPorEnsayo();
+    } catch (err) { console.error('Error precargando cascada edicion:', err); }
+    finally {
+      (this.alertService as any).mostrarModalCarga = origMostrar;
+      (this.alertService as any).cerrarModalCarga = origCerrar;
+      this._cargandoCascada = false;
+    }
+
+    this.modalAgregarCajasAbierto.set(true);
+  }
+
+  async onModalCampoChange(event: { campo: string; valor: any }): Promise<void> {
+    const { campo, valor } = event;
+    this.updateFormCajas(campo, valor);
+    switch (campo) {
+      case 'consignatarioId': await this.onConsignatarioChange(String(valor)); break;
+      case 'destinoId': await this.onDestinoChange(String(valor)); break;
+      case 'formatoId': await this.onFormatoChange(String(valor)); break;
+      case 'tipoEmpaqueGuiaId': await this.onTipoEmpaqueGuiaChange(String(valor)); break;
+      case 'presentacionId': this.onPresentacionChange(String(valor)); break;
+      case 'tipoCajaId': await this.onTipoCajaChange(String(valor)); break;
+      case 'tipoClamshellId': this.onTipoClamshellChange(String(valor)); break;
+      case 'variedadId': this.onVariedadChange(String(valor)); break;
+      case 'esEnsayo': this.onEsEnsayoChange(valor); break;
+      case 'lugarProduccionId': await this.onLugarProduccionChange(String(valor)); break;
+    }
+  }
+
+  async submitEditarCajas(): Promise<void> {
+    const palet = this.paletSeleccionado();
+    const dpaletOriginal = this.dpaletEditando();
+    if (!palet || !dpaletOriginal) return;
+
+    const f = this.formCajas();
+    if (!f.consignatarioId || !f.destinoId || !f.formatoId || !f.variedadId || !f.cantidadCajas) {
+      this.alertService.showAlert('Validacion', 'Complete todos los campos requeridos', 'warning'); return;
+    }
+    if (!f.tipoEmpaqueGuiaId || !f.tipoCajaId || !f.tipoClamshellId) {
+      this.alertService.showAlert('Validacion', 'Complete la seleccion de empaque (Tipo Empaque Guia, Tipo Caja, Tipo Clamshell)', 'warning'); return;
+    }
+    if (!f.lugarProduccionId || !f.codigoRanchoId) {
+      this.alertService.showAlert('Validacion', 'Seleccione Lugar de Produccion y Codigo de Rancho', 'warning'); return;
+    }
+    if (!f.transporteId) { this.alertService.showAlert('Validacion', 'Seleccione Via de Transporte', 'warning'); return; }
+    if (!f.cantidadCajas || f.cantidadCajas <= 0) { this.alertService.showAlert('Validacion', 'La cantidad de cajas debe ser mayor a 0', 'warning'); return; }
+
+    const formatoSel = this.filteredFormatos().find((fmt: any) => fmt.id === f.formatoId);
+    const pesoPorCaja = formatoSel?.pesoPorCaja ?? 10;
+    const limiteCajasPorPalet = formatoSel?.limiteCajasPorPalet ?? 0;
+
+    const consignatario = this.consignatarios().find(c => c.id === f.consignatarioId);
+    const destino = this.filteredDestinos().find(d => String(d.id) === String(f.destinoId));
+    const formato = this.filteredFormatos().find(fmt => fmt.id === f.formatoId);
+    const variedad = this.filteredVariedades().find(v => String(v.codigo) === String(f.variedadId));
+    const presentacion = this.filteredPresentaciones().find(p => p.id === (f.presentacionId ?? 0));
+    const tipoEmpaqueGuia = this.filteredTiposEmpaqueGuia().find(t => t.id === (f.tipoEmpaqueGuiaId ?? 0));
+    const codigoRancho = this.filteredCodigosRancho().find(c => c.id === f.codigoRanchoId);
+    const lugarProduccion = this.lugaresProduccion().find(l => l.id === f.lugarProduccionId);
+    const transporte = this.transportes().find(t => String(t.id) === String(f.transporteId));
+    const tipoProcesoEmpacado = this.tiposProcesoEmpacadoModal().find(t => t.id === (f.tipoProcesoEmpacadoId ?? 0));
+
+    const dpaletEditado: DPalet = {
+      ...dpaletOriginal,
+      idProceso: palet.idProceso,
+      documentoCliente: consignatario?.documentoFiscal ?? undefined,
+      destinoId: String(f.destinoId ?? ''),
+      destinoNombre: destino?.pais ?? undefined,
+      documentoConsignatario: consignatario?.documentoFiscal ?? '',
+      consignatarioNombre: consignatario?.nombre ?? '',
+      formatoId: f.formatoId,
+      formatoNombre: formato?.descripcion ?? undefined,
+      tiposEmpaqueId: f.tipoEmpaqueId || 1,
+      calibreId: f.calibreId?.toString() ?? undefined,
+      presentacionId: f.presentacionId ?? null,
+      presentacionNombre: presentacion?.nombre ?? undefined,
+      variedadId: String(f.variedadId ?? ''),
+      variedadNombre: variedad?.variedad ?? undefined,
+      lugarProduccionId: f.lugarProduccionId,
+      lugarProduccionNombre: lugarProduccion?.descripcion ?? undefined,
+      codigoRanchoId: f.codigoRanchoId,
+      codigoRanchoNombre: codigoRancho?.codigo ?? undefined,
+      cantidadCajas: f.cantidadCajas,
+      tipoCajaId: f.tipoCajaId ?? 0,
+      tipoClamshellId: f.tipoClamshellId ?? 0,
+      pesoPorCaja: pesoPorCaja,
+      pesoTotal: f.cantidadCajas * pesoPorCaja,
+      tipoEmpaqueGuiaId: f.tipoEmpaqueGuiaId ?? null,
+      tipoEmpaqueGuiaNombre: tipoEmpaqueGuia?.nombre ?? undefined,
+      transporteId: f.transporteId || '',
+      transporteNombre: transporte?.transporte ?? undefined,
+      tipoProcesoEmpacadoId: f.tipoProcesoEmpacadoId ?? null,
+      tipoProcesoEmpacadoNombre: tipoProcesoEmpacado?.nombre ?? undefined,
+      esReposicion: f.esReposicion ?? false,
+      variedadGuiaId: f.esEnsayo ? (Number(f.variedadGuiaId) || null) : null,
+      esEnsayo: f.esEnsayo ?? false,
+      eliminado: false,
+      fechaCreacion: dpaletOriginal.fechaCreacion ?? new Date().toISOString(),
+      bd:0
+    };
+
+    if (this.online) {
+      try {
+        this.alertService.mostrarModalCarga();
+        await firstValueFrom(this.paletService.sincronizarDPalets([dpaletEditado]));
+        await this.procesoRepo.dPaletsRepo.saveByIdDPalet(dpaletEditado);
+
+        // Recalcular totales del palet
+        const dpalets = await this.procesoRepo.dPaletsRepo.getByIdPalet(palet.idPalet ?? '');
+        const activos = (dpalets ?? []).filter((d: any) => !(d as any)?.eliminado);
+        const nuevaCantidad = activos.reduce((sum: number, d: any) => sum + (d.cantidadCajas || 0), 0);
+        const nuevoPeso = activos.reduce((sum: number, d: any) => sum + (d.pesoTotal || 0), 0);
+        const nuevoPorcentaje = limiteCajasPorPalet > 0 ? Math.round((nuevaCantidad / limiteCajasPorPalet) * 100) : 0;
+        const paletActualizado: Palet = {
+          ...palet,
+          cantidadCajas: nuevaCantidad,
+          pesoTotal: nuevoPeso,
+          limiteCajasPorPalet: limiteCajasPorPalet > 0 ? limiteCajasPorPalet : (palet.limiteCajasPorPalet ?? 0),
+          porcentajeAvance: nuevoPorcentaje,
+          formatoId: dpaletEditado.formatoId ?? 0,
+          bd: palet.bd ?? 0,
+          modo: 'editado'
+        };
+        await firstValueFrom(this.paletService.sincronizar(paletActualizado));
+        this.paletSeleccionado.set(paletActualizado);
+        this.palets.update(palets => palets.map(p => {
+          const pk = String(p?.idPalet ?? '').trim();
+          const uk = String(paletActualizado?.idPalet ?? '').trim();
+          return pk && uk && pk === uk ? paletActualizado : p;
+        }));
+        await this.sincronizarDPaletsPorAcopio();
+        await this.verDetalle(paletActualizado);
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Exito', 'Cajas actualizadas correctamente', 'success');
+        this.cerrarModalAgregarCajas();
+      } catch (err) {
+        console.error('Error editando online:', err);
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlertAcept('Error', 'Error al actualizar cajas en modo online', 'error');
+      }
+      return;
+    } else {
+      try {
+        this.alertService.mostrarModalCarga();
+        await this.procesoRepo.dPaletsRepo.saveByIdDPalet(dpaletEditado);
+        const dpalets = await this.procesoRepo.dPaletsRepo.getByIdPalet(palet.idPalet ?? '');
+        const activos = (dpalets ?? []).filter((d: any) => !(d as any)?.eliminado);
+        const nuevaCantidad = activos.reduce((sum: number, d: any) => sum + (d.cantidadCajas || 0), 0);
+        const nuevoPeso = activos.reduce((sum: number, d: any) => sum + (d.pesoTotal || 0), 0);
+        const nuevoPorcentaje = limiteCajasPorPalet > 0 ? Math.round((nuevaCantidad / limiteCajasPorPalet) * 100) : 0;
+        const paletActualizado: Palet = {
+          ...palet,
+          cantidadCajas: nuevaCantidad,
+          pesoTotal: nuevoPeso,
+          limiteCajasPorPalet: limiteCajasPorPalet > 0 ? limiteCajasPorPalet : (palet.limiteCajasPorPalet ?? 0),
+          porcentajeAvance: nuevoPorcentaje,
+          formatoId: dpaletEditado.formatoId ?? 0,
+          bd: 0
+        };
+        await this.procesoRepo.paletsRepo.saveByIdPalet(paletActualizado);
+        this.paletSeleccionado.set(paletActualizado);
+        this.palets.update(palets => palets.map(p => {
+          const pk = String(p?.idPalet ?? '').trim();
+          const uk = String(paletActualizado?.idPalet ?? '').trim();
+          return pk && uk && pk === uk ? paletActualizado : p;
+        }));
+        this.composiciones.set(activos);
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Exito', 'Cajas actualizadas correctamente (offline)', 'success');
+        this.cerrarModalAgregarCajas();
+      } catch (err) {
+        console.error('Error editando offline:', err);
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlertAcept('Error', 'Error al actualizar cajas en modo offline', 'error');
+      }
+      return;
+    }
+  }
+
+  private async cargarConsignatarios(): Promise<void> {
+    try {
+      if (this.online) {
+        const resp: any = await firstValueFrom(this.catalogoService.listarClientes());
+        if (resp.length > 0) {
+          await this.catalogosRepo.clientesRepo.clear();
+          for (const c of (resp ?? [])) {
+            await this.catalogosRepo.clientesRepo.save(c);
+          }
+          await this.catalogosRepo.consignatariosRepo.clear();
+          for (const c of (resp ?? [])) {
+            await this.catalogosRepo.consignatariosRepo.save(c);
+          }
+          this.consignatarios.set(resp);
+        }
+      } else {
+        const consignatariosDexie = await this.catalogosRepo.consignatariosRepo.getAll();
+        this.consignatarios.set(consignatariosDexie ?? []);
+      }
+    } catch (error) {
+      console.error('Error cargando consignatarios:', error);
+      const consignatariosDexie = await this.catalogosRepo.consignatariosRepo.getAll();
+      this.consignatarios.set(consignatariosDexie ?? []);
+    }
+  }
+
+  private async cargarVariedadesYLugares(): Promise<void> {
+    try {
+      const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
+      const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
+
+      // Variedades
+      if (this.online) {
+        const vResp: any = await firstValueFrom(this.catalogoService.listarVariedades());
+        if (!vResp.error) {
+          const dexiedb = await this.catalogosRepo.variedadesRepo.getAll();
+          if (dexiedb.length > 0) {
+            await this.catalogosRepo.variedadesRepo.clear();
+          }
+          const todasVariedades = (vResp.data ?? []);
+          const filtradasCultivo = todasVariedades.filter((v: any) => String(v?.idcultivo ?? '') === codigoCultivo);
+          for (const v of filtradasCultivo) {
+            v.bd = 1;
+            await this.catalogosRepo.variedadesRepo.save(v);
+          }
+          this.variedades.set(filtradasCultivo);
+        }
+      } else {
+        const variedadesDexie = await this.catalogosRepo.variedadesRepo.getAll();
+        const filtradasCultivo = (variedadesDexie ?? []).filter((v: Variedad) => String(v?.idcultivo ?? '') === codigoCultivo);
+        this.variedades.set(filtradasCultivo);
+      }
+
+      // Lugares de producción
+      if (this.online) {
+        const lResp: any = await firstValueFrom(this.catalogoService.listarLugaresProduccion(idProyecto));
+        if (!lResp.error) {
+          const dexiedb = await this.catalogosRepo.lugaresProduccionRepo.getAll();
+          if (dexiedb.length > 0) {
+            await this.catalogosRepo.lugaresProduccionRepo.clear();
+          }
+          for (const l of (lResp.data ?? [])) {
+            l.bd = 1;
+            await this.catalogosRepo.lugaresProduccionRepo.save(l);
+          }
+          this.lugaresProduccion.set(lResp.data ?? []);
+        }
+      } else {
+        const lugaresDexie = await this.catalogosRepo.lugaresProduccionRepo.getAll();
+        this.lugaresProduccion.set(lugaresDexie ?? []);
+      }
+
+      this._filtrarVariedadesPorEnsayo();
+    } catch (error) {
+      console.error('Error cargando variedades/lugares:', error);
+      const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
+      const variedadesDexie = await this.catalogosRepo.variedadesRepo.getAll();
+      const filtradasCultivo = (variedadesDexie ?? []).filter((v: Variedad) => String(v?.idcultivo ?? '') === codigoCultivo);
+      this.variedades.set(filtradasCultivo);
+      const lugaresDexie = await this.catalogosRepo.lugaresProduccionRepo.getAll();
+      this.lugaresProduccion.set(lugaresDexie ?? []);
+      this._filtrarVariedadesPorEnsayo();
+    }
+  }
+
+  private _filtrarVariedadesPorEnsayo(): void {
+    const esEnsayo = this.formCajas().esEnsayo;
+    const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
+    const todas = this.variedades();
+    const filtradas = (todas ?? []).filter((v: Variedad) =>
+      String(v?.idcultivo ?? '') === codigoCultivo &&
+      Boolean(v?.esEnsayo) === esEnsayo
+    );
+    this.filteredVariedades.set(filtradas);
+  }
+
+  private async cargarTransportes(): Promise<void> {
+    try {
+      if (this.online) {
+        const resp: any = await firstValueFrom(this.catalogoService.listarTransporte());
+        const data = Array.isArray(resp) ? resp : (resp?.data ?? []);
+        if (data.length > 0) {
+          const dexiedb = await this.catalogosRepo.transportesRepo.getAll();
+          if (dexiedb.length > 0) {
+            await this.catalogosRepo.transportesRepo.clear();
+          }
+          for (const t of data) {
+            t.bd = 1;
+            await this.catalogosRepo.transportesRepo.save(t);
+          }
+          this.transportes.set(data);
+        }
+      } else {
+        const transportesDexie = await this.catalogosRepo.transportesRepo.getAll();
+        this.transportes.set(transportesDexie ?? []);
+      }
+    } catch (error) {
+      console.error('Error cargando transportes:', error);
+      const transportesDexie = await this.catalogosRepo.transportesRepo.getAll();
+      this.transportes.set(transportesDexie ?? []);
+    }
   }
 
   cerrarModalAgregarCajas(): void {
     this.modalAgregarCajasAbierto.set(false);
-    // Reset filtered cascading signals
+    this.modoEdicionCajas.set(false);
+    this.dpaletEditando.set(undefined);
+    this.tiposProcesoEmpacadoModal.set([]);
+    this.tipoProcesoEmpacadoDisabled.set(false);
+
     this.filteredDestinos.set([]);
     this.filteredFormatos.set([]);
     this.filteredTiposEmpaqueGuia.set([]);
@@ -557,6 +1252,8 @@ export class PaletsComponent implements OnInit, OnDestroy {
     this.filteredTiposCaja.set([]);
     this.filteredTiposClamshell.set([]);
     this.filteredCodigosRancho.set([]);
+    this.filteredVariedades.set([]);
+    this.transportes.set([]);
     this._matrizResults = [];
     this.formCajas.set({
       consignatarioId: 0,
@@ -574,20 +1271,19 @@ export class PaletsComponent implements OnInit, OnDestroy {
       variedadGuiaId: 0,
       lugarProduccionId: 0,
       codigoRanchoId: 0,
-      transporteId: 1,
+      transporteId: '',
       cantidadCajas: 0,
       esReposicion: false,
       esEnsayo: false,
     });
   }
 
-  submitAgregarCajas(): void {
+  async submitAgregarCajas(): Promise<void> {
     const palet = this.paletSeleccionado();
+    console.log('palet', palet)
     if (!palet) return;
 
     const f = this.formCajas();
-
-    // Validación básica (calibreId/tipoEmpaqueId son auto-filled desde MatrizCompatibilidad)
     if (!f.consignatarioId || !f.destinoId || !f.formatoId || !f.variedadId || !f.cantidadCajas) {
       this.alertService.showAlert('Validación', 'Complete todos los campos requeridos', 'warning');
       return;
@@ -600,74 +1296,201 @@ export class PaletsComponent implements OnInit, OnDestroy {
       this.alertService.showAlert('Validación', 'Seleccione Lugar de Producción y Código de Rancho', 'warning');
       return;
     }
+    if (!f.transporteId) {
+      this.alertService.showAlert('Validación', 'Seleccione Vía de Transporte', 'warning');
+      return;
+    }
+    if (!f.cantidadCajas || f.cantidadCajas <= 0) {
+      this.alertService.showAlert('Validación', 'La cantidad de cajas debe ser mayor a 0', 'warning');
+      return;
+    }
 
-    // Obtener pesoPorCaja del formato seleccionado
     const formatoSel = this.filteredFormatos().find((fmt: any) => fmt.id === f.formatoId);
     const pesoPorCaja = formatoSel?.pesoPorCaja ?? 10;
+    const limiteCajasPorPalet = formatoSel?.limiteCajasPorPalet ?? 0;
 
-    const request: AgregarComposicionRequest = {
-      paletId: palet.id,
-      consignatarioId: f.consignatarioId,
-      destinoId: f.destinoId,
+    const comps = this.composiciones();
+    if (comps.length > 0) {
+      const formatoExistente = comps[0].formatoId;
+      if (f.formatoId !== formatoExistente) {
+        const formatoActual = comps[0].formatoNombre || `ID ${formatoExistente}`;
+        this.alertService.showAlert('Validación',
+          `No se pueden mezclar formatos con diferente cantidad de cajas por palet. Este palet ya tiene cajas con formato "${formatoActual}".`, 'warning');
+        return;
+      }
+    }
+
+    if (limiteCajasPorPalet > 0) {
+      const totalCajas = (palet.cantidadCajas || 0) + f.cantidadCajas;
+      if (totalCajas > limiteCajasPorPalet) {
+        const faltantes = limiteCajasPorPalet - (palet.cantidadCajas || 0);
+        const msg = faltantes > 0
+          ? `Solo puede agregar ${faltantes} caja(s) más. El límite del formato es ${limiteCajasPorPalet} cajas.`
+          : `El palet ya alcanzó el límite de ${limiteCajasPorPalet} cajas.`;
+        this.alertService.showAlert('Validación',
+          `El total de cajas (${totalCajas}) excede el límite permitido. ${msg}`, 'warning');
+        return;
+      }
+    }
+
+    const consignatario = this.consignatarios().find(c => c.id === f.consignatarioId);
+    const destino = this.filteredDestinos().find(d => String(d.id) === String(f.destinoId));
+    const formato = this.filteredFormatos().find(fmt => fmt.id === f.formatoId);
+    const variedad = this.filteredVariedades().find(v => String(v.codigo) === String(f.variedadId));
+    const presentacion = this.filteredPresentaciones().find(p => p.id === (f.presentacionId ?? 0));
+    const tipoEmpaqueGuia = this.filteredTiposEmpaqueGuia().find(t => t.id === (f.tipoEmpaqueGuiaId ?? 0));
+    const codigoRancho = this.filteredCodigosRancho().find(c => c.id === f.codigoRanchoId);
+    const lugarProduccion = this.lugaresProduccion().find(l => l.id === f.lugarProduccionId);
+    const transporte = this.transportes().find(t => String(t.id) === String(f.transporteId));
+    const tipoProcesoEmpacado = this.tiposProcesoEmpacadoModal().find(t => t.id === (f.tipoProcesoEmpacadoId ?? 0));
+
+    const nuevoDPalet: DPalet = {
+      id: 0,
+      idPalet: palet.idPalet ?? '',
+      idProceso: palet.idProceso,
+      idDPalet: (palet.idPalet ?? '') + '-' + Date.now(),
+      documentoCliente: consignatario?.documentoFiscal ?? undefined,
+      destinoId: String(f.destinoId ?? ''),
+      destinoNombre: destino?.pais ?? undefined,
+      documentoConsignatario: consignatario?.documentoFiscal ?? '',
+      consignatarioNombre: consignatario?.nombre ?? '',
       formatoId: f.formatoId,
-      tipoEmpaqueId: f.tipoEmpaqueId || 1,
-      calibreId: f.calibreId || null,
-      categoriaId: f.categoriaId || null,
-      tipoEmpaqueGuiaId: f.tipoEmpaqueGuiaId,
-      tipoCajaId: f.tipoCajaId,
-      tipoClamshellId: f.tipoClamshellId,
-      presentacionId: f.presentacionId || null,
-      tipoProcesoEmpacadoId: f.tipoProcesoEmpacadoId || 1,
-      variedadId: f.variedadId,
-      variedadGuiaId: f.esEnsayo ? (f.variedadGuiaId || null) : null,
+      formatoNombre: formato?.descripcion ?? undefined,
+      tiposEmpaqueId: f.tipoEmpaqueId || 1,
+      calibreId: f.calibreId?.toString() ?? undefined,
+      presentacionId: f.presentacionId ?? null,
+      presentacionNombre: presentacion?.nombre ?? undefined,
+      variedadId: String(f.variedadId ?? ''),
+      variedadNombre: variedad?.variedad ?? undefined,
       lugarProduccionId: f.lugarProduccionId,
+      lugarProduccionNombre: lugarProduccion?.descripcion ?? undefined,
       codigoRanchoId: f.codigoRanchoId,
-      transporteId: f.transporteId || 1,
+      codigoRanchoNombre: codigoRancho?.codigo ?? undefined,
       cantidadCajas: f.cantidadCajas,
+      tipoCajaId: f.tipoCajaId ?? 0,
+      tipoClamshellId: f.tipoClamshellId ?? 0,
       pesoPorCaja: pesoPorCaja,
       pesoTotal: f.cantidadCajas * pesoPorCaja,
-      esReposicion: f.esReposicion,
-      esEnsayo: f.esEnsayo,
-      usuarioId: this.userId
+      tipoEmpaqueGuiaId: f.tipoEmpaqueGuiaId ?? null,
+      tipoEmpaqueGuiaNombre: tipoEmpaqueGuia?.nombre ?? undefined,
+      transporteId: f.transporteId || '',
+      transporteNombre: transporte?.transporte ?? undefined,
+      tipoProcesoEmpacadoId: f.tipoProcesoEmpacadoId ?? null,
+      tipoProcesoEmpacadoNombre: tipoProcesoEmpacado?.nombre ?? undefined,
+      esReposicion: f.esReposicion ?? false,
+      variedadGuiaId: f.esEnsayo ? (Number(f.variedadGuiaId) || null) : null,
+      esEnsayo: f.esEnsayo ?? false,
+      eliminado: false,
+      bd:0,
+      fechaCreacion: new Date().toISOString()
     };
 
-    console.log('📋 Agregando cajas - Request completo:', JSON.stringify(request, null, 2));
-    console.log('📋 Formulario actual:', JSON.stringify(f, null, 2));
-    console.log('📋 Peso por caja:', pesoPorCaja);
+    console.log('Agregando cajas - DPalet completo:', JSON.stringify(nuevoDPalet, null, 2));
+    console.log('Formulario actual:', JSON.stringify(f, null, 2));
+    console.log('Peso por caja:', pesoPorCaja);
 
-    this.alertService.mostrarModalCarga();
-    this.paletService.agregarCajas(request).subscribe({
-      next: (res: any) => {
-        console.log('✅ Cajas agregadas:', res);
-        console.log('✅ Respuesta de agregar cajas:', res);
-        console.log('✅ Palet antes de recargar:', palet);
+    if (this.online) {
+      try {
+        this.alertService.mostrarModalCarga();
+        await firstValueFrom(this.paletService.sincronizarDPalets([nuevoDPalet]));
+
+        await this.procesoRepo.dPaletsRepo.saveByIdDPalet(nuevoDPalet);
+
+        const nuevaCantidad = (palet.cantidadCajas || 0) + f.cantidadCajas;
+        const nuevoPeso = (palet.pesoTotal || 0) + (f.cantidadCajas * pesoPorCaja);
+        const nuevoPorcentaje = limiteCajasPorPalet > 0
+          ? Math.round((nuevaCantidad / limiteCajasPorPalet) * 100)
+          : 0;
+        console.log('palet', palet)
+        const paletActualizado: Palet = {
+          ...palet,
+          cantidadCajas: nuevaCantidad,
+          pesoTotal: nuevoPeso,
+          limiteCajasPorPalet: limiteCajasPorPalet > 0 ? limiteCajasPorPalet : (palet.limiteCajasPorPalet ?? 0),
+          porcentajeAvance: nuevoPorcentaje,
+          formatoId: nuevoDPalet.formatoId ?? 0,
+          bd: palet.bd ?? 0,
+          modo: 'editado'
+        };
+        console.log(paletActualizado)
+        let respPalet = await firstValueFrom(this.paletService.sincronizar(paletActualizado));
+        console.log('respPalet', respPalet)
+        this.paletSeleccionado.set(paletActualizado);
+        this.palets.update(palets =>
+          palets.map(p => {
+            const pk = String(p?.idPalet ?? '').trim();
+            const uk = String(paletActualizado?.idPalet ?? '').trim();
+            return pk && uk && pk === uk ? paletActualizado : p;
+          })
+        );
+
+        await this.sincronizarDPaletsPorAcopio();
+        await this.verDetalle(paletActualizado);
+
         this.alertService.cerrarModalCarga();
-
-        const ok = res?.success;
-        if (ok === false) {
-          const msg = res?.message ?? 'Error al agregar cajas';
-          this.alertService.showAlertAcept('Error', String(msg), 'error');
-          return;
-        }
-
-        const msg = res?.message ?? 'Cajas agregadas correctamente';
-        this.alertService.showAlert('Éxito', String(msg), 'success');
+        this.alertService.showAlert('Éxito', 'Cajas agregadas correctamente', 'success');
         this.cerrarModalAgregarCajas();
-        // Reload palet details
-        console.log('📋 Llamando a verDetalle después de agregar cajas...');
-        this.verDetalle(palet);
-      },
-      error: (err: any) => {
-        console.error('❌ Error agregando cajas:', err);
-        console.error('❌ Error status:', err.status);
-        console.error('❌ Error message:', err.message);
-        console.error('❌ Error completo:', JSON.stringify(err, null, 2));
+        if (limiteCajasPorPalet > 0 && nuevaCantidad >= limiteCajasPorPalet) {
+          this.abrirModalCerrarPalet(paletActualizado);
+        }
+      } catch (err) {
+        console.error('Error guardando online:', err);
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlertAcept('Error', 'Error al guardar cajas en modo online', 'error');
+      }
+      return;
+    } else {
+      try {
+        this.alertService.mostrarModalCarga();
+
+        await this.procesoRepo.dPaletsRepo.saveByIdDPalet(nuevoDPalet);
+
+        const nuevaCantidad = (palet.cantidadCajas || 0) + f.cantidadCajas;
+        const nuevoPeso = (palet.pesoTotal || 0) + (f.cantidadCajas * pesoPorCaja);
+        const nuevoPorcentaje = limiteCajasPorPalet > 0
+          ? Math.round((nuevaCantidad / limiteCajasPorPalet) * 100)
+          : 0;
+
+        const paletActualizado: Palet = {
+          ...palet,
+          cantidadCajas: nuevaCantidad,
+          pesoTotal: nuevoPeso,
+          limiteCajasPorPalet: limiteCajasPorPalet > 0 ? limiteCajasPorPalet : (palet.limiteCajasPorPalet ?? 0),
+          porcentajeAvance: nuevoPorcentaje,
+          formatoId: nuevoDPalet.formatoId ?? 0,
+          bd: 0
+        };
+
+        await this.procesoRepo.paletsRepo.saveByIdPalet(paletActualizado);
+
+        this.paletSeleccionado.set(paletActualizado);
+        this.palets.update(palets =>
+          palets.map(p => {
+            const pk = String(p?.idPalet ?? '').trim();
+            const uk = String(paletActualizado?.idPalet ?? '').trim();
+            return pk && uk && pk === uk ? paletActualizado : p;
+          })
+        );
+
+        const dpalets = await this.procesoRepo.dPaletsRepo.getByIdPalet(palet.idPalet ?? '');
+        const activos = (dpalets ?? []).filter((d: any) => !(d as any)?.eliminado);
+        this.composiciones.set(activos);
 
         this.alertService.cerrarModalCarga();
-        const msg = err?.error?.message ?? 'Error al agregar cajas';
-        this.alertService.showAlertAcept('Error', String(msg), 'error');
+        this.alertService.showAlert('Éxito', 'Cajas agregadas correctamente (offline)', 'success');
+        this.cerrarModalAgregarCajas();
+        if (limiteCajasPorPalet > 0 && nuevaCantidad >= limiteCajasPorPalet) {
+          this.abrirModalCerrarPalet(paletActualizado);
+        }
+      } catch (err) {
+        console.error('Error guardando offline:', err);
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlertAcept('Error', 'Error al guardar cajas en modo offline', 'error');
       }
-    });
+      return;
+
+    }
+
   }
 
   abrirModalCerrarPalet(palet: Palet): void {
@@ -682,7 +1505,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     this.modalCerrarPaletAbierto.set(false);
   }
 
-  confirmarCerrarPalet(): void {
+  async confirmarCerrarPalet(): Promise<void> {
     const palet = this.paletSeleccionado();
     if (!palet) return;
 
@@ -690,154 +1513,336 @@ export class PaletsComponent implements OnInit, OnDestroy {
     const obs = this.cerrarPaletObservaciones();
     const medida = this.cerrarPaletMedida();
 
-    console.log('📋 Cerrando palet:', palet, { tieneObs, obs, medida });
+    console.log('Cerrando palet:', palet, { tieneObs, obs, medida });
 
     this.alertService.mostrarModalCarga();
-    this.paletService.cerrar(palet.id, 'NORMAL', this.userId, tieneObs ? obs : undefined, medida || undefined).subscribe({
-      next: (res) => {
-        console.log('✅ Palet cerrado:', res);
+
+    const estadoCerrado = (palet.cantidadCajas || 0) >= (palet.limiteCajasPorPalet || 0) ? 'CERRADO_COMPLETO' : 'CERRADO_SALDO';
+
+    const paletCerrado: Palet = {
+      ...palet,
+      estado: estadoCerrado,
+      observaciones: tieneObs ? obs : palet.observaciones,
+      medidaCorrectiva: medida || palet.medidaCorrectiva,
+      bd: this.online ? 1 : 0,
+      modo: 'editado'
+    };
+
+    if (this.online) {
+      try {
+        await firstValueFrom(this.paletService.sincronizar(paletCerrado));
+        await this.procesoRepo.paletsRepo.saveByIdPalet(paletCerrado);
+
+        this.paletSeleccionado.set(paletCerrado);
+        this.palets.update(palets =>
+          palets.map(p => {
+            const pk = String(p?.idPalet ?? '').trim();
+            const uk = String(paletCerrado?.idPalet ?? '').trim();
+            return pk && uk && pk === uk ? paletCerrado : p;
+          })
+        );
+
         this.alertService.cerrarModalCarga();
-        const ok = res?.success;
-        if (ok === false) {
-          const msg = res?.message ?? 'Error al cerrar el palet';
-          this.alertService.showAlertAcept('Error', String(msg), 'error');
-          return;
-        }
-        const msg = res?.message ?? 'Palet cerrado correctamente';
-        this.alertService.showAlert('Éxito', String(msg), 'success');
+        this.alertService.showAlert('Éxito', 'Palet cerrado correctamente', 'success');
         this.cerrarModalCerrarPalet();
-        // Reload palet details
-        this.verDetalle(palet);
-      },
-      error: (err) => {
-        console.error('❌ Error cerrando palet:', err);
+      } catch (err) {
+        console.error('Error cerrando palet online:', err);
         this.alertService.cerrarModalCarga();
         const msg = (err as any)?.error?.message ?? 'Error al cerrar el palet';
         this.alertService.showAlertAcept('Error', String(msg), 'error');
       }
-    });
+    } else {
+      try {
+        await this.procesoRepo.paletsRepo.saveByIdPalet(paletCerrado);
+
+        this.paletSeleccionado.set(paletCerrado);
+        this.palets.update(palets =>
+          palets.map(p => {
+            const pk = String(p?.idPalet ?? '').trim();
+            const uk = String(paletCerrado?.idPalet ?? '').trim();
+            return pk && uk && pk === uk ? paletCerrado : p;
+          })
+        );
+
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Éxito', 'Palet cerrado correctamente (offline)', 'success');
+        this.cerrarModalCerrarPalet();
+      } catch (err) {
+        console.error('Error cerrando palet offline:', err);
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlertAcept('Error', 'Error al cerrar el palet en modo offline', 'error');
+      }
+    }
   }
 
-  abrirModalEliminarPalet(palet: Palet): void {
-    this.alertService
-      .showConfirm('Confirmación', `¿Está seguro que desea eliminar el palet #${palet.id}?`, 'warning')
-      .then(ok => {
-        if (ok) this.eliminarPalet(palet);
-      });
+  async abrirModalEliminarPalet(palet: Palet): Promise<void> {
+    const dpalets = await this.procesoRepo.dPaletsRepo.getByIdPalet(palet.idPalet ?? '');
+    const activos = (dpalets ?? []).filter((d: any) => !(d as any)?.eliminado);
+
+    const cajasHtml = activos.length
+      ? activos.map((d: any) => `
+        <div style="border-bottom:1px solid #eee;padding:4px 0;font-size:13px;">
+          <strong>${d.consignatarioNombre || '-'}</strong> — ${d.destinoNombre || '-'}<br>
+          <span style="color:#666">Cajas: ${d.cantidadCajas || 0} | Peso: ${this.formatPeso(d.pesoTotal || 0)} kg | Variedad: ${d.variedadNombre || '-'}</span>
+        </div>
+      `).join('')
+      : '<div style="color:#999;font-size:13px;padding:4px 0;">Sin composiciones</div>';
+
+    const detalleHtml = `
+      <div style="text-align:left;font-size:14px;line-height:1.6">
+        <strong>Palet #${palet.id}</strong><br>
+        <strong>Estado:</strong> ${palet.estado || '-'}<br>
+        <strong>Cajas:</strong> ${palet.cantidadCajas || 0}<br>
+        <strong>Peso total:</strong> ${this.formatPeso(palet.pesoTotal || 0)} kg<br>
+        <hr style="margin:8px 0;border:none;border-top:1px solid #ddd;">
+        <strong>Composiciones:</strong>
+        <div style="max-height:120px;overflow-y:auto;margin-top:4px;">
+          ${cajasHtml}
+        </div>
+      </div>
+    `;
+
+    const ok1 = await this.alertService.showOptions(
+      `¿Desea eliminar el palet #${palet.id}?`,
+      detalleHtml,
+      'warning',
+      'Eliminar',
+      'Cancelar'
+    );
+    if (!ok1) return;
+
+    const ok2 = await this.alertService.showConfirm(
+      'Acción irreversible',
+      '¿Está seguro? Esta acción no se podrá recuperar.',
+      'warning'
+    );
+    if (!ok2) return;
+
+    this.eliminarPalet(palet);
   }
 
-  eliminarPalet(palet: Palet): void {
-    console.log('📋 Eliminando palet:', palet);
+  async eliminarPalet(palet: Palet): Promise<void> {
+    console.log('Eliminando palet:', palet);
 
     this.alertService.mostrarModalCarga();
-    this.paletService.eliminar(palet.id).subscribe({
-      next: (res) => {
-        console.log('✅ Palet eliminado:', res);
+
+    const paletEliminado: Palet = {
+      ...palet,
+      eliminado: true,
+      estado: 'ELIMINADO',
+      bd: this.online ? 1 : 0,
+      modo: 'editado'
+    };
+
+    if (this.online) {
+      try {
+        await firstValueFrom(this.paletService.sincronizar(paletEliminado));
+        await this.procesoRepo.paletsRepo.saveByIdPalet(paletEliminado);
+
+        this.paletSeleccionado.set(null);
+        this.palets.update(palets =>
+          palets.filter(p => String(p?.idPalet ?? '').trim() !== String(paletEliminado?.idPalet ?? '').trim())
+        );
+
         this.alertService.cerrarModalCarga();
-        const ok = res?.success;
-        if (ok === false) {
-          const msg = res?.message ?? 'Error al eliminar el palet';
-          this.alertService.showAlertAcept('Error', String(msg), 'error');
-          return;
-        }
-        const msg = res?.message ?? 'Palet eliminado correctamente';
-        this.alertService.showAlert('Éxito', String(msg), 'success');
-        // Reload palets for the process
+        this.alertService.showAlert('Éxito', 'Palet eliminado correctamente', 'success');
         const proceso = this.procesoSeleccionado();
-        if (proceso) {
-          this.seleccionarProceso(proceso);
-        }
-      },
-      error: (err) => {
-        console.error('❌ Error eliminando palet:', err);
+        if (proceso) await this.listarPaletsForProceso(proceso.idProceso, { showLoading: false });
+      } catch (err) {
+        console.error('Error eliminando palet online:', err);
         this.alertService.cerrarModalCarga();
         const msg = (err as any)?.error?.message ?? 'Error al eliminar el palet';
         this.alertService.showAlertAcept('Error', String(msg), 'error');
       }
-    });
+    } else {
+      try {
+        await this.procesoRepo.paletsRepo.saveByIdPalet(paletEliminado);
+
+        this.paletSeleccionado.set(null);
+        this.palets.update(palets =>
+          palets.filter(p => String(p?.idPalet ?? '').trim() !== String(paletEliminado?.idPalet ?? '').trim())
+        );
+
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Éxito', 'Palet eliminado correctamente (offline)', 'success');
+        const proceso = this.procesoSeleccionado();
+        if (proceso) await this.listarPaletsForProceso(proceso.idProceso, { showLoading: false });
+      } catch (err) {
+        console.error('Error eliminando palet offline:', err);
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlertAcept('Error', 'Error al eliminar el palet en modo offline', 'error');
+      }
+    }
   }
 
-  reabrirPalet(palet: Palet): void {
-    this.alertService
-      .showConfirm('Confirmación', `¿Está seguro que desea reabrir el palet #${palet.id}?`, 'warning')
-      .then(ok => {
-        if (!ok) return;
-        console.log('📋 Reabriendo palet:', palet);
+  async reabrirPalet(palet: Palet): Promise<void> {
+    const ok = await this.alertService.showConfirm('Confirmación', `¿Está seguro que desea reabrir el palet #${palet.id}?`, 'warning');
+    if (!ok) return;
 
-        this.alertService.mostrarModalCarga();
-        this.paletService.reabrir(palet.id).subscribe({
-          next: (res) => {
-            console.log('✅ Palet reabierto:', res);
-            this.alertService.cerrarModalCarga();
-            const okRes = res?.success;
-            if (okRes === false) {
-              const msg = res?.message ?? 'Error al reabrir el palet';
-              this.alertService.showAlertAcept('Error', String(msg), 'error');
-              return;
-            }
-            const msg = res?.message ?? 'Palet reabierto correctamente';
-            this.alertService.showAlert('Éxito', String(msg), 'success');
-            // Reload palet details
-            this.verDetalle(palet);
-          },
-          error: (err) => {
-            console.error('❌ Error reabriendo palet:', err);
-            this.alertService.cerrarModalCarga();
-            const msg = (err as any)?.error?.message ?? 'Error al reabrir el palet';
-            this.alertService.showAlertAcept('Error', String(msg), 'error');
-          }
-        });
-      });
+    console.log('Reabriendo palet:', palet);
+    this.alertService.mostrarModalCarga();
+
+    const paletReabierto: Palet = {
+      ...palet,
+      estado: 'ABIERTO',
+      fechaCierre: '',
+      bd: this.online ? 1 : 0,
+      modo: 'editado'
+    };
+
+    if (this.online) {
+      try {
+        await firstValueFrom(this.paletService.sincronizar(paletReabierto));
+        await this.procesoRepo.paletsRepo.saveByIdPalet(paletReabierto);
+
+        this.paletSeleccionado.set(paletReabierto);
+        this.palets.update(palets =>
+          palets.map(p => {
+            const pk = String(p?.idPalet ?? '').trim();
+            const uk = String(paletReabierto?.idPalet ?? '').trim();
+            return pk && uk && pk === uk ? paletReabierto : p;
+          })
+        );
+
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Éxito', 'Palet reabierto correctamente', 'success');
+        await this.verDetalle(paletReabierto);
+      } catch (err) {
+        console.error('Error reabriendo palet online:', err);
+        this.alertService.cerrarModalCarga();
+        const msg = (err as any)?.error?.message ?? 'Error al reabrir el palet';
+        this.alertService.showAlertAcept('Error', String(msg), 'error');
+      }
+    } else {
+      try {
+        await this.procesoRepo.paletsRepo.saveByIdPalet(paletReabierto);
+
+        this.paletSeleccionado.set(paletReabierto);
+        this.palets.update(palets =>
+          palets.map(p => {
+            const pk = String(p?.idPalet ?? '').trim();
+            const uk = String(paletReabierto?.idPalet ?? '').trim();
+            return pk && uk && pk === uk ? paletReabierto : p;
+          })
+        );
+
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Éxito', 'Palet reabierto correctamente (offline)', 'success');
+        await this.verDetalle(paletReabierto);
+      } catch (err) {
+        console.error('Error reabriendo palet offline:', err);
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlertAcept('Error', 'Error al reabrir el palet en modo offline', 'error');
+      }
+    }
   }
 
-  eliminarComposicion(composicion: Composicion): void {
-    this.alertService
-      .showConfirm('Confirmación', '¿Está seguro que desea eliminar esta composición?', 'warning')
-      .then(ok => {
-        if (!ok) return;
-        console.log('📋 Eliminando composición:', composicion);
+  async eliminarComposicion(dpalet: DPalet): Promise<void> {
+    const palet = this.paletSeleccionado();
+    if (!palet) return;
 
-        this.alertService.mostrarModalCarga();
-        this.paletService.eliminarComposicion(composicion.Id).subscribe({
-          next: (res) => {
-            console.log('✅ Composición eliminada:', res);
-            this.alertService.cerrarModalCarga();
-            const okRes = res?.success;
-            if (okRes === false) {
-              const msg = res?.message ?? 'Error al eliminar la composición';
-              this.alertService.showAlertAcept('Error', String(msg), 'error');
-              return;
-            }
-            const msg = res?.message ?? 'Composición eliminada correctamente';
-            this.alertService.showAlert('Éxito', String(msg), 'success');
-            // Reload composiciones for the palet
-            const palet = this.paletSeleccionado();
-            if (palet) {
-              this.verDetalle(palet);
-            }
-          },
-          error: (err) => {
-            console.error('❌ Error eliminando composición:', err);
-            this.alertService.cerrarModalCarga();
-            const msg = (err as any)?.error?.message ?? 'Error al eliminar la composición';
-            this.alertService.showAlertAcept('Error', String(msg), 'error');
-          }
-        });
-      });
+    // Confirmación 1: mostrar detalle de lo que se eliminará
+    const detalleHtml = `
+      <div style="text-align:left;font-size:14px;line-height:1.6">
+        <strong>Consignatario:</strong> ${dpalet.consignatarioNombre || '-'}<br>
+        <strong>Destino:</strong> ${dpalet.destinoNombre || '-'}<br>
+        <strong>Formato:</strong> ${dpalet.formatoNombre || '-'}<br>
+        <strong>Variedad:</strong> ${dpalet.variedadNombre || '-'}<br>
+        <strong>Cajas:</strong> ${dpalet.cantidadCajas}<br>
+        <strong>Peso total:</strong> ${this.formatPeso(dpalet.pesoTotal)} kg
+      </div>
+    `;
+    const ok1 = await this.alertService.showOptions(
+      '¿Desea eliminar esta composición?',
+      detalleHtml,
+      'warning',
+      'Eliminar',
+      'Cancelar'
+    );
+    if (!ok1) return;
+
+    // Confirmación 2: irreversible
+    const ok2 = await this.alertService.showConfirm(
+      'Acción irreversible',
+      '¿Está seguro? Esta acción no se podrá recuperar.',
+      'warning'
+    );
+    if (!ok2) return;
+
+    try {
+      this.alertService.mostrarModalCarga();
+
+      // Marcar DPalet como eliminado (tanto online como offline)
+      const dpaletEliminado: DPalet = {
+        ...dpalet,
+        eliminado: true,
+        bd: this.online ? 1 : 0,
+        idProceso: palet.idProceso
+      };
+
+      if (this.online) {
+        // MODO ONLINE: sincronizar DPalet eliminado al servidor
+        await firstValueFrom(this.paletService.sincronizarDPalets([dpaletEliminado]));
+      }
+
+      // Guardar en Dexie
+      await this.procesoRepo.dPaletsRepo.saveByIdDPalet(dpaletEliminado);
+
+      // Recalcular totales del palet desde DPalets no eliminados
+      const dpalets = await this.procesoRepo.dPaletsRepo.getByIdPalet(palet.idPalet ?? '');
+      const activos = (dpalets ?? []).filter((d: any) => !(d as any)?.eliminado);
+      const totalCajas = activos.reduce((sum: number, d: any) => sum + (d?.cantidadCajas || 0), 0);
+      const totalPeso = activos.reduce((sum: number, d: any) => sum + (d?.pesoTotal || 0), 0);
+      const limite = palet?.limiteCajasPorPalet ?? 0;
+      const porcentaje = limite > 0 ? Math.round((totalCajas / limite) * 100) : 0;
+      const formatoId = activos.length > 0 ? (palet.formatoId ?? 0) : 0;
+
+      const paletActualizado: Palet = {
+        ...palet,
+        cantidadCajas: totalCajas,
+        pesoTotal: totalPeso,
+        porcentajeAvance: porcentaje,
+        formatoId,
+        modo: 'editado',
+        bd: this.online ? (palet.bd ?? 0) : 0
+      };
+
+      if (this.online) {
+        // Sincronizar palet actualizado al servidor
+        await firstValueFrom(this.paletService.sincronizar(paletActualizado));
+        // Refrescar DPalets desde el servidor
+        await this.sincronizarDPaletsPorAcopio();
+      }
+
+      // Guardar palet actualizado en Dexie y actualizar UI
+      await this.procesoRepo.paletsRepo.saveByIdPalet(paletActualizado);
+      this.paletSeleccionado.set(paletActualizado);
+      this.palets.update(palets =>
+        palets.map(item => {
+          const pk = String(item?.idPalet ?? '').trim();
+          const uk = String(paletActualizado?.idPalet ?? '').trim();
+          return pk && uk && pk === uk ? paletActualizado : item;
+        })
+      );
+      this.composiciones.set(activos);
+
+      this.alertService.cerrarModalCarga();
+      this.alertService.showAlert('Éxito', 'Composición eliminada correctamente', 'success');
+    } catch (err) {
+      console.error('Error eliminando composición:', err);
+      this.alertService.cerrarModalCarga();
+      this.alertService.showAlertAcept('Error', 'Error al eliminar la composición', 'error');
+    }
   }
 
-  // UI helpers
   updateFormCajas(field: string, value: unknown): void {
     this.formCajas.update(f => ({ ...f, [field]: value }));
   }
 
-  // ═══════ CASCADING SELECTS (MatrizCompatibilidad) ═══════
-
-  // 1️⃣ CONSIGNATARIO → DESTINOS
-  onConsignatarioChange(value: string): void {
+  async onConsignatarioChange(value: string): Promise<void> {
     const consignatarioId = parseInt(value) || 0;
     this.updateFormCajas('consignatarioId', consignatarioId);
-    // Reset all dependent fields
+
     this.filteredDestinos.set([]);
     this.filteredFormatos.set([]);
     this.filteredTiposEmpaqueGuia.set([]);
@@ -857,29 +1862,74 @@ export class PaletsComponent implements OnInit, OnDestroy {
     this.updateFormCajas('codigoRanchoId', 0);
 
     if (!consignatarioId) return;
-    this.catalogoService.listarDestinos({ consignatarioId }).subscribe({
-      next: (r: any) => {
-        const items = Array.isArray(r) ? r : r?.data ?? [];
-        this.filteredDestinos.set(items.map((x: any) => ({
-          id: x?.id ?? x?.Id ?? 0,
-          codigo: x?.codigo ?? x?.Codigo ?? '',
-          nombre: x?.nombre ?? x?.Nombre ?? '',
-          pais: x?.pais ?? x?.Pais ?? '',
-          activo: x?.activo ?? x?.Activo ?? true,
-          bd: x?.bd ?? x?.BD
-        })));
-      },
-      error: () => { this.filteredDestinos.set([]); }
-    });
-    // Also reload codigos rancho if LDP already selected
+    const consignatario = this.consignatarios().find(c => c.id === consignatarioId);
+    const documentoConsignatario = String(consignatario?.documento ?? consignatario?.documentoFiscal ?? '').trim();
+
+    if (!documentoConsignatario) {
+      this.alertService.showAlert('Validación', 'No se pudo determinar el documento del consignatario.', 'warning');
+      return;
+    }
+
+    this.alertService.mostrarModalCarga();
+
+    try {
+      let destinosIds: string[] = [];
+
+      if (this.online) {
+        const idproyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
+        const resp: any = await firstValueFrom(this.paletService.getDestinosPorMatrizCompatibilidad(idproyecto, consignatarioId.toString()));
+        const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
+
+        if (items[0].data.length === 0) {
+          this.alertService.cerrarModalCarga();
+          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este consignatario.', 'warning');
+          return;
+        }
+
+        destinosIds = items[0].data.map((x: any) => String(x?.destinoId ?? x?.destinoId ?? '')).filter((id: string) => id);
+
+        const paisesResp: any = await firstValueFrom(this.catalogoService.listarPaises());
+        if (paisesResp.length > 0) {
+          const dexiedb = await this.catalogosRepo.destinosRepo.getAll();
+          if (dexiedb.length > 0) {
+            await this.catalogosRepo.destinosRepo.clear();
+          }
+          for (const p of (paisesResp ?? [])) {
+            await this.catalogosRepo.destinosRepo.save(p);
+          }
+        }
+      } else {
+        const matrices = await this.administracionRepo.matricesCompatibilidadRepository.getAll();
+        const matricesFiltradas = (matrices ?? []).filter((m: any) =>
+          String(m?.documentoConsignatario ?? '').trim() === consignatarioId.toString()
+        );
+        destinosIds = [...new Set(matricesFiltradas.map((m: any) => String(m?.destinoId ?? '')).filter((id: string) => id))];
+
+        if (destinosIds.length === 0) {
+          this.alertService.cerrarModalCarga();
+          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este consignatario.', 'warning');
+          return;
+        }
+      }
+      const todosDestinos = await this.catalogosRepo.destinosRepo.getAll();
+      const destinosFiltrados = (todosDestinos ?? []).filter((d: any) => destinosIds.includes(String(d?.id ?? '')));
+      this.filteredDestinos.set(destinosFiltrados);
+      this.alertService.cerrarModalCarga();
+
+    } catch (err) {
+      console.error('Error cargando destinos por matriz compatibilidad:', err);
+      this.filteredDestinos.set([]);
+      this.alertService.cerrarModalCarga();
+      this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este consignatario.', 'warning');
+    }
+
     if (this.formCajas().lugarProduccionId) {
-      this.loadCodigosRancho(this.formCajas().lugarProduccionId, consignatarioId);
+      await this.loadCodigosRancho(this.formCajas().lugarProduccionId, consignatarioId);
     }
   }
 
-  // 2️⃣ DESTINO → FORMATOS
-  onDestinoChange(value: string): void {
-    const destinoId = parseInt(value) || 0;
+  async onDestinoChange(value: string): Promise<void> {
+    const destinoId = value || '';
     this.updateFormCajas('destinoId', destinoId);
     this.filteredFormatos.set([]);
     this.filteredTiposEmpaqueGuia.set([]);
@@ -895,27 +1945,73 @@ export class PaletsComponent implements OnInit, OnDestroy {
     this.updateFormCajas('tipoEmpaqueId', 0);
 
     if (!destinoId) return;
+
     const consignatarioId = this.formCajas().consignatarioId;
-    this.catalogoService.listarFormatos().subscribe({
-      next: (r: any) => {
-        const items = Array.isArray(r) ? r : r?.data ?? [];
-        this.filteredFormatos.set(items.map((x: any) => ({
-          id: x?.id ?? x?.Id ?? 0,
-          codigo: x?.codigo ?? x?.Codigo ?? '',
-          descripcion: x?.descripcion ?? x?.Descripcion ?? '',
-          nombre: x?.nombre ?? x?.Nombre,
-          pesoPorCaja: x?.pesoPorCaja ?? x?.PesoPorCaja ?? 0,
-          limiteCajasPorPalet: x?.limiteCajasPorPalet ?? x?.LimiteCajasPorPalet ?? 0,
-          activo: x?.activo ?? x?.Activo ?? true,
-          bd: x?.bd ?? x?.BD
-        })));
-      },
-      error: () => { this.filteredFormatos.set([]); }
-    });
+    const consignatario = this.consignatarios().find(c => c.id === consignatarioId);
+    const documentoConsignatario = String(consignatario?.documento ?? consignatario?.documentoFiscal ?? '').trim();
+
+    if (!documentoConsignatario) {
+      this.alertService.showAlert('Validación', 'No se pudo determinar el documento del consignatario.', 'warning');
+      return;
+    }
+
+    this.alertService.mostrarModalCarga();
+
+    try {
+      let formatosIds: string[] = [];
+      if (this.online) {
+        const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
+        const resp: any = await firstValueFrom(this.paletService.getFormatosPorMatriz(codigoCultivo, consignatarioId.toString(), String(destinoId)));
+        const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
+
+        if (items[0].data.length === 0) {
+          this.alertService.cerrarModalCarga();
+          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este destino.', 'warning');
+          return;
+        }
+
+        formatosIds = items[0].data.map((x: any) => String(x?.id ?? x?.Id ?? '')).filter((id: string) => id);
+
+        const formatosResp: any = await firstValueFrom(this.catalogoService.listarFormatos(codigoCultivo));
+        if (!formatosResp.error) {
+          const dexiedb = await this.catalogosRepo.formatosRepo.getAll();
+          if (dexiedb.length > 0) {
+            await this.catalogosRepo.formatosRepo.clear();
+          }
+          for (const f of (formatosResp.data ?? [])) {
+            f.bd = 1;
+            await this.catalogosRepo.formatosRepo.save(f);
+          }
+        }
+      } else {
+        const matrices = await this.administracionRepo.matricesCompatibilidadRepository.getAll();
+        const matricesFiltradas = (matrices ?? []).filter((m: any) =>
+          String(m?.documentoConsignatario ?? '').trim() === consignatarioId.toString() &&
+          String(m?.destinoId ?? '').trim() === String(destinoId)
+        );
+        formatosIds = [...new Set(matricesFiltradas.map((m: any) => String(m?.formatoId ?? '')).filter((id: string) => id))];
+
+        if (formatosIds.length === 0) {
+          this.alertService.cerrarModalCarga();
+          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este destino.', 'warning');
+          return;
+        }
+      }
+
+      const todosFormatos = await this.catalogosRepo.formatosRepo.getAll();
+      const formatosFiltrados = (todosFormatos ?? []).filter((f: any) => formatosIds.includes(String(f?.id ?? '')));
+      this.filteredFormatos.set(formatosFiltrados);
+      this.alertService.cerrarModalCarga();
+
+    } catch (err) {
+      console.error('Error cargando formatos por matriz compatibilidad:', err);
+      this.filteredFormatos.set([]);
+      this.alertService.cerrarModalCarga();
+      this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este destino.', 'warning');
+    }
   }
 
-  // 3️⃣ FORMATO → TIPOS EMPAQUE GUÍA
-  onFormatoChange(value: string): void {
+  async onFormatoChange(value: string): Promise<void> {
     const formatoId = parseInt(value) || 0;
     this.updateFormCajas('formatoId', formatoId);
     this.filteredTiposEmpaqueGuia.set([]);
@@ -930,26 +2026,77 @@ export class PaletsComponent implements OnInit, OnDestroy {
     this.updateFormCajas('tipoEmpaqueId', 0);
 
     if (!formatoId) return;
+
     const f = this.formCajas();
-    // this.catalogoService.listarTiposEmpaqueGuia({ consignatarioId: f.consignatarioId, destinoId: f.destinoId, formatoId }).subscribe({
-    this.catalogoService.listarTiposEmpaqueGuia().subscribe({
-      next: (r: any) => {
-        const items = Array.isArray(r) ? r : r?.data ?? [];
-        this.filteredTiposEmpaqueGuia.set(items.map((x: any) => ({
-          id: x?.id ?? x?.Id ?? 0,
-          codigo: x?.codigo ?? x?.Codigo,
-          nombre: x?.nombre ?? x?.Nombre ?? '',
-          activo: x?.activo ?? x?.Activo ?? true,
-          fechaCreacion: x?.fechaCreacion ?? x?.FechaCreacion,
-          bd: x?.bd ?? x?.BD
-        })));
-      },
-      error: () => { this.filteredTiposEmpaqueGuia.set([]); }
-    });
+    const consignatario = this.consignatarios().find(c => c.id === f.consignatarioId);
+    const documentoConsignatario = String(consignatario?.documento ?? consignatario?.documentoFiscal ?? '').trim();
+
+    if (!documentoConsignatario) {
+      this.alertService.showAlert('Validación', 'No se pudo determinar el documento del consignatario.', 'warning');
+      return;
+    }
+
+    this.alertService.mostrarModalCarga();
+
+    try {
+      let tiposEmpaqueGuiaIds: string[] = [];
+
+      if (this.online) {
+        const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
+        const resp: any = await firstValueFrom(this.paletService.getTiposEmpaqueGuiaPorMatriz(codigoCultivo, f.consignatarioId.toString(), String(f.destinoId), formatoId));
+        console.log(resp)
+        const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
+
+        if (items[0].data.length === 0) {
+          this.alertService.cerrarModalCarga();
+          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este formato.', 'warning');
+          return;
+        }
+
+        tiposEmpaqueGuiaIds = items[0].data.map((x: any) => String(x?.id ?? x?.Id ?? '')).filter((id: string) => id);
+
+        const tegResp: any = await firstValueFrom(this.catalogoService.listarTiposEmpaqueGuia(codigoCultivo));
+        if (!tegResp.error) {
+          const dexiedb = await this.catalogosRepo.tiposEmpaqueGuiaRepo.getAll();
+          if (dexiedb.length > 0) {
+            await this.catalogosRepo.tiposEmpaqueGuiaRepo.clear();
+          }
+          for (const t of (tegResp.data ?? [])) {
+            t.bd = 1;
+            await this.catalogosRepo.tiposEmpaqueGuiaRepo.save(t);
+          }
+        }
+      } else {
+        const matrices = await this.administracionRepo.matricesCompatibilidadRepository.getAll();
+        const matricesFiltradas = (matrices ?? []).filter((m: any) =>
+          String(m?.documentoConsignatario ?? '').trim() === f.consignatarioId.toString() &&
+          String(m?.destinoId ?? '').trim() === String(f.destinoId) &&
+          String(m?.formatoId ?? '') === String(formatoId)
+        );
+        tiposEmpaqueGuiaIds = [...new Set(matricesFiltradas.map((m: any) => String(m?.tipoEmpaqueGuiaId ?? '')).filter((id: string) => id))];
+
+        if (tiposEmpaqueGuiaIds.length === 0) {
+          this.alertService.cerrarModalCarga();
+          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este formato.', 'warning');
+          return;
+        }
+      }
+
+      const todosTeg = await this.catalogosRepo.tiposEmpaqueGuiaRepo.getAll();
+      const tegFiltrados = (todosTeg ?? []).filter((t: any) => tiposEmpaqueGuiaIds.includes(String(t?.id ?? '')));
+      this.filteredTiposEmpaqueGuia.set(tegFiltrados);
+      this.alertService.cerrarModalCarga();
+
+    } catch (err) {
+      console.error('Error cargando tipos empaque guía por matriz compatibilidad:', err);
+      this.filteredTiposEmpaqueGuia.set([]);
+      this.alertService.cerrarModalCarga();
+      this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este formato.', 'warning');
+    }
   }
 
-  // 4️⃣ TIPO EMPAQUE GUÍA → PRESENTACIONES
-  onTipoEmpaqueGuiaChange(value: string): void {
+
+  async onTipoEmpaqueGuiaChange(value: string): Promise<void> {
     const tipoEmpaqueGuiaId = parseInt(value) || 0;
     this.updateFormCajas('tipoEmpaqueGuiaId', tipoEmpaqueGuiaId);
     this.filteredPresentaciones.set([]);
@@ -962,48 +2109,132 @@ export class PaletsComponent implements OnInit, OnDestroy {
     this.updateFormCajas('tipoEmpaqueId', 0);
 
     if (!tipoEmpaqueGuiaId) return;
+
     const f = this.formCajas();
-    // this.catalogoService.listarPresentaciones({ consignatarioId: f.consignatarioId, destinoId: f.destinoId, formatoId: f.formatoId, tipoEmpaqueGuiaId }).subscribe({
-    this.catalogoService.listarPresentaciones().subscribe({
-      next: (r: any) => {
-        const raw = Array.isArray(r) ? r : r?.data ?? [];
-        const items = raw.map((x: any) => ({
-          id: x?.id ?? x?.Id ?? 0,
-          nombre: x?.nombre ?? x?.Nombre ?? '',
-          descripcion: x?.descripcion ?? x?.Descripcion,
-          activo: x?.activo ?? x?.Activo ?? true,
-          fechaCreacion: x?.fechaCreacion ?? x?.FechaCreacion,
-          bd: x?.bd ?? x?.BD
-        }));
-        this.filteredPresentaciones.set(items);
-        // Auto-select if only one or none
-        if (items.length === 1) {
-          const autoVal = items[0].id ?? 0;
-          this.updateFormCajas('presentacionId', autoVal);
-          this.loadTiposCajaDinamicos(autoVal);
-        } else if (items.length === 0) {
-          this.updateFormCajas('presentacionId', 0);
-          this.loadTiposCajaDinamicos(null);
+    const consignatario = this.consignatarios().find(c => c.id === f.consignatarioId);
+    const documentoConsignatario = String(consignatario?.documento ?? consignatario?.documentoFiscal ?? '').trim();
+
+    if (!documentoConsignatario) {
+      this.alertService.showAlert('Validación', 'No se pudo determinar el documento del consignatario.', 'warning');
+      return;
+    }
+
+    this.alertService.mostrarModalCarga();
+
+    try {
+      let presentacionesIds: string[] = [];
+      let tiposCajaIds: string[] = [];
+
+      if (this.online) {
+        const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
+        const resp: any = await firstValueFrom(this.paletService.getPresentacionesPorMatriz(codigoCultivo, f.consignatarioId.toString(), String(f.destinoId), f.formatoId, tipoEmpaqueGuiaId));
+        const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
+
+        if (items[0].data.length === 0) {
+          this.alertService.cerrarModalCarga();
+          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este tipo de empaque guía.', 'warning');
+          return;
         }
-      },
-      error: () => { this.filteredPresentaciones.set([]); }
-    });
+
+        presentacionesIds = items[0].data.map((x: any) => String(x?.id ?? x?.Id ?? '')).filter((id: string) => id);
+
+        const presResp: any = await firstValueFrom(this.catalogoService.listarPresentaciones(codigoCultivo));
+        if (!presResp.error) {
+          const dexiedb = await this.catalogosRepo.presentacionesRepo.getAll();
+          if (dexiedb.length > 0) {
+            await this.catalogosRepo.presentacionesRepo.clear();
+          }
+          for (const p of (presResp.data ?? [])) {
+            p.bd = 1;
+            await this.catalogosRepo.presentacionesRepo.save(p);
+          }
+        }
+
+        const tcResp: any = await firstValueFrom(this.paletService.getTiposCajaPorMatriz(codigoCultivo, f.consignatarioId.toString(), String(f.destinoId), f.formatoId, tipoEmpaqueGuiaId));
+        const tcItems = Array.isArray(tcResp) ? tcResp : (tcResp?.data ?? []);
+
+        if (tcItems[0].data.length === 0) {
+          this.alertService.cerrarModalCarga();
+          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este tipo de empaque guía.', 'warning');
+          return;
+        }
+
+        tiposCajaIds = tcItems[0].data.map((x: any) => String(x?.id ?? x?.Id ?? '')).filter((id: string) => id);
+
+        const tcDexieResp: any = await firstValueFrom(this.catalogoService.listarTiposCaja(codigoCultivo));
+        if (!tcDexieResp.error) {
+          const dexiedb = await this.catalogosRepo.tiposCajaRepo.getAll();
+          if (dexiedb.length > 0) {
+            await this.catalogosRepo.tiposCajaRepo.clear();
+          }
+          for (const t of (tcDexieResp.data ?? [])) {
+            t.bd = 1;
+            await this.catalogosRepo.tiposCajaRepo.save(t);
+          }
+        }
+      } else {
+        const matrices = await this.administracionRepo.matricesCompatibilidadRepository.getAll();
+        const matricesFiltradas = (matrices ?? []).filter((m: any) =>
+          String(m?.documentoConsignatario ?? '').trim() === f.consignatarioId.toString() &&
+          String(m?.destinoId ?? '').trim() === String(f.destinoId) &&
+          String(m?.formatoId ?? '') === String(f.formatoId) &&
+          String(m?.tipoEmpaqueGuiaId ?? '') === String(tipoEmpaqueGuiaId)
+        );
+        presentacionesIds = [...new Set(matricesFiltradas.map((m: any) => String(m?.presentacionId ?? '')).filter((id: string) => id))];
+
+        if (presentacionesIds.length === 0) {
+          this.alertService.cerrarModalCarga();
+          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este tipo de empaque guía.', 'warning');
+          return;
+        }
+
+        tiposCajaIds = [...new Set(matricesFiltradas.map((m: any) => String(m?.tipoCajaId ?? '')).filter((id: string) => id))];
+
+        if (tiposCajaIds.length === 0) {
+          this.alertService.cerrarModalCarga();
+          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este tipo de empaque guía.', 'warning');
+          return;
+        }
+      }
+
+      const todosPres = await this.catalogosRepo.presentacionesRepo.getAll();
+      const presFiltrados = (todosPres ?? []).filter((p: any) => presentacionesIds.includes(String(p?.id ?? '')));
+      this.filteredPresentaciones.set(presFiltrados);
+
+      if (presFiltrados.length === 1) {
+        const autoVal = presFiltrados[0].id ?? 0;
+        this.updateFormCajas('presentacionId', autoVal);
+      } else if (presFiltrados.length === 0) {
+        this.updateFormCajas('presentacionId', 0);
+      }
+
+      const todosTc = await this.catalogosRepo.tiposCajaRepo.getAll();
+      const tcFiltrados = (todosTc ?? []).filter((t: any) => tiposCajaIds.includes(String(t?.id ?? '')));
+      this.filteredTiposCaja.set(tcFiltrados);
+
+      this.alertService.cerrarModalCarga();
+
+    } catch (err) {
+      console.error('Error cargando presentaciones/tiposCaja por matriz compatibilidad:', err);
+      this.filteredPresentaciones.set([]);
+      this.filteredTiposCaja.set([]);
+      this.alertService.cerrarModalCarga();
+      this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este tipo de empaque guía.', 'warning');
+    }
   }
 
-  // 5️⃣ PRESENTACIÓN → TIPOS CAJA (via TiposDesdeMatriz)
   onPresentacionChange(value: string): void {
     const presentacionId = (!value || value === 'NA' || value === '0') ? null : parseInt(value);
     this.updateFormCajas('presentacionId', presentacionId ?? 0);
-    this.filteredTiposCaja.set([]);
     this.filteredTiposClamshell.set([]);
     this.updateFormCajas('tipoCajaId', 0);
     this.updateFormCajas('tipoClamshellId', 0);
     this.updateFormCajas('calibreId', 0);
     this.updateFormCajas('tipoEmpaqueId', 0);
-    this.loadTiposCajaDinamicos(presentacionId);
+    this.loadTiposCajaDinamicos(presentacionId, false);
   }
 
-  private loadTiposCajaDinamicos(presentacionId: number | null): void {
+  private loadTiposCajaDinamicos(presentacionId: number | null, setFilteredTiposCaja: boolean = true): void {
     const f = this.formCajas();
     this.catalogoService.listarTiposDesdeMatriz({
       consignatarioId: f.consignatarioId, destinoId: f.destinoId,
@@ -1012,21 +2243,20 @@ export class PaletsComponent implements OnInit, OnDestroy {
     }).subscribe({
       next: (r: any) => {
         const items = Array.isArray(r) ? r : r?.data ?? [];
-        // Extract unique TipoCaja from matrix results
-        const cajaMap = new Map<number, any>();
-        items.forEach((i: any) => { if (i.TipoCajaId) cajaMap.set(i.TipoCajaId, { id: i.TipoCajaId, nombre: i.TipoCajaNombre }); });
-        this.filteredTiposCaja.set(Array.from(cajaMap.values()));
-        // Store full matrix results for later filtering
+        if (setFilteredTiposCaja) {
+          const cajaMap = new Map<number, any>();
+          items.forEach((i: any) => { if (i.TipoCajaId) cajaMap.set(i.TipoCajaId, { id: i.TipoCajaId, nombre: i.TipoCajaNombre }); });
+          this.filteredTiposCaja.set(Array.from(cajaMap.values()));
+        }
         this._matrizResults = items;
       },
-      error: () => { this.filteredTiposCaja.set([]); }
+      error: () => { if (setFilteredTiposCaja) this.filteredTiposCaja.set([]); }
     });
   }
 
   private _matrizResults: any[] = [];
 
-  // 6️⃣ TIPO CAJA → TIPOS CLAMSHELL (filter from matrix results)
-  onTipoCajaChange(value: string): void {
+  async onTipoCajaChange(value: string): Promise<void> {
     const tipoCajaId = parseInt(value) || 0;
     this.updateFormCajas('tipoCajaId', tipoCajaId);
     this.filteredTiposClamshell.set([]);
@@ -1035,14 +2265,75 @@ export class PaletsComponent implements OnInit, OnDestroy {
     this.updateFormCajas('tipoEmpaqueId', 0);
 
     if (!tipoCajaId) return;
-    const clamshellMap = new Map<number, any>();
-    this._matrizResults
-      .filter((i: any) => i.TipoCajaId === tipoCajaId)
-      .forEach((i: any) => { if (i.TipoClamshellId) clamshellMap.set(i.TipoClamshellId, { id: i.TipoClamshellId, nombre: i.TipoClamshellNombre }); });
-    this.filteredTiposClamshell.set(Array.from(clamshellMap.values()));
+
+    const f = this.formCajas();
+    const consignatario = this.consignatarios().find(c => c.id === f.consignatarioId);
+    const documentoConsignatario = String(consignatario?.documento ?? consignatario?.documentoFiscal ?? '').trim();
+
+    if (!documentoConsignatario) {
+      this.alertService.showAlert('Validación', 'No se pudo determinar el documento del consignatario.', 'warning');
+      return;
+    }
+
+    this.alertService.mostrarModalCarga();
+
+    try {
+      let tiposClamshellIds: string[] = [];
+
+      if (this.online) {
+        const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
+        const resp: any = await firstValueFrom(this.paletService.getTiposClamshellPorMatriz(codigoCultivo, f.consignatarioId.toString(), String(f.destinoId), f.formatoId, f.tipoEmpaqueGuiaId || 0));
+        const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
+
+        if (items[0].data.length === 0) {
+          this.alertService.cerrarModalCarga();
+          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este tipo de caja.', 'warning');
+          return;
+        }
+
+        tiposClamshellIds = items[0].data.map((x: any) => String(x?.id ?? x?.Id ?? '')).filter((id: string) => id);
+
+        const tcResp: any = await firstValueFrom(this.catalogoService.listarTiposClamshell(codigoCultivo));
+        if (!tcResp.error) {
+          const dexiedb = await this.catalogosRepo.tiposClamshellRepo.getAll();
+          if (dexiedb.length > 0) {
+            await this.catalogosRepo.tiposClamshellRepo.clear();
+          }
+          for (const t of (tcResp.data ?? [])) {
+            t.bd = 1;
+            await this.catalogosRepo.tiposClamshellRepo.save(t);
+          }
+        }
+      } else {
+        const matrices = await this.administracionRepo.matricesCompatibilidadRepository.getAll();
+        const matricesFiltradas = (matrices ?? []).filter((m: any) =>
+          String(m?.documentoConsignatario ?? '').trim() === f.consignatarioId.toString() &&
+          String(m?.destinoId ?? '').trim() === String(f.destinoId) &&
+          String(m?.formatoId ?? '') === String(f.formatoId) &&
+          String(m?.tipoEmpaqueGuiaId ?? '') === String(f.tipoEmpaqueGuiaId)
+        );
+        tiposClamshellIds = [...new Set(matricesFiltradas.map((m: any) => String(m?.tipoClamshellId ?? '')).filter((id: string) => id))];
+
+        if (tiposClamshellIds.length === 0) {
+          this.alertService.cerrarModalCarga();
+          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este tipo de caja.', 'warning');
+          return;
+        }
+      }
+
+      const todosTc = await this.catalogosRepo.tiposClamshellRepo.getAll();
+      const tcFiltrados = (todosTc ?? []).filter((t: any) => tiposClamshellIds.includes(String(t?.id ?? '')));
+      this.filteredTiposClamshell.set(tcFiltrados);
+      this.alertService.cerrarModalCarga();
+
+    } catch (err) {
+      console.error('Error cargando tipos clamshell por matriz compatibilidad:', err);
+      this.filteredTiposClamshell.set([]);
+      this.alertService.cerrarModalCarga();
+      this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este tipo de caja.', 'warning');
+    }
   }
 
-  // 7️⃣ TIPO CLAMSHELL → AUTO-FILL calibre, tipoEmpaque
   onTipoClamshellChange(value: string): void {
     const tipoClamshellId = parseInt(value) || 0;
     this.updateFormCajas('tipoClamshellId', tipoClamshellId);
@@ -1062,71 +2353,90 @@ export class PaletsComponent implements OnInit, OnDestroy {
   }
 
   onVariedadChange(value: string): void {
-    this.updateFormCajas('variedadId', parseInt(value) || 0);
+    this.updateFormCajas('variedadId', value || 0);
   }
 
   onEsEnsayoChange(checked: boolean): void {
     this.updateFormCajas('esEnsayo', checked);
+    this.updateFormCajas('variedadId', '');
+    this.updateFormCajas('variedadGuiaId', '');
+    this._filtrarVariedadesPorEnsayo();
   }
 
-  onLugarProduccionChange(value: string): void {
+  async onLugarProduccionChange(value: string): Promise<void> {
     const lugarProduccionId = parseInt(value) || 0;
     this.updateFormCajas('lugarProduccionId', lugarProduccionId);
-    this.loadCodigosRancho(lugarProduccionId, this.formCajas().consignatarioId);
+    await this.loadCodigosRancho(lugarProduccionId, this.formCajas().consignatarioId);
   }
 
-  loadCodigosRancho(lugarProduccionId: number, consignatarioId: number): void {
+  async loadCodigosRancho(lugarProduccionId: number, consignatarioId: number): Promise<void> {
     console.log('📋 Cargando códigos rancho para:', { lugarProduccionId, consignatarioId });
-    console.log(this.lugaresProduccion())
-    console.log(this.consignatarios())
+
+    this.filteredCodigosRancho.set([]);
+    this.updateFormCajas('codigoRanchoId', 0);
 
     if (!lugarProduccionId || !consignatarioId) {
-      this.filteredCodigosRancho.set([]);
-      this.updateFormCajas('codigoRanchoId', 0);
       return;
     }
 
-    const formato = {
-      lugarProduccionId,
-      consignatarioId
-    };
+    try {
+      let codigosRancho: any[] = [];
 
-    this.catalogoService.listarCodigosRancho(formato).subscribe({
-      next: (r: any) => {
-        console.log('✅ Códigos rancho response:', r);
-
-        // Manejar respuesta como el sistema original: {success: true, codigosRancho: [...]}
-        const codigos = r?.codigosRancho || r?.data || r || [];
-        const codigosArray = Array.isArray(codigos) ? codigos : [];
-
-        console.log('✅ Códigos rancho procesados:', codigosArray);
-        this.filteredCodigosRancho.set(codigosArray);
-
-        if (codigosArray.length === 1) {
-          // Auto-seleccionar y deshabilitar (como en el código jQuery)
-          const codigo = codigosArray[0];
-          console.log('🔒 Auto-seleccionando único código:', codigo);
-          this.updateFormCajas('codigoRanchoId', codigo.Id);
-        } else if (codigosArray.length === 0) {
-          // Sin códigos disponibles
-          console.log('⚠️ Sin códigos disponibles');
-          this.updateFormCajas('codigoRanchoId', 0);
+      if (this.online) {
+        const idproyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
+        const resp: any = await firstValueFrom(this.paletService.listarCodigosRanchoPorLugarProduccion(idproyecto, lugarProduccionId));
+        console.log('1-1-1', resp)
+        let data: any[] = [];
+        if (Array.isArray(resp)) {
+          if (resp.length > 0 && resp[0]?.data !== undefined) {
+            data = resp[0].data ?? [];
+          } else {
+            data = resp;
+          }
+        } else if (resp?.data !== undefined) {
+          data = resp.data ?? [];
         } else {
-          // Múltiples códigos - permitir selección
-          console.log('📋 Múltiples códigos disponibles, permitiendo selección');
-          this.updateFormCajas('codigoRanchoId', 0);
+          data = resp ?? [];
         }
-      },
-      error: (err: any) => {
-        console.error('❌ Error cargando códigos rancho:', err);
-        this.filteredCodigosRancho.set([]);
-        this.updateFormCajas('codigoRanchoId', 0);
+
+        codigosRancho = data.map((c: any) => ({
+          id: c?.id ?? c?.Id ?? 0,
+          codigo: c?.codigo ?? c?.Codigo ?? '',
+          activo: c?.activo ?? c?.Activo ?? true,
+          fechaCreacion: c?.fechaCreacion ?? c?.FechaCreacion ?? '',
+        }));
+      } else {
+        const lugaresConfig = await this.catalogosRepo.lugaresProduccionConfigRepo.getAll();
+        const configFiltrada = (lugaresConfig ?? []).filter((lc: any) =>
+          lc.idLugaresDeProduccion == lugarProduccionId && lc.activo === true
+        );
+        const idsCodigoRancho = configFiltrada.map((lc: any) => lc.idCodigoRancho).filter((id: any) => id);
+
+        const todosCodigos = await this.catalogosRepo.codigosRanchoRepo.getAll();
+        codigosRancho = (todosCodigos ?? []).filter((c: any) =>
+          idsCodigoRancho.includes(c.id) && c.activo === true
+        );
       }
-    });
+
+      console.log('Códigos rancho procesados:', codigosRancho);
+      this.filteredCodigosRancho.set(codigosRancho);
+
+      if (codigosRancho.length === 1) {
+        console.log('Auto-seleccionando único código:', codigosRancho[0]);
+        this.updateFormCajas('codigoRanchoId', codigosRancho[0].id);
+      } else if (codigosRancho.length === 0) {
+        console.log('Sin códigos disponibles');
+      } else {
+        console.log('Múltiples códigos disponibles, permitiendo selección');
+      }
+    } catch (err) {
+      console.error('Error cargando códigos rancho:', err);
+      this.filteredCodigosRancho.set([]);
+      this.updateFormCajas('codigoRanchoId', 0);
+    }
   }
 
   // Computed properties for form validation
-  readonly destinoDisabled = computed(() => !this.formCajas().consignatarioId);
   readonly formatoDisabled = computed(() => !this.formCajas().destinoId);
   readonly tipoEmpaqueGuiaDisabled = computed(() => !this.formCajas().formatoId);
   readonly presentacionDisabled = computed(() => !this.formCajas().tipoEmpaqueGuiaId);
@@ -1186,8 +2496,8 @@ export class PaletsComponent implements OnInit, OnDestroy {
   getEstadoLabel(estado: string): string {
     switch (estado) {
       case 'ABIERTO': return 'ABIERTO';
-      case 'CERRADO_COMPLETO': return 'CERRADO';
-      case 'CERRADO_SALDO': return 'CERRADO';
+      case 'CERRADO_COMPLETO': return 'CERRADO COMPLETO';
+      case 'CERRADO_SALDO': return 'CERRADO SALDO';
       case 'DESPACHADO': return 'DESPACHADO';
       default: return 'DESCONOCIDO';
     }

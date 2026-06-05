@@ -16,6 +16,7 @@ export interface Proceso {
   idUsuarioCierre?: string;
   idRolCierre?: string;
   db?:number;
+  paletsCerradosDisponibles?: number;
 }
 
 

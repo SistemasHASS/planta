@@ -1,36 +1,51 @@
+
+/** Payload para crear una nueva guía (coincide con PLANTA_GuiasRemision) */
 export interface GuiaRemision {
-  Id: number;
-  Serie: string | null;
-  Numero: number | null;
-  NumeroViaje: number | null;
-  ProcesoId: number;
-  DestinatarioId: number | null;
-  TransportistaId: number | null;
-  ConductorId: number | null;
-  VehiculoId: number | null;
-  Precinto: string | null;
-  CantidadPalets: number;
-  TotalCajas: number;
-  PesoTotal: number;
-  Parihuelas: number | null;
-  Estado: string;
-  EsReposicion: boolean;
-  Observaciones: string | null;
-  FechaEmision: string | null;
-  FechaCreacion: string;
-  FechaCierre: string | null;
-  DestinatarioNombre: string | null;
-  TransportistaNombre: string | null;
-  ConductorNombre: string | null;
-  PlacaPrincipal: string | null;
-  detallePalets?: DetallePaletGuia[];
+  codigoGuiaRemision?: string;
+  transactionId_uuid: string;
+  serie?: string;
+  numero?: string;
+  codigoProceso: string;
+  nombreProces?:string;
+  documentoDestinatario: string;
+  nombreDestinatario?:string;
+  puntoPartida: string;
+  puntoLlegada?: string;
+  fechaEmision?: string | null;
+  idTransportista: number | null;
+  idConductor: number | null;
+  idVehiculo: number | null;
+  motivoTraslado: string;
+  precinto?: string | null;
+  inicioTraslado?: string | null;
+  observaciones?: string | null;
+  estado: string;
+  pesoTotal: number;
+  totalCajas: number;
+  cantidadPalets: number;
+  usuarioEmision: string;
+  fechaCreacionWeb: string;
+  fechaCierre?: string | null;
+  parihuelas?: number | null;
+  observacionesUsuario?: string | null;
+  esReposicion: boolean;
+  inspeccionTemperatura?: number | null;
+  inspeccionLibreOlores?: boolean | null;
+  inspeccionLibreInsectos?: boolean | null;
+  inspeccionLibreMateriasExtranas?: boolean | null;
+  inspeccionUnidadLimpia?: boolean | null;
+  inspeccionObservaciones?: string | null;
+  inspeccionMedidaCorrectiva?: string | null;
+  numeroViaje?: number | null;
+  snapshotDetalle?: string | null;
+  esEnsayo: boolean;
+  eliminado?: boolean;
+  detallePalets?: GuiaRemisionPalet[] | null;
 }
 
-export interface DetallePaletGuia {
-  Id: number;
-  PaletId: number;
-  NumeroPalet: number | null;
-  CantidadCajas: number;
-  PesoTotal: number;
-  PaletEstado: string;
+/** Relación guía-palet (coincide con PLANTA_GuiasRemision_Palets) */
+export interface GuiaRemisionPalet {
+  codigoGuiaRemision: string;
+  transactionId_uuid: string;
+  codigoPalet: string;
 }

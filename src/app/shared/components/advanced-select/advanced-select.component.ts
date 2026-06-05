@@ -22,7 +22,7 @@ export class AdvancedSelectComponent {
   private readonly dexie = inject(DexieService);
   private readonly el = inject(ElementRef<HTMLElement>);
 
-  @Input({ required: true }) table!: string;
+  @Input() table: string = '';
   @Input() placeholder = '— Seleccionar —';
   @Input() required = false;
   @Input() disabled = false;
@@ -49,6 +49,8 @@ export class AdvancedSelectComponent {
     const arr = this._itemsInput();
     if (arr !== null) {
       this.items.set(arr);
+    } else {
+      this.items.set([]);
     }
   }
   get itemsInput(): OptionItem[] | null {
@@ -205,7 +207,7 @@ export class AdvancedSelectComponent {
       if (shouldUseApi) {
         const resp: any = await firstValueFrom(this.catalogoService.listarForTablaCatalogos(this.table));
         const data = resp?.data ?? resp;
-        const arr = data?.[this.table] ?? [];
+        const arr = Array.isArray(data) ? data : (data?.[this.table] ?? []);
         this.items.set(Array.isArray(arr) ? arr : []);
       } else {
         const t = this.dexie.getTable(this.table) as any;

@@ -1,3 +1,16 @@
+
+export interface Destinatario{
+  id: number;
+  idCliente: number;
+  documentoFiscal: string;
+  documento: string;
+  nombre: string;
+  domicilioFiscal: string;
+  puntoLlegada: string;
+  activo: boolean;
+  fechaCreacion: string;
+  bd?: number;
+}
 export interface TipoProcesoEmpacado {
   id: number;
   idproyecto: string;
@@ -56,6 +69,7 @@ export interface Variedad {
   id: string;
   idcultivo: string;
   idmodulo: string;
+  codigo: string;
   idvariedad: string;
   variedad: string
   procedencia: string;
@@ -162,12 +176,21 @@ export interface LugarProduccion {
   bd?: number;
 }
 
+export interface LugarProduccionConfig {
+  id: number;
+  idproyecto: string;
+  idCodigoRancho: number;
+  idLugaresDeProduccion: number;
+  activo: boolean;
+  fechaCreacion: string;
+  bd?: number;
+}
+
 export interface CodigoRancho {
-  Id: number;
-  Codigo: string;
-  LugarProduccionId: number;
-  ConsignatarioId: number;
-  Activo: boolean;
+  id: number;
+  codigo: string;
+  activo: boolean;
+  fechaCreacion: string;
   bd?: number;
 }
 

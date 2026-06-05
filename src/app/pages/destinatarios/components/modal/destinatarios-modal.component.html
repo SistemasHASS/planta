@@ -1,0 +1,92 @@
+<div class="modal-backdrop-custom" (click)="onBackdrop()"></div>
+
+<div class="modal-custom modal-xxl" role="dialog" aria-modal="true">
+  <div class="modal-header-custom">
+    <h3 class="modal-title">{{ title() }}</h3>
+    <button type="button" class="modal-close" (click)="onCerrar()" aria-label="Cerrar">×</button>
+  </div>
+
+  <div class="modal-body-custom">
+    <div class="row g-3">
+      <div class="col-12">
+        <div class="sp-card" style="margin:0">
+          <div class="sp-card-header">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-pencil-square"></i>
+              <strong>{{ modo === 'editado' ? 'Editar datos de destinatario' : 'Crear nuevo destinatario' }}</strong>
+            </div>
+          </div>
+          <div class="sp-card-body">
+            <!-- Datos de identificación -->
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label" [class.text-muted]="modo === 'editado'"
+                  style="font-size:12px;text-transform:uppercase;letter-spacing:0.5px">Doc. Fiscal (RUC) @if (modo ===
+                  'nuevo') { <span class="required">*</span> }</label>
+                <input class="form-control" [class.form-control-plaintext]="modo === 'editado'"
+                  [class.bg-light]="modo === 'editado'"
+                  [class.is-invalid]="modo === 'nuevo' && isInvalid('documentoFiscal')"
+                  [style.font-weight]="modo === 'editado' ? '600' : 'normal'" [ngModel]="form().documentoFiscal"
+                  (ngModelChange)="modo === 'nuevo' && updateField('documentoFiscal', $event)"
+                  [disabled]="modo === 'editado'" placeholder="Ej: 20548756231" maxlength="11" />
+                @if (modo === 'nuevo' && isInvalid('documentoFiscal')) {
+                <div class="invalid-feedback d-block">Requerido</div>
+                }
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label" [class.text-muted]="modo === 'editado'"
+                  style="font-size:12px;text-transform:uppercase;letter-spacing:0.5px">Nombre / Razón Social @if (modo
+                  === 'nuevo') { <span class="required">*</span> }</label>
+                <input class="form-control" [class.form-control-plaintext]="modo === 'editado'"
+                  [class.bg-light]="modo === 'editado'" [class.is-invalid]="modo === 'nuevo' && isInvalid('nombre')"
+                  [style.font-weight]="modo === 'editado' ? '600' : 'normal'" [ngModel]="form().nombre"
+                  (ngModelChange)="modo === 'nuevo' && updateField('nombre', $event)" [disabled]="modo === 'editado'"
+                  placeholder="Nombre completo o razón social" />
+                @if (modo === 'nuevo' && isInvalid('nombre')) {
+                <div class="invalid-feedback d-block">Requerido</div>
+                }
+              </div>
+            </div>
+
+            <hr style="margin: 20px 0; border-color: #e2e8f0; opacity: 0.6;">
+
+            <!-- Datos editables -->
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Domicilio Fiscal</label>
+                <input class="form-control" [ngModel]="form().domicilioFiscal"
+                  (ngModelChange)="updateField('domicilioFiscal', $event)" placeholder="Dirección fiscal completa" />
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label">Punto de Llegada</label>
+                <input class="form-control" [ngModel]="form().puntoLlegada"
+                  (ngModelChange)="updateField('puntoLlegada', $event)" placeholder="Dirección de destino para guías" />
+              </div>
+
+              <div class="col-12">
+                <div class="form-check mt-2">
+                  <input class="form-check-input" type="checkbox" [ngModel]="form().activo"
+                    (ngModelChange)="updateField('activo', $event)" id="destinatarioActivo" />
+                  <label class="form-check-label" for="destinatarioActivo">
+                    <strong>Activo</strong>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-footer-custom">
+    <div class="footer-actions">
+      <button type="button" class="btn btn-sp-outline btn-cancel" (click)="onCerrar()">Cancelar</button>
+      <button type="button" class="btn btn-sp-primary btn-save" [disabled]="!canSave()" (click)="onGuardar()">
+        {{ modo === 'editado' ? 'Guardar cambios' : 'Crear Destinatario' }}
+      </button>
+    </div>
+  </div>
+</div>

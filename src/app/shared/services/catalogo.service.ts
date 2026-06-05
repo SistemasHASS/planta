@@ -9,6 +9,11 @@ export class CatalogoService {
   private readonly apiUrl = `${environment.apiUrl}/catalogos`;
   private readonly apiUrlProceso = `${environment.apiUrl}/procesos`;
 
+
+  listarDestinatarios(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/get-destinatarios`, { withCredentials: true });
+  }
+
   sincronizarCatalogos(tabla: string, json: any): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/sincronizar`, { tabla, json }, { withCredentials: true });
   }
@@ -104,6 +109,14 @@ export class CatalogoService {
     return this.http.get<any>(`${this.apiUrl}/get-acopios`, { withCredentials: true });
   }
 
+  sincronizarAcopios(cabecera:string='',detalle:string=''): Observable<any>{
+    return this.http.post<any>(`${this.apiUrl}/sincronizar-acopios`, {json:cabecera,json_detalle:detalle}, { withCredentials: true });
+  }
+
+  sincronizarDestinatarios(destinatarios: any[]): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/sincronizar-destinatarios`, { destinatarios }, { withCredentials: true });
+  }
+
   listarFundos(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/get-fundos`, { withCredentials: true });
   }
@@ -141,6 +154,20 @@ export class CatalogoService {
 
   listarTransporte(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/get-transporte`, { withCredentials: true });
+  }
+
+  listarCodigosRanchoCatalogo(idProyecto: string = ''): Observable<any> {
+    const json = JSON.stringify({
+      idproyecto: idProyecto
+    });
+    return this.http.get<any>(`${this.apiUrl}/get-codigos-rancho`, { params: { json }, withCredentials: true });
+  }
+
+  listarLugaresProduccionConfig(idProyecto: string = ''): Observable<any> {
+    const json = JSON.stringify({
+      idproyecto: idProyecto
+    });
+    return this.http.get<any>(`${this.apiUrl}/get-lugares-produccion-config`, { params: { json }, withCredentials: true });
   }
 
   listarTiposClamshell(codigoCultivo: string = ''): Observable<any> {
@@ -244,7 +271,7 @@ export class CatalogoService {
       case 'Consignatarios':
         return this.listarClientes();
 
-      case 'PLANTA_Variedades':
+      case 'PLANTA_VariedadAuxiliar':
       case 'Variedades':
         return this.listarVariedades();
 
@@ -264,6 +291,10 @@ export class CatalogoService {
       case 'PLANTA_Transporte':
       case 'Transporte':
         return this.listarTransporte();
+
+      case 'PLANTA_CodigosRancho':
+      case 'CodigosRancho':
+        return this.listarCodigosRanchoCatalogo(idproyecto);
 
       case 'PLANTA_tiposClamshell':
       case 'tiposClamshell':

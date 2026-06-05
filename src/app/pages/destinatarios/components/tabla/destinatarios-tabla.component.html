@@ -1,0 +1,107 @@
+<div class="catalogo-table-scroll">
+  <table class="catalogo-table table">
+    <thead>
+      <tr>
+        <th style="min-width:50px">#</th>
+        <th style="min-width:120px">Doc. Fiscal</th>
+        <th style="min-width:120px">Documento</th>
+        <th style="min-width:240px">Nombre</th>
+        <th style="min-width:200px">Domicilio Fiscal</th>
+        <th style="min-width:200px">Punto Llegada</th>
+        <th style="min-width:120px">Fecha Creación</th>
+        <th class="th-sticky-sync" style="min-width:140px">Sincronizado</th>
+        <th class="th-sticky-estado" style="min-width:120px">Estado</th>
+        <th class="th-actions th-sticky-actions" style="width:100px">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of pagedItems(); track trackById($index, row)) {
+        <tr [class.table-secondary]="!false">
+          <td class="text-muted">{{ ((page() - 1) * pageSize()) + $index + 1 }}</td>
+          <td><strong>{{ row.documentoFiscal }}</strong></td>
+          <td>{{ row.documento }}</td>
+          <td>{{ row.nombre }}</td>
+          <td><small class="text-muted">{{ row.domicilioFiscal || '—' }}</small></td>
+          <td><small class="text-muted">{{ row.puntoLlegada || '—' }}</small></td>
+          <td><small class="text-muted">{{ row.fechaCreacion ? (row.fechaCreacion | date:'dd/MM/yyyy') : '—' }}</small></td>
+
+          <td class="td-sticky-sync">
+            <span [class]="sincronizadoClass(row.bd)">{{ sincronizadoLabel(row.bd) }}</span>
+          </td>
+
+          <td class="td-sticky-estado">
+            <span [class]="estadoClass(row.activo)">
+              <i class="bi" [class.bi-check-circle]="row.activo" [class.bi-x-circle]="!row.activo"></i>
+              {{ estadoLabel(row.activo) }}
+            </span>
+          </td>
+
+          <td class="td-sticky-actions">
+            <div class="d-flex gap-1 catalogo-actions">
+              <button type="button" class="catalogo-action-btn catalogo-action-btn-edit" title="Editar" (click)="onEditar(row)">
+                <i class="bi bi-pencil"></i>
+              </button>
+              @if (showToggleActivo) {
+                <button
+                  type="button"
+                  class="catalogo-action-btn catalogo-action-btn-warning"
+                  [attr.data-tooltip]="row.activo ? 'Desactivar' : 'Activar'"
+                  (click)="onToggleActivo(row)"
+                >
+                  <i class="bi bi-slash-circle"></i>
+                </button>
+              }
+            </div>
+          </td>
+        </tr>
+      }
+
+      @if (total() === 0) {
+        <tr>
+          <td colspan="10" class="text-center py-4" style="color:var(--color-text-muted);font-size:13px">
+            Sin registros
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<div class="catalogo-pagination" style="padding:10px 16px;border-top:1px solid rgba(0,0,0,0.05);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+  <div style="font-size:12px;color:var(--color-text-muted)">
+    Mostrando {{ rangeLabel() }}
+  </div>
+
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    <select class="form-select form-select-sm" style="width:70px;font-size:12px" [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)">
+      <option [value]="10">10</option>
+      <option [value]="15">15</option>
+      <option [value]="25">25</option>
+      <option [value]="50">50</option>
+    </select>
+
+    <nav aria-label="Paginación" style="margin:0">
+      <ul class="pagination pagination-sm" style="margin:0">
+        <li class="page-item" [class.disabled]="page() === 1">
+          <button class="page-link" style="padding:4px 10px;font-size:12px" (click)="prev()" [disabled]="page() === 1">
+            <i class="bi bi-chevron-left"></i>
+          </button>
+        </li>
+        @for (p of pageNumbers(); track $index) {
+          @if (p === '...') {
+            <li class="page-item disabled"><span class="page-link" style="padding:4px 10px;font-size:12px">...</span></li>
+          } @else {
+            <li class="page-item" [class.active]="p === page()">
+              <button class="page-link" style="padding:4px 10px;font-size:12px" (click)="setPage(p)">{{ p }}</button>
+            </li>
+          }
+        }
+        <li class="page-item" [class.disabled]="page() === totalPages()">
+          <button class="page-link" style="padding:4px 10px;font-size:12px" (click)="next()" [disabled]="page() === totalPages()">
+            <i class="bi bi-chevron-right"></i>
+          </button>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</div>
