@@ -1590,7 +1590,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
 
     const detalleHtml = `
       <div style="text-align:left;font-size:14px;line-height:1.6">
-        <strong>Palet #${palet.id}</strong><br>
+        <strong>Palet #${palet.numeroPalet}</strong><br>
         <strong>Estado:</strong> ${palet.estado || '-'}<br>
         <strong>Cajas:</strong> ${palet.cantidadCajas || 0}<br>
         <strong>Peso total:</strong> ${this.formatPeso(palet.pesoTotal || 0)} kg<br>
@@ -1603,7 +1603,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     `;
 
     const ok1 = await this.alertService.showOptions(
-      `¿Desea eliminar el palet #${palet.id}?`,
+      `¿Desea eliminar el palet #${palet.numeroPalet}?`,
       detalleHtml,
       'warning',
       'Eliminar',
@@ -1676,7 +1676,8 @@ export class PaletsComponent implements OnInit, OnDestroy {
   }
 
   async reabrirPalet(palet: Palet): Promise<void> {
-    const ok = await this.alertService.showConfirm('Confirmación', `¿Está seguro que desea reabrir el palet #${palet.id}?`, 'warning');
+    console.log(palet)
+    const ok = await this.alertService.showConfirm('Confirmación', `¿Está seguro que desea reabrir el palet #${palet.numeroPalet}?`, 'warning');
     if (!ok) return;
 
     console.log('Reabriendo palet:', palet);

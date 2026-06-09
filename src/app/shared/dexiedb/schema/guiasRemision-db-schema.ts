@@ -1,0 +1,5 @@
+
+export const GUIAS_REMISION_SCHEMA_V1 = {
+    guiasRemision: '++_pk,&codigoGuiaRemision,idProyecto,serie,numero,codigoProceso,nombreProceso,documentoDestinatario,nombreDestinatario,puntoPartida,puntoLlegada,fechaEmision,idTransportista,razonSocialTransportista,idConductor,nombreConductor,idVehiculo,placaPrincipalVehiculo,motivoTraslado,precinto,inicioTraslado,observaciones,estado,pesoTotal,totalCajas,cantidadPalets,usuarioEmision,fechaCreacionWeb,fechaCierre,parihuelas,observacionesUsuario,esReposicion,inspeccionTemperatura,inspeccionLibreOlores,inspeccionLibreInsectos,inspeccionLibreMateriasExtranas,inspeccionUnidadLimpia,inspeccionObservaciones,inspeccionMedidaCorrectiva,numeroViaje,snapshotDetalle,esEnsayo,eliminado,sincroniza,fechaCreacion,bd',
+    guiasRemisionPalets: '++_pk,codigoGuiaRemision,codigoPalet,codigoItem,transactionId_uuid,cantidadCajas,fechaCreacion,bd'
+}

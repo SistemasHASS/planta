@@ -281,7 +281,11 @@
               </button>
             </div>
             }
-            @if (paletSeleccionado()!.estado === 'CERRADO_COMPLETO' || paletSeleccionado()!.estado === 'CERRADO_SALDO')
+            @if ((paletSeleccionado()!.estado === 'CERRADO_COMPLETO' 
+                || paletSeleccionado()!.estado === 'CERRADO_SALDO' ) 
+                && (paletSeleccionado()!.numeroViaje == null 
+                    || paletSeleccionado()!.numeroViaje == 0
+                    || paletSeleccionado()!.numeroViaje == undefined))
             {
             <div class="mb-3 d-flex gap-2 flex-wrap acciones-palet">
               <button class="btn btn-warning" (click)="reabrirPalet(paletSeleccionado()!)">

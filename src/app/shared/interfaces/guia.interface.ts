@@ -13,8 +13,11 @@ export interface GuiaRemision {
   puntoLlegada?: string;
   fechaEmision?: string | null;
   idTransportista: number | null;
+  razonSocialTransportista?:string;
   idConductor: number | null;
+  nombreConductor?: string;
   idVehiculo: number | null;
+  placaPrincipalVehiculo?: string;
   motivoTraslado: string;
   precinto?: string | null;
   inicioTraslado?: string | null;
@@ -40,6 +43,7 @@ export interface GuiaRemision {
   snapshotDetalle?: string | null;
   esEnsayo: boolean;
   eliminado?: boolean;
+  sincroniza?: string;
   detallePalets?: GuiaRemisionPalet[] | null;
 }
 

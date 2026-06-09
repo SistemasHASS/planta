@@ -45,7 +45,7 @@ export class AlertService {
   showConfirm(title: string, message: string, icon: SweetAlertIcon): Promise<boolean> {
     return Swal.fire({
       title: title,
-      text: message,
+      html: message,
       icon: icon,
       showCancelButton: true,
       cancelButtonText: 'Cancelar',

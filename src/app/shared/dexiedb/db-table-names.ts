@@ -15,6 +15,7 @@ export const DB_TABLES = {
   variedades: 'variedades',
   lugaresProduccion: 'lugaresProduccion',
   transportes: 'transportes',
+  codigosCaja: 'codigosCaja',
 
   conductores: 'conductores',
   vehiculos: 'vehiculos',

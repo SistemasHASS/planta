@@ -25,4 +25,32 @@ export class GuiaService {
     if (texto) params = params.set('texto', texto);
     return this.http.get<any>(`${this.apiUrl}/listar-guias-remision`, { params, withCredentials: true });
   }
+
+  getGuiaRemision(idProyecto: string, codigoGuiaRemision: string): Observable<any> {
+    const params = new HttpParams()
+      .set('idProyecto', idProyecto)
+      .set('codigoGuiaRemision', codigoGuiaRemision);
+    return this.http.get<any>(`${this.apiUrl}/get-guia-remision`, { params, withCredentials: true });
+  }
+
+  eliminarGuiaRemision(idProyecto: string, codigoGuiaRemision: string): Observable<any> {
+    const params = new HttpParams()
+      .set('idProyecto', idProyecto)
+      .set('codigoGuiaRemision', codigoGuiaRemision);
+    return this.http.delete<any>(`${this.apiUrl}/eliminar-guia-remision`, { params, withCredentials: true });
+  }
+
+  emitirGuiaRemision(idProyecto: string, codigoGuiaRemision: string): Observable<any> {
+    const params = new HttpParams()
+      .set('idProyecto', idProyecto)
+      .set('codigoGuiaRemision', codigoGuiaRemision);
+    return this.http.get<any>(`${this.apiUrl}/emitir-guia-remision`, { params, withCredentials: true });
+  }
+
+  anularGuiaRemision(idProyecto: string, codigoGuiaRemision: string): Observable<any> {
+    const params = new HttpParams()
+      .set('idProyecto', idProyecto)
+      .set('codigoGuiaRemision', codigoGuiaRemision);
+    return this.http.delete<any>(`${this.apiUrl}/anular-guia-remision`, { params, withCredentials: true });
+  }
 }

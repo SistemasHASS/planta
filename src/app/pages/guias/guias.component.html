@@ -12,30 +12,37 @@
           <button class="btn btn-crear-guia" (click)="abrirModalNuevaGuia()">
             <i class="bi bi-plus-circle"></i> Nueva Guía
           </button>
+          @if (online && tieneGuiasNoSincronizadas) {
+          <button class="btn btn-sync" (click)="onSincronizar()">
+            <i class="bi bi-cloud-arrow-up"></i> Sincronizar
+          </button>
+          }
         </div>
         <form class="filter-bar">
           <div class="filter-group">
-            <select class="form-control filter-input filter-select"
-                    [ngModel]="filtroEstado()" (ngModelChange)="filtroEstado.set($event)" [ngModelOptions]="{standalone: true}">
+            <select class="form-control filter-input filter-select" [ngModel]="filtroEstado()"
+              (ngModelChange)="filtroEstado.set($event)" [ngModelOptions]="{standalone: true}">
               <option value="">Todos</option>
               <option value="ABIERTA">Abierta</option>
               <option value="ANULADA">Anulada</option>
               <option value="CERRADA">Cerrada</option>
             </select>
-            <input type="text" class="form-control filter-input" placeholder="Buscar..."
-                   [ngModel]="filtroTexto()" (ngModelChange)="filtroTexto.set($event)" [ngModelOptions]="{standalone: true}">
+            <input type="text" class="form-control filter-input" placeholder="Buscar..." [ngModel]="filtroTexto()"
+              (ngModelChange)="filtroTexto.set($event)" [ngModelOptions]="{standalone: true}">
           </div>
           <div class="filter-group">
             <span class="filter-label">Desde</span>
-            <input type="date" class="form-control filter-input filter-date"
-                   [ngModel]="filtroFechaDesde()" (ngModelChange)="filtroFechaDesde.set($event)" [ngModelOptions]="{standalone: true}">
+            <input type="date" class="form-control filter-input filter-date" [ngModel]="filtroFechaDesde()"
+              (ngModelChange)="filtroFechaDesde.set($event)" [ngModelOptions]="{standalone: true}">
             <span class="filter-label">Hasta</span>
-            <input type="date" class="form-control filter-input filter-date"
-                   [ngModel]="filtroFechaHasta()" (ngModelChange)="filtroFechaHasta.set($event)" [ngModelOptions]="{standalone: true}">
+            <input type="date" class="form-control filter-input filter-date" [ngModel]="filtroFechaHasta()"
+              (ngModelChange)="filtroFechaHasta.set($event)" [ngModelOptions]="{standalone: true}">
           </div>
           <div class="filter-group filter-actions">
-            <button type="button" class="btn btn-sp-primary btn-filter" (click)="onBuscarGuias()"><i class="bi bi-search"></i></button>
-            <button type="button" class="btn btn-outline-secondary btn-filter" title="Limpiar filtros" (click)="limpiarFiltros()"><i class="bi bi-x-lg"></i></button>
+            <button type="button" class="btn btn-sp-primary btn-filter" (click)="onBuscarGuias()"><i
+                class="bi bi-search"></i></button>
+            <button type="button" class="btn btn-outline-secondary btn-filter" title="Limpiar filtros"
+              (click)="limpiarFiltros()"><i class="bi bi-x-lg"></i></button>
           </div>
         </form>
       </div>
@@ -54,6 +61,7 @@
                 <th class="col-prec">Precinto</th>
                 <th class="col-via">Viaje</th>
                 <th class="col-fecha">Fecha</th>
+                <th class="col-sync">Sincronizado</th>
                 <th class="col-estado">Estado</th>
                 <th class="col-acc">Acciones</th>
               </tr>
@@ -61,7 +69,7 @@
             <tbody>
               @for (g of guias(); track g.codigoGuiaRemision) {
               <tr [class]="g.estado === 'ANULADA' ? 'opacity-50' : ''"
-                  [style.background]="g.esReposicion ? '#fffbeb' : (g.esEnsayo ? '#eff6ff' : '')">
+                [style.background]="g.esReposicion ? '#fffbeb' : (g.esEnsayo ? '#eff6ff' : '')">
                 <td class="col-guia">
                   @if (g.numero) {
                   <span class="guia-numero">{{ g.serie }} N° {{ g.numero }} </span>
@@ -109,26 +117,35 @@
                   <span class="text-muted">{{ fmtDateTime(g.fechaCreacionWeb) }}</span>
                   } @else { — }
                 </td>
+                <td class="col-sync">
+                  <span [class]="sincronizadoClass(g.sincroniza)">{{ sincronizadoLabel(g.sincroniza) }}</span>
+                </td>
                 <td class="col-estado">
                   @if (g.estado === 'ABIERTA') {
-                  <span class="badge-estado badge-abierta"><i class="bi bi-circle-fill" style="font-size:6px;"></i> ABIERTA</span>
-                  } @else if (g.estado === 'ANULADA') {
-                  <span class="badge-estado badge-anulada"><i class="bi bi-x-circle" style="font-size:8px;"></i> ANULADA</span>
+                  <span class="badge-estado badge-abierta"><i class="bi bi-circle-fill" style="font-size:6px;"></i>
+                    ABIERTA</span>
+                  } @else if (g.estado === 'ANULADO') {
+                  <span class="badge-estado badge-anulada"><i class="bi bi-x-circle" style="font-size:8px;"></i>
+                    ANULADA</span>
                   } @else {
-                  <span class="badge-estado badge-cerrada"><i class="bi bi-check-circle" style="font-size:8px;"></i> CERRADA</span>
+                  <span class="badge-estado badge-cerrada"><i class="bi bi-check-circle" style="font-size:8px;"></i>
+                    CERRADA</span>
                   }
                 </td>
                 <td class="col-acc">
                   <div class="action-group">
-                    <a href="/guias/pdf/{{ g.codigoGuiaRemision }}" target="_blank" class="btn action-btn action-btn-pdf" title="PDF"><i class="bi bi-file-pdf"></i></a>
-                    <button class="btn action-btn action-btn-view" title="Detalle"><i class="bi bi-eye"></i></button>
+                    <a href="/guias/pdf/{{ g.codigoGuiaRemision }}" target="_blank"
+                      class="btn action-btn action-btn-pdf" title="PDF"><i class="bi bi-file-pdf"></i></a>
+                    <button class="btn action-btn action-btn-view" title="Detalle" (click)="abrirModalVerDetalle(g)"><i class="bi bi-eye"></i></button>
                     @if (g.estado === 'ABIERTA') {
-                    <button class="btn action-btn action-btn-edit" title="Editar"><i class="bi bi-pencil"></i></button>
-                    <button class="btn action-btn action-btn-close" title="Cerrar y numerar"><i class="bi bi-check-circle"></i></button>
-                    <button class="btn action-btn action-btn-delete" title="Eliminar"><i class="bi bi-trash"></i></button>
+                    <button class="btn action-btn action-btn-edit" title="Editar" (click)="editarGuia(g)"><i class="bi bi-pencil"></i></button>
+                    <button class="btn action-btn action-btn-close" title="Cerrar y numerar" (click)="cerrarGuia(g)"><i
+                        class="bi bi-check-circle"></i></button>
+                    <button class="btn action-btn action-btn-delete" title="Eliminar" (click)="eliminarGuia(g)"><i
+                        class="bi bi-trash"></i></button>
                     }
                     @if (g.estado === 'CERRADA') {
-                    <button class="btn action-btn action-btn-anular" title="Anular guía"><i class="bi bi-x-octagon"></i> Anular</button>
+                    <button class="btn action-btn action-btn-anular" title="Anular guía" (click)="anularGuia(g)"><i class="bi bi-x-octagon"></i> Anular</button>
                     }
                   </div>
                 </td>
@@ -157,26 +174,26 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body" id="contenidoDetalleGuia">
-        <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+        <div class="text-center py-4">
+          <div class="spinner-border text-primary"></div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
 @if (modalInspeccionAbierto()) {
-<app-modal-inspeccion
-  [guiaPayload]="pendingGuiaPayload()"
-  (cerrar)="cerrarModalInspeccion()"
+<app-modal-inspeccion [guiaPayload]="pendingGuiaPayload()" (cerrar)="cerrarModalInspeccion()"
   (confirmar)="onConfirmarInspeccion($event)" />
 }
 
 @if (modalNuevaGuiaAbierto()) {
-<app-modal-nueva-guia
-  [procesos]="procesos()"
-  [transportistas]="transportistas()"
-  [conductores]="conductores()"
-  [vehiculos]="vehiculos()"
-  [destinatarios]="destinatarios()"
-  (cerrar)="cerrarModalNuevaGuia()"
-  (crear)="onCrearGuia($event)" />
+<app-modal-nueva-guia [procesos]="procesos()" [transportistas]="transportistas()" [conductores]="conductores()"
+  [vehiculos]="vehiculos()" [destinatarios]="destinatarios()" [modoEdicion]="modoEdicionGuia()"
+  [guiaEditando]="guiaParaEditar()" (cerrar)="cerrarModalNuevaGuia()"
+  (crear)="onCrearGuia($event)" (editar)="onEditarGuia($event)" />
+}
+
+@if (modalVerDetalleAbierto()) {
+<app-modal-ver-detalle-guia [guiaDetalle]="guiaDetalle()" (cerrar)="cerrarModalVerDetalle()" />
 }

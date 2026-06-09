@@ -143,7 +143,7 @@ export class LayoutComponent {
           { label: 'Gestión de Palets', path: '/palets', icon: 'bi-box-seam-fill' },
           { label: 'Gestión de Procesos', path: '/procesos', icon: 'bi-calendar-event-fill' },
           { label: 'Despachos / Guías', path: '/guias', icon: 'bi-truck' },
-          { label: 'Alertas Despacho', path: '/alertas-despacho', icon: 'bi-alarm-fill' },
+          // { label: 'Alertas Despacho', path: '/alertas-despacho', icon: 'bi-alarm-fill' },
         ]
       });
       sections.push({

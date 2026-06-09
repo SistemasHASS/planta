@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, signal, computed, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Proceso } from '../../../../shared/interfaces/proceso.interface';
@@ -13,12 +13,14 @@ import { AdvancedSelectComponent } from '../../../../shared/components/advanced-
   styleUrl: './modal-nueva-guia.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ModalNuevaGuiaComponent {
+export class ModalNuevaGuiaComponent implements OnChanges {
   @Input() procesos: Proceso[] = [];
   @Input() transportistas: any[] = [];
   @Input() conductores: any[] = [];
   @Input() vehiculos: any[] = [];
   @Input() destinatarios: any[] = [];
+  @Input() modoEdicion = false;
+  @Input() guiaEditando: any = null;
 
   readonly destinatariosActivos = computed(() => {
     const list = this.destinatarios ?? [];
@@ -30,6 +32,7 @@ export class ModalNuevaGuiaComponent {
 
   @Output() cerrar = new EventEmitter<void>();
   @Output() crear = new EventEmitter<any>();
+  @Output() editar = new EventEmitter<any>();
 
   readonly submitAttempted = signal(false);
   readonly palets = signal<Palet[]>([]);
@@ -51,6 +54,34 @@ export class ModalNuevaGuiaComponent {
 
   readonly tienePalets = computed(() => this.palets().length > 0);
   readonly nroPaletsSeleccionados = computed(() => this.paletsSeleccionados().size);
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['guiaEditando'] && this.modoEdicion && this.guiaEditando) {
+      const g = this.guiaEditando;
+      this.form.set({
+        procesoId: String(g.procesoId ?? ''),
+        destinatarioId: String(g.destinatarioId ?? ''),
+        puntoPartida: g.puntoPartida ?? 'CARRETERA PANAMERICANA NORTE KM. 492.5',
+        puntoLlegada: g.puntoLlegada ?? '',
+        transportistaId: String(g.transportistaId ?? ''),
+        conductorId: String(g.conductorId ?? ''),
+        vehiculoId: String(g.vehiculoId ?? ''),
+        motivoTraslado: g.motivoTraslado ?? 'OTROS',
+        precinto: g.precinto ?? '',
+        parihuelas: Number(g.parihuelas) || 0,
+        observacionesUsuario: g.observacionesUsuario ?? '',
+      });
+      this.submitAttempted.set(false);
+      const procesoId = String(g.procesoId ?? '').trim();
+      if (procesoId) {
+        this.cargarPaletsPorProceso(procesoId, false);
+        const seleccionados = new Set<string>(
+          (g.paletsSeleccionados ?? []).map((p: any) => String(p ?? '').trim()).filter(Boolean)
+        );
+        this.paletsSeleccionados.set(seleccionados);
+      }
+    }
+  }
 
   onBackdrop(): void {
     this.cerrar.emit();
@@ -74,8 +105,10 @@ export class ModalNuevaGuiaComponent {
     }
   }
 
-  cargarPaletsPorProceso(procesoId: string): void {
-    this.paletsSeleccionados.set(new Set());
+  cargarPaletsPorProceso(procesoId: string, resetSeleccionados = true): void {
+    if (resetSeleccionados) {
+      this.paletsSeleccionados.set(new Set());
+    }
     const id = String(procesoId ?? '').trim();
     if (!id) {
       this.palets.set([]);
@@ -154,10 +187,15 @@ export class ModalNuevaGuiaComponent {
     if (!this.isFormValid()) return;
     const paletsIds = Array.from(this.paletsSeleccionados());
     const paletsData = this.palets().filter(p => paletsIds.includes(String(p.idPalet ?? '').trim()));
-    this.crear.emit({
+    const payload = {
       ...this.form(),
       paletsSeleccionados: paletsIds,
       paletsDetalle: paletsData,
-    });
+    };
+    if (this.modoEdicion) {
+      this.editar.emit(payload);
+    } else {
+      this.crear.emit(payload);
+    }
   }
 }

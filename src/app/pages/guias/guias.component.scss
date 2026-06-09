@@ -24,6 +24,27 @@
   color: #fff;
 }
 
+.btn-sync {
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-sync:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(5, 150, 105, 0.45);
+  color: #fff;
+}
+
 /* ── Table Card (right) ── */
 .table-card .sp-card-header {
   background: linear-gradient(135deg, #fafbfc 0%, #f1f5f9 100%);
@@ -385,11 +406,20 @@
 .col-prec   { min-width: 70px; }
 .col-via    { min-width: 55px; text-align: center; }
 .col-fecha  { min-width: 130px; }
+.col-sync   { min-width: 115px; }
 .col-estado { min-width: 95px; }
 .col-acc    { min-width: 170px; }
 
 /* Sticky right columns: Estado + Acciones (desktop only) */
 @media (min-width: 992px) {
+  .guia-table th.col-sync,
+  .guia-table td.col-sync {
+    position: sticky;
+    right: 265px;
+    background: inherit;
+    z-index: 2;
+  }
+
   .guia-table th.col-estado,
   .guia-table td.col-estado {
     position: sticky;
@@ -407,6 +437,8 @@
   }
 
   /* Shadow on left edge of sticky columns to show there's more content */
+  .guia-table th.col-sync::before,
+  .guia-table td.col-sync::before,
   .guia-table th.col-estado::before,
   .guia-table td.col-estado::before,
   .guia-table th.col-acc::before,
@@ -421,17 +453,17 @@
     pointer-events: none;
   }
 
+  .guia-table th.col-sync,
   .guia-table th.col-estado,
   .guia-table th.col-acc {
     position: sticky;
-    right: 170px;
     background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
     z-index: 3;
   }
 
-  .guia-table th.col-acc {
-    right: 0;
-  }
+  .guia-table th.col-sync   { right: 265px; }
+  .guia-table th.col-estado { right: 170px; }
+  .guia-table th.col-acc    { right: 0; }
 }
 
 .proc-badge {
@@ -489,6 +521,7 @@
   .col-guia   { width: 130px; }
   .col-dest   { width: 110px; }
   .col-fecha  { width: 115px; }
+  .col-sync   { display: none; }
   .col-estado { width: 85px; }
   .col-acc    { width: 145px; }
 }

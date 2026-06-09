@@ -8,6 +8,7 @@ export class CatalogoService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/catalogos`;
   private readonly apiUrlProceso = `${environment.apiUrl}/procesos`;
+  private readonly apiUrlGuias = `${environment.apiUrl}/guias-remision`;
 
 
   listarDestinatarios(): Observable<any> {
@@ -142,6 +143,10 @@ export class CatalogoService {
 
   listarCampanias(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/get-campanias`, { withCredentials: true });
+  }
+
+  listarCodigosCaja(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrlGuias}/listar-codigos-caja`, { withCredentials: true });
   }
 
   listarPaises(): Observable<any> {

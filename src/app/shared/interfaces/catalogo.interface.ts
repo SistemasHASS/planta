@@ -194,6 +194,23 @@ export interface CodigoRancho {
   bd?: number;
 }
 
+export interface CodigoCaja {
+  id: number;
+  codigoItem: string;
+  documentoConsignatario: string;
+  idDestino: string;
+  codigoFormato: string;
+  codigoVariedad: string;
+  idTipoEmpaqueGuia: number;
+  codigoRancho: string;
+  idLugarProduccion: number;
+  idPresentacion: number | null;
+  pesoPorCaja: number;
+  idTransporte: string;
+  fechaCreacion: string;
+  bd?: number;
+}
+
 export interface Transporte {
   id: string;
   transporte: string;

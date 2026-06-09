@@ -17,6 +17,8 @@ import { PaletService } from "../../shared/services/palet.service";
 import { DPalet } from "../../shared/interfaces/palet.interface";
 import { DProcesoLogistico, DProcesoSupervisor, Proceso } from "../../shared/interfaces/proceso.interface";
 import { ProcesoRepository } from "../../shared/dexiedb/repository/proceso.repository";
+import { CatalogosFacade } from "../../shared/facades/catalogos.facade";
+import { GuiaRemisionFacade } from "../../shared/facades/guia-remision.facade";
 
 
 @Component({
@@ -38,6 +40,8 @@ export class ParametrosComponent implements OnInit {
     private readonly procesoService = inject(ProcesoService)
     private readonly paletService = inject(PaletService);
     private readonly procesoRepo = inject(ProcesoRepository);
+    private readonly catalogosFacade = inject(CatalogosFacade);
+    private readonly guiaRemisionFacade = inject(GuiaRemisionFacade);
     
 
     readonly nombreCompleto = this.auth.nombreCompleto;
@@ -320,6 +324,8 @@ export class ParametrosComponent implements OnInit {
             await this.catalogosRepo.configuracionRepo.save(cfg as any);
             this.savedConfig.set(cfg);
             await this.getListarCatalogosUsuarios();
+            await this.catalogosFacade.cargarCodigosCajaCatalogo();
+            await this.guiaRemisionFacade.listarGuiasRemision(campaniaOk);
             // this.alertService.showAlert('Guardado', 'Configuración guardada correctamente', 'success');
         } catch (error) {
             console.log('Error guardando configuración', error);
