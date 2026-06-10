@@ -60,6 +60,10 @@
   <app-matriz-compatibilidad-modal
     [modo]="modalModo()"
     [value]="modalValue()"
+    [tiposEmpaqueGuiaList]="tiposEmpaqueGuiaList()"
+    [tiposEmpaqueList]="tiposEmpaqueList()"
+    [categoriasList]="categoriasList()"
+    [calibresList]="calibresList()"
     (cerrar)="cerrarModal()"
     (guardar)="guardarModal($event)"
   />

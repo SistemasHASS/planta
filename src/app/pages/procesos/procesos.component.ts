@@ -116,6 +116,7 @@ export class ProcesosComponent implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
+    console.log('aa',this.auth.usuario())
     await this.cargarConfiguracion();
     await this.cargarDesdeDexieCampania();
     await this.cargarPersonalDisponible();
@@ -624,6 +625,11 @@ export class ProcesosComponent implements OnInit {
   async crearProceso(): Promise<void> {
     const newProceso = this.nuevoProceso();
     const usr = this.usuario();
+    const codigoAcopio = usr?.codigoAcopio ?? '';
+    if (!codigoAcopio || codigoAcopio === '0') {
+      this.alertService.showAlertAcept('Validación', 'Su usuario no tiene un acopio asignado. Por favor, comuníquese con el administrador del sistema para solicitar la configuración correspondiente.', 'warning');
+      return;
+    }
     if (!newProceso.fechaProceso) {
       this.alertService.showAlert('Validación', 'Complete la fecha.', 'warning');
       return;

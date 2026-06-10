@@ -67,8 +67,8 @@ export interface Formato {
 
 export interface Variedad {
   id: string;
+  cultivo: string;
   idcultivo: string;
-  idmodulo: string;
   codigo: string;
   idvariedad: string;
   variedad: string
@@ -106,6 +106,9 @@ export interface Consignatario {
 export interface TipoEmpaque {
   id: number;
   codigoCultivo: string;
+  codigoCategoria:string;
+  nombreCategoria: string;
+  nombreCalibre?: string;
   codigo: string;
   descripcion: string;
   activo: boolean;
@@ -132,6 +135,10 @@ export interface TipoEmpaqueGuia {
   codigoCultivo: string;
   codigo: string;
   nombre: string;
+  codigoTipoEmpaque: string;
+  nombreTipoEmpaque: string;
+  nombreCategoria?: string;
+  nombreCalibre?: string;
   activo: boolean;
   fechaCreacion: string;
   bd?: number;
@@ -219,6 +226,8 @@ export interface Transporte {
 
 export interface Categoria {
   id: number;
+  calibreId: string;
+  calibreNombre: string;
   codigoCultivo: string;
   codigo: string;
   nombre: string;

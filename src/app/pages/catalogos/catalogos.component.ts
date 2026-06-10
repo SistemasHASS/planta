@@ -229,6 +229,7 @@ export class CatalogosComponent implements OnInit {
     this.isLoading.set(true);
     try {
       const resp: any = await firstValueFrom(this.catalogoService.listarForTablaCatalogos(this.config().tabla, this.savedConfig()?.codigoCultivo, this.savedConfig()?.idProyecto));
+      console.log('aaaaaaaaa',resp)
       const data = resp?.data ?? resp;
       const nombres = Object.keys(data ?? {});
       for (const element of nombres) {
@@ -327,6 +328,7 @@ export class CatalogosComponent implements OnInit {
     this.isLoading.set(true);
     try {
       const resp: any = await firstValueFrom(this.catalogoService.listarForTablaCatalogos(tabla, this.savedConfig()?.codigoCultivo, this.savedConfig()?.idProyecto));
+      console.log('aaaaaaaaa',resp)
       if (tabla === 'PLANTA_VariedadAuxiliar') {
         if (resp.data.length > 0) {
           let dexiedb = await this.catalogosRepo.variedadesRepo.getAll()
@@ -534,12 +536,12 @@ export class CatalogosComponent implements OnInit {
       }
 
       if (this.config().tabla == 'PLANTA_VariedadAuxiliar') {
-        payloads = payloads.map(({ id, ruc, idempresa, idcultivo, ...resto }) => ({
+        payloads = payloads.map(({ id, ruc, idempresa, cultivo,idcultivo, ...resto }) => ({
           ...resto,
           ...(id !== 0 ? { id } : {})
         }));
-      }
-
+      } 
+      console.log('1-1--1-1',payloads)
       let { error, data, mensaje } = await firstValueFrom(this.catalogoService.sincronizarCatalogos(this.config().tabla, payloads));
 
       if (error) {

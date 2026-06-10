@@ -1,40 +1,34 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CatalogoColumna, CatalogoConfig } from '../../catalogos.type';
 import { signal } from '@angular/core';
 import { formatDate } from '../../../../shared/utils/datetime.utils';
 
 export type EstadoFiltro = 'activos' | 'inactivos' | 'todos';
 
+const COLUMNAS = [
+  { campo: 'id', label: 'ID', tipo: 'int', visible: false },
+  { campo: 'codigo', label: 'Código', tipo: 'nvarchar' },
+  { campo: 'nombre', label: 'Nombre', tipo: 'nvarchar' },
+  { campo: 'nombreTipoEmpaque', label: 'Tipo Empaque', tipo: 'nvarchar' },
+  { campo: 'nombreCategoria', label: 'Categoría', tipo: 'nvarchar' },
+  { campo: 'nombreCalibre', label: 'Calibre', tipo: 'nvarchar' },
+  { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true },
+  { campo: 'activo', label: 'Estado', tipo: 'bit' },
+  { campo: 'fechaCreacion', label: 'Fecha Creación', tipo: 'datetime', visible: true },
+];
+
 @Component({
-  selector: 'app-catalogo-tabla',
+  selector: 'app-catalogo-tipos-empaque-guia-tabla',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './catalogo-tabla.component.html',
-  styleUrl: './catalogo-tabla.component.scss',
+  templateUrl: './catalogo-tipos-empaque-guia-tabla.component.html',
+  styleUrl: './catalogo-tipos-empaque-guia-tabla.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CatalogoTablaComponent {
-  private readonly booleanBadgeFields = new Set<string>([
-    'activo',
-    'esEnsayo',
-  ]);
-  private readonly booleanBadgeFieldsSincronizado = new Set<string>([
-    'bd'
-  ]);
-
-  private readonly _config = signal<CatalogoConfig | null>(null);
+export class CatalogoTiposEmpaqueGuiaTablaComponent {
   private readonly _items = signal<any[]>([]);
   private readonly _searchTerm = signal('');
   private readonly _estadoFiltro = signal<EstadoFiltro>('todos');
-
-  @Input({ required: true })
-  set config(v: CatalogoConfig) {
-    this._config.set(v);
-  }
-  get config(): CatalogoConfig {
-    return this._config() as CatalogoConfig;
-  }
 
   @Input({ required: true })
   set items(v: any[]) {
@@ -65,21 +59,8 @@ export class CatalogoTablaComponent {
   @Output() eliminar = new EventEmitter<any>();
 
   readonly columnasVisibles = computed(() =>
-    (this._config()?.columnas ?? []).filter((c: CatalogoColumna) => c.visible !== false)
+    COLUMNAS.filter((c: any) => c.visible !== false)
   );
-
-  readonly hasActivoColumn = computed(() => {
-    const cols = this._config()?.columnas ?? [];
-    return cols.some(c => String(c?.campo ?? '').trim().toLowerCase() === 'activo');
-  });
-
-  readonly isEditable = computed(() => {
-    const cfg = this._config();
-    return (cfg as any)?.editable !== false;
-  });
-
-  readonly showActions = computed(() => this.isEditable());
-  readonly showToggleActivo = computed(() => this.isEditable() && this.hasActivoColumn() && !!this._config()?.tieneActivo);
 
   readonly tableMinWidthPx = computed(() => {
     const cols = this.columnasVisibles().length;
@@ -88,31 +69,28 @@ export class CatalogoTablaComponent {
   });
 
   readonly filteredItems = computed(() => {
-    const cfg = this._config();
     const term = (this._searchTerm() ?? '').trim().toLowerCase();
-
     let base = this._items();
 
-    if (cfg?.tieneActivo && this.hasActivoColumn()) {
-      const f = this._estadoFiltro();
-      if (f === 'activos') base = base.filter(i => !!i?.activo);
-      if (f === 'inactivos') base = base.filter(i => !i?.activo);
-    }
+    const f = this._estadoFiltro();
+    if (f === 'activos') base = base.filter((i: any) => !!i?.activo);
+    if (f === 'inactivos') base = base.filter((i: any) => !i?.activo);
 
     if (!term) return base;
 
-    const codigoField = cfg?.codigoField ?? null;
-    const displayField = cfg?.displayField ?? null;
-
-    return base.filter(i => {
-      const parts: string[] = [];
-      if (codigoField) parts.push(String(i?.[codigoField] ?? ''));
-      if (displayField) parts.push(String(i?.[displayField] ?? ''));
+    return base.filter((i: any) => {
+      const parts: string[] = [
+        String(i?.codigo ?? ''),
+        String(i?.nombre ?? ''),
+        String(i?.nombreTipoEmpaque ?? ''),
+        String(i?.nombreCategoria ?? ''),
+        String(i?.nombreCalibre ?? ''),
+      ];
       return parts.join(' ').toLowerCase().includes(term);
     });
   });
 
-  trackById = (_: number, item: any) => item?.Id ?? item;
+  trackById = (_: number, item: any) => item?._pk ?? item?.id ?? item;
 
   onEditar(item: any): void {
     this.editar.emit(item);
@@ -126,18 +104,15 @@ export class CatalogoTablaComponent {
     this.eliminar.emit(item);
   }
 
-  getRawValue(item: any, col: CatalogoColumna): unknown {
-    return item?.[col.campo];
-  }
-
-  getCellValue(item: any, col: CatalogoColumna): unknown {
-    const raw = item?.[col.campo];
-
-    const tipo = String((col as any)?.tipo ?? '').toLowerCase();
+  getCellValue(item: any, col: any): unknown {
     const campo = String(col?.campo ?? '').toLowerCase();
+    if (campo === 'nombretipoempaque') {
+      return item?.codigoTipoEmpaque ?? '-';
+    }
+    const raw = item?.[col.campo];
+    const tipo = String(col?.tipo ?? '').toLowerCase();
     const isDateTime = tipo.startsWith('datetime') || campo.includes('fechacreacion');
     if (isDateTime) return formatDate(raw) ?? '-';
-
     if (raw === null || raw === undefined || raw === '') return '-';
     return raw;
   }
@@ -145,8 +120,9 @@ export class CatalogoTablaComponent {
   getEstadoLabel(activo: any): string {
     return this.asBitBoolean(activo) ? 'Activo' : 'Inactivo';
   }
-  getSincronizadoLabel(activo: any): string {
-    return this.asBitBoolean(activo) ? 'Sincronizado' : 'No sincronizado';
+
+  getSincronizadoLabel(bd: any): string {
+    return this.asBitBoolean(bd) ? 'Sincronizado' : 'No sincronizado';
   }
 
   getSincronizadoClass(bd: any): string {
@@ -171,21 +147,11 @@ export class CatalogoTablaComponent {
     return !!value;
   }
 
-  isBooleanBadgeColumn(col: CatalogoColumna): boolean {
-    return String((col as any)?.tipo ?? '').toLowerCase() === 'bit' && this.booleanBadgeFields.has(col.campo);
-  }
-  
-  isBooleanBadgeColumnSincronizado(col: CatalogoColumna): boolean {
-    return String((col as any)?.tipo ?? '').toLowerCase() === 'bit' && this.booleanBadgeFieldsSincronizado.has(col.campo);
+  isBooleanBadgeColumn(col: any): boolean {
+    return col.campo === 'activo';
   }
 
-  isMobileVisibleColumn(col: CatalogoColumna): boolean {
-    const cfg = this._config();
-    const codigoField = cfg?.codigoField ?? null;
-    const displayField = cfg?.displayField ?? null;
-    if (col.campo === 'Activo') return true;
-    if (codigoField && col.campo === codigoField) return true;
-    if (displayField && col.campo === displayField) return true;
-    return false;
+  isBooleanBadgeColumnSincronizado(col: any): boolean {
+    return col.campo === 'bd';
   }
 }

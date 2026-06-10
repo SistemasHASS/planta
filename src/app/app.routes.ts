@@ -97,6 +97,24 @@ const childRoutes: Routes = [
     data: { title: 'Catálogo', subtitle: 'Gestión de catálogo', icon: 'bi-collection-fill' }
   },
   {
+    path: 'admin/catalogos-categorias',
+    loadComponent: () =>
+      import('./pages/catalogos-categorias/catalogo-catagorias.component').then((m) => m.CatalogoCategoriasComponent),
+    data: { title: 'Catálogo de Categorías', subtitle: 'Gestión de categorías', icon: 'bi-collection-fill' }
+  },
+  {
+    path: 'admin/catalogos-tipos-empaque',
+    loadComponent: () =>
+      import('./pages/catalogos-tipos-empaque/catalogo-tipos-empaque.component').then((m) => m.CatalogoTiposEmpaqueComponent),
+    data: { title: 'Tipos de Empaque', subtitle: 'Gestión de tipos de empaque', icon: 'bi-collection-fill' }
+  },
+  {
+    path: 'admin/catalogos-tipos-empaque-guia',
+    loadComponent: () =>
+      import('./pages/catalogos-tipos-empaque-guia/catalogo-tipos-empaque-guia.component').then((m) => m.CatalogoTiposEmpaqueGuiaComponent),
+    data: { title: 'Tipos Empaque Guía', subtitle: 'Gestión de tipos empaque guía', icon: 'bi-collection-fill' }
+  },
+  {
     path: 'procesos',
     loadComponent: () =>
       import('./pages/procesos/procesos.component').then((m) => m.ProcesosComponent),

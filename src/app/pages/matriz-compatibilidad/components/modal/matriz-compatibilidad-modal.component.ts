@@ -30,6 +30,10 @@ type MatrizCompatibilidadForm = {
 export class MatrizCompatibilidadModalComponent {
   @Input() modo: 'nuevo' | 'editado' = 'nuevo';
   @Input() value: MatrizCompatibilidad | null = null;
+  @Input() tiposEmpaqueGuiaList: any[] = [];
+  @Input() tiposEmpaqueList: any[] = [];
+  @Input() categoriasList: any[] = [];
+  @Input() calibresList: any[] = [];
 
   @Output() cerrar = new EventEmitter<void>();
   @Output() guardar = new EventEmitter<any>();
@@ -49,6 +53,12 @@ export class MatrizCompatibilidadModalComponent {
     presentacionId: null,
     categoriaId: null,
     activo: true,
+  });
+
+  readonly displayNames = signal({
+    tipoEmpaqueNombre: '',
+    categoriaNombre: '',
+    calibreNombre: '',
   });
 
   readonly title = computed(() => (this.modo === 'editado' ? 'Editar Combinación' : 'Nueva Combinación'));
@@ -80,7 +90,15 @@ export class MatrizCompatibilidadModalComponent {
     return this.modo === 'nuevo' ? true : this.hasChanges();
   });
 
+  ngOnInit(): void {
+    this.initFromValue();
+  }
+
   ngOnChanges(): void {
+    this.initFromValue();
+  }
+
+  private initFromValue(): void {
     const v = this.value ?? ({} as any);
     const next: MatrizCompatibilidadForm = {
       documentoCliente: v.documentoCliente ?? null,
@@ -99,6 +117,27 @@ export class MatrizCompatibilidadModalComponent {
     this.form.set(next);
     this.initialForm.set(structuredClone(next));
     this.submitAttempted.set(false);
+    this.resolverDisplayNames(next.tipoEmpaqueGuiaId);
+  }
+
+  private resolverDisplayNames(tipoEmpaqueGuiaId: number | null): void {
+    if (!tipoEmpaqueGuiaId) {
+      this.displayNames.set({ tipoEmpaqueNombre: '', categoriaNombre: '', calibreNombre: '' });
+      return;
+    }
+    const teg = this.tiposEmpaqueGuiaList.find((c: any) => Number(c?.id ?? 0) === Number(tipoEmpaqueGuiaId));
+    if (!teg) {
+      this.displayNames.set({ tipoEmpaqueNombre: '', categoriaNombre: '', calibreNombre: '' });
+      return;
+    }
+    const te = this.tiposEmpaqueList.find((c: any) => String(c?.codigo ?? '') === String(teg.codigoTipoEmpaque ?? ''));
+    const cat = this.categoriasList.find((c: any) => String(c?.codigo ?? '') === String(te?.codigoCategoria ?? ''));
+    const cal = this.calibresList.find((c: any) => String(c?.id ?? '') === String(cat?.calibreId ?? ''));
+    this.displayNames.set({
+      tipoEmpaqueNombre: te?.descripcion ?? te?.nombre ?? '',
+      categoriaNombre: cat?.nombre ?? '',
+      calibreNombre: cal?.calibre ?? '',
+    });
   }
 
   onBackdrop(): void {
@@ -131,6 +170,38 @@ export class MatrizCompatibilidadModalComponent {
   isInvalid(field: string): boolean {
     if (!this.submitAttempted()) return false;
     return this.isEmpty((this.form() as any)?.[field]);
+  }
+
+  onTipoEmpaqueGuiaChange(id: string | number | null): void {
+    const nid = id ? Number(id) : null;
+    if (!nid) {
+      this.form.update(f => ({
+        ...f,
+        tipoEmpaqueGuiaId: null,
+        tiposEmpaqueId: null,
+        categoriaId: null,
+        calibreId: null,
+      }));
+      this.displayNames.set({ tipoEmpaqueNombre: '', categoriaNombre: '', calibreNombre: '' });
+      return;
+    }
+    const teg = this.tiposEmpaqueGuiaList.find((c: any) => Number(c?.id ?? 0) === nid);
+    if (!teg) return;
+    const te = this.tiposEmpaqueList.find((c: any) => String(c?.codigo ?? '') === String(teg.codigoTipoEmpaque ?? ''));
+    const cat = this.categoriasList.find((c: any) => String(c?.codigo ?? '') === String(te?.codigoCategoria ?? ''));
+    const cal = this.calibresList.find((c: any) => String(c?.id ?? '') === String(cat?.calibreId ?? ''));
+    this.form.update(f => ({
+      ...f,
+      tipoEmpaqueGuiaId: nid,
+      tiposEmpaqueId: te?.id ?? null,
+      categoriaId: cat?.id ?? null,
+      calibreId: cal?.id ?? '',
+    }));
+    this.displayNames.set({
+      tipoEmpaqueNombre: te?.descripcion ?? te?.nombre ?? '',
+      categoriaNombre: cat?.nombre ?? '',
+      calibreNombre: cal?.calibre ?? '',
+    });
   }
 
   onGuardar(): void {

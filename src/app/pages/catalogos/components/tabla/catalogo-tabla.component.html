@@ -21,7 +21,7 @@
           @for (col of columnasVisibles(); track col.campo) {
             <td>
               @if (isBooleanBadgeColumnSincronizado(col)) {
-                <span [class]="getEstadoClass(getRawValue(row, col))">{{ getSincronizadoLabel(getRawValue(row, col)) }}</span>
+                <span [class]="getSincronizadoClass(getRawValue(row, col))">{{ getSincronizadoLabel(getRawValue(row, col)) }}</span>
               } @else if (isBooleanBadgeColumn(col)) {
                 <span [class]="getEstadoClass(getRawValue(row, col))">{{ getEstadoLabel(getRawValue(row, col)) }}</span>
               } @else {

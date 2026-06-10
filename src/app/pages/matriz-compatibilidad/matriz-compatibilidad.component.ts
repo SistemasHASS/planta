@@ -42,6 +42,11 @@ export class MatrizCompatibilidadComponent implements OnInit {
   readonly modalModo = signal<'nuevo' | 'editado'>('nuevo');
   readonly modalValue = signal<MatrizCompatibilidad | null>(null);
 
+  readonly tiposEmpaqueGuiaList = signal<any[]>([]);
+  readonly tiposEmpaqueList = signal<any[]>([]);
+  readonly categoriasList = signal<any[]>([]);
+  readonly calibresList = signal<any[]>([]);
+
   readonly totalRegistros = computed(() => this.filteredItems().length);
   get online(): boolean {
     return this.connectivity.isOnline();
@@ -115,8 +120,26 @@ export class MatrizCompatibilidadComponent implements OnInit {
   ) { }
 
   async ngOnInit(): Promise<void> {
-    await this.cargarConfiguracionGuardada()
+    await this.cargarConfiguracionGuardada();
+    await this.cargarCatalogosRelacionados();
     await this.listarMatricesCompatibilidad();
+  }
+
+  private async cargarCatalogosRelacionados(): Promise<void> {
+    try {
+      const [teg, te, cat, cal] = await Promise.all([
+        this.catalogosRepository.tiposEmpaqueGuiaRepo.getAll(),
+        this.catalogosRepository.tiposEmpaqueRepo.getAll(),
+        this.catalogosRepository.categoriasRepo.getAll(),
+        this.catalogosRepository.calibresRepo.getAll(),
+      ]);
+      this.tiposEmpaqueGuiaList.set(teg ?? []);
+      this.tiposEmpaqueList.set(te ?? []);
+      this.categoriasList.set(cat ?? []);
+      this.calibresList.set(cal ?? []);
+    } catch (e) {
+      console.error('Error cargando catalogos relacionados', e);
+    }
   }
 
   private async cargarConfiguracionGuardada(): Promise<void> {
