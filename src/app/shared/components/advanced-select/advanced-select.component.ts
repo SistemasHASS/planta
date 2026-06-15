@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, HostListener, Input, Output, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, EventEmitter, HostListener, Input, Output, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { CatalogoService } from '../../services/catalogo.service';
 import { ConnectivityService } from '../../services/connectivity.service';
@@ -21,6 +21,7 @@ export class AdvancedSelectComponent {
   private readonly connectivity = inject(ConnectivityService);
   private readonly dexie = inject(DexieService);
   private readonly el = inject(ElementRef<HTMLElement>);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   @Input() table: string = '';
   @Input() placeholder = '— Seleccionar —';
@@ -104,14 +105,18 @@ export class AdvancedSelectComponent {
     if (this.disabled) return;
     const next = !this.open();
     this.open.set(next);
+    this.cdr.markForCheck();
     if (next) {
       await this.ensureLoaded();
       this.recalcDirection();
       this.attachDropdownPortalIfNeeded();
+      this.cdr.markForCheck();
       queueMicrotask(() => {
         const input = this.el.nativeElement.querySelector('input[data-role="search"]') as HTMLInputElement | null;
         input?.focus();
       });
+    } else {
+      this.detachDropdownPortal();
     }
   }
 
@@ -176,6 +181,7 @@ export class AdvancedSelectComponent {
     this.open.set(false);
     this.query.set('');
     this.detachDropdownPortal();
+    this.cdr.markForCheck();
   }
 
   clear(ev?: MouseEvent): void {
@@ -185,6 +191,7 @@ export class AdvancedSelectComponent {
     this._value.set(null);
     this.valueChange.emit(null);
     this.close();
+    this.cdr.markForCheck();
   }
 
   selectItem(item: OptionItem, ev?: MouseEvent): void {
@@ -195,6 +202,7 @@ export class AdvancedSelectComponent {
     this._value.set(v ?? null);
     this.valueChange.emit(v ?? null);
     this.close();
+    this.cdr.markForCheck();
   }
 
   async ensureLoaded(): Promise<void> {
@@ -235,8 +243,8 @@ export class AdvancedSelectComponent {
     return fallback;
   }
 
-  @HostListener('document:click', ['$event'])
-  onDocClick(ev: MouseEvent): void {
+  @HostListener('document:mousedown', ['$event'])
+  onDocMouseDown(ev: MouseEvent): void {
     if (!this.open()) return;
     const target = ev.target as Node | null;
     if (!target) return;
@@ -248,6 +256,12 @@ export class AdvancedSelectComponent {
   @HostListener('document:keydown.escape')
   onEscape(): void {
     if (!this.open()) return;
+    this.close();
+  }
+
+  onBackdropClick(ev: MouseEvent): void {
+    ev.preventDefault();
+    ev.stopPropagation();
     this.close();
   }
 

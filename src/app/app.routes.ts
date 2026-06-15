@@ -115,6 +115,12 @@ const childRoutes: Routes = [
     data: { title: 'Tipos Empaque Guía', subtitle: 'Gestión de tipos empaque guía', icon: 'bi-collection-fill' }
   },
   {
+    path: 'admin/catalogos-consignatarios',
+    loadComponent: () =>
+      import('./pages/catalogos-consignatarios/catalogo-consignatarios.component').then((m) => m.CatalogoConsignatariosComponent),
+    data: { title: 'Consignatarios', subtitle: 'Gestión de consignatarios', icon: 'bi-person-vcard' }
+  },
+  {
     path: 'procesos',
     loadComponent: () =>
       import('./pages/procesos/procesos.component').then((m) => m.ProcesosComponent),

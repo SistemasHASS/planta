@@ -273,6 +273,10 @@ export class ProcesosComponent implements OnInit {
         return;
       } else {
         const data = Array.isArray(resp?.[0]?.data) ? resp[0].data : [];
+        await this.procesoRepo.procesosRepo.clear();
+        await this.procesoRepo.dProcesoLogisticosRepo.clear();
+        await this.procesoRepo.dProcesoSupervisoresRepo.clear();
+        await this.procesoRepo.paletsRepo.clear();
         const normalizados: {
           proceso: Proceso;
           dProcesoLogisticos: DProcesoLogistico[];

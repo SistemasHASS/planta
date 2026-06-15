@@ -7,6 +7,7 @@ import { Acopio } from '../../../../shared/interfaces/catalogo.interface';
 export type AcopioRow = Acopio & {
   _pk?: any;
   tiposActivosCount?: number;
+  tiposActivosNombres?: string;
 };
 
 @Component({

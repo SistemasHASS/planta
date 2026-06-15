@@ -16,9 +16,10 @@
           <div class="col-12 col-md-6">
             <label class="form-label form-label-required">Cliente</label>
             <app-advanced-select
-              table="clientes"
+              [itemsInput]="clientes()"
               placeholder="— Seleccionar Cliente —"
-              source="dexie"
+              idField="id"
+              [labelFields]="['nombre']"
               [value]="form().documentoCliente"
               (valueChange)="updateField('documentoCliente', $event)"
             />
@@ -30,9 +31,10 @@
           <div class="col-12 col-md-6">
             <label class="form-label form-label-required">Consignatario</label>
             <app-advanced-select
-              table="consignatarios"
+              [itemsInput]="filteredConsignatarios()"
               placeholder="— Seleccionar Consignatario —"
-              source="dexie"
+              idField="documento"
+              [labelFields]="['nombre']"
               [value]="form().documentoConsignatario"
               (valueChange)="updateField('documentoConsignatario', $event)"
             />

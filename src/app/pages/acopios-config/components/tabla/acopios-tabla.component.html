@@ -6,7 +6,7 @@
         <th style="min-width:120px">Código</th>
         <th style="min-width:220px">Acopio</th>
         <th style="min-width:140px">Serie Guía</th>
-        <th style="min-width:150px">Tipos Proceso</th>
+        <th style="min-width:150px">Tipos Proceso Empacado</th>
         <th class="th-sticky-sync" style="min-width:140px">Sincronizado</th>
         <th class="th-actions th-sticky-actions">Acciones</th>
       </tr>
@@ -20,7 +20,11 @@
           <td>{{ row.acopioNombre }}</td>
           <td><strong>{{ serieLabel(row.serieGuia) }}</strong></td>
           <td>
-            <span class="sp-badge sp-badge-muted">{{ row.tiposActivosCount ?? 0 }} activo(s)</span>
+            @if (row.tiposActivosNombres) {
+              <span class="sp-badge sp-badge-muted">{{ row.tiposActivosNombres }}</span>
+            } @else {
+              <span class="sp-badge sp-badge-muted">Sin activos</span>
+            }
           </td>
           <td class="td-sticky-sync">
             <span [class]="sincronizadoClass(row.bd)">{{ sincronizadoLabel(row.bd) }}</span>

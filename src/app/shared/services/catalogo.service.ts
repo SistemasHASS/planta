@@ -106,8 +106,11 @@ export class CatalogoService {
     return this.http.get<any>(`${this.apiUrl}/get-categoria`, { params: { json }, withCredentials: true });
   }
 
-  listarAcopios(): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/get-acopios`, { withCredentials: true });
+  listarAcopios(idProyecto: string): Observable<any> {
+    const json = JSON.stringify({
+      idproyecto: idProyecto
+    });
+    return this.http.get<any>(`${this.apiUrl}/get-acopios`, { params: { json }, withCredentials: true });
   }
 
   sincronizarAcopios(cabecera:string='',detalle:string=''): Observable<any>{
@@ -116,6 +119,10 @@ export class CatalogoService {
 
   sincronizarDestinatarios(destinatarios: any[]): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/sincronizar-destinatarios`, { destinatarios }, { withCredentials: true });
+  }
+
+  sincronizarConsignatarios(consignatarios: any[]): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/sincronizar-consignatarios`, { consignatarios }, { withCredentials: true });
   }
 
   listarFundos(): Observable<any> {
@@ -127,6 +134,10 @@ export class CatalogoService {
       codigoCultivo: codigoCultivo
     });
     return this.http.get<any>(`${this.apiUrl}/get-formatos`, { params: { json }, withCredentials: true });
+  }
+
+  listarConsignatarios(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/get-consignatarios`, { withCredentials: true });
   }
 
   listarClientes(): Observable<any> {
@@ -204,9 +215,7 @@ export class CatalogoService {
   }
 
   listarForTablaCatalogos(tabla: string, codicoCultivo: string = '', idproyecto: string = '') {
-    console.log(tabla)
     const t = String(tabla ?? '').trim();
-
     switch (t) {
       case 'PLANTA_TipoProcesoEmpacado':
       case 'TipoProcesoEmpacado':
@@ -262,7 +271,7 @@ export class CatalogoService {
 
       case 'PLANTA_Acopio_SerieGuia':
       case 'Acopios':
-        return this.listarAcopios();
+        return this.listarAcopios(idproyecto);
 
       case 'Fundos':
         return this.listarFundos();
@@ -270,11 +279,11 @@ export class CatalogoService {
       case 'PLANTA_Formatos':
         return this.listarFormatos(codicoCultivo);
 
-      case 'Clientes':
+      case 'PLANTA_GrupoCliente':
         return this.listarClientes();
 
       case 'Consignatarios':
-        return this.listarClientes();
+        return this.listarConsignatarios();
 
       case 'PLANTA_VariedadAuxiliar':
       case 'Variedades':

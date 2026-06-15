@@ -32,6 +32,8 @@ export class DexieService extends Dexie {
                 }
             });
         });
+        this.version(10).stores(DB_SCHEMA);
+        this.version(11).stores(DB_SCHEMA);
     }
 
     getTable<T, K = any>(tableName: string): Table<T, K> {

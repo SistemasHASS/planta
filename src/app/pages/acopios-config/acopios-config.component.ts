@@ -90,7 +90,9 @@ export class AcopiosConfigComponent {
     this.isLoading.set(true);
     try {
       if (this.online) {
-        const resp: any = await firstValueFrom(this.catalogoService.listarAcopios());
+        const cfg = this.savedConfig();
+        const idproyecto = String(cfg?.idProyecto ?? '').trim();
+        const resp: any = await firstValueFrom(this.catalogoService.listarAcopios(idproyecto));
         const data = resp?.data ?? [];
         if (resp?.error) {
           this.alertService.showAlert('Error', resp?.mensaje ?? 'Error al listar acopios', 'error');
@@ -127,7 +129,8 @@ export class AcopiosConfigComponent {
       for (let a of dexie) {
         const dexieDetalle = await this.catalogosOperativosRepo.acopiosDetallesRepo.getAcopioDetalle(a.codigoAcopio);
         const filtered = dexieDetalle.filter(d => d.activo === true);
-        (a as any).tiposActivosCount = filtered.length
+        (a as any).tiposActivosCount = filtered.length;
+        (a as any).tiposActivosNombres = filtered.map(d => d.nombreTipoProcesoEmpacado).join(', ');
       }
       this.items.set(dexie);
     } catch (error: any) {
@@ -212,6 +215,7 @@ export class AcopiosConfigComponent {
         const dexieDetalle = await this.catalogosOperativosRepo.acopiosDetallesRepo.getAcopioDetalle(a.codigoAcopio);
         const filtered = dexieDetalle.filter(d => d.activo === true);
         (a as any).tiposActivosCount = filtered.length;
+        (a as any).tiposActivosNombres = filtered.map(d => d.nombreTipoProcesoEmpacado).join(', ');
       }
       this.items.set(dexieSync);
     } catch (error: any) {
@@ -347,6 +351,7 @@ export class AcopiosConfigComponent {
       const dexieDetalle = await this.catalogosOperativosRepo.acopiosDetallesRepo.getAcopioDetalle(a.codigoAcopio);
       const filtered = dexieDetalle.filter(d => d.activo === true);
       (a as any).tiposActivosCount = filtered.length;
+      (a as any).tiposActivosNombres = filtered.map(d => d.nombreTipoProcesoEmpacado).join(', ');
     }
     this.items.set(dexie);
 

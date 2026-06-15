@@ -211,7 +211,7 @@ export class MatrizCompatibilidadComponent implements OnInit {
     const normalizar: MatrizCompatibilidad[] = [];
     for (const item of (Array.isArray(data) ? data : [])) {
       const cliente = item?.documentoCliente ? await this.catalogosRepository.clientesRepo.getByField('id', Number(item.documentoCliente)) : undefined;
-      const consignatario = item?.documentoConsignatario ? await this.catalogosRepository.consignatariosRepo.getByField('id', Number(item.documentoConsignatario)) : undefined;
+      const consignatario = item?.documentoConsignatario ? await this.catalogosRepository.consignatariosRepo.getByField('documento', String(item.documentoConsignatario)) : undefined;
       const destino = item?.destinoId ? await this.catalogosRepository.destinosRepo.getByField('id', item.destinoId) : undefined;
       const formato = item?.formatoId ? await this.catalogosRepository.formatosRepo.getByField('id', item.formatoId) : undefined;
       const tipoEmpaque = item?.tiposEmpaqueId ? await this.catalogosRepository.tiposEmpaqueRepo.getByField('id', item.tiposEmpaqueId) : undefined;

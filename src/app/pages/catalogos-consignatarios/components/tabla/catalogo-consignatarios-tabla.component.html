@@ -1,0 +1,87 @@
+<div class="table-responsive catalogo-table-scroll">
+  <table class="sp-table catalogo-table">
+    <thead>
+      <tr>
+        <th style="width:60px">#</th>
+        @for (col of columnasVisibles(); track col.campo) {
+          <th>{{ col.label }}</th>
+        }
+        <th style="width:150px" class="text-end">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of filteredItems(); track trackById($index, row)) {
+        <tr [class.row-unsynced]="row?.bd === 0">
+          <td>{{ $index + 1 }}</td>
+          @for (col of columnasVisibles(); track col.campo) {
+            <td>
+              @if (col.campo === 'codigosRancho') {
+                @let texto = getCodigosRanchoTexto(row);
+                @let t = truncarCodigosRancho(texto);
+                @if (t.truncado) {
+                  <span>{{ t.texto }} </span>
+                  <a href="javascript:void(0)" (click)="abrirModalCodigosRancho(row, $event)" style="color: var(--primary-color); text-decoration: underline; cursor: pointer;">Mostrar más</a>
+                } @else {
+                  <span>{{ t.texto }}</span>
+                }
+              } @else if (isBooleanBadgeColumnSincronizado(col)) {
+                <span [class]="getSincronizadoClass(row?.bd)">{{ getSincronizadoLabel(row?.bd) }}</span>
+              } @else if (isBooleanBadgeColumn(col)) {
+                <span [class]="getEstadoClass(row?.activo)">{{ getEstadoLabel(row?.activo) }}</span>
+              } @else {
+                <span>{{ getCellValue(row, col) }}</span>
+              }
+            </td>
+          }
+          <td class="text-end" style="white-space:nowrap">
+            <div class="catalogo-actions">
+              @if (editable) {
+              <button type="button" class="catalogo-action-btn catalogo-action-btn-edit" (click)="onEditar(row)" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </button>
+              }
+              <!-- <button type="button" class="catalogo-action-btn catalogo-action-btn-warning" (click)="onDesactivar(row)" [attr.title]="row.activo ? 'Desactivar' : 'Activar'">
+                <i class="bi bi-slash-circle"></i>
+              </button> -->
+            </div>
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td [attr.colspan]="columnasVisibles().length + 2">
+            <div class="empty-state" style="padding:20px">
+              <i class="bi bi-inbox" style="font-size:32px"></i>
+              <p>Sin registros</p>
+            </div>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+@if (codigosRanchoModalItem()) {
+  <div class="modal-overlay" (click)="cerrarModalCodigosRancho()">
+    <div class="modal-container" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">Códigos Rancho</h3>
+        <button class="modal-close" (click)="cerrarModalCodigosRancho()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p><strong>Documento:</strong> {{ codigosRanchoModalItem()?.documento }}</p>
+        <p><strong>Nombre:</strong> {{ codigosRanchoModalItem()?.nombre }}</p>
+        <ul class="codigos-rancho-lista">
+          @for (cr of getCodigosRanchoActivos(codigosRanchoModalItem()); track cr?.id) {
+            <li>
+              <span class="codigo">{{ cr?.codigo }}</span>
+              <span class="sp-badge sp-badge-success">Activo</span>
+            </li>
+          }
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="sp-btn sp-btn-secondary" (click)="cerrarModalCodigosRancho()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}

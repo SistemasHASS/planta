@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Palet, DPalet } from '../../../../shared/interfaces/palet.interface';
 
 interface FormCajas {
-  consignatarioId: number;
+  consignatarioId: string | number;
   destinoId: number | string;
   formatoId: number;
   tipoEmpaqueId: number;

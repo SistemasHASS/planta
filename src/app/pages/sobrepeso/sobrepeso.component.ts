@@ -72,7 +72,7 @@ export class SobrepesoComponent implements OnInit {
     const destinos = new Map<string, Destino>();
     const transportes = new Map<string, Transporte>();
 
-    for (const c of this.consignatarios()) consignatarios.set(String(c.documentoFiscal ?? '').trim(), c);
+    for (const c of this.consignatarios()) consignatarios.set(String(c.documento ?? '').trim(), c);
     for (const f of this.formatos()) formatos.set(Number(f.id), f);
     for (const d of this.destinos()) destinos.set(String(d.id ?? '').trim(), d);
     for (const t of this.transportes()) transportes.set(String((t as any)?.id ?? '').trim(), t);

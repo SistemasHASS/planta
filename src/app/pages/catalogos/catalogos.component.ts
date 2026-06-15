@@ -405,22 +405,31 @@ export class CatalogosComponent implements OnInit {
             dataSend = await this.catalogosOperativosRepo[this.config().dixieRepo as keyof CatalogosOperativosRepository].getAllNoSincronizado();
           }
         } else {
+          console.log(11)
           const columnaBd = this.config().columnas.find(col => col.campo === 'bd');
+          console.log(columnaBd)
           if (columnaBd == undefined || columnaBd == null) {
             dataSend = []
           } else {
+            console.log(22)
+            console.log(this.config().dixieRepo)
             dataSend = await this.catalogosRepo[this.config().dixieRepo as keyof CatalogosRepository].getAllNoSincronizado();
+            console.log(33)
           }
         }
         if (dataSend.length === 0) {
+          console.log(1)
           if (OPERARIOS_KEYS.has(this.tipo())) {
+            console.log(1)
             await this.catalogosOperativosRepo[this.config().dixieRepo as keyof CatalogosOperativosRepository].clear();
           } else {
+            console.log(3)
             await this.catalogosRepo[this.config().dixieRepo as keyof CatalogosRepository].clear();
           }
           if (OPERARIOS_KEYS.has(this.tipo())) {
             this.getCatalogoOperativosTipoApi(this.config().tabla)
           } else {
+            console.log('Sincronizando catálogos:', this.config().tabla)
             this.getCatalogoTipoApi(this.config().tabla)
           }
           this.alertService.showAlert('Éxito', 'No hay registros pendientes de sincronización', 'success');
@@ -433,7 +442,7 @@ export class CatalogosComponent implements OnInit {
             || this.config().tabla == 'PLANTA_Vehiculos'
             || this.config().tabla == 'PLANTA_Supervisores'
             || this.config().tabla == 'PLANTA_PersonalLogistica'
-            || this.config().tabla == 'PLANTA_CodigosRancho'
+            // || this.config().tabla == 'PLANTA_CodigosRancho'
             || this.config().tabla == 'PLANTA_Conductores'
           ) {
             payloads.forEach((item: any) => {
@@ -441,7 +450,13 @@ export class CatalogosComponent implements OnInit {
               delete item._pk
               item.idproyecto = this.savedConfig()?.idProyecto
             })
-          } else {
+          }else if(this.config().tabla == 'PLANTA_CodigosRancho' || this.config().tabla == 'PLANTA_GrupoCliente'){
+             payloads.forEach((item: any) => {
+              delete item.bd
+              delete item._pk
+              // item.idproyecto = this.savedConfig()?.idProyecto
+            })
+          }else {
             payloads.forEach((item: any) => {
               delete item.bd
               delete item._pk
@@ -521,14 +536,19 @@ export class CatalogosComponent implements OnInit {
         || this.config().tabla == 'PLANTA_Vehiculos'
         || this.config().tabla == 'PLANTA_Supervisores'
         || this.config().tabla == 'PLANTA_PersonalLogistica'
-        || this.config().tabla == 'PLANTA_CodigosRancho'
+        // || this.config().tabla == 'PLANTA_CodigosRancho'
         || this.config().tabla == 'PLANTA_Conductores'
       ) {
         payloads = payloadArray.map(item => ({
           ...item,
           idproyecto: this.savedConfig()?.idProyecto
         }));
-      } else {
+      }else if (this.config().tabla=='PLANTA_CodigosRancho' || this.config().tabla=='PLANTA_GrupoCliente') {
+        payloads = payloadArray.map(item => ({
+          ...item,
+          // idproyecto: this.savedConfig()?.idProyecto
+        }));
+      }else {
         payloads = payloadArray.map(item => ({
           ...item,
           codigoCultivo: this.savedConfig()?.codigoCultivo

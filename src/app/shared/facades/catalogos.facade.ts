@@ -166,8 +166,8 @@ export class CatalogosFacade {
   async cargarConsignatariosCatalogo(): Promise<any[]> {
     if (this.connectivity.isOnline()) {
       try {
-        const resp: any = await firstValueFrom(this.catalogoService.listarClientes());
-        const items = resp?.data ?? (Array.isArray(resp) ? resp : []);
+        const resp: any = await firstValueFrom(this.catalogoService.listarConsignatarios());
+        const items = resp[0]?.data ?? (Array.isArray(resp) ? resp : []);
         if (items.length > 0) {
           const dexiedb = await this.catalogosRepo.consignatariosRepo.getAll();
           if (dexiedb.length > 0) await this.catalogosRepo.consignatariosRepo.clear();

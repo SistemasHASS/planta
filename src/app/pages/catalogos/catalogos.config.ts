@@ -23,20 +23,22 @@ export const CATALOGOS_CONFIG: Record<CatalogoKey, CatalogoConfig> = {
     dixieRepo: 'tipoProcesoEmpacadoRepo'
   },
   clientes: {
-    tabla: 'Clientes',
-    label: 'Clientes - Maestro',
+    tabla: 'PLANTA_GrupoCliente',
+    label: 'Clientes Agrupador',
     icon: 'bi-building',
     columnas: [
       { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'documento', label: 'Documento', tipo: 'varchar', maxLength: 50, required: true, unique: true },
-      { campo: 'documentoFiscal', label: 'DocumentoFiscal', tipo: 'varchar',visible: false, maxLength: 50, required: true, unique: true },
+      { campo: 'codigo', label: 'Codigo', tipo: 'varchar', maxLength: 50, required: true, unique: true },
       { campo: 'nombre', label: 'Razón Social', tipo: 'varchar', maxLength: 200, required: true },
+      { campo: 'activo', label: 'Estado', tipo: 'bit', required: true },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
+      { campo: 'fechaCreacion', label: 'Fecha Creación', tipo: 'datetime2', auto: true, visible: true, editable: false }
+  
     ],
     displayField: 'RazonSocial',
     codigoField: 'codigo',
     tieneActivo: true,
-    editable: false,
-    noCrear: true,
+    editable: true,
     fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad'],
     dixieRepo: 'clientesRepo'
   },
@@ -47,14 +49,15 @@ export const CATALOGOS_CONFIG: Record<CatalogoKey, CatalogoConfig> = {
     icon: 'bi-person-vcard',
     columnas: [
       { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'documento', label: 'Documento', tipo: 'varchar', maxLength: 50, required: true, unique: true },
-      { campo: 'documentoFiscal', label: 'DocumentoFiscal', tipo: 'varchar',visible: false, maxLength: 50, required: true, unique: true },
+      { campo: 'documento', label: 'Documento', tipo: 'varchar', maxLength: 50, required: true, unique: true, editable: false },
       { campo: 'nombre', label: 'Razón Social', tipo: 'varchar', maxLength: 200, required: true },
+      { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
    ],
     displayField: 'RazonSocial',
     codigoField: 'codigo',
     tieneActivo: true,
     editable: false,
+    noCrear: true,
     fkTablas: ['ComposicionPalets', 'MatrizCompatibilidad', 'ReglasSobrepeso'],
     dixieRepo: 'consignatariosRepo'
   },

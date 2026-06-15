@@ -79,12 +79,11 @@ export interface Variedad {
 
 export interface Cliente {
   id: number;
-  persona: number;
-  documentoFiscal: string;
-  documento: string;
-  tipoDocumento: string;
+  codigo: string;
   nombre: string;
-  esCliente: string;
+  activo: boolean;
+  fechaCreacion: string;
+  bd: number;
 }
 
 export interface Destino {
@@ -95,12 +94,12 @@ export interface Destino {
 
 export interface Consignatario {
   id: number;
-  persona: number;
-  documentoFiscal: string;
   documento: string;
-  tipoDocumento: string;
   nombre: string;
-  esCliente: string;
+  codigoGrupoCliente: string;
+  nombreGrupoCliente: string;
+  codigosRancho: CodigoRancho[];
+  bd?:number;
 }
 
 export interface TipoEmpaque {

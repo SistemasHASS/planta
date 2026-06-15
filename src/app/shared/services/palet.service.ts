@@ -62,13 +62,6 @@ export class PaletService {
     });
   }
 
-  listarCodigosRanchoPorLugarProduccion(idproyecto: string, idLugaresDeProduccion: number): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/get-codigos-rancho-por-lugar-produccion`, {
-      params: { idproyecto, idLugaresDeProduccion: idLugaresDeProduccion.toString() },
-      withCredentials: true
-    });
-  }
-
   getDPaletsPorAcopio(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/get-dpalets-por-acopio`, { withCredentials: true });
   }

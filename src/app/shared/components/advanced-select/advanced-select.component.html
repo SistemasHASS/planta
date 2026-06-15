@@ -15,6 +15,7 @@
   </button>
 
   @if (open()) {
+    <div class="as-backdrop" (mousedown)="onBackdropClick($event)"></div>
     <div class="as-dropdown" [class.as-dropup]="dropUp()">
       <div class="as-search">
         <input

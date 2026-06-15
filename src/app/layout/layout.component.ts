@@ -161,8 +161,8 @@ export class LayoutComponent {
             icon: 'bi-collection-fill',
             submenu: [
               { label: 'Tipo Proceso Empacado', path: '/admin/catalogos/tipoProcesoEmpacado', icon: 'bi-dot' },
-              { label: 'Clientes - Maestro', path: '/admin/catalogos/clientes', icon: 'bi-dot' },
-              { label: 'Consignatarios - Maestro', path: '/admin/catalogos/consignatarios', icon: 'bi-dot' },
+              { label: 'Grupo Clientes', path: '/admin/catalogos/clientes', icon: 'bi-dot' },
+              { label: 'Consignatarios - Maestro', path: '/admin/catalogos-consignatarios', icon: 'bi-dot' },
               { label: 'Destinos - Maestro', path: '/admin/catalogos/destinos', icon: 'bi-dot' },
               { label: 'Formatos', path: '/admin/catalogos/formatos', icon: 'bi-dot' },
               { label: 'Calibres - Maestro', path: '/admin/catalogos/calibres', icon: 'bi-dot' },

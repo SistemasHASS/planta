@@ -84,8 +84,9 @@ export class PaletsComponent implements OnInit, OnDestroy {
   dpaletEditando = signal<DPalet | undefined>(undefined);
   tiposProcesoEmpacadoModal = signal<TipoProcesoEmpacado[]>([]);
   tipoProcesoEmpacadoDisabled = signal(false);
+  codigoRanchoDisabled = signal(false);
   formCajas = signal<{
-    consignatarioId: number;
+    consignatarioId: string | number;
     destinoId: number | string;
     formatoId: number;
     tipoEmpaqueId: number;
@@ -105,7 +106,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     esReposicion: boolean;
     esEnsayo: boolean;
   }>({
-    consignatarioId: 0,
+    consignatarioId: '',
     destinoId: 0,
     formatoId: 0,
     tipoEmpaqueId: 0,
@@ -178,7 +179,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
       this.catalogosRepo.tipoProcesoEmpacadoRepo.getAll(),
     ]);
 
-    const consigMap = new Map(consignatarios.map(c => [String(c.documentoFiscal ?? '').trim(), c.nombre]));
+    const consigMap = new Map(consignatarios.map(c => [String(c.documento ?? '').trim(), c.nombre]));
     const destMap = new Map(destinos.map(d => [String(d.id ?? '').trim(), d.pais]));
     const fmtMap = new Map(formatos.map(f => [String(f.id ?? '').trim(), f.descripcion]));
     const presMap = new Map(presentaciones.map(p => [String(p.id ?? '').trim(), p.nombre ?? '']));
@@ -275,7 +276,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
 
 
   async listarProcesosApi(): Promise<void> {
-    console.log('Listar Procesos API...')
     this.isLoading.set(true);
     let resp = await firstValueFrom(this.procesoService.listarProcesoForAcopio(this.savedConfig()?.codigoCultivo || '', this.savedConfig()?.idProyecto || ''));
     if (resp.length == 0) {
@@ -383,9 +383,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     if (showLoading) this.alertService.mostrarModalCarga();
     try {
       if (this.online) {
-        console.log('Obteniendo palets del proceso api...');
         const resp = await firstValueFrom(this.paletService.listarPaletPorProceso(idProceso));
-        console.log('listarPalets', resp)
         if (!resp?.length) {
           this.alertService.showAlert('Error', 'Error al obtener los palets del proceso', 'error');
           return;
@@ -785,6 +783,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
       await this.cargarConsignatarios();
       await this.cargarVariedadesYLugares();
       await this.cargarTransportes();
+      await this.loadCodigosRancho();
     } catch (err) {
       console.error('Error cargando tipos proceso empacado:', err);
     } finally {
@@ -795,7 +794,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
       this.alertService.showAlert('Información', 'El acopio no tiene configurado ese tipo proceso empacado.', 'warning');
       return;
     }
-    console.log(tipos)
     this.tiposProcesoEmpacadoModal.set(tipos);
 
     if (tipos.length === 1) {
@@ -810,7 +808,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     const comps = this.composiciones();
     if (comps.length > 0) {
       const comp = comps[0];
-      const consignatario = this.consignatarios().find(c => c.documentoFiscal === comp.documentoConsignatario);
+      const consignatario = this.consignatarios().find(c => c.documento === comp.documentoConsignatario);
       if (consignatario) {
         this._cargandoCascada = true;
         const origMostrar = this.alertService.mostrarModalCarga.bind(this.alertService);
@@ -818,7 +816,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
         (this.alertService as any).mostrarModalCarga = () => { };
         (this.alertService as any).cerrarModalCarga = () => { };
         try {
-          await this.onConsignatarioChange(String(consignatario.id));
+          await this.onConsignatarioChange(String(consignatario.documento));
           if (comp.destinoId) {
             await this.onDestinoChange(String(comp.destinoId));
           }
@@ -846,7 +844,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
     this.paletSeleccionado.set(palet);
     this.dpaletEditando.set(dpalet);
     this.modoEdicionCajas.set(true);
-
     this.formCajas.set({
       consignatarioId: 0,
       destinoId: (dpalet.destinoId as any) || 0,
@@ -868,7 +865,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
       esReposicion: dpalet.esReposicion ?? false,
       esEnsayo: dpalet.esEnsayo ?? false,
     });
-
+    console.log('cajassssssssss',this.formCajas())
     const codigoAcopio = String(palet?.codigoAcopio ?? this.procesoSeleccionado()?.codigoAcopio ?? '').trim();
     this.alertService.mostrarModalCarga();
     let tipos: TipoProcesoEmpacado[] = [];
@@ -897,27 +894,34 @@ export class PaletsComponent implements OnInit, OnDestroy {
       await this.cargarConsignatarios();
       await this.cargarVariedadesYLugares();
       await this.cargarTransportes();
-    } catch (err) { console.error('Error cargando tipos proceso empacado:', err); }
-    finally { this.alertService.cerrarModalCarga(); }
+      await this.loadCodigosRancho();
+    } catch (err) { 
+      console.error('Error cargando tipos proceso empacado:', err); 
+    }finally { 
+      this.alertService.cerrarModalCarga(); 
+    }
 
     this.tiposProcesoEmpacadoModal.set(tipos);
     if (tipos.length === 1) { this.tipoProcesoEmpacadoDisabled.set(true); }
     else { this.tipoProcesoEmpacadoDisabled.set(false); }
 
-    const consignatarioReal = this.consignatarios().find(c => c.documentoFiscal === dpalet.documentoConsignatario);
-    const consignatarioIdReal = consignatarioReal?.id ?? 0;
+    const consignatarioReal = this.consignatarios().find(c => c.documento === dpalet.documentoConsignatario);
+    const consignatarioIdReal = consignatarioReal?.documento ?? '';
     if (consignatarioIdReal) {
       this.updateFormCajas('consignatarioId', consignatarioIdReal);
     }
 
     // Ejecutar cascada desde consignatario para poblar listas filtradas
+    console.log('formCajas1111',this.formCajas())
     const valoresPrevios = { ...this.formCajas() };
+    
     this._cargandoCascada = true;
     const origMostrar = this.alertService.mostrarModalCarga.bind(this.alertService);
     const origCerrar = this.alertService.cerrarModalCarga.bind(this.alertService);
     (this.alertService as any).mostrarModalCarga = () => { };
     (this.alertService as any).cerrarModalCarga = () => { };
     try {
+      console.log('valoresss',valoresPrevios)
       if (consignatarioIdReal) {
         await this.onConsignatarioChange(String(consignatarioIdReal));
         this.updateFormCajas('destinoId', valoresPrevios.destinoId);
@@ -934,7 +938,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
         this.updateFormCajas('tipoClamshellId', valoresPrevios.tipoClamshellId);
         this.updateFormCajas('calibreId', valoresPrevios.calibreId);
         this.updateFormCajas('tipoEmpaqueId', valoresPrevios.tipoEmpaqueId);
-        if (valoresPrevios.lugarProduccionId) await this.onLugarProduccionChange(String(valoresPrevios.lugarProduccionId));
         this.updateFormCajas('codigoRanchoId', valoresPrevios.codigoRanchoId);
       }
       this._filtrarVariedadesPorEnsayo();
@@ -948,7 +951,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     this.modalAgregarCajasAbierto.set(true);
   }
 
-  async onModalCampoChange(event: { campo: string; valor: any }): Promise<void> {
+  async  onModalCampoChange(event: { campo: string; valor: any }): Promise<void> {
     const { campo, valor } = event;
     this.updateFormCajas(campo, valor);
     switch (campo) {
@@ -961,7 +964,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
       case 'tipoClamshellId': this.onTipoClamshellChange(String(valor)); break;
       case 'variedadId': this.onVariedadChange(String(valor)); break;
       case 'esEnsayo': this.onEsEnsayoChange(valor); break;
-      case 'lugarProduccionId': await this.onLugarProduccionChange(String(valor)); break;
     }
   }
 
@@ -987,7 +989,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     const pesoPorCaja = formatoSel?.pesoPorCaja ?? 10;
     const limiteCajasPorPalet = formatoSel?.limiteCajasPorPalet ?? 0;
 
-    const consignatario = this.consignatarios().find(c => c.id === f.consignatarioId);
+    const consignatario = this.consignatarios().find(c => c.documento === f.consignatarioId);
     const destino = this.filteredDestinos().find(d => String(d.id) === String(f.destinoId));
     const formato = this.filteredFormatos().find(fmt => fmt.id === f.formatoId);
     const variedad = this.filteredVariedades().find(v => String(v.codigo) === String(f.variedadId));
@@ -1001,10 +1003,10 @@ export class PaletsComponent implements OnInit, OnDestroy {
     const dpaletEditado: DPalet = {
       ...dpaletOriginal,
       idProceso: palet.idProceso,
-      documentoCliente: consignatario?.documentoFiscal ?? undefined,
+      documentoCliente: consignatario?.documento ?? undefined,
       destinoId: String(f.destinoId ?? ''),
       destinoNombre: destino?.pais ?? undefined,
-      documentoConsignatario: consignatario?.documentoFiscal ?? '',
+      documentoConsignatario: consignatario?.documento ?? '',
       consignatarioNombre: consignatario?.nombre ?? '',
       formatoId: f.formatoId,
       formatoNombre: formato?.descripcion ?? undefined,
@@ -1118,17 +1120,14 @@ export class PaletsComponent implements OnInit, OnDestroy {
   private async cargarConsignatarios(): Promise<void> {
     try {
       if (this.online) {
-        const resp: any = await firstValueFrom(this.catalogoService.listarClientes());
+        const resp: any = await firstValueFrom(this.catalogoService.listarConsignatarios());
         if (resp.length > 0) {
-          await this.catalogosRepo.clientesRepo.clear();
-          for (const c of (resp ?? [])) {
-            await this.catalogosRepo.clientesRepo.save(c);
-          }
           await this.catalogosRepo.consignatariosRepo.clear();
-          for (const c of (resp ?? [])) {
+          for (const c of (resp[0].data ?? [])) {
             await this.catalogosRepo.consignatariosRepo.save(c);
           }
-          this.consignatarios.set(resp);
+          let consignatarios= await this.catalogosRepo.consignatariosRepo.getAll();
+          this.consignatarios.set(consignatarios);
         }
       } else {
         const consignatariosDexie = await this.catalogosRepo.consignatariosRepo.getAll();
@@ -1280,7 +1279,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
 
   async submitAgregarCajas(): Promise<void> {
     const palet = this.paletSeleccionado();
-    console.log('palet', palet)
     if (!palet) return;
 
     const f = this.formCajas();
@@ -1333,7 +1331,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
       }
     }
 
-    const consignatario = this.consignatarios().find(c => c.id === f.consignatarioId);
+    const consignatario = this.consignatarios().find(c => c.documento === f.consignatarioId);
     const destino = this.filteredDestinos().find(d => String(d.id) === String(f.destinoId));
     const formato = this.filteredFormatos().find(fmt => fmt.id === f.formatoId);
     const variedad = this.filteredVariedades().find(v => String(v.codigo) === String(f.variedadId));
@@ -1349,10 +1347,10 @@ export class PaletsComponent implements OnInit, OnDestroy {
       idPalet: palet.idPalet ?? '',
       idProceso: palet.idProceso,
       idDPalet: (palet.idPalet ?? '') + '-' + Date.now(),
-      documentoCliente: consignatario?.documentoFiscal ?? undefined,
+      documentoCliente: consignatario?.documento ?? undefined,
       destinoId: String(f.destinoId ?? ''),
       destinoNombre: destino?.pais ?? undefined,
-      documentoConsignatario: consignatario?.documentoFiscal ?? '',
+      documentoConsignatario: consignatario?.documento ?? '',
       consignatarioNombre: consignatario?.nombre ?? '',
       formatoId: f.formatoId,
       formatoNombre: formato?.descripcion ?? undefined,
@@ -1385,10 +1383,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
       fechaCreacion: new Date().toISOString()
     };
 
-    console.log('Agregando cajas - DPalet completo:', JSON.stringify(nuevoDPalet, null, 2));
-    console.log('Formulario actual:', JSON.stringify(f, null, 2));
-    console.log('Peso por caja:', pesoPorCaja);
-
     if (this.online) {
       try {
         this.alertService.mostrarModalCarga();
@@ -1401,7 +1395,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
         const nuevoPorcentaje = limiteCajasPorPalet > 0
           ? Math.round((nuevaCantidad / limiteCajasPorPalet) * 100)
           : 0;
-        console.log('palet', palet)
         const paletActualizado: Palet = {
           ...palet,
           cantidadCajas: nuevaCantidad,
@@ -1412,9 +1405,8 @@ export class PaletsComponent implements OnInit, OnDestroy {
           bd: palet.bd ?? 0,
           modo: 'editado'
         };
-        console.log(paletActualizado)
+
         let respPalet = await firstValueFrom(this.paletService.sincronizar(paletActualizado));
-        console.log('respPalet', respPalet)
         this.paletSeleccionado.set(paletActualizado);
         this.palets.update(palets =>
           palets.map(p => {
@@ -1512,9 +1504,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
     const tieneObs = this.cerrarPaletTieneObs();
     const obs = this.cerrarPaletObservaciones();
     const medida = this.cerrarPaletMedida();
-
-    console.log('Cerrando palet:', palet, { tieneObs, obs, medida });
-
     this.alertService.mostrarModalCarga();
 
     const estadoCerrado = (palet.cantidadCajas || 0) >= (palet.limiteCajasPorPalet || 0) ? 'CERRADO_COMPLETO' : 'CERRADO_SALDO';
@@ -1622,8 +1611,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
   }
 
   async eliminarPalet(palet: Palet): Promise<void> {
-    console.log('Eliminando palet:', palet);
-
     this.alertService.mostrarModalCarga();
 
     const paletEliminado: Palet = {
@@ -1676,11 +1663,9 @@ export class PaletsComponent implements OnInit, OnDestroy {
   }
 
   async reabrirPalet(palet: Palet): Promise<void> {
-    console.log(palet)
     const ok = await this.alertService.showConfirm('Confirmación', `¿Está seguro que desea reabrir el palet #${palet.numeroPalet}?`, 'warning');
     if (!ok) return;
 
-    console.log('Reabriendo palet:', palet);
     this.alertService.mostrarModalCarga();
 
     const paletReabierto: Palet = {
@@ -1841,8 +1826,8 @@ export class PaletsComponent implements OnInit, OnDestroy {
   }
 
   async onConsignatarioChange(value: string): Promise<void> {
-    const consignatarioId = parseInt(value) || 0;
-    this.updateFormCajas('consignatarioId', consignatarioId);
+    const consignatarioDocumento = value;
+    this.updateFormCajas('consignatarioId', consignatarioDocumento);
 
     this.filteredDestinos.set([]);
     this.filteredFormatos.set([]);
@@ -1850,7 +1835,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
     this.filteredPresentaciones.set([]);
     this.filteredTiposCaja.set([]);
     this.filteredTiposClamshell.set([]);
-    this.filteredCodigosRancho.set([]);
     this.updateFormCajas('destinoId', 0);
     this.updateFormCajas('formatoId', 0);
     this.updateFormCajas('tipoEmpaqueGuiaId', 0);
@@ -1861,14 +1845,25 @@ export class PaletsComponent implements OnInit, OnDestroy {
     this.updateFormCajas('categoriaId', 0);
     this.updateFormCajas('tipoEmpaqueId', 0);
     this.updateFormCajas('codigoRanchoId', 0);
+    this.codigoRanchoDisabled.set(false);
 
-    if (!consignatarioId) return;
-    const consignatario = this.consignatarios().find(c => c.id === consignatarioId);
-    const documentoConsignatario = String(consignatario?.documento ?? consignatario?.documentoFiscal ?? '').trim();
+    if (!consignatarioDocumento) return;
+    const consignatario = this.consignatarios().find(c => c.documento === consignatarioDocumento);
+    const documentoConsignatario = String(consignatario?.documento ?? '').trim();
 
     if (!documentoConsignatario) {
       this.alertService.showAlert('Validación', 'No se pudo determinar el documento del consignatario.', 'warning');
       return;
+    }
+
+    const codigosRanchoRaw = consignatario?.codigosRancho;
+    if (Array.isArray(codigosRanchoRaw) && codigosRanchoRaw.length > 0) {
+      const ranchosActivos = codigosRanchoRaw.filter((r: any) => r?.activo === true);
+      this.filteredCodigosRancho.set(ranchosActivos);
+      if (ranchosActivos.length === 1) {
+        this.updateFormCajas('codigoRanchoId', ranchosActivos[0].id);
+        this.codigoRanchoDisabled.set(true);
+      }
     }
 
     this.alertService.mostrarModalCarga();
@@ -1878,7 +1873,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
 
       if (this.online) {
         const idproyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
-        const resp: any = await firstValueFrom(this.paletService.getDestinosPorMatrizCompatibilidad(idproyecto, consignatarioId.toString()));
+        const resp: any = await firstValueFrom(this.paletService.getDestinosPorMatrizCompatibilidad(idproyecto, consignatarioDocumento.toString()));
         const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
 
         if (items[0].data.length === 0) {
@@ -1902,7 +1897,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
       } else {
         const matrices = await this.administracionRepo.matricesCompatibilidadRepository.getAll();
         const matricesFiltradas = (matrices ?? []).filter((m: any) =>
-          String(m?.documentoConsignatario ?? '').trim() === consignatarioId.toString()
+          String(m?.documentoConsignatario ?? '').trim() === consignatarioDocumento.toString()
         );
         destinosIds = [...new Set(matricesFiltradas.map((m: any) => String(m?.destinoId ?? '')).filter((id: string) => id))];
 
@@ -1924,9 +1919,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
       this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este consignatario.', 'warning');
     }
 
-    if (this.formCajas().lugarProduccionId) {
-      await this.loadCodigosRancho(this.formCajas().lugarProduccionId, consignatarioId);
-    }
   }
 
   async onDestinoChange(value: string): Promise<void> {
@@ -1947,9 +1939,9 @@ export class PaletsComponent implements OnInit, OnDestroy {
 
     if (!destinoId) return;
 
-    const consignatarioId = this.formCajas().consignatarioId;
-    const consignatario = this.consignatarios().find(c => c.id === consignatarioId);
-    const documentoConsignatario = String(consignatario?.documento ?? consignatario?.documentoFiscal ?? '').trim();
+    const consignatarioDocumento = this.formCajas().consignatarioId;
+    const consignatario = this.consignatarios().find(c => c.documento === consignatarioDocumento);
+    const documentoConsignatario = String(consignatario?.documento ?? '').trim();
 
     if (!documentoConsignatario) {
       this.alertService.showAlert('Validación', 'No se pudo determinar el documento del consignatario.', 'warning');
@@ -1962,7 +1954,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
       let formatosIds: string[] = [];
       if (this.online) {
         const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
-        const resp: any = await firstValueFrom(this.paletService.getFormatosPorMatriz(codigoCultivo, consignatarioId.toString(), String(destinoId)));
+        const resp: any = await firstValueFrom(this.paletService.getFormatosPorMatriz(codigoCultivo, consignatarioDocumento.toString(), String(destinoId)));
         const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
 
         if (items[0].data.length === 0) {
@@ -1987,7 +1979,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
       } else {
         const matrices = await this.administracionRepo.matricesCompatibilidadRepository.getAll();
         const matricesFiltradas = (matrices ?? []).filter((m: any) =>
-          String(m?.documentoConsignatario ?? '').trim() === consignatarioId.toString() &&
+          String(m?.documentoConsignatario ?? '').trim() === consignatarioDocumento.toString() &&
           String(m?.destinoId ?? '').trim() === String(destinoId)
         );
         formatosIds = [...new Set(matricesFiltradas.map((m: any) => String(m?.formatoId ?? '')).filter((id: string) => id))];
@@ -2029,8 +2021,8 @@ export class PaletsComponent implements OnInit, OnDestroy {
     if (!formatoId) return;
 
     const f = this.formCajas();
-    const consignatario = this.consignatarios().find(c => c.id === f.consignatarioId);
-    const documentoConsignatario = String(consignatario?.documento ?? consignatario?.documentoFiscal ?? '').trim();
+    const consignatario = this.consignatarios().find(c => c.documento === f.consignatarioId);
+    const documentoConsignatario = String(consignatario?.documento ?? '').trim();
 
     if (!documentoConsignatario) {
       this.alertService.showAlert('Validación', 'No se pudo determinar el documento del consignatario.', 'warning');
@@ -2045,7 +2037,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
       if (this.online) {
         const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
         const resp: any = await firstValueFrom(this.paletService.getTiposEmpaqueGuiaPorMatriz(codigoCultivo, f.consignatarioId.toString(), String(f.destinoId), formatoId));
-        console.log(resp)
         const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
 
         if (items[0].data.length === 0) {
@@ -2112,8 +2103,8 @@ export class PaletsComponent implements OnInit, OnDestroy {
     if (!tipoEmpaqueGuiaId) return;
 
     const f = this.formCajas();
-    const consignatario = this.consignatarios().find(c => c.id === f.consignatarioId);
-    const documentoConsignatario = String(consignatario?.documento ?? consignatario?.documentoFiscal ?? '').trim();
+    const consignatario = this.consignatarios().find(c => c.documento === f.consignatarioId);
+    const documentoConsignatario = String(consignatario?.documento ?? '').trim();
 
     if (!documentoConsignatario) {
       this.alertService.showAlert('Validación', 'No se pudo determinar el documento del consignatario.', 'warning');
@@ -2268,8 +2259,8 @@ export class PaletsComponent implements OnInit, OnDestroy {
     if (!tipoCajaId) return;
 
     const f = this.formCajas();
-    const consignatario = this.consignatarios().find(c => c.id === f.consignatarioId);
-    const documentoConsignatario = String(consignatario?.documento ?? consignatario?.documentoFiscal ?? '').trim();
+    const consignatario = this.consignatarios().find(c => c.documento === f.consignatarioId);
+    const documentoConsignatario = String(consignatario?.documento ?? '').trim();
 
     if (!documentoConsignatario) {
       this.alertService.showAlert('Validación', 'No se pudo determinar el documento del consignatario.', 'warning');
@@ -2367,69 +2358,41 @@ export class PaletsComponent implements OnInit, OnDestroy {
   async onLugarProduccionChange(value: string): Promise<void> {
     const lugarProduccionId = parseInt(value) || 0;
     this.updateFormCajas('lugarProduccionId', lugarProduccionId);
-    await this.loadCodigosRancho(lugarProduccionId, this.formCajas().consignatarioId);
   }
 
-  async loadCodigosRancho(lugarProduccionId: number, consignatarioId: number): Promise<void> {
-    console.log('📋 Cargando códigos rancho para:', { lugarProduccionId, consignatarioId });
-
+  async loadCodigosRancho(): Promise<void> {
     this.filteredCodigosRancho.set([]);
-    this.updateFormCajas('codigoRanchoId', 0);
-
-    if (!lugarProduccionId || !consignatarioId) {
-      return;
-    }
+    // this.updateFormCajas('codigoRanchoId', 0);
 
     try {
       let codigosRancho: any[] = [];
 
       if (this.online) {
         const idproyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
-        const resp: any = await firstValueFrom(this.paletService.listarCodigosRanchoPorLugarProduccion(idproyecto, lugarProduccionId));
-        console.log('1-1-1', resp)
+        const resp: any = await firstValueFrom(this.catalogoService.listarCodigosRanchoCatalogo(idproyecto));
         let data: any[] = [];
         if (Array.isArray(resp)) {
-          if (resp.length > 0 && resp[0]?.data !== undefined) {
-            data = resp[0].data ?? [];
-          } else {
-            data = resp;
-          }
+          data = resp;
         } else if (resp?.data !== undefined) {
           data = resp.data ?? [];
         } else {
           data = resp ?? [];
         }
-
-        codigosRancho = data.map((c: any) => ({
-          id: c?.id ?? c?.Id ?? 0,
-          codigo: c?.codigo ?? c?.Codigo ?? '',
-          activo: c?.activo ?? c?.Activo ?? true,
-          fechaCreacion: c?.fechaCreacion ?? c?.FechaCreacion ?? '',
-        }));
+        console.log(data)
+        codigosRancho = data
+          .map((c: any) => ({
+            id: c?.id ?? c?.Id ?? 0,
+            codigo: c?.codigo ?? c?.Codigo ?? '',
+            activo: c?.activo ?? c?.Activo ?? true,
+            fechaCreacion: c?.fechaCreacion ?? c?.FechaCreacion ?? '',
+          }))
+          .filter((c: any) => c.activo === true);
       } else {
-        const lugaresConfig = await this.catalogosRepo.lugaresProduccionConfigRepo.getAll();
-        const configFiltrada = (lugaresConfig ?? []).filter((lc: any) =>
-          lc.idLugaresDeProduccion == lugarProduccionId && lc.activo === true
-        );
-        const idsCodigoRancho = configFiltrada.map((lc: any) => lc.idCodigoRancho).filter((id: any) => id);
-
         const todosCodigos = await this.catalogosRepo.codigosRanchoRepo.getAll();
-        codigosRancho = (todosCodigos ?? []).filter((c: any) =>
-          idsCodigoRancho.includes(c.id) && c.activo === true
-        );
+        codigosRancho = (todosCodigos ?? []).filter((c: any) => c.activo === true);
       }
 
-      console.log('Códigos rancho procesados:', codigosRancho);
       this.filteredCodigosRancho.set(codigosRancho);
-
-      if (codigosRancho.length === 1) {
-        console.log('Auto-seleccionando único código:', codigosRancho[0]);
-        this.updateFormCajas('codigoRanchoId', codigosRancho[0].id);
-      } else if (codigosRancho.length === 0) {
-        console.log('Sin códigos disponibles');
-      } else {
-        console.log('Múltiples códigos disponibles, permitiendo selección');
-      }
     } catch (err) {
       console.error('Error cargando códigos rancho:', err);
       this.filteredCodigosRancho.set([]);
@@ -2443,7 +2406,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
   readonly presentacionDisabled = computed(() => !this.formCajas().tipoEmpaqueGuiaId);
   readonly tipoCajaDisabled = computed(() => this.filteredTiposCaja().length === 0);
   readonly tipoClamshellDisabled = computed(() => this.filteredTiposClamshell().length === 0);
-  readonly codigoRanchoDisabled = computed(() => !this.formCajas().lugarProduccionId || !this.formCajas().consignatarioId);
 
   // UI helpers
   toggleSeccionActivos(): void {

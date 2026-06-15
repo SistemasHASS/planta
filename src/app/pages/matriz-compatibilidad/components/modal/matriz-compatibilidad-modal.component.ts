@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, computed, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdvancedSelectComponent } from '../../../../shared/components/advanced-select/advanced-select.component';
 import { MatrizCompatibilidad } from '../../../../shared/interfaces/administracion.interface';
+import { CatalogosRepository } from '../../../../shared/dexiedb/repository/catalogos.repository';
 
 type MatrizCompatibilidadForm = {
   documentoCliente: string | null;
@@ -28,6 +29,8 @@ type MatrizCompatibilidadForm = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MatrizCompatibilidadModalComponent {
+  private readonly catalogosRepo = inject(CatalogosRepository);
+
   @Input() modo: 'nuevo' | 'editado' = 'nuevo';
   @Input() value: MatrizCompatibilidad | null = null;
   @Input() tiposEmpaqueGuiaList: any[] = [];
@@ -37,6 +40,21 @@ export class MatrizCompatibilidadModalComponent {
 
   @Output() cerrar = new EventEmitter<void>();
   @Output() guardar = new EventEmitter<any>();
+
+  readonly clientes = signal<any[]>([]);
+  readonly consignatarios = signal<any[]>([]);
+
+  readonly filteredConsignatarios = computed(() => {
+    const clienteId = this.form().documentoCliente;
+    if (!clienteId) return [];
+    const selectedCliente = this.clientes().find((c: any) => String(c?.id) === String(clienteId));
+    if (!selectedCliente) return [];
+    const grupoCodigo = selectedCliente?.codigo;
+    if (!grupoCodigo) return [];
+    return this.consignatarios().filter((c: any) =>
+      String(c?.codigoGrupoCliente) === String(grupoCodigo)
+    );
+  });
 
   readonly submitAttempted = signal(false);
   private readonly initialForm = signal<MatrizCompatibilidadForm | null>(null);
@@ -90,8 +108,21 @@ export class MatrizCompatibilidadModalComponent {
     return this.modo === 'nuevo' ? true : this.hasChanges();
   });
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     this.initFromValue();
+    await this.loadCatalogos();
+  }
+
+  private async loadCatalogos(): Promise<void> {
+    const [clientes, consignatarios] = await Promise.all([
+      this.catalogosRepo.clientesRepo.getAll(),
+      this.catalogosRepo.consignatariosRepo.getAll(),
+    ]);
+    this.clientes.set((clientes ?? []).filter((c: any) => c?.activo === true || c?.activo === 1));
+    this.consignatarios.set((consignatarios ?? []).filter((c: any) => {
+      if (c?.activo === undefined || c?.activo === null) return true;
+      return c?.activo === true || c?.activo === 1;
+    }));
   }
 
   ngOnChanges(): void {
@@ -212,8 +243,14 @@ export class MatrizCompatibilidadModalComponent {
   }
 
   updateField(field: string, value: any): void {
-    console.log(field)
-    console.log(value)
+    if (field === 'documentoCliente') {
+      this.form.update(f => ({
+        ...f,
+        documentoCliente: value,
+        documentoConsignatario: null,
+      }));
+      return;
+    }
     this.form.update(f => ({ ...f, [field]: value }));
   }
 

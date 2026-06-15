@@ -20,8 +20,7 @@
       @if (composiciones.length > 0) {
       <div class="mt-1" style="border-top:1px solid rgba(0,0,0,0.1); padding-top:6px; margin-top:6px;">
         <small><i class="bi bi-info-circle"></i> Este palet tiene cajas registradas. Formato fijado a:
-          <strong>{{ composiciones[0]?.formatoNombre || ('Formato #' + composiciones[0]?.formatoId) }}</strong>. Los
-          campos Consignatario, Destino y Formato están bloqueados.</small>
+          <strong>{{ composiciones[0]?.formatoNombre || ('Formato #' + composiciones[0]?.formatoId) }}</strong>. Al agregar más cajas, el formato debe ser el mismo.</small>
       </div>
       }
     </div>
@@ -51,19 +50,18 @@
         <div class="col-md-6 mb-3">
           <label class="form-label form-label-required">Consignatario</label>
           <select class="form-select" name="consignatarioId" id="selectConsignatario" required
-            [disabled]="composiciones.length > 0 && !modoEdicion"
             [ngModel]="formCajas.consignatarioId" [ngModelOptions]="{standalone: true}"
             (ngModelChange)="onCampoChange('consignatarioId', +$event)">
             <option [ngValue]="0">Seleccione...</option>
-            @for (c of consignatarios; track c.id) {
-            <option [ngValue]="c.id">{{ c.nombre }}</option>
+            @for (c of consignatarios; track c.documento) {
+            <option [ngValue]="c.documento">{{ c.nombre }}</option>
             }
           </select>
         </div>
         <div class="col-md-6 mb-3">
           <label class="form-label form-label-required">Destino</label>
           <select class="form-select" name="destinoId" id="selectDestino" required
-            [disabled]="filteredDestinos.length==0 || (composiciones.length > 0 && !modoEdicion)" [ngModel]="formCajas.destinoId"
+            [disabled]="filteredDestinos.length==0" [ngModel]="formCajas.destinoId"
             [ngModelOptions]="{standalone: true}" (ngModelChange)="onCampoChange('destinoId', $event)">
             <option value="">Seleccione consignatario...</option>
             @for (d of filteredDestinos; track d.id) {
@@ -73,7 +71,7 @@
         </div>
         <div class="col-md-6 mb-3">
           <label class="form-label form-label-required">Formato</label>
-          <select class="form-select" name="formatoId" id="selectFormato" required [disabled]="formatoDisabled || (composiciones.length > 0 && !modoEdicion)"
+          <select class="form-select" name="formatoId" id="selectFormato" required [disabled]="formatoDisabled"
             [ngModel]="formCajas.formatoId" [ngModelOptions]="{standalone: true}"
             (ngModelChange)="onCampoChange('formatoId', +$event)">
             <option [ngValue]="0">Seleccione destino...</option>
@@ -147,7 +145,7 @@
             @for (v of filteredVariedades; track v.codigo) {
             <option [value]="v.codigo" [attr.data-procedencia]="v.procedencia"
               [attr.data-es-ensayo]="v.esEnsayo ? '1' : '0'">
-              {{'MODULO: ' + v.idmodulo+' - ' +'VARIEDAD: ' +v.variedad }}
+              {{ v.variedad }}
             </option>
             }
           </select>
@@ -164,7 +162,7 @@
             <option value="">Seleccione variedad certificada...</option>
             @for (v of variedades; track v.codigo) {
             @if (!v.esEnsayo ) {
-            <option [value]="v.codigo">{{'MODULO: ' + v.idmodulo+' | ' +'VARIEDAD: ' +v.variedad }}</option>
+            <option [value]="v.codigo">{{ v.variedad }}</option>
             }
             }
           </select>
@@ -185,17 +183,12 @@
         <div class="col-md-6 mb-3">
           <label class="form-label form-label-required">Código de Rancho</label>
           <select class="form-select" name="codigoRanchoId" id="selectCodigoRancho" required
-            [disabled]="codigoRanchoDisabled" [ngModel]="formCajas.codigoRanchoId"
-            [ngModelOptions]="{standalone: true}" (ngModelChange)="onCampoChange('codigoRanchoId', +$event)"
-            [style.background-color]="filteredCodigosRancho.length === 1 ? '#e9ecef' : ''"
-            [style.cursor]="filteredCodigosRancho.length === 1 ? 'not-allowed' : 'pointer'">
-            @if (filteredCodigosRancho.length === 0) {
-            <option [ngValue]="0">Sin códigos disponibles</option>
-            } @else {
+            [disabled]="codigoRanchoDisabled"
+            [ngModel]="formCajas.codigoRanchoId"
+            [ngModelOptions]="{standalone: true}" (ngModelChange)="onCampoChange('codigoRanchoId', +$event)">
             <option [ngValue]="0">Seleccione...</option>
             @for (c of filteredCodigosRancho; track c.id) {
             <option [ngValue]="c.id">{{ c.codigo }}</option>
-            }
             }
           </select>
         </div>

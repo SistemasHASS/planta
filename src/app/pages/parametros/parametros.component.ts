@@ -418,16 +418,21 @@ export class ParametrosComponent implements OnInit {
 
     async apiListarMatricesCompatibilidad() {
         const resp: any = await firstValueFrom(this.administracionService.listarMatricesCompatibilidad({ idProyecto: this.savedConfig()?.idProyecto, idCultivo: this.savedConfig()?.codigoCultivo }));
+        console.log('apiListarMatricesCompatibilidad',resp)
         if (resp[0]?.error) {
+            await this.adminRepo.matricesCompatibilidadRepository.clear()
             this.alertService.showAlert('Error', 'Error al listar las matrices de compatibilidad', 'error');
             return
         }
         let apiItems = resp[0].data
         const normalizados = await this.normalizarMatricesCompatibilidadDixie(apiItems);
         if (normalizados.length > 0) {
+            await this.adminRepo.matricesCompatibilidadRepository.clear()
             for (const item of normalizados) {
                 await this.adminRepo.matricesCompatibilidadRepository.saveFordec(item as any);
             }
+        }else{
+            await this.adminRepo.matricesCompatibilidadRepository.clear()
         }
     }
 
@@ -435,7 +440,7 @@ export class ParametrosComponent implements OnInit {
         const normalizar: MatrizCompatibilidad[] = [];
         for (const item of (Array.isArray(data) ? data : [])) {
             const cliente = item?.documentoCliente ? await this.catalogosRepo.clientesRepo.getByField('id', Number(item.documentoCliente)) : undefined;
-            const consignatario = item?.documentoConsignatario ? await this.catalogosRepo.consignatariosRepo.getByField('id', Number(item.documentoConsignatario)) : undefined;
+            const consignatario = item?.documentoConsignatario ? await this.catalogosRepo.consignatariosRepo.getByField('documento', item.documentoConsignatario) : undefined;
             const destino = item?.destinoId ? await this.catalogosRepo.destinosRepo.getByField('id', item.destinoId) : undefined;
             const formato = item?.formatoId ? await this.catalogosRepo.formatosRepo.getByField('id', item.formatoId) : undefined;
             const tipoEmpaque = item?.tiposEmpaqueId ? await this.catalogosRepo.tiposEmpaqueRepo.getByField('id', item.tiposEmpaqueId) : undefined;
@@ -512,6 +517,7 @@ export class ParametrosComponent implements OnInit {
                         this.getFormatosMaestros(parametros[0].codigoCultivo),
                         this.getVariedadesMaestros(parametros[0].codigoCultivo),
                         this.getClientesMaestros(),
+                        this.getConsignatario(),
                         this.getPaisesMaestros(),
                         this.getCalibresMaestros(parametros[0].codigoCultivo),
                         this.getTransportesMaestros(),
@@ -541,6 +547,7 @@ export class ParametrosComponent implements OnInit {
                         this.getFormatosMaestros(parametros[0].codigoCultivo),
                         this.getVariedadesMaestros(parametros[0].codigoCultivo),
                         this.getClientesMaestros(),
+                        this.getConsignatario(),
                         this.getPaisesMaestros(),
                         this.getCalibresMaestros(parametros[0].codigoCultivo),
                         this.getTransportesMaestros(),
@@ -598,11 +605,14 @@ export class ParametrosComponent implements OnInit {
     async getProcesosForAcopioMaestros(idproyecto:string, codigoCultivo:string): Promise<void>{
         try{    
             const resp: any =await firstValueFrom(this.procesoService.listarProcesoForAcopio(codigoCultivo, idproyecto))
-            console.log('resp', resp)
             if(resp.length > 0){
                 if(!resp[0].error){
                     if(resp[0].data.length >0){
                         const data = Array.isArray(resp?.[0]?.data) ? resp[0].data : [];
+                        await this.procesoRepo.procesosRepo.clear();
+                        await this.procesoRepo.dProcesoLogisticosRepo.clear();
+                        await this.procesoRepo.dProcesoSupervisoresRepo.clear();
+                        await this.procesoRepo.paletsRepo.clear();
                         const normalizados: {
                                   proceso: Proceso;
                                   dProcesoLogisticos: DProcesoLogistico[];
@@ -638,7 +648,17 @@ export class ParametrosComponent implements OnInit {
                                 console.error('Error obteniendo palets para proceso', idProceso, err);
                             }
                         }
+                    }else{
+                          await this.procesoRepo.procesosRepo.clear();
+                          await this.procesoRepo.dProcesoLogisticosRepo.clear();
+                          await this.procesoRepo.dProcesoSupervisoresRepo.clear();
+                          await this.procesoRepo.paletsRepo.clear();
                     }
+                }else{
+                    await this.procesoRepo.procesosRepo.clear();
+                    await this.procesoRepo.dProcesoLogisticosRepo.clear();
+                    await this.procesoRepo.dProcesoSupervisoresRepo.clear();
+                    await this.procesoRepo.paletsRepo.clear();
                 }
             }
         }catch(error){
@@ -663,7 +683,7 @@ export class ParametrosComponent implements OnInit {
             this.catalogosRepo.tipoProcesoEmpacadoRepo.getAll(),
         ]);
 
-        const consigMap = new Map(consignatarios.map(c => [String(c.documentoFiscal ?? '').trim(), c.nombre]));
+        const consigMap = new Map(consignatarios.map(c => [String(c.documento ?? '').trim(), c.nombre]));
         const destMap = new Map(destinos.map(d => [String(d.id ?? '').trim(), d.pais]));
         const fmtMap = new Map(formatos.map(f => [String(f.id ?? '').trim(), f.descripcion]));
         const presMap = new Map(presentaciones.map(p => [String(p.id ?? '').trim(), p.nombre ?? '']));
@@ -1269,26 +1289,48 @@ export class ParametrosComponent implements OnInit {
         }
     }
 
+    async getConsignatario(): Promise<void> {
+        try{
+            const resp: any = await firstValueFrom(this.catalogoService.listarConsignatarios())
+            if(resp.length >0){
+                if(resp[0].data.length >0){
+                      this.catalogosRepo.consignatariosRepo.clear()
+                      for (const c of (resp[0].data ?? [])) {
+                          c.bd=1
+                          this.catalogosRepo.consignatariosRepo.save(c)
+                      }
+                }else{
+                    let dexiedbConsig = await this.catalogosRepo.consignatariosRepo.getAll()
+                    if (dexiedbConsig.length > 0) {
+                        await this.catalogosRepo.consignatariosRepo.clear()
+                    }
+                }
+            }else{
+                let dexiedbConsig = await this.catalogosRepo.consignatariosRepo.getAll()
+                if (dexiedbConsig.length > 0) {
+                    await this.catalogosRepo.consignatariosRepo.clear()
+                }
+            }
+
+
+        }catch(error){
+            console.log("Error sincronizando Consignatarios", error);  
+        }
+    }
+
     async getClientesMaestros(): Promise<void> {
         try {
             const resp: any = await firstValueFrom(this.catalogoService.listarClientes())
-            if (resp.length > 0) {
+            if (resp.data.length > 0) {
                 this.catalogosRepo.clientesRepo.clear()
-                for (const c of (resp ?? [])) {
+                for (const c of (resp.data ?? [])) {
+                    c.bd=1
                     this.catalogosRepo.clientesRepo.save(c)
-                }
-                this.catalogosRepo.consignatariosRepo.clear()
-                for (const c of (resp ?? [])) {
-                    this.catalogosRepo.consignatariosRepo.save(c)
                 }
             } else {
                 let dexiedbClientes = await this.catalogosRepo.clientesRepo.getAll()
                 if (dexiedbClientes.length > 0) {
                     await this.catalogosRepo.clientesRepo.clear()
-                }
-                let dexiedbConsig = await this.catalogosRepo.consignatariosRepo.getAll()
-                if (dexiedbConsig.length > 0) {
-                    await this.catalogosRepo.consignatariosRepo.clear()
                 }
             }
         } catch (error) {
@@ -1321,7 +1363,7 @@ export class ParametrosComponent implements OnInit {
 
     async getAcopiosMaestros(): Promise<void> {
         try {
-            const resp: any = await firstValueFrom(this.catalogoService.listarAcopios())
+            const resp: any = await firstValueFrom(this.catalogoService.listarAcopios(this.savedConfig()?.idProyecto || ''))
             console.log(resp)
             if (!resp.error) {
                 let dexiedb = await this.catalogosOperativosRepo.acopiosRepo.getAll()

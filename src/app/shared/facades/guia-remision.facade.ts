@@ -189,7 +189,6 @@ export class GuiaRemisionFacade {
   }
 
   async getGuiaRemisionDetalle(idProyecto: string, codigoGuiaRemision: string): Promise<any | null> {
-    console.log(codigoGuiaRemision)
     const idP = String(idProyecto ?? '').trim();
     const codigo = String(codigoGuiaRemision ?? '').trim();
     if (!idP || !codigo) return null;
