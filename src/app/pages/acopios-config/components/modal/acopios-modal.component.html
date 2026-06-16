@@ -1,80 +1,80 @@
-<div class="modal-backdrop-custom" (click)="onBackdrop()">
-  <div class="modal-content-custom" (click)="$event.stopPropagation()">
-    <div class="modal-header-custom">
-      <h5 class="modal-title">{{ title() }}</h5>
-      <button type="button" class="btn-close" (click)="onCerrar()" aria-label="Close"></button>
-    </div>
+<div class="modal-backdrop-custom" (click)="onBackdrop()"></div>
+<div class="modal-custom">
+  <div class="modal-header-custom">
+    <h5><i class="bi bi-gear"></i> {{ title }}</h5>
+    <button type="button" class="btn-close btn-close-white" (click)="onCerrar()" aria-label="Close"></button>
+  </div>
 
-    <div class="modal-body-custom">
-      <div class="sp-card" style="margin:0">
-        <div class="sp-card-body">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label">Acopio</label>
-              <input class="form-control" [value]="value?.acopioNombre || ''" disabled />
-            </div>
+  <div class="modal-body-custom">
+    <div class="sp-card" style="margin-bottom:0">
+      <div class="sp-card-header">
+        <h5><i class="bi bi-sliders"></i> Configuración de serie guía</h5>
+      </div>
+      <div class="sp-card-body">
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label">Acopio</label>
+            <input class="form-control" [value]="value?.acopioNombre || ''" disabled readonly />
+          </div>
 
-            <div class="col-md-6">
-              <label class="form-label">Serie Guía</label>
-              <input
-                class="form-control"
-                [ngModel]="serieGuia()"
-                (ngModelChange)="onSerieChange($event)"
-                placeholder="Ej: F001"
-              />
-            </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label">Serie Guía</label>
+            <input
+              class="form-control"
+              [ngModel]="serieGuia()"
+              (ngModelChange)="onSerieChange($event)"
+              placeholder="Ej: F001"
+            />
           </div>
         </div>
       </div>
+    </div>
 
-      <div class="sp-card" style="margin-top:12px">
-        <div class="sp-card-body">
-          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-            <label class="form-label mb-0">
-              Tipos de Proceso Empacado
-              <span class="sp-badge sp-badge-muted ms-1">{{ seleccionadosCount() }} seleccionado(s)</span>
+    <div class="sp-card" style="margin-top:12px">
+      <div class="sp-card-header">
+        <h5><i class="bi bi-layers"></i> Tipos de Proceso Empacado <span class="sp-badge sp-badge-muted ms-1">{{ seleccionadosCount() }} seleccionado(s)</span></h5>
+      </div>
+      <div class="sp-card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+          <label class="form-label mb-0" style="font-size:11px;color:var(--color-text-muted)">Seleccione los tipos de proceso activos para este acopio</label>
+          <div style="min-width:220px;flex:1;max-width:320px">
+            <input
+              class="form-control form-control-sm"
+              placeholder="Buscar tipo..."
+              [ngModel]="filtroTipos()"
+              (ngModelChange)="filtroTipos.set($event)"
+            />
+          </div>
+        </div>
+
+        <div class="tipos-list">
+          @for (t of tiposFiltrados(); track t.codigo) {
+            <label class="tipo-item">
+              <input
+                type="checkbox"
+                class="form-check-input"
+                [checked]="isChecked(t.codigo)"
+                (change)="toggle(t.codigo, $any($event.target).checked)"
+              />
+              <span class="tipo-codigo">{{ t.codigo }}</span>
+              <span class="tipo-nombre">{{ t.nombre }}</span>
             </label>
-            <div style="min-width:220px;flex:1;max-width:320px">
-              <input
-                class="form-control form-control-sm"
-                placeholder="Buscar tipo..."
-                [ngModel]="filtroTipos()"
-                (ngModelChange)="filtroTipos.set($event)"
-              />
+          }
+
+          @if (tiposFiltrados().length === 0) {
+            <div class="text-center py-3" style="color:var(--color-text-muted);font-size:13px">
+              Sin tipos de proceso empacado
             </div>
-          </div>
-
-          <div class="tipos-list">
-            @for (t of tiposFiltrados(); track t.codigo) {
-              <label class="tipo-item">
-                <input
-                  type="checkbox"
-                  class="form-check-input"
-                  [checked]="isChecked(t.codigo)"
-                  (change)="toggle(t.codigo, $any($event.target).checked)"
-                />
-                <span class="tipo-codigo">{{ t.codigo }}</span>
-                <span class="tipo-nombre">{{ t.nombre }}</span>
-              </label>
-            }
-
-            @if (tiposFiltrados().length === 0) {
-              <div class="text-center py-3" style="color:var(--color-text-muted);font-size:13px">
-                Sin tipos de proceso empacado
-              </div>
-            }
-          </div>
+          }
         </div>
       </div>
     </div>
+  </div>
 
-    <div class="modal-footer-custom">
-      <div class="footer-actions">
-        <button type="button" class="btn btn-sp-outline btn-cancel" (click)="onCerrar()">Cancelar</button>
-        <button type="button" class="btn btn-sp-primary btn-save" [disabled]="!hasChanges()" (click)="onGuardar()">
-          Guardar cambios
-        </button>
-      </div>
-    </div>
+  <div class="modal-footer-custom">
+    <button type="button" class="btn btn-sp-outline btn-cancel" (click)="onCerrar()">Cancelar</button>
+    <button type="button" class="btn btn-sp-primary btn-save" [disabled]="!hasChanges()" (click)="onGuardar()">
+      Guardar cambios
+    </button>
   </div>
 </div>

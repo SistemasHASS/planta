@@ -861,7 +861,6 @@ export class ProcesosComponent implements OnInit {
   }
 
   async cerrarProceso(p: Proceso): Promise<void> {
-    console.log(p)
     const confirmar = await this.alertService.showConfirm(
       'Confirmar',
       `Esta seguro de cerrar el proceso. ¿Deseas continuar?`,
@@ -898,25 +897,42 @@ export class ProcesosComponent implements OnInit {
       this.alertService.cerrarModalCarga();
       this.alertService.showAlert('Éxito', resp[0].mensaje, 'success');
     }
-    console.log(resp)
+
   }
 
   async reabrirProceso(p: Proceso): Promise<void> {
-    // const ok = await this.alertService.showConfirm('Confirmación', '¿Reabrir este proceso? Se volverá a estado ABIERTO.', 'warning');
-    // if (!ok) return;
+    const ok = await this.alertService.showConfirm('Confirmación', '¿Reabrir este proceso? Se volverá a estado ABIERTO.', 'warning');
+    if (!ok) return;
 
-    // this.alertService.mostrarModalCarga();
-    // this.procesoService.reabrir(p.id).subscribe({
-    //   next: () => {
-    //     this.alertService.cerrarModalCarga();
-    //     this.alertService.showAlert('Éxito', 'Proceso reabierto exitosamente', 'success');
-    //     this.cargarDatos();
-    //   },
-    //   error: () => {
-    //     this.alertService.cerrarModalCarga();
-    //     this.alertService.showAlertAcept('Error', 'Error al reabrir proceso', 'error');
-    //   }
-    // });
+    const idProceso = String((p as any)?.idProceso ?? '').trim();
+    const proceso: Proceso = {
+      ...(p as any),
+      db: 0,
+    } as any;
+
+    const dLog = await this.procesoRepo.dProcesoLogisticosRepo.getSincronizadosByIdProceso(idProceso);
+    const dSup = await this.procesoRepo.dProcesoSupervisoresRepo.getSincronizadosByIdProceso(idProceso);
+
+    const resp = await firstValueFrom(this.procesoService.sincronizar(proceso,dLog as any,dSup as any,this.savedConfig()?.codigoCultivo ?? '',this.savedConfig()?.idProyecto ?? '',"reabrir"));
+
+    if (!Array.isArray(resp) || resp.length === 0) {
+      this.alertService.cerrarModalCarga();
+      this.alertService.showAlertAcept('Error', `No se pudo sincronizar el proceso ${idProceso}.`, 'error');
+      return;
+    }
+
+    if (resp[0]?.error) {
+      this.alertService.cerrarModalCarga();
+      this.alertService.showAlertAcept('Error', resp[0]?.mensaje ?? `Error al sincronizar el proceso ${idProceso}.`, 'error');
+      return;
+    }else{
+      await this.sincronizarSupervisores();
+      await this.sincronizarPersonalLogistica();
+      await this.listarProcesosApi();
+      this.alertService.cerrarModalCarga();
+      this.alertService.showAlert('Éxito', resp[0].mensaje, 'success');
+    }
+
   }
 
   formatearFechaLarga(fecha: string): string {

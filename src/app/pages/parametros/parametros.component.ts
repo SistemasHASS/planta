@@ -522,7 +522,7 @@ export class ParametrosComponent implements OnInit {
                         this.getCalibresMaestros(parametros[0].codigoCultivo),
                         this.getTransportesMaestros(),
                         this.getCodigosRanchoMaestros(parametros[0].idProyecto),
-                        this.getLugaresProduccionConfigMaestros(parametros[0].idProyecto),
+                        // this.getLugaresProduccionConfigMaestros(parametros[0].idProyecto),
                         this.getTiposClamshellMaestros(parametros[0].codigoCultivo),
                         this.getCategoriaMaestros(parametros[0].codigoCultivo),
                         this.getTiposEmpaquesMaestros(parametros[0].codigoCultivo),
@@ -552,7 +552,7 @@ export class ParametrosComponent implements OnInit {
                         this.getCalibresMaestros(parametros[0].codigoCultivo),
                         this.getTransportesMaestros(),
                         this.getCodigosRanchoMaestros(parametros[0].idProyecto),
-                        this.getLugaresProduccionConfigMaestros(parametros[0].idProyecto),
+                        // this.getLugaresProduccionConfigMaestros(parametros[0].idProyecto),
                         this.getTiposClamshellMaestros(parametros[0].codigoCultivo),
                         this.getCategoriaMaestros(parametros[0].codigoCultivo),
                         this.getTiposEmpaquesMaestros(parametros[0].codigoCultivo),
@@ -754,7 +754,7 @@ export class ParametrosComponent implements OnInit {
                 };
                 await this.procesoRepo.dPaletsRepo.saveByIdDPalet(row);
             }
-            console.log('DPalets sincronizados:', enriquecidos.length);
+
         } catch (err) {
             console.error('Error sincronizando DPalets por acopio:', err);
         }

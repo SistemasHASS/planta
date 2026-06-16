@@ -238,7 +238,8 @@ export class GuiaRemisionFacade {
 
   async cargarProcesosParaGuia(codigoGuiaRemisionExcluir?: string): Promise<any> {
     if (this.connectivity.isOnline()) {
-       return await firstValueFrom(this.guiaService.listarProcesosGuia());
+       let pro= await firstValueFrom(this.guiaService.listarProcesosGuia());
+       return pro
     }
 
     const procesos = await this.procesoRepo.procesosRepo.getAll();
@@ -304,6 +305,7 @@ export class GuiaRemisionFacade {
 
     // 2. Palets ocupados en otras guias activas del proyecto
     const guias = await this.guiasRemisionRepo.guiasRepo.getByIdProyecto(idProyecto);
+
     const guiasActivas = (guias ?? []).filter((g: any) => {
       const estado = String(g?.estado ?? '').trim().toUpperCase();
       const eliminado = !!(g as any)?.eliminado;
@@ -311,22 +313,28 @@ export class GuiaRemisionFacade {
     });
 
     const paletsOcupados = new Set<string>();
+
     for (const g of guiasActivas) {
       const cg = String(g?.codigoGuiaRemision ?? '').trim();
-      if (cg === codigoGuiaRemision) continue;
+      if (cg === codigoGuiaRemision) {
+        continue;
+      }
       const paletsGuia = await this.guiasRemisionRepo.paletsRepo.getByCodigoGuiaRemision(cg);
       for (const pg of (paletsGuia ?? [])) {
         const cp = String(pg?.codigoPalet ?? pg?.idPalet ?? '').trim();
         if (cp) paletsOcupados.add(cp);
       }
     }
-
+    
     // 3. Palets libres del proceso (sin otra guía activa)
     const paletsLibres = (todosPalets ?? []).filter((p: any) => {
-      const cp = String(p?.idPalet ?? '').trim();
-      return !paletsOcupados.has(cp);
+      if(p.estado === 'CERRADO_COMPLETO' || p.estado === 'CERRADO_SALDO') {
+        const cp = String(p?.idPalet ?? '').trim();
+        return !paletsOcupados.has(cp);
+      }
+      return false;
     });
-
+        
     // 4. Reconstruir palets de la guía actual desde el detalle (cajas), agrupando por codigoPalet
     const paletsDeGuiaActual = new Map<string, any>();
     for (const caja of (detalleCajas ?? [])) {
@@ -432,6 +440,22 @@ export class GuiaRemisionFacade {
     } catch (error: any) {
       console.error('Error sincronizando guías offline:', error);
       return { success: false, mensaje: error?.error?.message ?? 'Error al sincronizar guías.', guiasSincronizadas: 0 };
+    }
+  }
+
+  async editarGuiaRemision(payload: any): Promise<any> {
+    if (!this.connectivity.isOnline()) {
+      return { error: true, mensaje: 'No hay conexión a internet.' };
+    }
+    try {
+      let resp: any = await firstValueFrom(this.guiaService.editarGuiaRemision(payload));
+      if (Array.isArray(resp) && resp.length > 0) {
+        resp = resp[0];
+      }
+      return resp;
+    } catch (error: any) {
+      console.error('Error editando guía remisión:', error);
+      return { error: true, mensaje: error?.error?.message ?? 'Error al editar la guía.' };
     }
   }
 }

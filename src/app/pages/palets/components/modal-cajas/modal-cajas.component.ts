@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, ViewEncapsulation, Input, Output, E
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Palet, DPalet } from '../../../../shared/interfaces/palet.interface';
+import { AdvancedSelectComponent } from '../../../../shared/components/advanced-select/advanced-select.component';
 
 interface FormCajas {
   consignatarioId: string | number;
@@ -28,7 +29,7 @@ interface FormCajas {
 @Component({
   selector: 'app-modal-cajas',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AdvancedSelectComponent],
   templateUrl: './modal-cajas.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None
@@ -74,6 +75,10 @@ export class ModalCajasComponent {
 
   get textoSubmit(): string {
     return this.modoEdicion ? 'Guardar Cambios' : 'Agregar Cajas';
+  }
+
+  get variedadesNoEnsayo(): any[] {
+    return (this.variedades ?? []).filter((v: any) => !v.esEnsayo);
   }
 
   onCampoChange(campo: string, valor: any): void {

@@ -137,14 +137,26 @@
 @media (max-width: 576px) {
   .modal-custom {
     max-width: 96vw;
-    max-height: 96vh;
+    /* iOS Safari: dvh respeta el viewport REAL (sin toolbar) */
+    max-height: calc(100dvh - 2rem);
+    /* Anclar desde arriba en vez de centrar con translateY, evita que se corte */
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: auto;
   }
 
   .modal-guia-form .modal-header-custom {
     padding: 10px 14px;
+    flex-shrink: 0;
+  }
+
+  .modal-body-custom {
+    -webkit-overflow-scrolling: touch;
   }
 
   .modal-footer-custom {
     padding: 8px 14px;
+    flex-shrink: 0;
   }
 }

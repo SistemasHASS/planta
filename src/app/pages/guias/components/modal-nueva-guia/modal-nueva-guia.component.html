@@ -153,6 +153,87 @@
             <label class="form-label" style="font-size:11px;font-weight:700">Observaciones <small class="text-muted">(máx 200)</small></label>
             <input type="text" class="form-control form-control-sm" [ngModel]="form().observacionesUsuario" (ngModelChange)="updateField('observacionesUsuario', $event)" maxlength="200" placeholder="Opcional">
           </div>
+
+          <!-- Parámetros de Inspección (solo edición) -->
+          @if (modoEdicion) {
+            <div class="col-12 mt-2">
+              <div class="form-section-title-modal"><i class="bi bi-clipboard-check"></i> Parámetros de Inspección</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" style="font-size:11px;font-weight:700">Temperatura (°C)</label>
+              <input type="number" step="0.1" class="form-control form-control-sm" [ngModel]="form().inspeccionTemperatura" (ngModelChange)="updateField('inspeccionTemperatura', $event)" placeholder="Ej: 18.4">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" style="font-size:11px;font-weight:700">N° de Viaje</label>
+              <input type="number" min="1" class="form-control form-control-sm" [ngModel]="form().numeroViaje" (ngModelChange)="updateField('numeroViaje', $event)" placeholder="Ej: 1, 2, 3...">
+            </div>
+            <div class="col-12 mt-1">
+              <div class="d-flex flex-wrap gap-4 mt-1" style="font-size:12px">
+                <div>
+                  <label class="form-label mb-0" style="font-size:12px">¿Libre de olores extraños?</label>
+                  <div class="d-flex gap-2">
+                    <div class="form-check form-check-inline m-0">
+                      <input class="form-check-input" type="radio" name="libreOloresEdit" value="si" [ngModel]="form().inspeccionLibreOlores" (ngModelChange)="updateField('inspeccionLibreOlores', $event)">
+                      <label class="form-check-label">Sí</label>
+                    </div>
+                    <div class="form-check form-check-inline m-0">
+                      <input class="form-check-input" type="radio" name="libreOloresEdit" value="no" [ngModel]="form().inspeccionLibreOlores" (ngModelChange)="updateField('inspeccionLibreOlores', $event)">
+                      <label class="form-check-label">No</label>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label class="form-label mb-0" style="font-size:12px">¿Libre de insectos/plagas?</label>
+                  <div class="d-flex gap-2">
+                    <div class="form-check form-check-inline m-0">
+                      <input class="form-check-input" type="radio" name="libreInsectosEdit" value="si" [ngModel]="form().inspeccionLibreInsectos" (ngModelChange)="updateField('inspeccionLibreInsectos', $event)">
+                      <label class="form-check-label">Sí</label>
+                    </div>
+                    <div class="form-check form-check-inline m-0">
+                      <input class="form-check-input" type="radio" name="libreInsectosEdit" value="no" [ngModel]="form().inspeccionLibreInsectos" (ngModelChange)="updateField('inspeccionLibreInsectos', $event)">
+                      <label class="form-check-label">No</label>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label class="form-label mb-0" style="font-size:12px">¿Libre de materias extrañas?</label>
+                  <div class="d-flex gap-2">
+                    <div class="form-check form-check-inline m-0">
+                      <input class="form-check-input" type="radio" name="libreMateriasEdit" value="si" [ngModel]="form().inspeccionLibreMateriasExtranas" (ngModelChange)="updateField('inspeccionLibreMateriasExtranas', $event)">
+                      <label class="form-check-label">Sí</label>
+                    </div>
+                    <div class="form-check form-check-inline m-0">
+                      <input class="form-check-input" type="radio" name="libreMateriasEdit" value="no" [ngModel]="form().inspeccionLibreMateriasExtranas" (ngModelChange)="updateField('inspeccionLibreMateriasExtranas', $event)">
+                      <label class="form-check-label">No</label>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label class="form-label mb-0" style="font-size:12px">¿Unidad limpia / buen estado?</label>
+                  <div class="d-flex gap-2">
+                    <div class="form-check form-check-inline m-0">
+                      <input class="form-check-input" type="radio" name="unidadLimpiaEdit" value="si" [ngModel]="form().inspeccionUnidadLimpia" (ngModelChange)="updateField('inspeccionUnidadLimpia', $event)">
+                      <label class="form-check-label">Sí</label>
+                    </div>
+                    <div class="form-check form-check-inline m-0">
+                      <input class="form-check-input" type="radio" name="unidadLimpiaEdit" value="no" [ngModel]="form().inspeccionUnidadLimpia" (ngModelChange)="updateField('inspeccionUnidadLimpia', $event)">
+                      <label class="form-check-label">No</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" style="font-size:12px;font-weight:700">Observaciones inspección</label>
+              <textarea class="form-control form-control-sm" rows="4" placeholder="Obligatorio si alguna inspección es No"
+                        [ngModel]="form().inspeccionObservaciones" (ngModelChange)="updateField('inspeccionObservaciones', $event)"></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" style="font-size:12px;font-weight:700">Medida correctiva</label>
+              <textarea class="form-control form-control-sm" rows="4" placeholder="Obligatorio si alguna inspección es No"
+                        [ngModel]="form().inspeccionMedidaCorrectiva" (ngModelChange)="updateField('inspeccionMedidaCorrectiva', $event)"></textarea>
+            </div>
+          }
         </div>
       </div>
     </div>
@@ -161,7 +242,7 @@
   <div class="modal-footer-custom">
     <div class="footer-actions">
       <button type="button" class="btn btn-sp-outline btn-cancel" (click)="onCerrar()">Cancelar</button>
-      <button type="button" class="btn btn-sp-primary btn-save" (click)="onCrear()"><i class="bi" [class.bi-check-lg]="modoEdicion" [class.bi-file-earmark-plus]="!modoEdicion"></i> {{ modoEdicion ? 'Guardar Cambios' : 'Crear Guía' }}</button>
+      <button type="button" class="btn btn-sp-primary btn-save" [disabled]="modoEdicion && !hasChanges()" (click)="onCrear()"><i class="bi" [class.bi-check-lg]="modoEdicion" [class.bi-file-earmark-plus]="!modoEdicion"></i> {{ modoEdicion ? 'Guardar Cambios' : 'Crear Guía' }}</button>
     </div>
   </div>
 </div>

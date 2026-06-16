@@ -77,6 +77,26 @@
   gap: 12px;
 }
 
+@media (max-width: 576px) {
+  .modal-custom {
+    max-height: calc(100dvh - 2rem);
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: auto;
+    width: calc(100vw - 24px);
+  }
+
+  .modal-body-custom {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-header-custom,
+  .modal-footer-custom {
+    flex-shrink: 0;
+  }
+}
+
 .required {
   color: var(--bs-danger);
 }

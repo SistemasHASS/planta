@@ -84,7 +84,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
   dpaletEditando = signal<DPalet | undefined>(undefined);
   tiposProcesoEmpacadoModal = signal<TipoProcesoEmpacado[]>([]);
   tipoProcesoEmpacadoDisabled = signal(false);
-  codigoRanchoDisabled = signal(false);
+  codigoRanchoDisabled = signal(true);
   formCajas = signal<{
     consignatarioId: string | number;
     destinoId: number | string;
@@ -460,7 +460,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
         };
         await this.procesoRepo.dPaletsRepo.saveByIdDPalet(row);
       }
-      console.log('DPalets sincronizados:', enriquecidos.length);
+
     } catch (err) {
       console.error('Error sincronizando DPalets por acopio:', err);
     }
@@ -1845,7 +1845,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     this.updateFormCajas('categoriaId', 0);
     this.updateFormCajas('tipoEmpaqueId', 0);
     this.updateFormCajas('codigoRanchoId', 0);
-    this.codigoRanchoDisabled.set(false);
+    this.codigoRanchoDisabled.set(true);
 
     if (!consignatarioDocumento) return;
     const consignatario = this.consignatarios().find(c => c.documento === consignatarioDocumento);
@@ -1862,7 +1862,8 @@ export class PaletsComponent implements OnInit, OnDestroy {
       this.filteredCodigosRancho.set(ranchosActivos);
       if (ranchosActivos.length === 1) {
         this.updateFormCajas('codigoRanchoId', ranchosActivos[0].id);
-        this.codigoRanchoDisabled.set(true);
+      } else if (ranchosActivos.length > 1) {
+        this.codigoRanchoDisabled.set(false);
       }
     }
 
@@ -2122,13 +2123,9 @@ export class PaletsComponent implements OnInit, OnDestroy {
         const resp: any = await firstValueFrom(this.paletService.getPresentacionesPorMatriz(codigoCultivo, f.consignatarioId.toString(), String(f.destinoId), f.formatoId, tipoEmpaqueGuiaId));
         const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
 
-        if (items[0].data.length === 0) {
-          this.alertService.cerrarModalCarga();
-          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este tipo de empaque guía.', 'warning');
-          return;
+        if (items[0]?.data?.length > 0) {
+          presentacionesIds = items[0].data.map((x: any) => String(x?.id ?? x?.Id ?? '')).filter((id: string) => id);
         }
-
-        presentacionesIds = items[0].data.map((x: any) => String(x?.id ?? x?.Id ?? '')).filter((id: string) => id);
 
         const presResp: any = await firstValueFrom(this.catalogoService.listarPresentaciones(codigoCultivo));
         if (!presResp.error) {
@@ -2173,12 +2170,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
           String(m?.tipoEmpaqueGuiaId ?? '') === String(tipoEmpaqueGuiaId)
         );
         presentacionesIds = [...new Set(matricesFiltradas.map((m: any) => String(m?.presentacionId ?? '')).filter((id: string) => id))];
-
-        if (presentacionesIds.length === 0) {
-          this.alertService.cerrarModalCarga();
-          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este tipo de empaque guía.', 'warning');
-          return;
-        }
 
         tiposCajaIds = [...new Set(matricesFiltradas.map((m: any) => String(m?.tipoCajaId ?? '')).filter((id: string) => id))];
 

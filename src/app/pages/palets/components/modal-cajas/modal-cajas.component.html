@@ -29,16 +29,15 @@
       <div class="row">
         <div class="col-md-6 mb-3">
           <label class="form-label form-label-required">Tipo Proceso Empacado</label>
-          <select class="form-select" name="tipoProcesoEmpacadoId" id="selectTipoProcesoEmpacado" required
-            [ngModel]="formCajas.tipoProcesoEmpacadoId" [attr.disabled]="tipoProcesoEmpacadoDisabled ? true : null"
-            [ngModelOptions]="{standalone: true}" (ngModelChange)="onCampoChange('tipoProcesoEmpacadoId', +$event)">
-            @if (!tipoProcesoEmpacadoDisabled) {
-            <option [ngValue]="0">Seleccione...</option>
-            }
-            @for (t of tiposProcesoEmpacadoModal; track t.id) {
-            <option [ngValue]="t.id">{{ t.nombre }}</option>
-            }
-          </select>
+          <app-advanced-select
+            [itemsInput]="tiposProcesoEmpacadoModal"
+            idField="id"
+            placeholder="Seleccione..."
+            [required]="true"
+            [disabled]="tipoProcesoEmpacadoDisabled"
+            [value]="formCajas.tipoProcesoEmpacadoId"
+            (valueChange)="onCampoChange('tipoProcesoEmpacadoId', $event)">
+          </app-advanced-select>
           <small class="text-muted" id="helpTipoProceso">
             @if (tipoProcesoEmpacadoDisabled) {
             Tipo de proceso fijo para este acopio
@@ -49,47 +48,52 @@
         </div>
         <div class="col-md-6 mb-3">
           <label class="form-label form-label-required">Consignatario</label>
-          <select class="form-select" name="consignatarioId" id="selectConsignatario" required
-            [ngModel]="formCajas.consignatarioId" [ngModelOptions]="{standalone: true}"
-            (ngModelChange)="onCampoChange('consignatarioId', +$event)">
-            <option [ngValue]="0">Seleccione...</option>
-            @for (c of consignatarios; track c.documento) {
-            <option [ngValue]="c.documento">{{ c.nombre }}</option>
-            }
-          </select>
+          <app-advanced-select
+            [itemsInput]="consignatarios"
+            idField="documento"
+            placeholder="Seleccione..."
+            [required]="true"
+            [value]="formCajas.consignatarioId"
+            (valueChange)="onCampoChange('consignatarioId', $event)">
+          </app-advanced-select>
         </div>
         <div class="col-md-6 mb-3">
           <label class="form-label form-label-required">Destino</label>
-          <select class="form-select" name="destinoId" id="selectDestino" required
-            [disabled]="filteredDestinos.length==0" [ngModel]="formCajas.destinoId"
-            [ngModelOptions]="{standalone: true}" (ngModelChange)="onCampoChange('destinoId', $event)">
-            <option value="">Seleccione consignatario...</option>
-            @for (d of filteredDestinos; track d.id) {
-            <option [value]="d.id">{{ d.pais }}</option>
-            }
-          </select>
+          <app-advanced-select
+            [itemsInput]="filteredDestinos"
+            idField="id"
+            [labelFields]="['pais']"
+            placeholder="Seleccione..."
+            [required]="true"
+            [disabled]="filteredDestinos.length === 0"
+            [value]="formCajas.destinoId"
+            (valueChange)="onCampoChange('destinoId', $event)">
+          </app-advanced-select>
         </div>
         <div class="col-md-6 mb-3">
           <label class="form-label form-label-required">Formato</label>
-          <select class="form-select" name="formatoId" id="selectFormato" required [disabled]="formatoDisabled"
-            [ngModel]="formCajas.formatoId" [ngModelOptions]="{standalone: true}"
-            (ngModelChange)="onCampoChange('formatoId', +$event)">
-            <option [ngValue]="0">Seleccione destino...</option>
-            @for (f of filteredFormatos; track f.id) {
-            <option [ngValue]="f.id">{{ f.nombre || f.descripcion }}</option>
-            }
-          </select>
+          <app-advanced-select
+            [itemsInput]="filteredFormatos"
+            idField="id"
+            [labelFields]="['nombre']"
+            placeholder="Seleccione..."
+            [required]="true"
+            [disabled]="formatoDisabled"
+            [value]="formCajas.formatoId"
+            (valueChange)="onCampoChange('formatoId', $event)">
+          </app-advanced-select>
         </div>
         <div class="col-md-6 mb-3">
           <label class="form-label form-label-required">Tipo de Empaque Guía</label>
-          <select class="form-select" name="tipoEmpaqueGuiaId" id="selectTipoEmpaqueGuia" required
-            [disabled]="tipoEmpaqueGuiaDisabled" [ngModel]="formCajas.tipoEmpaqueGuiaId"
-            [ngModelOptions]="{standalone: true}" (ngModelChange)="onCampoChange('tipoEmpaqueGuiaId', +$event)">
-            <option [ngValue]="0">Seleccione formato...</option>
-            @for (t of filteredTiposEmpaqueGuia; track t.id) {
-            <option [ngValue]="t.id">{{ t.nombre }}</option>
-            }
-          </select>
+          <app-advanced-select
+            [itemsInput]="filteredTiposEmpaqueGuia"
+            idField="id"
+            placeholder="Seleccione..."
+            [required]="true"
+            [disabled]="tipoEmpaqueGuiaDisabled"
+            [value]="formCajas.tipoEmpaqueGuiaId"
+            (valueChange)="onCampoChange('tipoEmpaqueGuiaId', $event)">
+          </app-advanced-select>
         </div>
         <input type="hidden" name="calibreId" id="selectCalibre" [ngModel]="formCajas.calibreId"
           [ngModelOptions]="{standalone: true}">
@@ -99,36 +103,38 @@
           [ngModelOptions]="{standalone: true}">
         <div class="col-md-6 mb-3">
           <label class="form-label">Presentación</label>
-          <select class="form-select" name="presentacionId" id="selectPresentacion" [disabled]="presentacionDisabled"
-            [ngModel]="formCajas.presentacionId" [ngModelOptions]="{standalone: true}"
-            (ngModelChange)="onCampoChange('presentacionId', +$event)">
-            <option [ngValue]="0">Seleccione tipo empaque guía...</option>
-            @for (p of filteredPresentaciones; track p.id) {
-            <option [ngValue]="p.id ?? 0">{{ p.nombre }}</option>
-            }
-          </select>
+          <app-advanced-select
+            [itemsInput]="filteredPresentaciones"
+            idField="id"
+            placeholder="Seleccione..."
+            [disabled]="presentacionDisabled"
+            [value]="formCajas.presentacionId"
+            (valueChange)="onCampoChange('presentacionId', $event)">
+          </app-advanced-select>
         </div>
         <div class="col-md-6 mb-3">
           <label class="form-label form-label-required">Tipo de Caja</label>
-          <select class="form-select" name="tipoCajaId" id="selectTipoCaja" required [disabled]="tipoCajaDisabled"
-            [ngModel]="formCajas.tipoCajaId" [ngModelOptions]="{standalone: true}"
-            (ngModelChange)="onCampoChange('tipoCajaId', +$event)">
-            <option [ngValue]="0">Esperando selección...</option>
-            @for (t of filteredTiposCaja; track t.id) {
-            <option [ngValue]="t.id">{{ t.nombre }}</option>
-            }
-          </select>
+          <app-advanced-select
+            [itemsInput]="filteredTiposCaja"
+            idField="id"
+            placeholder="Seleccione..."
+            [required]="true"
+            [disabled]="tipoCajaDisabled"
+            [value]="formCajas.tipoCajaId"
+            (valueChange)="onCampoChange('tipoCajaId', $event)">
+          </app-advanced-select>
         </div>
         <div class="col-md-6 mb-3">
           <label class="form-label form-label-required">Tipo de Clamshell</label>
-          <select class="form-select" name="tipoClamshellId" id="selectTipoClamshell" required
-            [disabled]="tipoClamshellDisabled" [ngModel]="formCajas.tipoClamshellId"
-            [ngModelOptions]="{standalone: true}" (ngModelChange)="onCampoChange('tipoClamshellId', +$event)">
-            <option [ngValue]="0">Seleccione tipo caja...</option>
-            @for (t of filteredTiposClamshell; track t.id) {
-            <option [ngValue]="t.id">{{ t.nombre }}</option>
-            }
-          </select>
+          <app-advanced-select
+            [itemsInput]="filteredTiposClamshell"
+            idField="id"
+            placeholder="Seleccione..."
+            [required]="true"
+            [disabled]="tipoClamshellDisabled"
+            [value]="formCajas.tipoClamshellId"
+            (valueChange)="onCampoChange('tipoClamshellId', $event)">
+          </app-advanced-select>
         </div>
         <div class="col-md-6 mb-3">
           <div class="d-flex justify-content-between align-items-center mb-2">
@@ -139,16 +145,15 @@
               <label class="form-check-label small" for="switchEsEnsayo">¿Es ensayo?</label>
             </div>
           </div>
-          <select class="form-select" name="variedadId" id="selectVariedad" required [ngModel]="formCajas.variedadId"
-            [ngModelOptions]="{standalone: true}" (ngModelChange)="onCampoChange('variedadId', $event)">
-            <option value="">Seleccione...</option>
-            @for (v of filteredVariedades; track v.codigo) {
-            <option [value]="v.codigo" [attr.data-procedencia]="v.procedencia"
-              [attr.data-es-ensayo]="v.esEnsayo ? '1' : '0'">
-              {{ v.variedad }}
-            </option>
-            }
-          </select>
+          <app-advanced-select
+            [itemsInput]="filteredVariedades"
+            idField="codigo"
+            [labelFields]="['variedad']"
+            placeholder="Seleccione..."
+            [required]="true"
+            [value]="formCajas.variedadId"
+            (valueChange)="onCampoChange('variedadId', $event)">
+          </app-advanced-select>
         </div>
         <!-- Select condicional: Variedad en Guía (solo para ensayos) -->
         <div class="col-md-6 mb-3" id="contenedorVariedadGuia"
@@ -156,52 +161,52 @@
           <label class="form-label form-label-required" style="color: #d97706;">
             <i class="bi bi-arrow-repeat"></i> Variedad en Guía (ensayo)
           </label>
-          <select class="form-select" name="variedadGuiaId" id="selectVariedadGuia"
-            [ngModel]="formCajas.variedadGuiaId" [ngModelOptions]="{standalone: true}"
-            (ngModelChange)="onCampoChange('variedadGuiaId', $event)">
-            <option value="">Seleccione variedad certificada...</option>
-            @for (v of variedades; track v.codigo) {
-            @if (!v.esEnsayo ) {
-            <option [value]="v.codigo">{{ v.variedad }}</option>
-            }
-            }
-          </select>
+          <app-advanced-select
+            [itemsInput]="variedadesNoEnsayo"
+            idField="codigo"
+            [labelFields]="['variedad']"
+            placeholder="Seleccione..."
+            [value]="formCajas.variedadGuiaId"
+            (valueChange)="onCampoChange('variedadGuiaId', $event)">
+          </app-advanced-select>
           <small class="text-muted" style="color: #d97706 !important;">Esta variedad aparecerá en la guía de
             remisión</small>
         </div>
         <div class="col-md-6 mb-3">
           <label class="form-label form-label-required">Lugar de Producción (LDP)</label>
-          <select class="form-select" name="lugarProduccionId" id="selectLDP" required
-            [ngModel]="formCajas.lugarProduccionId" [ngModelOptions]="{standalone: true}"
-            (ngModelChange)="onCampoChange('lugarProduccionId', +$event)">
-            <option [ngValue]="0">Seleccione...</option>
-            @for (l of lugaresProduccion; track l.id) {
-            <option [ngValue]="l.id">{{ l.descripcion }}</option>
-            }
-          </select>
+          <app-advanced-select
+            [itemsInput]="lugaresProduccion"
+            idField="id"
+            placeholder="Seleccione..."
+            [required]="true"
+            [value]="formCajas.lugarProduccionId"
+            (valueChange)="onCampoChange('lugarProduccionId', $event)">
+          </app-advanced-select>
         </div>
         <div class="col-md-6 mb-3">
           <label class="form-label form-label-required">Código de Rancho</label>
-          <select class="form-select" name="codigoRanchoId" id="selectCodigoRancho" required
+          <app-advanced-select
+            [itemsInput]="filteredCodigosRancho"
+            idField="id"
+            [labelFields]="['codigo']"
+            placeholder="Seleccione..."
+            [required]="true"
             [disabled]="codigoRanchoDisabled"
-            [ngModel]="formCajas.codigoRanchoId"
-            [ngModelOptions]="{standalone: true}" (ngModelChange)="onCampoChange('codigoRanchoId', +$event)">
-            <option [ngValue]="0">Seleccione...</option>
-            @for (c of filteredCodigosRancho; track c.id) {
-            <option [ngValue]="c.id">{{ c.codigo }}</option>
-            }
-          </select>
+            [value]="formCajas.codigoRanchoId"
+            (valueChange)="onCampoChange('codigoRanchoId', $event)">
+          </app-advanced-select>
         </div>
         <div class="col-md-6 mb-3">
           <label class="form-label form-label-required">Vía de Transporte</label>
-          <select class="form-select" name="transporteId" id="selectTransporte" required
-            [ngModel]="formCajas.transporteId" [ngModelOptions]="{standalone: true}"
-            (ngModelChange)="onCampoChange('transporteId', $event)">
-            <option value="">Seleccione...</option>
-            @for (t of transportes; track t.id) {
-            <option [value]="t.id">{{ t.transporte }}</option>
-            }
-          </select>
+          <app-advanced-select
+            [itemsInput]="transportes"
+            idField="id"
+            [labelFields]="['transporte']"
+            placeholder="Seleccione..."
+            [required]="true"
+            [value]="formCajas.transporteId"
+            (valueChange)="onCampoChange('transporteId', $event)">
+          </app-advanced-select>
         </div>
         <div class="col-md-6 mb-3">
           <label class="form-label form-label-required">Cantidad de Cajas</label>

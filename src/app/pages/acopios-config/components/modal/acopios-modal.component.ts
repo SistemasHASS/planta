@@ -35,7 +35,9 @@ export class AcopiosModalComponent {
   private initialSerie = '';
   private initialSeleccion: Record<string, boolean> = {};
 
-  readonly title = computed(() => `Editar Acopio${this.value?.codigoAcopio ? ' — ' + this.value?.codigoAcopio : ''}`);
+  get title(): string {
+    return `Editar Acopio${this.value?.codigoAcopio ? ' — ' + this.value?.codigoAcopio : ''}`;
+  }
 
   readonly tiposFiltrados = computed(() => {
     const term = String(this.filtroTipos() ?? '').trim().toLowerCase();

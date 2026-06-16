@@ -57,7 +57,9 @@ export class SobrepesoModalComponent {
     activo: true,
   });
 
-  readonly title = computed(() => (this.modo === 'editado' ? 'Editar Regla de Sobrepeso' : 'Nueva Regla de Sobrepeso'));
+  get title(): string {
+    return this.modo === 'editado' ? 'Editar Regla de Sobrepeso' : 'Nueva Regla de Sobrepeso';
+  }
 
   readonly hasChanges = computed(() => {
     if (this.modo !== 'editado') return true;

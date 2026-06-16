@@ -53,4 +53,8 @@ export class GuiaService {
       .set('codigoGuiaRemision', codigoGuiaRemision);
     return this.http.delete<any>(`${this.apiUrl}/anular-guia-remision`, { params, withCredentials: true });
   }
+
+  editarGuiaRemision(payload: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/editar-guia-remision`, payload, { withCredentials: true });
+  }
 }

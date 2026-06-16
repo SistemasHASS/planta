@@ -32,7 +32,7 @@
                       <span [class]="sincronizadoClass(p.db)">{{ sincronizadoLabel(p.db) }}</span>
                     </div>
                   </div>
-                  <p class="mb-2" style="font-size:13px"><strong>Fecha:</strong> {{ formatearFechaLarga(p.fechaProceso)
+                  <p class="mb-2" style="font-size:13px"><strong>Fecha:</strong> {{ formatearFechaLarga(p.fechaApertura)
                     }}</p>
                   <button class="btn-sp-primary w-100" (click)="seleccionarProceso(p)">
                     <i class="bi bi-check-circle"></i> Trabajar en este proceso
@@ -70,7 +70,7 @@
               Turno {{ procesoSeleccionado()!.turno }}
             </span>
             <span class="text-muted" style="font-size:12px">
-              <strong>Fecha:</strong> {{ formatearFechaLarga(procesoSeleccionado()!.fechaProceso) }}
+              <strong>Fecha:</strong> {{ formatearFechaLarga(procesoSeleccionado()!.fechaApertura) }}
             </span>
             <span [class]="sincronizadoClass(procesoSeleccionado()!.db)">{{ sincronizadoLabel(procesoSeleccionado()!.db)
               }}</span>

@@ -38,6 +38,39 @@ export class ModalNuevaGuiaComponent implements OnChanges {
   readonly palets = signal<Palet[]>([]);
   readonly paletsSeleccionados = signal<Set<string>>(new Set());
 
+  private readonly initialForm = signal<Record<string, any>>({});
+  private readonly initialPaletsSeleccionados = signal<Set<string>>(new Set());
+
+  readonly hasChanges = computed(() => {
+    if (!this.modoEdicion) return true;
+    const init = this.initialForm();
+    const curr = this.form();
+    const formChanged =
+      String(init['procesoId'] ?? '') !== String(curr.procesoId ?? '') ||
+      String(init['destinatarioId'] ?? '') !== String(curr.destinatarioId ?? '') ||
+      String(init['puntoPartida'] ?? '') !== String(curr.puntoPartida ?? '') ||
+      String(init['puntoLlegada'] ?? '') !== String(curr.puntoLlegada ?? '') ||
+      String(init['transportistaId'] ?? '') !== String(curr.transportistaId ?? '') ||
+      String(init['conductorId'] ?? '') !== String(curr.conductorId ?? '') ||
+      String(init['vehiculoId'] ?? '') !== String(curr.vehiculoId ?? '') ||
+      String(init['motivoTraslado'] ?? '') !== String(curr.motivoTraslado ?? '') ||
+      String(init['precinto'] ?? '') !== String(curr.precinto ?? '') ||
+      Number(init['parihuelas'] ?? 0) !== Number(curr.parihuelas ?? 0) ||
+      String(init['observacionesUsuario'] ?? '') !== String(curr.observacionesUsuario ?? '') ||
+      String(init['inspeccionTemperatura'] ?? '') !== String(curr.inspeccionTemperatura ?? '') ||
+      String(init['numeroViaje'] ?? '') !== String(curr.numeroViaje ?? '') ||
+      String(init['inspeccionLibreOlores'] ?? '') !== String(curr.inspeccionLibreOlores ?? '') ||
+      String(init['inspeccionLibreInsectos'] ?? '') !== String(curr.inspeccionLibreInsectos ?? '') ||
+      String(init['inspeccionLibreMateriasExtranas'] ?? '') !== String(curr.inspeccionLibreMateriasExtranas ?? '') ||
+      String(init['inspeccionUnidadLimpia'] ?? '') !== String(curr.inspeccionUnidadLimpia ?? '') ||
+      String(init['inspeccionObservaciones'] ?? '') !== String(curr.inspeccionObservaciones ?? '') ||
+      String(init['inspeccionMedidaCorrectiva'] ?? '') !== String(curr.inspeccionMedidaCorrectiva ?? '');
+    const initIds = Array.from(this.initialPaletsSeleccionados()).sort();
+    const currIds = Array.from(this.paletsSeleccionados()).sort();
+    const paletsChanged = initIds.length !== currIds.length || initIds.some((v, i) => v !== currIds[i]);
+    return formChanged || paletsChanged;
+  });
+
   readonly form = signal({
     procesoId: '',
     destinatarioId: '',
@@ -50,7 +83,29 @@ export class ModalNuevaGuiaComponent implements OnChanges {
     precinto: '',
     parihuelas: 0,
     observacionesUsuario: '',
+    inspeccionTemperatura: '',
+    numeroViaje: '',
+    inspeccionLibreOlores: '' as 'si' | 'no' | '',
+    inspeccionLibreInsectos: '' as 'si' | 'no' | '',
+    inspeccionLibreMateriasExtranas: '' as 'si' | 'no' | '',
+    inspeccionUnidadLimpia: '' as 'si' | 'no' | '',
+    inspeccionObservaciones: '',
+    inspeccionMedidaCorrectiva: '',
   });
+
+  readonly hayAlgunoNoInspeccion = computed(() => {
+    const f = this.form();
+    return f.inspeccionLibreOlores === 'no' ||
+           f.inspeccionLibreInsectos === 'no' ||
+           f.inspeccionLibreMateriasExtranas === 'no' ||
+           f.inspeccionUnidadLimpia === 'no';
+  });
+
+  private boolToSiNo(val: boolean | null | undefined): 'si' | 'no' | '' {
+    if (val === true) return 'si';
+    if (val === false) return 'no';
+    return '';
+  }
 
   readonly tienePalets = computed(() => this.palets().length > 0);
   readonly nroPaletsSeleccionados = computed(() => this.paletsSeleccionados().size);
@@ -70,8 +125,22 @@ export class ModalNuevaGuiaComponent implements OnChanges {
         precinto: g.precinto ?? '',
         parihuelas: Number(g.parihuelas) || 0,
         observacionesUsuario: g.observacionesUsuario ?? '',
+        inspeccionTemperatura: g.inspeccionTemperatura != null ? String(g.inspeccionTemperatura) : '',
+        numeroViaje: g.numeroViaje != null ? String(g.numeroViaje) : '',
+        inspeccionLibreOlores: this.boolToSiNo(g.inspeccionLibreOlores),
+        inspeccionLibreInsectos: this.boolToSiNo(g.inspeccionLibreInsectos),
+        inspeccionLibreMateriasExtranas: this.boolToSiNo(g.inspeccionLibreMateriasExtranas),
+        inspeccionUnidadLimpia: this.boolToSiNo(g.inspeccionUnidadLimpia),
+        inspeccionObservaciones: g.inspeccionObservaciones ?? '',
+        inspeccionMedidaCorrectiva: g.inspeccionMedidaCorrectiva ?? '',
       });
+      this.initialForm.set({ ...this.form() });
       this.submitAttempted.set(false);
+      // Guardar estado inicial para detectar cambios en edición
+      const initSeleccionados = new Set<string>(
+        (g.paletsSeleccionados ?? []).map((p: any) => String(p ?? '').trim()).filter(Boolean)
+      );
+      this.initialPaletsSeleccionados.set(initSeleccionados);
       const procesoId = String(g.procesoId ?? '').trim();
       if (procesoId) {
         this.cargarPaletsPorProceso(procesoId, false);
@@ -187,10 +256,19 @@ export class ModalNuevaGuiaComponent implements OnChanges {
     if (!this.isFormValid()) return;
     const paletsIds = Array.from(this.paletsSeleccionados());
     const paletsData = this.palets().filter(p => paletsIds.includes(String(p.idPalet ?? '').trim()));
+    const f = this.form();
     const payload = {
-      ...this.form(),
+      ...f,
       paletsSeleccionados: paletsIds,
       paletsDetalle: paletsData,
+      inspeccionTemperatura: f.inspeccionTemperatura ? parseFloat(f.inspeccionTemperatura) : null,
+      numeroViaje: f.numeroViaje ? parseInt(f.numeroViaje, 10) : null,
+      inspeccionLibreOlores: f.inspeccionLibreOlores,
+      inspeccionLibreInsectos: f.inspeccionLibreInsectos,
+      inspeccionLibreMateriasExtranas: f.inspeccionLibreMateriasExtranas,
+      inspeccionUnidadLimpia: f.inspeccionUnidadLimpia,
+      inspeccionObservaciones: f.inspeccionObservaciones.trim() || undefined,
+      inspeccionMedidaCorrectiva: f.inspeccionMedidaCorrectiva.trim() || undefined,
     };
     if (this.modoEdicion) {
       this.editar.emit(payload);

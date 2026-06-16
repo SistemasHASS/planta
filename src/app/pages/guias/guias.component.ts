@@ -22,7 +22,7 @@ import { GuiasRemisionRepository } from '../../shared/dexiedb/repository/guias-r
 import { GuiaRemisionFacade } from '../../shared/facades/guia-remision.facade';
 import { CatalogosFacade } from '../../shared/facades/catalogos.facade';
 import { ProcesosFacade } from '../../shared/facades/procesos.facade';
-import { formatDateTime } from '../../shared/utils/datetime.utils';
+import { formatDateTime, toLocalISOString } from '../../shared/utils/datetime.utils';
 
 type ViewPage = 'procesos' | 'guias' | 'detalle';
 
@@ -230,6 +230,7 @@ export class GuiasComponent implements OnInit {
     this.alertService.mostrarModalCarga();
     try {
       const detalleData: any = await this.guiaRemisionFacade.getGuiaRemisionDetalle(idProyecto, codigoGuiaRemision);
+      
       if (!detalleData) {
         this.alertService.showAlert('Error', this.online ? 'Error al obtener detalle.' : 'No se encontró la guía en almacenamiento local.', 'error');
         return;
@@ -252,10 +253,12 @@ export class GuiasComponent implements OnInit {
       }
       const procesosData = (Array.isArray(first?.data) ? first.data : []).map((p: any) => {
         const nro = p.nroPalets ?? 0;
-        return { ...p, paletsCerradosDisponibles: nro, label: `${p.codigoAcopio} - ${p.turno} - ${p.fechaProceso} (${nro} ${nro === 1 ? 'Palet' : 'Palets'})` };
+        return { ...p, 
+                 paletsCerradosDisponibles: nro, 
+                 label: `${p.codigoAcopio} - ${p.turno} - ${p.fechaProceso} (${nro} ${nro === 1 ? 'Palet' : 'Palets'})` 
+                };
       });
-
-      const codigoProceso = String(detalleData?.codigoProceso ?? '').trim();
+       const codigoProceso = String(detalleData?.codigoProceso ?? '').trim();
 
       let paletsSeleccionados: string[] = [];
 
@@ -292,13 +295,10 @@ export class GuiasComponent implements OnInit {
           procesosData.push(procesoEntry);
           procesoIdx = procesosData.length - 1;
         }
-
         if (procesoIdx >= 0) {
           const proceso = procesosData[procesoIdx];
           const detalleCajas = Array.isArray(detalleData?.detalle) ? detalleData.detalle : [];
-          const resultado = await this.guiaRemisionFacade.obtenerPaletsParaEdicion(
-            idProyecto, codigoProceso, codigoGuiaRemision, detalleCajas
-          );
+          const resultado = await this.guiaRemisionFacade.obtenerPaletsParaEdicion(idProyecto, codigoProceso, codigoGuiaRemision, detalleCajas);
           proceso.palets = (resultado?.palets ?? []).map((p: any) => ({
             ...p,
             idPalet: String(p?.idPalet ?? '').trim(),
@@ -348,6 +348,15 @@ export class GuiasComponent implements OnInit {
         transactionId_uuid: detalleData?.transactionId_uuid,
         fechaCreacionWeb: detalleData?.fechaCreacionWeb,
         estado: detalleData?.estado,
+        inspeccionTemperatura: detalleData?.inspeccionTemperatura ?? null,
+        inspeccionLibreOlores: detalleData?.inspeccionLibreOlores ?? null,
+        inspeccionLibreInsectos: detalleData?.inspeccionLibreInsectos ?? null,
+        inspeccionLibreMateriasExtranas: detalleData?.inspeccionLibreMateriasExtranas ?? null,
+        inspeccionUnidadLimpia: detalleData?.inspeccionUnidadLimpia ?? null,
+        inspeccionObservaciones: detalleData?.inspeccionObservaciones ?? undefined,
+        inspeccionMedidaCorrectiva: detalleData?.inspeccionMedidaCorrectiva ?? undefined,
+        numeroViaje: detalleData?.numeroViaje ?? null,
+        paletsDetalleOriginal: detalleData?.detalle ?? [],
       });
 
       this.modoEdicionGuia.set(true);
@@ -802,10 +811,9 @@ export class GuiasComponent implements OnInit {
     this.modalInspeccionAbierto.set(true);
   }
 
-  onEditarGuia(payload: any): void {
+  async onEditarGuia(payload: any): Promise<void> {
     this.modalNuevaGuiaAbierto.set(false);
     const guiaOriginal = this.guiaParaEditar();
-
     const paletsDetalle: any[] = payload.paletsDetalle ?? [];
     const cantidadPalets = paletsDetalle.length;
 
@@ -832,43 +840,98 @@ export class GuiasComponent implements OnInit {
       motivoTraslado: String(payload.motivoTraslado ?? 'OTROS').trim(),
       precinto: String(payload.precinto ?? '').trim() || null,
       estado: guiaOriginal?.estado ?? 'ABIERTA',
-      pesoTotal: null as any,
-      totalCajas: null as any,
+      pesoTotal: guiaOriginal?.pesoTotal ?? (null as any),
+      totalCajas: guiaOriginal?.totalCajas ?? (null as any),
       cantidadPalets: cantidadPalets,
-      usuarioEmision: null as any,
-      fechaCreacionWeb: guiaOriginal?.fechaCreacionWeb ?? new Date().toISOString(),
+      usuarioEmision: guiaOriginal?.usuarioEmision ?? (null as any),
+      fechaCreacionWeb: guiaOriginal?.fechaCreacionWeb ?? toLocalISOString(),
       parihuelas: Number(payload.parihuelas) || 0,
       observacionesUsuario: String(payload.observacionesUsuario ?? '').trim() || undefined,
-      esReposicion: null as any,
-      esEnsayo: null as any,
+      esReposicion: guiaOriginal?.esReposicion ?? (null as any),
+      esEnsayo: guiaOriginal?.esEnsayo ?? (null as any),
       eliminado: false,
-      inspeccionTemperatura: null,
-      inspeccionLibreOlores: null,
-      inspeccionLibreInsectos: null,
-      inspeccionLibreMateriasExtranas: null,
-      inspeccionUnidadLimpia: null,
-      inspeccionObservaciones: undefined,
-      inspeccionMedidaCorrectiva: undefined,
-      numeroViaje: null,
-      snapshotDetalle: null,
-      detallePalets: paletsDetalle.map((p: any) => ({
-        codigoGuiaRemision: guiaOriginal?.codigoGuiaRemision ?? '',
-        transactionId_uuid: guiaOriginal?.transactionId_uuid ?? '',
-        codigoPalet: String(p.idPalet ?? p.codigoPalet ?? p.id ?? '').trim(),
-      })),
+      inspeccionTemperatura: payload?.inspeccionTemperatura ?? guiaOriginal?.inspeccionTemperatura ?? null,
+      inspeccionLibreOlores: payload?.inspeccionLibreOlores === 'si' ? true : (payload?.inspeccionLibreOlores === 'no' ? false : guiaOriginal?.inspeccionLibreOlores ?? null),
+      inspeccionLibreInsectos: payload?.inspeccionLibreInsectos === 'si' ? true : (payload?.inspeccionLibreInsectos === 'no' ? false : guiaOriginal?.inspeccionLibreInsectos ?? null),
+      inspeccionLibreMateriasExtranas: payload?.inspeccionLibreMateriasExtranas === 'si' ? true : (payload?.inspeccionLibreMateriasExtranas === 'no' ? false : guiaOriginal?.inspeccionLibreMateriasExtranas ?? null),
+      inspeccionUnidadLimpia: payload?.inspeccionUnidadLimpia === 'si' ? true : (payload?.inspeccionUnidadLimpia === 'no' ? false : guiaOriginal?.inspeccionUnidadLimpia ?? null),
+      inspeccionObservaciones: payload?.inspeccionObservaciones?.trim() || guiaOriginal?.inspeccionObservaciones || undefined,
+      inspeccionMedidaCorrectiva: payload?.inspeccionMedidaCorrectiva?.trim() || guiaOriginal?.inspeccionMedidaCorrectiva || undefined,
+      numeroViaje: payload?.numeroViaje ?? guiaOriginal?.numeroViaje ?? null,
+      snapshotDetalle: guiaOriginal?.snapshotDetalle ?? null,
+      detallePalets: (() => {
+        const paletsOriginal: any[] = guiaOriginal?.paletsDetalleOriginal ?? [];
+        const codigosNuevos = new Set(paletsDetalle.map((p: any) => String(p.idPalet ?? p.codigoPalet ?? p.id ?? '').trim()));
+        const detalle: any[] = [];
+
+        // Palets seleccionados ahora (mantenidos + nuevos) -> eliminado: 0
+        for (const p of paletsDetalle) {
+          detalle.push({
+            codigoGuiaRemision: guiaOriginal?.codigoGuiaRemision ?? '',
+            transactionId_uuid: guiaOriginal?.transactionId_uuid ?? '',
+            codigoPalet: String(p.idPalet ?? p.codigoPalet ?? p.id ?? '').trim(),
+            codigoItem: String(p.codigoItem ?? '').trim(),
+            cantidadCajas: Number(p.cantidadCajas ?? 0),
+            eliminado: 0,
+          });
+        }
+
+        // Palets que estaban antes pero ya no estan seleccionados -> eliminado: 1
+        for (const p of paletsOriginal) {
+          const codigo = String(p.codigoPalet ?? p.idPalet ?? p.id ?? '').trim();
+          if (!codigosNuevos.has(codigo)) {
+            detalle.push({
+              codigoGuiaRemision: guiaOriginal?.codigoGuiaRemision ?? '',
+              transactionId_uuid: guiaOriginal?.transactionId_uuid ?? '',
+              codigoPalet: codigo,
+              codigoItem: String(p.codigoItem ?? '').trim(),
+              cantidadCajas: Number(p.cantidadCajas ?? 0),
+              eliminado: 1,
+            });
+          }
+        }
+
+        return detalle;
+      })(),
     };
 
     const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
-    const syncPayload = { idProyecto, guias: [guiaPayload] };
+    if (!idProyecto) {
+      this.alertService.showAlert('Error', 'No se encontró la configuración del proyecto.', 'error');
+      this.modoEdicionGuia.set(false);
+      this.guiaParaEditar.set(null);
+      return;
+    }
 
-    console.log('=== GUIA EDITADA (JSON) ===', JSON.stringify(guiaPayload, null, 2));
-    console.log('=== DETALLE PALETS ===', guiaPayload.detallePalets);
-    console.log('=== SYNC PAYLOAD ===', JSON.stringify(syncPayload, null, 2));
+    // const syncPayload = { idProyecto, guias: [guiaPayload] };
+    const syncPayload = [guiaPayload];
+    
+    if (!this.online) {
+      this.alertService.showAlert('Error', 'No hay conexión a internet. La edición requiere conexión.', 'error');
+      this.modoEdicionGuia.set(false);
+      this.guiaParaEditar.set(null);
+      return;
+    }
 
-    this.alertService.showAlert('Información', 'Payload de edición impreso en consola. Revisa la consola del navegador.', 'info');
+    try {
+      this.alertService.mostrarModalCarga();
+      const resp: any = await this.guiaRemisionFacade.editarGuiaRemision({idProyecto:idProyecto,guias:syncPayload});
+      this.alertService.cerrarModalCarga();
 
-    this.modoEdicionGuia.set(false);
-    this.guiaParaEditar.set(null);
+      if (resp?.error) {
+        this.alertService.showAlert('Error', resp?.mensaje ?? 'Error al editar la guía.', 'error');
+        return;
+      }
+
+      this.alertService.showAlert('Éxito', 'Guía editada correctamente.', 'success');
+      await this.onBuscarGuias();
+    } catch (error: any) {
+      this.alertService.cerrarModalCarga();
+      this.alertService.showAlert('Error', error?.error?.message ?? 'Error al editar la guía.', 'error');
+    } finally {
+      this.modoEdicionGuia.set(false);
+      this.guiaParaEditar.set(null);
+    }
   }
 
   async onConfirmarInspeccion(ev: { guia: any; inspeccion: any }): Promise<void> {
@@ -905,7 +968,7 @@ export class GuiasComponent implements OnInit {
       totalCajas: null as any,
       cantidadPalets: cantidadPalets,
       usuarioEmision: null as any,
-      fechaCreacionWeb: new Date().toISOString(),
+      fechaCreacionWeb: toLocalISOString(),
       parihuelas: Number(guia.parihuelas) || 0,
       observacionesUsuario: String(guia.observacionesUsuario ?? '').trim() || undefined,
       esReposicion: null as any,
@@ -946,7 +1009,7 @@ export class GuiasComponent implements OnInit {
         codigoGuiaRemision: codigoGuiaOffline,
         idProyecto,
         sincroniza: 'no_sincronizado',
-        fechaCreacion: new Date().toISOString(),
+        fechaCreacion: toLocalISOString(),
         bd: 0,
       };
       await this.guiasRemisionRepo.guiasRepo.saveByCodigoGuiaRemision(guiaDexie);
@@ -958,7 +1021,7 @@ export class GuiasComponent implements OnInit {
           codigoPalet: String(p.idPalet ?? p.codigoPalet ?? p.id ?? '').trim(),
           codigoItem: String(p.codigoItem ?? '').trim(),
           cantidadCajas: Number(p.cantidadCajas ?? 0),
-          fechaCreacion: new Date().toISOString(),
+          fechaCreacion: toLocalISOString(),
           bd: 0,
         });
       }

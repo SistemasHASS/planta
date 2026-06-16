@@ -497,12 +497,23 @@
 @media (max-width: 768px) {
   .modal-content-detalle {
     width: 96%;
-    max-height: 95vh;
+    max-height: calc(100dvh - 2rem);
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: auto;
+    overflow: hidden;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
   }
 
   .modal-header-detalle {
     padding: 10px 14px;
     position: relative;
+    flex-shrink: 0;
 
     .btn-close {
       position: absolute;
@@ -523,6 +534,11 @@
 
   .modal-body-detalle {
     padding: 14px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-footer-detalle {
+    flex-shrink: 0;
   }
 
   .guia-row {

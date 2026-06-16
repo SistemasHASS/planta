@@ -54,6 +54,26 @@
   border-top: 1px solid #e2e8f0;
 }
 
+@media (max-width: 576px) {
+  .modal-custom {
+    max-height: calc(100dvh - 2rem);
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: auto;
+    width: 96%;
+  }
+
+  .modal-body-custom {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-header-custom,
+  .modal-footer-custom {
+    flex-shrink: 0;
+  }
+}
+
 .form-label-required::after {
   content: " *";
   color: #dc2626;

@@ -64,3 +64,15 @@ export function formatTimeClave(value: unknown): string | null {
 
   return `${hh}${mi}${ss}${milliseconds}`;
 }
+
+export function toLocalISOString(date: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const yyyy = date.getFullYear();
+  const mm = pad(date.getMonth() + 1);
+  const dd = pad(date.getDate());
+  const hh = pad(date.getHours());
+  const mi = pad(date.getMinutes());
+  const ss = pad(date.getSeconds());
+  const ms = String(date.getMilliseconds()).padStart(3, '0');
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}.${ms}`;
+}

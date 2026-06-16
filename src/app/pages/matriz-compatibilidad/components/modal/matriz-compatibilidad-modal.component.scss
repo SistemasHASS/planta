@@ -69,6 +69,26 @@
   box-shadow: 0 10px 22px rgba(79, 70, 229, 0.18);
 }
 
+@media (max-width: 576px) {
+  .modal-custom {
+    max-height: calc(100dvh - 2rem);
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: auto;
+    width: 96%;
+  }
+
+  .modal-body-custom {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-header-custom,
+  .modal-footer-custom {
+    flex-shrink: 0;
+  }
+}
+
 .form-label-required::after {
   content: " *";
   color: #dc2626;
