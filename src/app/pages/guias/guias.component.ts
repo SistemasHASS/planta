@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject, signal, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, computed, OnInit } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { GuiaService } from '../../shared/services/guia.service';
@@ -52,6 +52,8 @@ export class GuiasComponent implements OnInit {
   get online(): boolean {
     return this.connectivity.isOnline();
   }
+
+  readonly onlineSignal = computed(() => this.connectivity.isOnline());
 
   get tieneGuiasNoSincronizadas(): boolean {
     return this.guias().some((g: any) => g?.sincroniza === 'no_sincronizado');
@@ -611,6 +613,7 @@ export class GuiasComponent implements OnInit {
     this.alertService.mostrarModalCarga();
     try {
       const detalleData = await this.guiaRemisionFacade.getGuiaRemisionDetalle(idProyecto, codigoGuiaRemision);
+      console.log('detalleData',detalleData)
       if (!detalleData) {
         this.alertService.showAlert('Error', 'Error al obtener detalle de la guía.', 'error');
         return;
@@ -666,6 +669,7 @@ export class GuiasComponent implements OnInit {
 
       // Enriquecer detalle de palets
       const palets = Array.isArray(detalleData?.detalle) ? detalleData.detalle : [];
+      console.log('1----1',palets)
       for (const p of palets) {
         const codTpe = String(p?.codigoTipoProcesoEmpacado ?? '').trim();
         const tpe = codTpe ? this.tipoProcesoEmpacadosCatalogo().find((x: any) => String(x?.codigo ?? '') === codTpe || String(x?.id ?? '') === codTpe) : undefined;
@@ -730,12 +734,13 @@ export class GuiasComponent implements OnInit {
   }
 
   private buildDetalleDescripcion(p: any, fruta: string): string {
+    console.log('Hola mundo',p)
     const s = (v: any) => String(v ?? '').trim();
     const part = (arr: (string | undefined | null)[]) => arr.map(s).filter(Boolean).join(' ');
 
     const bloque1 = part([p.nombreTipoProcesoEmpacado]);
     const bloque2 = part([p.nombreConsignatario, p.nombreDestino, p.nombrePresentacion, p.nombreFormato]);
-    const bloque3 = part([fruta, 'var.', p.nombreVariedad, p.pesoPorCaja ? `${p.pesoPorCaja} kg` : undefined]);
+    const bloque3 = part([fruta, 'var.', p.nombreVariedad, p.pesoPorCaja ? `${p.pesoPorCaja} kg` : '']);
     const bloque4 = part([p.nombreTipoEmpaqueGuia, '/', p.codigoRancho]);
     const bloque5 = part(['LDP', p.codigoLugarProduccion]);
     const bloque6 = s(p.nombreTransporte);
@@ -855,8 +860,8 @@ export class GuiasComponent implements OnInit {
       inspeccionLibreInsectos: payload?.inspeccionLibreInsectos === 'si' ? true : (payload?.inspeccionLibreInsectos === 'no' ? false : guiaOriginal?.inspeccionLibreInsectos ?? null),
       inspeccionLibreMateriasExtranas: payload?.inspeccionLibreMateriasExtranas === 'si' ? true : (payload?.inspeccionLibreMateriasExtranas === 'no' ? false : guiaOriginal?.inspeccionLibreMateriasExtranas ?? null),
       inspeccionUnidadLimpia: payload?.inspeccionUnidadLimpia === 'si' ? true : (payload?.inspeccionUnidadLimpia === 'no' ? false : guiaOriginal?.inspeccionUnidadLimpia ?? null),
-      inspeccionObservaciones: payload?.inspeccionObservaciones?.trim() || guiaOriginal?.inspeccionObservaciones || undefined,
-      inspeccionMedidaCorrectiva: payload?.inspeccionMedidaCorrectiva?.trim() || guiaOriginal?.inspeccionMedidaCorrectiva || undefined,
+      inspeccionObservaciones:  payload?.inspeccionObservaciones?.trim() === '' ? null : payload?.inspeccionObservaciones?.trim(),
+      inspeccionMedidaCorrectiva: payload?.inspeccionMedidaCorrectiva?.trim() === '' ? null : payload?.inspeccionMedidaCorrectiva?.trim(),
       numeroViaje: payload?.numeroViaje ?? guiaOriginal?.numeroViaje ?? null,
       snapshotDetalle: guiaOriginal?.snapshotDetalle ?? null,
       detallePalets: (() => {

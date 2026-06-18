@@ -81,7 +81,7 @@ export interface DPalet {
   tipoProcesoEmpacadoId:number | null;
   tipoProcesoEmpacadoNombre?:string;
   esReposicion:boolean;
-  variedadGuiaId:number | null;
+  variedadGuiaId:string | null;
   esEnsayo:boolean;
   presentacionNombre?:string;
   codigoRanchoNombre?:string;

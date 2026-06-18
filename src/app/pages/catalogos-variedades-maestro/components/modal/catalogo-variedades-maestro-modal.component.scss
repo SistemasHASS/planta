@@ -1,0 +1,7 @@
+input[readonly],
+select:disabled {
+  background-color: #e9ecef;
+  color: #6c757d;
+  cursor: default;
+  opacity: 1;
+}

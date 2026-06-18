@@ -101,14 +101,17 @@ export class CatalogoTablaComponent {
 
     if (!term) return base;
 
-    const codigoField = cfg?.codigoField ?? null;
-    const displayField = cfg?.displayField ?? null;
+    // Buscar en TODAS las columnas visibles (no solo codigoField / displayField)
+    const searchableFields = (this.columnasVisibles() ?? [])
+      .map(c => String(c?.campo ?? '').trim())
+      .filter(f => f.length > 0);
 
     return base.filter(i => {
-      const parts: string[] = [];
-      if (codigoField) parts.push(String(i?.[codigoField] ?? ''));
-      if (displayField) parts.push(String(i?.[displayField] ?? ''));
-      return parts.join(' ').toLowerCase().includes(term);
+      const text = searchableFields
+        .map(f => String(i?.[f] ?? ''))
+        .join(' ')
+        .toLowerCase();
+      return text.includes(term);
     });
   });
 

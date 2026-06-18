@@ -40,9 +40,11 @@
                     <i class="bi bi-slash-circle"></i>
                   </button>
                 }
-                <!-- <button type="button" class="catalogo-action-btn catalogo-action-btn-danger" (click)="onEliminar(row)" title="Eliminar" data-tooltip="Eliminar">
-                  <i class="bi bi-trash"></i>
-                </button> -->
+                @if (row.esEnsayo === true || row.esEnsayo === 1) {
+                  <button type="button" class="catalogo-action-btn catalogo-action-btn-danger" (click)="onEliminar(row)" title="Eliminar" data-tooltip="Eliminar">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                }
               </div>
             </td>
           }

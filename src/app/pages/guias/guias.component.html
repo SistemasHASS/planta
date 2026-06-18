@@ -3,6 +3,7 @@
   <p class="page-subtitle">Genera y administra guías de remisión para despachos</p>
 </div>
 
+@if (onlineSignal()) {
 <div class="row">
   <div class="col-12">
     <div class="sp-card table-card">
@@ -164,6 +165,23 @@
     </div>
   </div>
 </div>
+} @else {
+<div class="row">
+  <div class="col-12">
+    <div class="sp-card table-card">
+      <div class="sp-card-body">
+        <div class="empty-guias" style="padding: 64px 24px;">
+          <i class="bi bi-wifi-off" style="font-size: 52px; color: #f59e0b;"></i>
+          <p style="font-size: 16px; font-weight: 700; color: #475569; margin-top: 16px;">Sin conexión a internet</p>
+          <p style="font-size: 13px; color: #94a3b8; max-width: 400px; margin: 8px auto 0;">
+            Las opciones de Guías de Remisión solo están disponibles en modo online. Conéctate a internet para continuar.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+}
 
 <!-- Modal Detalle -->
 <div class="modal fade modal-guia" id="modalDetalleGuia" tabindex="-1">

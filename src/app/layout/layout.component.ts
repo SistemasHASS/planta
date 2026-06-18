@@ -172,7 +172,7 @@ export class LayoutComponent {
               { label: 'Presentaciones', path: '/admin/catalogos/presentaciones', icon: 'bi-dot' },
               { label: 'Tipos de Caja', path: '/admin/catalogos/tiposCaja', icon: 'bi-dot' },
               { label: 'Tipos de Clamshell', path: '/admin/catalogos/tiposClamshell', icon: 'bi-dot' },
-              { label: 'Variedades - Maestro', path: '/admin/catalogos/variedades', icon: 'bi-dot' },
+              { label: 'Variedades - Maestro', path: '/admin/catalogos-variedades-maestro', icon: 'bi-dot' },
               { label: 'Lugares de Producción', path: '/admin/catalogos/lugaresProduccion', icon: 'bi-dot' },
               { label: 'Transportes - Maestro', path: '/admin/catalogos/transportes', icon: 'bi-dot' },
               { label: 'Códigos Rancho', path: '/admin/catalogos/codigosRancho', icon: 'bi-dot' },

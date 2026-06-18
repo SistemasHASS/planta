@@ -5,6 +5,7 @@ import { provideServiceWorker } from '@angular/service-worker';
 import { appRoutes } from './app.routes';
 import { auth401Interceptor } from './shared/interceptors/auth-401.interceptor';
 import { auth403Interceptor } from './shared/interceptors/resp-403.interceptor';
+import { connectivityInterceptor } from './shared/interceptors/connectivity.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -13,7 +14,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(appRoutes, withHashLocation(), withComponentInputBinding()),
     provideHttpClient(
           withFetch(),
-          withInterceptors([auth401Interceptor, auth403Interceptor])
+          withInterceptors([connectivityInterceptor, auth401Interceptor, auth403Interceptor])
         ),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),

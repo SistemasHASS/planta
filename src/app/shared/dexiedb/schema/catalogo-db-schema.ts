@@ -15,7 +15,7 @@ export const CATELOGO_SCHEMA_V1 = {
     presentaciones: '++_pk,id,&codigo,nombre,activo,fechaCreacion,bd',
     tiposCaja: '++_pk,&id,codigoCultivo,codigo,nombre,activo,fechaCreacion,bd',
     tiposClamshell: '++_pk,&id,codigoCultivo,codigo,nombre,activo,fechaCreacion,bd',
-    variedades: '++_pk,id,idcultivo,&codigo,idvariedad,variedad,procedencia,esEnsayo,bd',
+    variedades: '++_pk,id,idcultivo,&codigo,idvariedad,variedad,procedencia,esEnsayo,eliminado,bd',
     lugaresProduccion: '++_pk,&id,idproyecto,codigo,descripcion,activo,fechaCreacion,bd',
     transportes: '++_pk,&id,transporte,factorTEUtoPallet',
     codigosRancho: '++_pk,&id,codigo,activo,fechaCreacion,bd',

@@ -98,7 +98,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     presentacionId: number;
     tipoProcesoEmpacadoId: number;
     variedadId: number | string;
-    variedadGuiaId: number | string;
+    variedadGuiaId: string;
     lugarProduccionId: number;
     codigoRanchoId: number;
     transporteId: string;
@@ -118,7 +118,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     presentacionId: 0,
     tipoProcesoEmpacadoId: 1,
     variedadId: 0,
-    variedadGuiaId: 0,
+    variedadGuiaId: '',
     lugarProduccionId: 0,
     codigoRanchoId: 0,
     transporteId: '',
@@ -857,7 +857,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
       presentacionId: dpalet.presentacionId ?? 0,
       tipoProcesoEmpacadoId: dpalet.tipoProcesoEmpacadoId ?? 1,
       variedadId: dpalet.variedadId || 0,
-      variedadGuiaId: dpalet.variedadGuiaId ?? 0,
+      variedadGuiaId: dpalet.variedadGuiaId ?? '',
       lugarProduccionId: dpalet.lugarProduccionId || 0,
       codigoRanchoId: dpalet.codigoRanchoId || 0,
       transporteId: dpalet.transporteId || '',
@@ -1032,7 +1032,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
       tipoProcesoEmpacadoId: f.tipoProcesoEmpacadoId ?? null,
       tipoProcesoEmpacadoNombre: tipoProcesoEmpacado?.nombre ?? undefined,
       esReposicion: f.esReposicion ?? false,
-      variedadGuiaId: f.esEnsayo ? (Number(f.variedadGuiaId) || null) : null,
+      variedadGuiaId: f.esEnsayo ? (f.variedadGuiaId || null) : null,
       esEnsayo: f.esEnsayo ?? false,
       eliminado: false,
       fechaCreacion: dpaletOriginal.fechaCreacion ?? new Date().toISOString(),
@@ -1267,7 +1267,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
       presentacionId: 0,
       tipoProcesoEmpacadoId: 0,
       variedadId: 0,
-      variedadGuiaId: 0,
+      variedadGuiaId: '',
       lugarProduccionId: 0,
       codigoRanchoId: 0,
       transporteId: '',
@@ -1376,7 +1376,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
       tipoProcesoEmpacadoId: f.tipoProcesoEmpacadoId ?? null,
       tipoProcesoEmpacadoNombre: tipoProcesoEmpacado?.nombre ?? undefined,
       esReposicion: f.esReposicion ?? false,
-      variedadGuiaId: f.esEnsayo ? (Number(f.variedadGuiaId) || null) : null,
+      variedadGuiaId: f.esEnsayo ? (f.variedadGuiaId || null) : null,
       esEnsayo: f.esEnsayo ?? false,
       eliminado: false,
       bd:0,

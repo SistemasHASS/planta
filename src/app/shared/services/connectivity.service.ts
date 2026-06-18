@@ -14,16 +14,34 @@ export class ConnectivityService {
   private readonly timeoutMs = 3_000;
   private readonly healthUrl = `${environment.apiUrl}/health`;
 
+  /** Timestamp hasta el cual se bloquean peticiones tras un fallo de red (circuit breaker). */
+  private cooldownUntil = 0;
+
   constructor() {
-    window.addEventListener('online', () => void this.checkConnection());
+    window.addEventListener('online', () => {
+      this.cooldownUntil = 0;
+      void this.checkConnection();
+    });
     window.addEventListener('offline', () => this.setStatus(false));
 
     void this.checkConnection();
     setInterval(() => void this.checkConnection(), this.intervalMs);
   }
 
+  get isInCooldown(): boolean {
+    return Date.now() < this.cooldownUntil;
+  }
+
+  triggerCooldown(durationMs = 30_000): void {
+    this.cooldownUntil = Date.now() + durationMs;
+  }
+
   get currentStatus(): boolean {
     return this.isOnline();
+  }
+
+  forceStatus(next: boolean): void {
+    this.setStatus(next);
   }
 
   private setStatus(next: boolean): void {

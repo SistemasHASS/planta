@@ -1,0 +1,52 @@
+<div class="table-responsive catalogo-table-scroll">
+  <table class="sp-table catalogo-table">
+    <thead>
+      <tr>
+        <th style="width:60px">#</th>
+        @for (col of columnas; track col.campo) {
+          <th>{{ col.label }}</th>
+        }
+        <th style="width:150px" class="text-end">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of filteredItems(); track trackById($index, row)) {
+        <tr>
+          <td>{{ $index + 1 }}</td>
+          @for (col of columnas; track col.campo) {
+            <td>
+              @if (isBdColumn(col.campo)) {
+                <span [class]="getSincronizadoClass(getRawValue(row, col.campo))">{{ getSincronizadoLabel(getRawValue(row, col.campo)) }}</span>
+              } @else if (isEsEnsayoColumn(col.campo)) {
+                <span [class]="getEstadoClass(getRawValue(row, col.campo))">{{ getEstadoLabel(getRawValue(row, col.campo)) }}</span>
+              } @else {
+                <span>{{ getCellValue(row, col.campo) }}</span>
+              }
+            </td>
+          }
+          <td class="text-end" style="white-space:nowrap">
+            <div class="catalogo-actions">
+              <button type="button" class="catalogo-action-btn catalogo-action-btn-edit" (click)="onEditar(row)" title="Editar" data-tooltip="Editar">
+                <i class="bi bi-pencil"></i>
+              </button>
+              @if (row.esEnsayo === true) {
+                <button type="button" class="catalogo-action-btn catalogo-action-btn-danger" (click)="onEliminar(row)" title="Eliminar" data-tooltip="Eliminar">
+                  <i class="bi bi-trash"></i>
+                </button>
+              }
+            </div>
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td [attr.colspan]="columnas.length + 2">
+            <div class="empty-state" style="padding:20px">
+              <i class="bi bi-inbox" style="font-size:32px"></i>
+              <p>Sin registros</p>
+            </div>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

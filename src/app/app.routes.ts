@@ -121,6 +121,12 @@ const childRoutes: Routes = [
     data: { title: 'Consignatarios', subtitle: 'Gestión de consignatarios', icon: 'bi-person-vcard' }
   },
   {
+    path: 'admin/catalogos-variedades-maestro',
+    loadComponent: () =>
+      import('./pages/catalogos-variedades-maestro/catalogo-variedades-maestro.component').then((m) => m.CatalogoVariedadesMaestroComponent),
+    data: { title: 'Variedades - Maestro', subtitle: 'Gestión de variedades', icon: 'bi-flower1' }
+  },
+  {
     path: 'procesos',
     loadComponent: () =>
       import('./pages/procesos/procesos.component').then((m) => m.ProcesosComponent),

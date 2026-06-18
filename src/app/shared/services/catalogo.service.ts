@@ -19,6 +19,10 @@ export class CatalogoService {
     return this.http.post<any>(`${this.apiUrl}/sincronizar`, { tabla, json }, { withCredentials: true });
   }
 
+  sincronizarVariedadEsEnsayo(json: any[]): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/sincronizar-variedades-ensayo`, json, { withCredentials: true });
+  }
+
   listarTipoProcesoEmpacado(idProyecto: string = ''): Observable<any> {
     const json = JSON.stringify({
       idproyecto: idProyecto

@@ -74,6 +74,7 @@ export interface Variedad {
   variedad: string
   procedencia: string;
   esEnsayo: boolean;
+  eliminado?: boolean;
   bd?: number;
 }
 

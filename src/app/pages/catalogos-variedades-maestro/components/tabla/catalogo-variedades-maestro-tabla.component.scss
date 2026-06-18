@@ -1,0 +1,102 @@
+:host {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.catalogo-table-scroll {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  max-height: calc(100vh - 260px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.catalogo-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.catalogo-table th,
+.catalogo-table td {
+  white-space: nowrap;
+}
+
+.catalogo-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #f8fafc;
+}
+
+.catalogo-table th:last-child,
+.catalogo-table td:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 4;
+  background: #fff;
+}
+
+.catalogo-actions {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.catalogo-action-btn {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: #fff;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+
+  &:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: var(--color-primary-light);
+  }
+}
+
+.catalogo-action-btn-edit {
+  border-color: #82f252;
+  color: #82f252;
+
+  &:hover {
+    border-color: #90ec68;
+    color: #fff;
+    background: #90ec68;
+  }
+}
+
+.catalogo-action-btn-danger {
+  border-color: #f60f0f;
+  color: var(--color-danger);
+
+  &:hover {
+    border-color: var(--color-danger);
+    color: #fff;
+    background: var(--color-danger);
+  }
+}
+
+@media (max-width: 576px) {
+  .catalogo-actions {
+    gap: 6px;
+  }
+
+  .catalogo-action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 7px;
+  }
+}

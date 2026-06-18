@@ -1,0 +1,44 @@
+<div class="page-title-area">
+  <h2><i class="bi bi-flower1" style="color:var(--color-primary)"></i> Variedades - Maestro</h2>
+  <p class="page-subtitle">Gestiona los catálogos de Variedades - Maestro</p>
+</div>
+
+<div class="sp-card catalogos-card">
+  <div class="sp-card-body" style="padding:16px">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div style="min-width:220px;flex:1">
+        <input class="form-control" placeholder="Buscar..." [ngModel]="searchTerm()"
+          (ngModelChange)="onSearchChange($event)" />
+      </div>
+
+      <button type="button" class="btn btn-success" (click)="onSincronizar()">
+        <i class="bi bi-arrow-repeat"></i> Sincronizar
+      </button>
+
+      <div class="d-flex align-items-center gap-2 flex-wrap catalogos-actions" style="justify-content:flex-end">
+        <!-- No tiene filtro de activos/inactivos porque tieneActivo: false -->
+
+        <button type="button" class="btn btn-sp-primary" (click)="abrirNuevo()">
+          <i class="bi bi-plus-lg"></i> Nuevo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sp-card-body" style="padding:0">
+    @if (isLoading()) {
+    <div class="text-center py-4">
+      <span class="spinner-border text-primary"></span>
+      <p class="mt-2" style="color:var(--color-text-muted);font-size:13px">Cargando catálogo Variedades - Maestro...</p>
+    </div>
+    } @else {
+    <app-catalogo-variedades-maestro-tabla [items]="items()" [searchTerm]="searchTerm()"
+      (editar)="abrirEditar($event)" (eliminar)="onEliminar($event)" />
+    }
+  </div>
+</div>
+
+@if (modalAbierto()) {
+<app-catalogo-variedades-maestro-modal [modo]="modalModo()" [value]="modalValue()" (cerrar)="cerrarModal()"
+  (guardar)="guardarModal($event)" />
+}
