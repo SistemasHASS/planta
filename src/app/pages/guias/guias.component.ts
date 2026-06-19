@@ -920,23 +920,38 @@ export class GuiasComponent implements OnInit {
 
     try {
       this.alertService.mostrarModalCarga();
-      const resp: any = await this.guiaRemisionFacade.editarGuiaRemision({idProyecto:idProyecto,guias:syncPayload});
+      const rawResp: any = await this.guiaRemisionFacade.editarGuiaRemision({idProyecto:idProyecto,guias:syncPayload});
+      const { error, mensaje } = this.normalizeBackendResp(rawResp);
       this.alertService.cerrarModalCarga();
 
-      if (resp?.error) {
-        this.alertService.showAlert('Error', resp?.mensaje ?? 'Error al editar la guía.', 'error');
+      if (error) {
+        this.alertService.showAlertAcept('Error', mensaje || 'Error al editar la guía.', 'error');
         return;
+      }
+      if (mensaje) {
+        this.alertService.showAlert('Info', mensaje, 'info');
       }
 
       this.alertService.showAlert('Éxito', 'Guía editada correctamente.', 'success');
       await this.onBuscarGuias();
     } catch (error: any) {
       this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Error', error?.error?.message ?? 'Error al editar la guía.', 'error');
+      this.alertService.showAlertAcept('Error', error?.error?.message ?? 'Error al editar la guía.', 'error');
     } finally {
       this.modoEdicionGuia.set(false);
       this.guiaParaEditar.set(null);
     }
+  }
+
+  private normalizeBackendResp(resp: any): { error: boolean; mensaje: string; data?: any } {
+    let r = resp;
+    if (Array.isArray(r) && r.length > 0) {
+      r = r[0];
+    }
+    const errorVal = r?.error;
+    const error = errorVal === true || errorVal === 1 || errorVal === '1' || errorVal === 'true';
+    const mensaje = r?.mensaje ?? '';
+    return { error, mensaje, data: r?.data };
   }
 
   async onConfirmarInspeccion(ev: { guia: any; inspeccion: any }): Promise<void> {
@@ -1039,12 +1054,16 @@ export class GuiasComponent implements OnInit {
 
     try {
       this.alertService.mostrarModalCarga();
-      const resp: any = await firstValueFrom(this.guiaService.sincronizarGuiasRemision(syncPayload));
+      const rawResp: any = await firstValueFrom(this.guiaService.sincronizarGuiasRemision(syncPayload));
+      const { error, mensaje } = this.normalizeBackendResp(rawResp);
       this.alertService.cerrarModalCarga();
 
-      if (resp?.error) {
-        this.alertService.showAlert('Error', resp?.mensaje ?? 'Error al sincronizar guía.', 'error');
+      if (error) {
+        this.alertService.showAlertAcept('Error', mensaje || 'Error al sincronizar guía.', 'error');
         return;
+      }
+      if (mensaje) {
+        this.alertService.showAlert('Info', mensaje, 'info');
       }
 
       this.alertService.showAlert('Éxito', 'Guía sincronizada correctamente.', 'success');
@@ -1053,7 +1072,7 @@ export class GuiasComponent implements OnInit {
     } catch (error: any) {
       console.error('Error sincronizando guía:', error);
       this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Error', error?.error?.message ?? 'Error al sincronizar guía.', 'error');
+      this.alertService.showAlertAcept('Error', error?.error?.message ?? 'Error al sincronizar guía.', 'error');
     }
   }
 

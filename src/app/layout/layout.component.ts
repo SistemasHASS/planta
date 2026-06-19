@@ -155,6 +155,7 @@ export class LayoutComponent {
           { label: 'Gestión de Destinatarios', path: '/admin/destinatarios', icon: 'bi-geo-alt-fill' },
           { label: 'Matriz Compatibilidad', path: '/admin/matriz', icon: 'bi-diagram-3-fill' },
           { label: 'Reglas Sobrepeso', path: '/admin/sobrepeso', icon: 'bi-speedometer2' },
+          { label: 'Series GRE', path: '/admin/correlativos-documentos', icon: 'bi-file-earmark-text-fill' },
           {
             label: 'Catálogos',
             path: '#catalogos',

@@ -85,6 +85,12 @@ const childRoutes: Routes = [
     data: { title: 'Reglas Sobrepeso', subtitle: 'Configurar reglas de sobrepeso', icon: 'bi-speedometer2' }
   },
   {
+    path: 'admin/correlativos-documentos',
+    loadComponent: () =>
+      import('./pages/correlativos-documentos/correlativos-documentos.component').then((m) => m.CorrelativosDocumentosComponent),
+    data: { title: 'Series GRE', subtitle: 'Administrar series de guías', icon: 'bi-file-earmark-text-fill' }
+  },
+  {
     path: 'admin/acopio_configuracion',
     loadComponent: () =>
       import('./pages/acopios-config/acopios-config.component').then((m) => m.AcopiosConfigComponent),

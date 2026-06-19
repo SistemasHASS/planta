@@ -12,6 +12,7 @@ import { ConnectivityService } from '../../shared/services/connectivity.service'
 import { AcopiosTablaComponent } from "./components/tabla/acopios-tabla.component";
 import { AcopiosModalComponent } from "./components/modal/acopios-modal.component";
 import { AcopiosModalResult } from "./components/modal/acopios-modal.component";
+import { AdministracionRepository } from '../../shared/dexiedb/repository/administracion.repository';
 
 @Component({
   selector: 'app-acopios-config',
@@ -27,9 +28,11 @@ export class AcopiosConfigComponent {
   private readonly catalogoService = inject(CatalogoService);
   private readonly catalogosRepository = inject(CatalogosRepository);
   private readonly catalogosOperativosRepo = inject(CatalogosOperativosRepository);
+  private readonly administracionRepository = inject(AdministracionRepository);
   readonly modalValue = signal<Acopio | null>(null);
   readonly modalValueDetalle = signal<AcopioDetalle[] | null>(null);
   readonly modaltiposProcesoEmpaque = signal<TipoProcesoEmpacado[] | null>(null);
+  readonly seriesGre = signal<any[]>([]);
 
   readonly usuario = this.auth.usuario;
   readonly savedConfig = signal<Configuracion | null>(null);
@@ -231,7 +234,26 @@ export class AcopiosConfigComponent {
     this.modalValueDetalle.set(detalle);
     let tipoProcesoEmpaque = await this.catalogosRepository.tipoProcesoEmpacadoRepo.getAll();
     this.modaltiposProcesoEmpaque.set(tipoProcesoEmpaque);
+
+    const allSeries = await this.administracionRepository.correlativosDocumentosRepository.getAll();
+    const activas = allSeries.filter((s: any) => !this.asBitBoolean(s?.eliminado));
+    this.seriesGre.set(activas);
+
     this.modalAbierto.set(true);
+  }
+
+  private asBitBoolean(value: unknown): boolean {
+    if (value === true) return true;
+    if (value === false) return false;
+    if (value === 1) return true;
+    if (value === 0) return false;
+    if (value === null || value === undefined) return false;
+    if (typeof value === 'string') {
+      const v = value.trim().toLowerCase();
+      if (v === '1' || v === 'true' || v === 'si' || v === 'sí' || v === 'y') return true;
+      if (v === '0' || v === 'false' || v === 'no' || v === 'n' || v === '') return false;
+    }
+    return !!value;
   }
 
   async guardarModal(a: AcopiosModalResult): Promise<void> {

@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { DexieService } from "../dexie-db.service";
 import { BaseRepository } from "../db-base.repository";
-import { MatrizCompatibilidad, ReglaSobrePeso, Usuario } from "../../interfaces/administracion.interface";
+import { CorrelativoDocumento, MatrizCompatibilidad, ReglaSobrePeso, Usuario } from "../../interfaces/administracion.interface";
 
 
 @Injectable({ providedIn: 'root' })
@@ -9,7 +9,8 @@ export class AdministracionRepository {
     constructor(
         public readonly matricesCompatibilidadRepository: MatricesCompatibilidadRepository,
         public readonly usuariosRepository: UsuariosRepository,
-        public readonly reglasSobrePesoRepository: ReglasSobrePesoRepository
+        public readonly reglasSobrePesoRepository: ReglasSobrePesoRepository,
+        public readonly correlativosDocumentosRepository: CorrelativosDocumentosRepository
     ) { }
 }
 
@@ -32,5 +33,12 @@ export class UsuariosRepository extends BaseRepository<Usuario> {
 export class ReglasSobrePesoRepository extends BaseRepository<ReglaSobrePeso> {
     constructor(db: DexieService) {
         super(db, 'reglasSobrePeso');
+    }
+}
+
+@Injectable({providedIn: 'root'})
+export class CorrelativosDocumentosRepository extends BaseRepository<CorrelativoDocumento> {
+    constructor(db: DexieService) {
+        super(db, 'correlativosDocumentos');
     }
 }

@@ -348,6 +348,26 @@ export class ParametrosComponent implements OnInit {
         }
     }
 
+    private async apiListarCorrelativosDocumentos(): Promise<void> {
+        const resp: any = await firstValueFrom(this.administracionService.listarCorrelativosDocumentos());
+        if (resp[0]?.error) {
+            console.error('Error listando correlativos documentos', resp[0]?.mensaje);
+            return;
+        }
+        const apiItems = resp[0]?.data ?? [];
+        const normalizados = apiItems.map((item: any) => ({
+            ...item,
+            modo: 'editado',
+            bd: 1
+        }));
+        if (normalizados.length > 0) {
+            await this.adminRepo.correlativosDocumentosRepository.clear();
+            await this.adminRepo.correlativosDocumentosRepository.bulkSave(normalizados);
+        } else {
+            await this.adminRepo.correlativosDocumentosRepository.clear();
+        }
+    }
+
     normalizarProceso(proceso: any): {
         proceso: Proceso;
         dProcesoLogisticos: DProcesoLogistico[];
@@ -588,6 +608,7 @@ export class ParametrosComponent implements OnInit {
 
                 await this.apiListarMatricesCompatibilidad()
                 await this.apiListarReglasSobrePeso()
+                await this.apiListarCorrelativosDocumentos()
                 await this.sincronizarDPaletsPorAcopio()
                 this.alertService.cerrarModalCarga();
                 this.alertService.showAlert('Listo', 'Sincronización completada', 'success');

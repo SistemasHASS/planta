@@ -1,0 +1,58 @@
+<div class="page-title-area">
+  <h2><i class="bi bi-file-earmark-text-fill" style="color:var(--color-primary)"></i> Series de Guías (GRE)</h2>
+  <p class="page-subtitle">Administrar correlativos de documentos tipo GRE</p>
+</div>
+
+<div class="sp-card catalogos-card">
+  <div class="sp-card-body" style="padding:16px">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div style="min-width:260px;flex:1">
+        <input
+          class="form-control"
+          type="search"
+          autocomplete="off"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          placeholder="Buscar serie o número..."
+          [ngModel]="searchTerm()"
+          (ngModelChange)="searchTerm.set($event)"
+        />
+      </div>
+
+      <button type="button" class="btn btn-success" (click)="onSincronizar()">
+        <i class="bi bi-arrow-repeat"></i> Sincronizar
+      </button>
+
+      <div class="d-flex align-items-center gap-2 flex-wrap" style="justify-content:flex-end">
+        <button type="button" class="btn-sp-primary" (click)="abrirNuevo()">
+          <i class="bi bi-plus-lg"></i> Nueva Serie
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sp-card-body" style="padding:0">
+    @if (isLoading()) {
+      <div class="text-center py-4">
+        <span class="spinner-border text-primary"></span>
+        <p class="mt-2" style="color:var(--color-text-muted);font-size:13px">Cargando series...</p>
+      </div>
+    } @else {
+      <app-correlativos-documentos-tabla
+        [items]="filteredItems()"
+        (toggleEstado)="onToggleEstado($event)"
+        (eliminar)="onEliminar($event)"
+      />
+    }
+  </div>
+</div>
+
+@if (modalAbierto()) {
+  <app-correlativos-documentos-modal
+    [modo]="modalModo()"
+    [value]="modalValue()"
+    (cerrar)="cerrarModal()"
+    (guardar)="guardarModal($event)"
+  />
+}

@@ -19,12 +19,21 @@
 
           <div class="col-12 col-md-6">
             <label class="form-label">Serie Guía</label>
-            <input
-              class="form-control"
+            <select
+              class="form-select"
               [ngModel]="serieGuia()"
               (ngModelChange)="onSerieChange($event)"
-              placeholder="Ej: F001"
-            />
+            >
+              <option value="">— Seleccione serie —</option>
+              @for (s of seriesGre; track s.serie) {
+                <option [value]="s.serie">{{ s.serie }}</option>
+              }
+            </select>
+            @if (seriesGre.length === 0) {
+              <div class="invalid-feedback d-block" style="font-size:11px">
+                No hay series GRE activas disponibles. Sincronice primero desde Parámetros o la página de Series GRE.
+              </div>
+            }
           </div>
         </div>
       </div>

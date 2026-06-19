@@ -47,4 +47,15 @@ export class AdministracionService {
         return this.http.post<any>(`${this.apiUrlReglasSobrePeso}/sincronizar`, json, { withCredentials: true });
     }
 
+    //---------- Correlativos Documentos ------
+    private readonly apiUrlCorrelativos = `${this.apiUrl}/correlativos-documentos`;
+
+    listarCorrelativosDocumentos(): Observable<any> {
+        return this.http.get<any>(`${this.apiUrlCorrelativos}/listar`, { withCredentials: true });
+    }
+
+    sincronizarCorrelativosDocumentos(json: any): Observable<any> {
+        return this.http.post<any>(`${this.apiUrlCorrelativos}/sincronizar`, json, { withCredentials: true });
+    }
+
 }

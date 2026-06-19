@@ -1,0 +1,83 @@
+<div class="modal-backdrop-custom" (click)="onBackdrop()"></div>
+<div class="modal-custom">
+  <div class="modal-header-custom">
+    <h5><i class="bi bi-file-earmark-text-fill"></i> {{ getTitle() }}</h5>
+    <button type="button" class="btn-close btn-close-white" (click)="onCerrar()" aria-label="Close"></button>
+  </div>
+
+  <div class="modal-body-custom">
+    <div class="sp-card" style="margin-bottom:0">
+      <div class="sp-card-header">
+        <h5><i class="bi bi-sliders"></i> {{ modo === 'editar' ? 'Editar serie' : 'Nueva serie' }}</h5>
+      </div>
+      <div class="sp-card-body">
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label">Tipo Documento</label>
+            <input
+              class="form-control"
+              type="text"
+              value="Guía de Remisión"
+              disabled
+            />
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label form-label-required">Serie</label>
+            <input
+              class="form-control"
+              type="text"
+              maxlength="4"
+              [class.is-invalid]="isInvalid('serie')"
+              [ngModel]="form()['serie']"
+              (ngModelChange)="updateField('serie', $event)"
+              placeholder="Ej: A001"
+              [disabled]="modo === 'editar'"
+            />
+            @if (isInvalid('serie')) {
+              <div class="invalid-feedback" style="display:block">Campo requerido</div>
+            }
+            @if (modo === 'editar') {
+              <div class="form-text" style="font-size:11px;color:var(--color-text-muted)">No editable en modo edición</div>
+            }
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label form-label-required">Número</label>
+            <input
+              class="form-control"
+              type="text"
+              maxlength="8"
+              [class.is-invalid]="isInvalid('numero')"
+              [ngModel]="form()['numero']"
+              (ngModelChange)="updateField('numero', $event)"
+              placeholder="Ej: 00000001"
+              oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+              [disabled]="modo === 'editar'"
+            />
+            @if (isInvalid('numero')) {
+              <div class="invalid-feedback" style="display:block">Campo requerido</div>
+            }
+            @if (modo === 'editar') {
+              <div class="form-text" style="font-size:11px;color:var(--color-text-muted)">No editable en modo edición</div>
+            }
+          </div>
+
+          <div class="col-12">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" [ngModel]="form()['eliminado']" (ngModelChange)="updateField('eliminado', $event)" id="serieEliminado" />
+              <label class="form-check-label" for="serieEliminado">Inactivo</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-footer-custom">
+    <button type="button" class="btn btn-sp-outline btn-cancel" (click)="onCerrar()">Cancelar</button>
+    <button type="button" class="btn btn-sp-primary btn-save" (click)="onGuardar()">
+      {{ modo === 'editar' ? 'Guardar' : 'Crear Serie' }}
+    </button>
+  </div>
+</div>

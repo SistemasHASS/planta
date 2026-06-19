@@ -77,3 +77,20 @@ export interface ReglaSobrePeso {
     bd?: number
 }
 
+export interface CorrelativoDocumento {
+    id: number,
+    idempresa: string,
+    ruc: string,
+    idTipoDocumento: string,
+    idTipoDocumentoNombre?: string,
+    serie: string,
+    numero: string,
+    eliminado: boolean,
+    fechaCreacion: string,
+    usuarioCre: string,
+    usuarioMod: string,
+    fechaModificacion: string,
+    modo: Modo,
+    bd?: number
+}
+

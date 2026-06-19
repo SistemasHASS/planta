@@ -1,0 +1,57 @@
+<div class="catalogo-table-scroll">
+  <table class="table table-hover catalogo-table">
+    <thead>
+      <tr>
+        <!-- <th>ID</th> -->
+        <th>Tipo Documento</th>
+        <th>Serie</th>
+        <th>Número</th>
+        <th class="th-sticky-sync">Sincronizado</th>
+        <th class="th-sticky-estado">Estado</th>
+        <th class="th-sticky-actions th-actions">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of filteredItems(); track trackById($index, item)) {
+        <tr>
+          <!-- <td>{{ item.id }}</td> -->
+          <td>{{ item.idTipoDocumentoNombre ?? 'Guía de Remisión' }}</td>
+          <td>{{ item.serie }}</td>
+          <td>{{ item.numero }}</td>
+          <td class="td-sticky-sync">
+            <span [class]="sincronizadoClass(item.bd)">{{ sincronizadoLabel(item.bd) }}</span>
+          </td>
+          <td class="td-sticky-estado">
+            <span [class]="estadoClass(item.eliminado)">{{ estadoLabel(item.eliminado) }}</span>
+          </td>
+          <td class="td-sticky-actions">
+            <div class="d-flex gap-1 catalogo-actions">
+              @if (asBitBoolean(item.bd)) {
+                @if (!asBitBoolean(item.eliminado)) {
+                  <button type="button" class="catalogo-action-btn catalogo-action-btn-danger" title="Desactivar" (click)="onToggleEstado(item)">
+                    <i class="bi bi-toggle-on"></i>
+                  </button>
+                } @else {
+                  <button type="button" class="catalogo-action-btn catalogo-action-btn-edit" title="Activar" (click)="onToggleEstado(item)">
+                    <i class="bi bi-toggle-off"></i>
+                  </button>
+                }
+              } @else {
+                <button type="button" class="catalogo-action-btn catalogo-action-btn-danger" title="Eliminar" (click)="onEliminar(item)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              }
+            </div>
+          </td>
+        </tr>
+      }
+      @if (filteredItems().length === 0) {
+        <tr>
+          <td colspan="7" class="text-center py-4" style="color:var(--color-text-muted);font-size:13px">
+            Sin registros
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

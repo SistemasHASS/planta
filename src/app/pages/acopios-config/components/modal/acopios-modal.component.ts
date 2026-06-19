@@ -24,6 +24,7 @@ export class AcopiosModalComponent {
   @Input() value: Row | null = null;
   @Input() tipos: TipoProcesoEmpacado[] = [];
   @Input() detalles: AcopioDetalle[] = [];
+  @Input() seriesGre: any[] = [];
 
   @Output() cerrar = new EventEmitter<void>();
   @Output() guardar = new EventEmitter<AcopiosModalResult>();
