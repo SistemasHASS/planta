@@ -964,6 +964,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
       case 'tipoClamshellId': this.onTipoClamshellChange(String(valor)); break;
       case 'variedadId': this.onVariedadChange(String(valor)); break;
       case 'esEnsayo': this.onEsEnsayoChange(valor); break;
+      case 'esReposicion': this.onEsReposicionChange(valor); break;
     }
   }
 
@@ -988,6 +989,20 @@ export class PaletsComponent implements OnInit, OnDestroy {
     const formatoSel = this.filteredFormatos().find((fmt: any) => fmt.id === f.formatoId);
     const pesoPorCaja = formatoSel?.pesoPorCaja ?? 10;
     const limiteCajasPorPalet = formatoSel?.limiteCajasPorPalet ?? 0;
+
+    const cantidadOriginal = dpaletOriginal.cantidadCajas || 0;
+    const cantidadDeOtras = (palet.cantidadCajas || 0) - cantidadOriginal;
+    const totalProyectado = cantidadDeOtras + f.cantidadCajas;
+
+    if (limiteCajasPorPalet > 0 && totalProyectado > limiteCajasPorPalet) {
+      const faltantes = limiteCajasPorPalet - cantidadDeOtras;
+      const msg = faltantes > 0
+        ? `Solo puede poner ${faltantes} caja(s) en esta línea. El límite del formato es ${limiteCajasPorPalet} cajas.`
+        : `El palet ya alcanzó el límite de ${limiteCajasPorPalet} cajas.`;
+      this.alertService.showAlert('Validación',
+        `El total de cajas (${totalProyectado}) excede el límite permitido. ${msg}`, 'warning');
+      return;
+    }
 
     const consignatario = this.consignatarios().find(c => c.documento === f.consignatarioId);
     const destino = this.filteredDestinos().find(d => String(d.id) === String(f.destinoId));
@@ -1073,6 +1088,9 @@ export class PaletsComponent implements OnInit, OnDestroy {
         this.alertService.cerrarModalCarga();
         this.alertService.showAlert('Exito', 'Cajas actualizadas correctamente', 'success');
         this.cerrarModalAgregarCajas();
+        if (limiteCajasPorPalet > 0 && nuevaCantidad >= limiteCajasPorPalet) {
+          this.abrirModalCerrarPalet(paletActualizado);
+        }
       } catch (err) {
         console.error('Error editando online:', err);
         this.alertService.cerrarModalCarga();
@@ -1108,6 +1126,9 @@ export class PaletsComponent implements OnInit, OnDestroy {
         this.alertService.cerrarModalCarga();
         this.alertService.showAlert('Exito', 'Cajas actualizadas correctamente (offline)', 'success');
         this.cerrarModalAgregarCajas();
+        if (limiteCajasPorPalet > 0 && nuevaCantidad >= limiteCajasPorPalet) {
+          this.abrirModalCerrarPalet(paletActualizado);
+        }
       } catch (err) {
         console.error('Error editando offline:', err);
         this.alertService.cerrarModalCarga();
@@ -2341,9 +2362,22 @@ export class PaletsComponent implements OnInit, OnDestroy {
 
   onEsEnsayoChange(checked: boolean): void {
     this.updateFormCajas('esEnsayo', checked);
+    if (checked) {
+      this.updateFormCajas('esReposicion', false);
+    }
     this.updateFormCajas('variedadId', '');
     this.updateFormCajas('variedadGuiaId', '');
     this._filtrarVariedadesPorEnsayo();
+  }
+
+  onEsReposicionChange(checked: boolean): void {
+    this.updateFormCajas('esReposicion', checked);
+    if (checked) {
+      this.updateFormCajas('esEnsayo', false);
+      this.updateFormCajas('variedadId', '');
+      this.updateFormCajas('variedadGuiaId', '');
+      this._filtrarVariedadesPorEnsayo();
+    }
   }
 
   async onLugarProduccionChange(value: string): Promise<void> {

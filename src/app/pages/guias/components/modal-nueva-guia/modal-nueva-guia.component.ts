@@ -81,7 +81,7 @@ export class ModalNuevaGuiaComponent implements OnChanges {
     vehiculoId: '',
     motivoTraslado: 'OTROS',
     precinto: '',
-    parihuelas: 0,
+    parihuelas: null as number | null,
     observacionesUsuario: '',
     inspeccionTemperatura: '',
     numeroViaje: '',
@@ -168,6 +168,27 @@ export class ModalNuevaGuiaComponent implements OnChanges {
       this.form.update(f => ({ ...f, destinatarioId: value, puntoLlegada }));
       return;
     }
+    if (field === 'parihuelas') {
+      const num = Number(value);
+      if (!Number.isInteger(num) || num < 1 || num > 99) {
+        this.form.update(f => ({ ...f, [field]: null }));
+        return;
+      }
+    }
+    if (field === 'inspeccionTemperatura') {
+      const num = Number(value);
+      if (isNaN(num)) {
+        this.form.update(f => ({ ...f, [field]: '' }));
+        return;
+      }
+    }
+    if (field === 'numeroViaje') {
+      const num = Number(value);
+      if (!Number.isInteger(num) || num < 1) {
+        this.form.update(f => ({ ...f, [field]: '' }));
+        return;
+      }
+    }
     this.form.update(f => ({ ...f, [field]: value }));
     if (field === 'procesoId') {
       this.cargarPaletsPorProceso(value);
@@ -237,7 +258,7 @@ export class ModalNuevaGuiaComponent implements OnChanges {
       f.motivoTraslado?.trim() &&
       f.precinto?.trim() &&
       this.nroPaletsSeleccionados() > 0 &&
-      !isNaN(parihuelasNum) && parihuelasNum >= 0 && parihuelasNum <= 99
+      !isNaN(parihuelasNum) && parihuelasNum >= 1 && parihuelasNum <= 99
     );
   }
 
@@ -248,7 +269,7 @@ export class ModalNuevaGuiaComponent implements OnChanges {
   isInvalidParihuelas(): boolean {
     if (!this.submitAttempted()) return false;
     const v = Number((this.form() as any).parihuelas);
-    return isNaN(v) || v < 0 || v > 99;
+    return isNaN(v) || v < 1 || v > 99;
   }
 
   onCrear(): void {

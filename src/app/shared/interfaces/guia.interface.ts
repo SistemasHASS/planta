@@ -42,6 +42,7 @@ export interface GuiaRemision {
   numeroViaje?: number | null;
   snapshotDetalle?: string | null;
   esEnsayo: boolean;
+  multiple?: number;
   eliminado?: boolean;
   sincroniza?: string;
   detallePalets?: GuiaRemisionPalet[] | null;

@@ -37,7 +37,7 @@ export class GuiaService {
     const params = new HttpParams()
       .set('idProyecto', idProyecto)
       .set('codigoGuiaRemision', codigoGuiaRemision);
-    return this.http.delete<any>(`${this.apiUrl}/eliminar-guia-remision`, { params, withCredentials: true });
+    return this.http.post<any>(`${this.apiUrl}/eliminar-guia-remision`, null, { params, withCredentials: true });
   }
 
   emitirGuiaRemision(idProyecto: string, codigoGuiaRemision: string): Observable<any> {

@@ -144,9 +144,11 @@
           <div class="col-md-4">
             <label class="form-label" style="font-size:11px;font-weight:700">Parihuelas <span class="text-danger">*</span></label>
             <input type="number" class="form-control form-control-sm" [class.is-invalid]="isInvalidParihuelas()"
-                   [ngModel]="form().parihuelas" (ngModelChange)="updateField('parihuelas', $event)" min="0" max="99" placeholder="0">
+                   [ngModel]="form().parihuelas" (ngModelChange)="updateField('parihuelas', $event)"
+                   min="1" max="99" placeholder=""
+                   (keydown)="$event.key === 'e' || $event.key === 'E' || $event.key === '-' || $event.key === '+' || $event.key === '.' ? $event.preventDefault() : null">
             @if (isInvalidParihuelas()) {
-              <div class="invalid-feedback d-block" style="font-size:11px">Máximo 99 parihuelas.</div>
+              <div class="invalid-feedback d-block" style="font-size:11px">Ingrese un número entre 1 y 99.</div>
             }
           </div>
           <div class="col-md-8">
@@ -161,11 +163,13 @@
             </div>
             <div class="col-md-4">
               <label class="form-label" style="font-size:11px;font-weight:700">Temperatura (°C)</label>
-              <input type="number" step="0.1" class="form-control form-control-sm" [ngModel]="form().inspeccionTemperatura" (ngModelChange)="updateField('inspeccionTemperatura', $event)" placeholder="Ej: 18.4">
+              <input type="number" step="0.1" class="form-control form-control-sm" [ngModel]="form().inspeccionTemperatura" (ngModelChange)="updateField('inspeccionTemperatura', $event)" placeholder="Ej: 18.4"
+                     (keydown)="$event.key === 'e' || $event.key === 'E' || $event.key === '+' ? $event.preventDefault() : null">
             </div>
             <div class="col-md-4">
               <label class="form-label" style="font-size:11px;font-weight:700">N° de Viaje</label>
-              <input type="number" min="1" class="form-control form-control-sm" [ngModel]="form().numeroViaje" (ngModelChange)="updateField('numeroViaje', $event)" placeholder="Ej: 1, 2, 3...">
+              <input type="number" min="1" class="form-control form-control-sm" [ngModel]="form().numeroViaje" (ngModelChange)="updateField('numeroViaje', $event)" placeholder="Ej: 1, 2, 3..."
+                     (keydown)="$event.key === 'e' || $event.key === 'E' || $event.key === '-' || $event.key === '+' || $event.key === '.' ? $event.preventDefault() : null">
             </div>
             <div class="col-12 mt-1">
               <div class="d-flex flex-wrap gap-4 mt-1" style="font-size:12px">

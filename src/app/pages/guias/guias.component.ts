@@ -63,6 +63,39 @@ export class GuiasComponent implements OnInit {
   procesos = signal<Proceso[]>([]);
   procesoSeleccionado = signal<Proceso | null>(null);
   guias = signal<GuiaRemision[]>([]);
+
+  guiasAgrupadas = computed(() => {
+    const raw = this.guias();
+    const map = new Map<string, any>();
+    const result: any[] = [];
+    for (const g of raw) {
+      if (Number(g.multiple) === 1 && g.transactionId_uuid) {
+        const key = g.transactionId_uuid;
+        const existing = map.get(key);
+        if (!existing) {
+          const grupo = {
+            ...g,
+            _esGrupo: true,
+            _guiasDelGrupo: [g],
+            cantidadPalets: g.cantidadPalets || 0,
+            totalCajas: g.totalCajas || 0,
+            pesoTotal: g.pesoTotal || 0,
+          };
+          map.set(key, grupo);
+          result.push(grupo);
+        } else {
+          existing._guiasDelGrupo.push(g);
+          existing.cantidadPalets += (g.cantidadPalets || 0);
+          existing.totalCajas += (g.totalCajas || 0);
+          existing.pesoTotal += (g.pesoTotal || 0);
+        }
+      } else {
+        result.push(g);
+      }
+    }
+    return result;
+  });
+
   guiaSeleccionada = signal<GuiaRemision | null>(null);
   isLoading = signal(false);
   modalNuevaGuiaAbierto = signal(false);
@@ -492,6 +525,115 @@ export class GuiasComponent implements OnInit {
     }
   }
 
+  async cerrarGrupo(guias: GuiaRemision[]): Promise<void> {
+    const confirmado = await this.alertService.showConfirm(
+      'Confirmar emisión múltiple',
+      `¿Está seguro de emitir y numerar <strong>${guias.length}</strong> guías agrupadas?`,
+      'question'
+    );
+    if (!confirmado) return;
+    const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
+    if (!idProyecto) {
+      this.alertService.showAlert('Error', 'No se pudo obtener el proyecto.', 'error');
+      return;
+    }
+    // Solo se necesita una guía del grupo; el SP V2 emite todas
+    const primeraGuia = guias[0];
+    const codigo = String(primeraGuia?.codigoGuiaRemision ?? '').trim();
+    if (!codigo) {
+      this.alertService.showAlert('Error', 'No se pudo obtener el código de guía.', 'error');
+      return;
+    }
+    this.alertService.mostrarModalCarga();
+    try {
+      let resp: any = await firstValueFrom(this.guiaService.emitirGuiaRemision(idProyecto, codigo));
+      if (Array.isArray(resp) && resp.length > 0) resp = resp[0];
+      this.alertService.cerrarModalCarga();
+      if (resp?.error) {
+        this.alertService.showAlertAcept('Error', resp?.mensaje ?? 'Error al emitir las guías.', 'error');
+        return;
+      }
+      this.alertService.showAlertAcept('Éxito', resp?.mensaje ?? 'Guías emitidas correctamente.', 'success');
+      await this.onBuscarGuias();
+    } catch (error: any) {
+      this.alertService.cerrarModalCarga();
+      console.error('Error emitiendo grupo:', error);
+      this.alertService.showAlertAcept('Error', error?.error?.message ?? 'Error al emitir las guías del grupo.', 'error');
+    }
+  }
+
+  async eliminarGrupo(guias: GuiaRemision[]): Promise<void> {
+    const confirmado = await this.alertService.showConfirm(
+      'Confirmar eliminación múltiple',
+      `¿Está seguro de eliminar <strong>${guias.length}</strong> guías agrupadas?`,
+      'warning'
+    );
+    if (!confirmado) return;
+    const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
+    if (!idProyecto) {
+      this.alertService.showAlert('Error', 'No se pudo obtener el proyecto.', 'error');
+      return;
+    }
+    const primeraGuia = guias[0];
+    const codigo = String(primeraGuia?.codigoGuiaRemision ?? '').trim();
+    if (!codigo) {
+      this.alertService.showAlert('Error', 'No se pudo obtener el código de guía.', 'error');
+      return;
+    }
+    this.alertService.mostrarModalCarga();
+    try {
+      let resp: any = await firstValueFrom(this.guiaService.eliminarGuiaRemision(idProyecto, codigo));
+      if (Array.isArray(resp) && resp.length > 0) resp = resp[0];
+      this.alertService.cerrarModalCarga();
+      if (resp?.error) {
+        this.alertService.showAlertAcept('Error', resp?.mensaje ?? 'Error al eliminar las guías.', 'error');
+        return;
+      }
+      this.alertService.showAlertAcept('Éxito', resp?.mensaje ?? 'Guías eliminadas correctamente.', 'success');
+      await this.onBuscarGuias();
+    } catch (error: any) {
+      this.alertService.cerrarModalCarga();
+      console.error('Error eliminando grupo:', error);
+      this.alertService.showAlertAcept('Error', error?.error?.message ?? 'Error al eliminar las guías del grupo.', 'error');
+    }
+  }
+
+  async anularGrupo(guias: GuiaRemision[]): Promise<void> {
+    const confirmado = await this.alertService.showConfirm(
+      'Confirmar anulación múltiple',
+      `¿Está seguro de anular <strong>${guias.length}</strong> guías agrupadas?`,
+      'warning'
+    );
+    if (!confirmado) return;
+    const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
+    if (!idProyecto) {
+      this.alertService.showAlert('Error', 'No se pudo obtener el proyecto.', 'error');
+      return;
+    }
+    const primeraGuia = guias[0];
+    const codigo = String(primeraGuia?.codigoGuiaRemision ?? '').trim();
+    if (!codigo) {
+      this.alertService.showAlert('Error', 'No se pudo obtener el código de guía.', 'error');
+      return;
+    }
+    this.alertService.mostrarModalCarga();
+    try {
+      let resp: any = await firstValueFrom(this.guiaService.anularGuiaRemision(idProyecto, codigo));
+      if (Array.isArray(resp) && resp.length > 0) resp = resp[0];
+      this.alertService.cerrarModalCarga();
+      if (resp?.error) {
+        this.alertService.showAlertAcept('Error', resp?.mensaje ?? 'Error al anular las guías.', 'error');
+        return;
+      }
+      this.alertService.showAlertAcept('Éxito', resp?.mensaje ?? 'Guías anuladas correctamente.', 'success');
+      await this.onBuscarGuias();
+    } catch (error: any) {
+      this.alertService.cerrarModalCarga();
+      console.error('Error anulando grupo:', error);
+      this.alertService.showAlertAcept('Error', error?.error?.message ?? 'Error al anular las guías del grupo.', 'error');
+    }
+  }
+
   volverAProcesos(): void {
     this.currentView.set('procesos');
     this.procesoSeleccionado.set(null);
@@ -613,7 +755,6 @@ export class GuiasComponent implements OnInit {
     this.alertService.mostrarModalCarga();
     try {
       const detalleData = await this.guiaRemisionFacade.getGuiaRemisionDetalle(idProyecto, codigoGuiaRemision);
-      console.log('detalleData',detalleData)
       if (!detalleData) {
         this.alertService.showAlert('Error', 'Error al obtener detalle de la guía.', 'error');
         return;
@@ -624,19 +765,13 @@ export class GuiasComponent implements OnInit {
       await this.cargarVehiculos();
       await this.cargarProcesosCatalogo();
       await this.cargarDestinatarios();
-      await this.cargarTipoProcesoEmpacadosCatalogo();
       await this.cargarConsignatariosCatalogo();
       await this.cargarDestinosCatalogo();
-      await this.cargarPresentacionesCatalogo();
-      await this.cargarFormatosCatalogo();
       await this.cargarVariedadesCatalogo();
-      await this.cargarTiposEmpaqueGuiaCatalogo();
-      await this.cargarCodigosRanchoCatalogo();
-      await this.cargarLugaresProduccionCatalogo();
       await this.cargarTransportesCatalogo();
       await this.cargarCampaniasCatalogo();
 
-      const campania = this.campaniasCatalogo().find((c: any) => String(c?.idproyecto ?? '') === idProyecto);
+      const campania = this.campaniasCatalogo().find((c: any) => String(c?.idproyecto ?? '') === detalleData.idProyecto);
       const fruta = String((campania as any)?.fruta ?? '').trim();
 
       const idTrans = Number(detalleData?.idTransportista);
@@ -669,12 +804,8 @@ export class GuiasComponent implements OnInit {
 
       // Enriquecer detalle de palets
       const palets = Array.isArray(detalleData?.detalle) ? detalleData.detalle : [];
-      console.log('1----1',palets)
-      for (const p of palets) {
-        const codTpe = String(p?.codigoTipoProcesoEmpacado ?? '').trim();
-        const tpe = codTpe ? this.tipoProcesoEmpacadosCatalogo().find((x: any) => String(x?.codigo ?? '') === codTpe || String(x?.id ?? '') === codTpe) : undefined;
-        p.nombreTipoProcesoEmpacado = String((tpe as any)?.codigo ?? '').trim() || undefined;
 
+      for (const p of palets) {
         const docCons = String(p?.documentoConsignatario ?? '').trim();
         const cons = docCons ? this.consignatariosCatalogo().find((x: any) => String(x?.documento ?? '') === docCons || String(x?.documentoFiscal ?? '') === docCons) : undefined;
         p.nombreConsignatario = String((cons as any)?.nombre ?? '').trim() || undefined;
@@ -683,33 +814,9 @@ export class GuiasComponent implements OnInit {
         const dest = idDest ? this.destinosCatalogo().find((x: any) => String(x?.id ?? '') === idDest) : undefined;
         p.nombreDestino = String((dest as any)?.pais ?? (dest as any)?.nacionalidad ?? '').trim() || undefined;
 
-        const idPres = Number(p?.idPresentacion ?? NaN);
-        const pres = !isNaN(idPres) ? this.presentacionesCatalogo().find((x: any) => Number(x?.id ?? NaN) === idPres || String(x?.codigo ?? '') === String(idPres)) : undefined;
-        p.nombrePresentacion = String((pres as any)?.nombre ?? '').trim() || undefined;
-
-        const idForm = Number(p?.codigoFormato ?? NaN);
-        const form = !isNaN(idForm) ? this.formatosCatalogo().find((x: any) => Number(x?.id ?? NaN) === idForm || String(x?.id ?? '') === String(idForm)) : undefined;
-        p.nombreFormato = String((form as any)?.descripcion ?? '').trim() || undefined;
-
         const codVar = String(p?.codigoVariedad ?? '').trim();
         const vari = codVar ? this.variedadesCatalogo().find((x: any) => String(x?.codigo ?? '') === codVar) : undefined;
         p.nombreVariedad = String((vari as any)?.variedad ?? '').trim() || undefined;
-
-        const idTeg = Number(p?.idTipoEmpaqueGuia ?? NaN);
-        const teg = !isNaN(idTeg) ? this.tiposEmpaqueGuiaCatalogo().find((x: any) => Number(x?.id ?? NaN) === idTeg || String(x?.codigo ?? '') === String(idTeg)) : undefined;
-        p.nombreTipoEmpaqueGuia = String((teg as any)?.nombre ?? '').trim() || undefined;
-
-        const codRan = String(p?.codigoRancho ?? '').trim();
-        let ran: any;
-        if (codRan) {
-          ran = this.codigosRanchoCatalogo().find((x: any) => String(x?.codigo ?? '') === codRan);
-          if (!ran) ran = this.codigosRanchoCatalogo().find((x: any) => Number(x?.id ?? NaN) === Number(codRan));
-        }
-        p.codigoRancho = String((ran as any)?.codigo ?? '').trim() || undefined;
-
-        const idLp = Number(p?.idLugarProduccion ?? NaN);
-        const lp = !isNaN(idLp) ? this.lugaresProduccionCatalogo().find((x: any) => Number(x?.id ?? NaN) === idLp) : undefined;
-        p.codigoLugarProduccion = String((lp as any)?.codigo ?? '').trim() || undefined;
 
         const idTran = String(p?.idTransporte ?? '').trim();
         const tran = idTran ? this.transportesCatalogo().find((x: any) => String(x?.id ?? '') === idTran) : undefined;
@@ -728,13 +835,8 @@ export class GuiasComponent implements OnInit {
     }
   }
 
-  cerrarModalVerDetalle(): void {
-    this.modalVerDetalleAbierto.set(false);
-    this.guiaDetalle.set(null);
-  }
-
   private buildDetalleDescripcion(p: any, fruta: string): string {
-    console.log('Hola mundo',p)
+
     const s = (v: any) => String(v ?? '').trim();
     const part = (arr: (string | undefined | null)[]) => arr.map(s).filter(Boolean).join(' ');
 
@@ -755,6 +857,11 @@ export class GuiasComponent implements OnInit {
     ].filter(Boolean);
 
     return secciones.join(' - ');
+  }
+
+  cerrarModalVerDetalle(): void {
+    this.modalVerDetalleAbierto.set(false);
+    this.guiaDetalle.set(null);
   }
 
   async abrirModalNuevaGuia(): Promise<void> {

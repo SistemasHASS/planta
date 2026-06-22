@@ -48,7 +48,7 @@
         </form>
       </div>
       <div class="sp-card-body" style="padding:0;">
-        @if (guias() && guias().length > 0) {
+        @if (guiasAgrupadas() && guiasAgrupadas().length > 0) {
         <div class="table-responsive">
           <table class="sp-table guia-table">
             <thead>
@@ -68,7 +68,114 @@
               </tr>
             </thead>
             <tbody>
-              @for (g of guias(); track g.codigoGuiaRemision) {
+              @for (g of guiasAgrupadas(); track g.transactionId_uuid + (g._esGrupo ? '_grupo' : g.codigoGuiaRemision)) {
+              @if (g._esGrupo) {
+              <!-- Grupo: una fila con subfilas limpias -->
+              <tr style="border-left:4px solid #16a34a;">
+                <td class="col-guia" style="background:#f6fef9; vertical-align:middle;">
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                    <span class="badge" style="font-size:9px; background:#16a34a; color:#fff; padding:3px 8px;"><i class="bi bi-layers"></i> MULTIPLE</span>
+                    <span style="font-size:11px;color:#64748b;">{{ g._guiasDelGrupo.length }} guías</span>
+                  </div>
+                  <div class="d-flex flex-column" style="gap:8px;">
+                    @for (sg of g._guiasDelGrupo; track sg.codigoGuiaRemision; let first = $first) {
+                      <div style="display:flex;align-items:center;gap:6px;" [style.padding]="first ? '2px 0 5px 0' : '5px 0'" [style.border-top]="first ? 'none' : '1px solid #bbf7d0'">
+                        <span style="display:inline-block;width:3px;height:18px;border-radius:2px;" [style.background]="sg.esReposicion ? '#f59e0b' : (sg.esEnsayo ? '#3b82f6' : '#16a34a')"></span>
+                        <span class="guia-numero" style="font-size:12px; font-weight:500;">
+                          @if (sg.numero) { {{ sg.serie }} N° {{ sg.numero }} } @else { <span class="guia-borrador">(borrador)</span> }
+                        </span>
+                        @if (sg.esReposicion) { <span class="badge-repo" style="font-size:9px;"><i class="bi bi-arrow-repeat"></i> REPO</span> }
+                        @if (sg.esEnsayo) { <span class="badge-ensayo" style="font-size:9px;"><i class="bi bi-flask"></i> ENSAYO</span> }
+                      </div>
+                    }
+                  </div>
+                </td>
+                <td class="col-dest" style="background:#f6fef9; vertical-align:middle;">
+                  {{ g.nombreDestinatario || g.documentoDestinatario || '' }}
+                </td>
+                <td class="col-proc" style="background:#f6fef9; vertical-align:middle;">
+                  <span class="sp-badge sp-badge-info proc-badge">{{ g.nombreProces || g.codigoProceso }}</span>
+                </td>
+                <td class="col-num" style="background:#f6fef9; vertical-align:middle; text-align:center;">
+                  <div class="d-flex flex-column" style="align-items:center;">
+                    @for (sg of g._guiasDelGrupo; track sg.codigoGuiaRemision; let first = $first) {
+                      <div style="min-height:32px; display:flex; align-items:center; justify-content:center;" [style.padding]="first ? '0 0 10px 0' : '10px 0'" [style.border-top]="first ? 'none' : '1px solid #bbf7d0'">
+                        <strong>{{ sg.cantidadPalets }}</strong>
+                      </div>
+                    }
+                  </div>
+                </td>
+                <td class="col-num" style="background:#f6fef9; vertical-align:middle; text-align:center;">
+                  <div class="d-flex flex-column" style="align-items:center;">
+                    @for (sg of g._guiasDelGrupo; track sg.codigoGuiaRemision; let first = $first) {
+                      <div style="min-height:32px; display:flex; align-items:center; justify-content:center;" [style.padding]="first ? '0 0 10px 0' : '10px 0'" [style.border-top]="first ? 'none' : '1px solid #bbf7d0'">
+                        {{ sg.totalCajas }}
+                      </div>
+                    }
+                  </div>
+                </td>
+                <td class="col-num" style="background:#f6fef9; vertical-align:middle; text-align:center;">
+                  <div class="d-flex flex-column" style="align-items:center;">
+                    @for (sg of g._guiasDelGrupo; track sg.codigoGuiaRemision; let first = $first) {
+                      <div style="min-height:32px; display:flex; align-items:center; justify-content:center;" [style.padding]="first ? '0 0 10px 0' : '10px 0'" [style.border-top]="first ? 'none' : '1px solid #bbf7d0'">
+                        {{ sg.pesoTotal }} kg
+                      </div>
+                    }
+                  </div>
+                </td>
+                <td class="col-prec" style="background:#f6fef9; vertical-align:middle;">
+                  <span class="badge bg-secondary" style="font-size:10px;">{{ g.precinto || '—' }}</span>
+                </td>
+                <td class="col-via" style="background:#f6fef9; vertical-align:middle;">
+                  @if (g.numeroViaje) { <span class="badge bg-secondary" style="font-size:10px;">{{ g.numeroViaje }}</span> } @else { — }
+                </td>
+                <td class="col-fecha" style="background:#f6fef9; vertical-align:middle;">
+                  @if (g.fechaEmision) { {{ fmtDateTime(g.fechaEmision) }} } @else if (g.fechaCreacionWeb) { <span class="text-muted">{{ fmtDateTime(g.fechaCreacionWeb) }}</span> } @else { — }
+                </td>
+                <td class="col-sync" style="background:#f6fef9; vertical-align:middle;">
+                  <span [class]="sincronizadoClass(g.sincroniza)">{{ sincronizadoLabel(g.sincroniza) }}</span>
+                </td>
+                <td class="col-estado" style="background:#f6fef9; vertical-align:middle;">
+                  <div class="d-flex flex-column">
+                    @for (sg of g._guiasDelGrupo; track sg.codigoGuiaRemision; let first = $first) {
+                      <div style="min-height:32px; display:flex; align-items:center;" [style.padding]="first ? '0 0 10px 0' : '10px 0'" [style.border-top]="first ? 'none' : '1px solid #bbf7d0'">
+                        @if (sg.estado === 'ABIERTA') {
+                          <span class="badge-estado badge-abierta" style="font-size:10px;"><i class="bi bi-circle-fill" style="font-size:5px;"></i> ABIERTA</span>
+                        } @else if (sg.estado === 'ANULADO') {
+                          <span class="badge-estado badge-anulada" style="font-size:10px;"><i class="bi bi-x-circle" style="font-size:7px;"></i> ANULADA</span>
+                        } @else {
+                          <span class="badge-estado badge-cerrada" style="font-size:10px;"><i class="bi bi-check-circle" style="font-size:7px;"></i> CERRADA</span>
+                        }
+                      </div>
+                    }
+                  </div>
+                </td>
+                <td class="col-acc" style="background:#f6fef9; vertical-align:middle; border-right:4px solid #16a34a;">
+                  <div class="action-group">
+                    <!-- Acciones por subguía: solo detalle -->
+                    <div class="d-flex flex-column">
+                      @for (sg of g._guiasDelGrupo; track sg.codigoGuiaRemision; let first = $first) {
+                        <div style="display:flex;gap:4px;align-items:center;justify-content:center;min-height:32px;" [style.padding]="first ? '0 0 10px 0' : '10px 0'" [style.border-top]="first ? 'none' : '1px solid #bbf7d0'">
+                          <button class="btn action-btn action-btn-view btn-sm" style="padding:2px 6px;font-size:10px;"
+                                  title="Ver detalle" (click)="abrirModalVerDetalle(sg)"><i class="bi bi-eye"></i></button>
+                        </div>
+                      }
+                    </div>
+                    <!-- Acciones globales del grupo -->
+                    <div class="d-flex gap-1" style="padding-top:8px; margin-top:4px; justify-content:center;">
+                      @if (g.estado === 'ABIERTA') {
+                        <button class="btn action-btn action-btn-close" title="Cerrar y numerar grupo" (click)="cerrarGrupo(g._guiasDelGrupo)"><i class="bi bi-check-circle"></i></button>
+                        <button class="btn action-btn action-btn-delete" title="Eliminar grupo" (click)="eliminarGrupo(g._guiasDelGrupo)"><i class="bi bi-trash"></i></button>
+                      }
+                      @if (g.estado === 'CERRADA') {
+                        <button class="btn action-btn action-btn-anular" title="Anular grupo" (click)="anularGrupo(g._guiasDelGrupo)"><i class="bi bi-x-octagon"></i> Anular</button>
+                      }
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              } @else {
+              <!-- Guía individual -->
               <tr [class]="g.estado === 'ANULADA' ? 'opacity-50' : ''"
                 [style.background]="g.esReposicion ? '#fffbeb' : (g.esEnsayo ? '#eff6ff' : '')">
                 <td class="col-guia">
@@ -85,11 +192,7 @@
                   }
                 </td>
                 <td class="col-dest" [title]="g.documentoDestinatario">
-                  @if (g.nombreDestinatario) {
-                  {{ g.nombreDestinatario }}
-                  } @else {
-                  {{ g.documentoDestinatario || '' }}
-                  }
+                  @if (g.nombreDestinatario) { {{ g.nombreDestinatario }} } @else { {{ g.documentoDestinatario || '' }} }
                 </td>
                 <td class="col-proc" [title]="g.codigoProceso">
                   @if (g.nombreProces) {
@@ -102,48 +205,33 @@
                 <td class="col-num">{{ g.totalCajas }}</td>
                 <td class="col-num">{{ g.pesoTotal }} kg</td>
                 <td class="col-prec">
-                  <span class="badge bg-secondary" style="font-size:10px;">
-                    {{ g.precinto || '—' }}
-                  </span>
+                  <span class="badge bg-secondary" style="font-size:10px;">{{ g.precinto || '—' }}</span>
                 </td>
                 <td class="col-via">
-                  @if (g.numeroViaje) {
-                  <span class="badge bg-secondary" style="font-size:10px;">{{ g.numeroViaje }}</span>
-                  } @else { — }
+                  @if (g.numeroViaje) { <span class="badge bg-secondary" style="font-size:10px;">{{ g.numeroViaje }}</span> } @else { — }
                 </td>
                 <td class="col-fecha">
-                  @if (g.fechaEmision) {
-                  {{ fmtDateTime(g.fechaEmision) }}
-                  } @else if (g.fechaCreacionWeb) {
-                  <span class="text-muted">{{ fmtDateTime(g.fechaCreacionWeb) }}</span>
-                  } @else { — }
+                  @if (g.fechaEmision) { {{ fmtDateTime(g.fechaEmision) }} } @else if (g.fechaCreacionWeb) { <span class="text-muted">{{ fmtDateTime(g.fechaCreacionWeb) }}</span> } @else { — }
                 </td>
                 <td class="col-sync">
                   <span [class]="sincronizadoClass(g.sincroniza)">{{ sincronizadoLabel(g.sincroniza) }}</span>
                 </td>
                 <td class="col-estado">
                   @if (g.estado === 'ABIERTA') {
-                  <span class="badge-estado badge-abierta"><i class="bi bi-circle-fill" style="font-size:6px;"></i>
-                    ABIERTA</span>
+                  <span class="badge-estado badge-abierta"><i class="bi bi-circle-fill" style="font-size:6px;"></i> ABIERTA</span>
                   } @else if (g.estado === 'ANULADO') {
-                  <span class="badge-estado badge-anulada"><i class="bi bi-x-circle" style="font-size:8px;"></i>
-                    ANULADA</span>
+                  <span class="badge-estado badge-anulada"><i class="bi bi-x-circle" style="font-size:8px;"></i> ANULADA</span>
                   } @else {
-                  <span class="badge-estado badge-cerrada"><i class="bi bi-check-circle" style="font-size:8px;"></i>
-                    CERRADA</span>
+                  <span class="badge-estado badge-cerrada"><i class="bi bi-check-circle" style="font-size:8px;"></i> CERRADA</span>
                   }
                 </td>
                 <td class="col-acc">
                   <div class="action-group">
-                    <!-- <a href="/guias/pdf/{{ g.codigoGuiaRemision }}" target="_blank"
-                      class="btn action-btn action-btn-pdf" title="PDF"><i class="bi bi-file-pdf"></i></a> -->
                     <button class="btn action-btn action-btn-view" title="Detalle" (click)="abrirModalVerDetalle(g)"><i class="bi bi-eye"></i></button>
                     @if (g.estado === 'ABIERTA') {
                     <button class="btn action-btn action-btn-edit" title="Editar" (click)="editarGuia(g)"><i class="bi bi-pencil"></i></button>
-                    <button class="btn action-btn action-btn-close" title="Cerrar y numerar" (click)="cerrarGuia(g)"><i
-                        class="bi bi-check-circle"></i></button>
-                    <button class="btn action-btn action-btn-delete" title="Eliminar" (click)="eliminarGuia(g)"><i
-                        class="bi bi-trash"></i></button>
+                    <button class="btn action-btn action-btn-close" title="Cerrar y numerar" (click)="cerrarGuia(g)"><i class="bi bi-check-circle"></i></button>
+                    <button class="btn action-btn action-btn-delete" title="Eliminar" (click)="eliminarGuia(g)"><i class="bi bi-trash"></i></button>
                     }
                     @if (g.estado === 'CERRADA') {
                     <button class="btn action-btn action-btn-anular" title="Anular guía" (click)="anularGuia(g)"><i class="bi bi-x-octagon"></i> Anular</button>
@@ -151,6 +239,7 @@
                   </div>
                 </td>
               </tr>
+              }
               }
             </tbody>
           </table>
