@@ -201,11 +201,15 @@ export class GuiaRemisionFacade {
     if (this.connectivity.isOnline()) {
       try {
         let resp: any = await firstValueFrom(this.guiaService.getGuiaRemision(idP, codigo));
+
         if (Array.isArray(resp) && resp.length > 0) {
           resp = resp[0];
         }
-        if (resp?.error) return null;
+        if (resp?.error) {
+         return resp
+        }
         const data = resp?.data ?? [];
+
         const detalleData = Array.isArray(data) && data.length > 0 ? data[0] : (data || null);
         if (detalleData?.detalle && typeof detalleData.detalle === 'string') {
           try {
@@ -228,8 +232,7 @@ export class GuiaRemisionFacade {
         return detalleData;
       } catch (error) {
         console.error('Error obteniendo guía remisión:', error);
-        // Fallback a Dexie si el API falla
-        return await this.obtenerGuiaDexie(idP, codigo);
+        return null
       }
     } else {
       return await this.obtenerGuiaDexie(idP, codigo);

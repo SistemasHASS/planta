@@ -6,7 +6,7 @@ export interface GuiaRemision {
   serie?: string;
   numero?: string;
   codigoProceso: string;
-  nombreProces?:string;
+  nombreProceso?:string;
   documentoDestinatario: string;
   nombreDestinatario?:string;
   puntoPartida: string;
@@ -23,6 +23,7 @@ export interface GuiaRemision {
   inicioTraslado?: string | null;
   observaciones?: string | null;
   estado: string;
+  estadoSunat?: string;
   pesoTotal: number;
   totalCajas: number;
   cantidadPalets: number;

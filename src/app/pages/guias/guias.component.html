@@ -64,6 +64,7 @@
                 <th class="col-fecha">Fecha</th>
                 <th class="col-sync">Sincronizado</th>
                 <th class="col-estado">Estado</th>
+                <th class="col-sunat">Estado SUNAT</th>
                 <th class="col-acc">Acciones</th>
               </tr>
             </thead>
@@ -94,7 +95,7 @@
                   {{ g.nombreDestinatario || g.documentoDestinatario || '' }}
                 </td>
                 <td class="col-proc" style="background:#f6fef9; vertical-align:middle;">
-                  <span class="sp-badge sp-badge-info proc-badge">{{ g.nombreProces || g.codigoProceso }}</span>
+                  <span class="sp-badge sp-badge-info proc-badge">{{ g.nombreProceso || g.codigoProceso }}</span>
                 </td>
                 <td class="col-num" style="background:#f6fef9; vertical-align:middle; text-align:center;">
                   <div class="d-flex flex-column" style="align-items:center;">
@@ -150,6 +151,15 @@
                     }
                   </div>
                 </td>
+                <td class="col-sunat" style="background:#f6fef9; vertical-align:middle;">
+                  <div class="d-flex flex-column">
+                    @for (sg of g._guiasDelGrupo; track sg.codigoGuiaRemision; let first = $first) {
+                      <div style="min-height:32px; display:flex; align-items:center;" [style.padding]="first ? '0 0 10px 0' : '10px 0'" [style.border-top]="first ? 'none' : '1px solid #bbf7d0'">
+                        <span [class]="estadoSunatClass(sg.estadoSunat)" style="font-size:10px;">{{ estadoSunatLabel(sg.estadoSunat) }}</span>
+                      </div>
+                    }
+                  </div>
+                </td>
                 <td class="col-acc" style="background:#f6fef9; vertical-align:middle; border-right:4px solid #16a34a;">
                   <div class="action-group">
                     <!-- Acciones por subguía: solo detalle -->
@@ -195,8 +205,8 @@
                   @if (g.nombreDestinatario) { {{ g.nombreDestinatario }} } @else { {{ g.documentoDestinatario || '' }} }
                 </td>
                 <td class="col-proc" [title]="g.codigoProceso">
-                  @if (g.nombreProces) {
-                  <span class="sp-badge sp-badge-info proc-badge">{{ g.nombreProces }}</span>
+                  @if (g.nombreProceso) {
+                  <span class="sp-badge sp-badge-info proc-badge">{{ g.nombreProceso }}</span>
                   } @else {
                   <span class="sp-badge sp-badge-info proc-badge">{{ g.codigoProceso }}</span>
                   }
@@ -224,6 +234,9 @@
                   } @else {
                   <span class="badge-estado badge-cerrada"><i class="bi bi-check-circle" style="font-size:8px;"></i> CERRADA</span>
                   }
+                </td>
+                <td class="col-sunat">
+                  <span [class]="estadoSunatClass(g.estadoSunat)">{{ estadoSunatLabel(g.estadoSunat) }}</span>
                 </td>
                 <td class="col-acc">
                   <div class="action-group">

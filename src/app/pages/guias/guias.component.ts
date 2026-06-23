@@ -196,7 +196,7 @@ export class GuiasComponent implements OnInit {
         });
         const fechaProceso = String((proceso as any)?.fechaProceso ?? '').trim();
         const turno = String((proceso as any)?.turno ?? '').trim();
-        const nombreProces = fechaProceso && turno ? `${fechaProceso} - ${turno}` : (fechaProceso || turno || codigoProceso);
+        const nombreProceso = fechaProceso && turno ? `${fechaProceso} - ${turno}` : (fechaProceso || turno || codigoProceso);
 
         const documentoDest = String(g?.documentoDestinatario ?? '').trim();
         const destinatario = destinatarios.find((d: any) => {
@@ -207,7 +207,7 @@ export class GuiasComponent implements OnInit {
 
         return {
           ...g,
-          nombreProces,
+          nombreProceso,
           nombreDestinatario,
         };
       });
@@ -238,6 +238,34 @@ export class GuiasComponent implements OnInit {
 
   sincronizadoClass(sincroniza: string | undefined): string {
     return sincroniza === 'no_sincronizado' ? 'sp-badge sp-badge-danger' : 'sp-badge sp-badge-success';
+  }
+
+  estadoSunatLabel(estado?: string): string {
+    const map: Record<string, string> = {
+      PENDIENTE: 'Pendiente',
+      ENVIANDO: 'Enviando',
+      ENVIADO: 'Enviado',
+      ACEPTADO: 'Aceptado',
+      ACEPTADO_CON_OBSERVACIONES: 'Aceptado c/obs.',
+      RECHAZADO: 'Rechazado',
+      ERROR_ENVIO: 'Error envío',
+      ANULADO: 'Anulado',
+    };
+    return map[estado ?? ''] ?? (estado || '—');
+  }
+
+  estadoSunatClass(estado?: string): string {
+    switch (estado) {
+      case 'PENDIENTE': return 'badge-sunat badge-sunat-pendiente';
+      case 'ENVIANDO': return 'badge-sunat badge-sunat-enviando';
+      case 'ENVIADO': return 'badge-sunat badge-sunat-enviado';
+      case 'ACEPTADO': return 'badge-sunat badge-sunat-aceptado';
+      case 'ACEPTADO_CON_OBSERVACIONES': return 'badge-sunat badge-sunat-aceptado-obs';
+      case 'RECHAZADO': return 'badge-sunat badge-sunat-rechazado';
+      case 'ERROR_ENVIO': return 'badge-sunat badge-sunat-error';
+      case 'ANULADO': return 'badge-sunat badge-sunat-anulado';
+      default: return 'badge-sunat badge-sunat-pendiente';
+    }
   }
 
   private async cargarConfiguracion(): Promise<void> {
@@ -309,7 +337,7 @@ export class GuiasComponent implements OnInit {
         if (procesoIdx < 0) {
           const allProcesos = await this.procesoRepo.procesosRepo.getAll();
           const procesoInfo = (allProcesos ?? []).find((p: any) => String(p?.idProceso ?? '').trim() === codigoProceso);
-          const nombreProceso = String(detalleData?.nombreProceso ?? detalleData?.nombreProces ?? '').trim();
+          const nombreProceso = String(detalleData?.nombreProceso ?? '').trim();
 
           const procesoEntry: any = {
             ...(procesoInfo || {}),
@@ -749,90 +777,34 @@ export class GuiasComponent implements OnInit {
     const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
     const codigoGuiaRemision = String(g?.codigoGuiaRemision ?? '').trim();
     if (!idProyecto || !codigoGuiaRemision) {
+      this.alertService.cerrarModalCarga();
       this.alertService.showAlert('Error', 'No se pudo obtener la información de la guía.', 'error');
       return;
     }
     this.alertService.mostrarModalCarga();
     try {
       const detalleData = await this.guiaRemisionFacade.getGuiaRemisionDetalle(idProyecto, codigoGuiaRemision);
+
       if (!detalleData) {
-        this.alertService.showAlert('Error', 'Error al obtener detalle de la guía.', 'error');
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Error', 'Error al obtener el detalle de la guía. Comuníquese con el administrador del sistema.', 'error');
         return;
       }
 
-      await this.cargarTransportistas();
-      await this.cargarConductores();
-      await this.cargarVehiculos();
-      await this.cargarProcesosCatalogo();
-      await this.cargarDestinatarios();
-      await this.cargarConsignatariosCatalogo();
-      await this.cargarDestinosCatalogo();
-      await this.cargarVariedadesCatalogo();
-      await this.cargarTransportesCatalogo();
-      await this.cargarCampaniasCatalogo();
-
-      const campania = this.campaniasCatalogo().find((c: any) => String(c?.idproyecto ?? '') === detalleData.idProyecto);
-      const fruta = String((campania as any)?.fruta ?? '').trim();
-
-      const idTrans = Number(detalleData?.idTransportista);
-      const idCond = Number(detalleData?.idConductor);
-      const idVehi = Number(detalleData?.idVehiculo);
-
-      const transportista = idTrans ? this.transportistas().find((t: any) => Number(t?.id) === idTrans) : undefined;
-      const conductor = idCond ? this.conductores().find((c: any) => Number(c?.id) === idCond) : undefined;
-      const vehiculo = idVehi ? this.vehiculos().find((v: any) => Number(v?.id) === idVehi) : undefined;
-
-      detalleData.razonSocialTransportista = String((transportista as any)?.razonSocial ?? '').trim() || undefined;
-      detalleData.nombreConductor = String((conductor as any)?.nombreCompleto ?? '').trim() || undefined;
-      detalleData.placaPrincipalVehiculo = String((vehiculo as any)?.placaPrincipal ?? '').trim() || undefined;
-
-      const codigoProceso = String(detalleData?.codigoProceso ?? '').trim();
-      const proceso = this.procesosCatalogo().find((p: any) => {
-        const pId = String(p?.idProceso ?? p?.codigoProceso ?? p?.id ?? '').trim();
-        return pId === codigoProceso;
-      });
-      const fechaProceso = String((proceso as any)?.fechaProceso ?? '').trim();
-      const turno = String((proceso as any)?.turno ?? '').trim();
-      detalleData.nombreProces = fechaProceso && turno ? `${fechaProceso} - ${turno}` : (fechaProceso || turno || codigoProceso);
-
-      const documentoDest = String(detalleData?.documentoDestinatario ?? '').trim();
-      const destinatario = this.destinatarios().find((d: any) => {
-        const dDoc = String(d?.documentoFiscal ?? '').trim();
-        return dDoc === documentoDest;
-      });
-      detalleData.nombreDestinatario = String((destinatario as any)?.nombre ?? '').trim() || undefined;
-
-      // Enriquecer detalle de palets
-      const palets = Array.isArray(detalleData?.detalle) ? detalleData.detalle : [];
-
-      for (const p of palets) {
-        const docCons = String(p?.documentoConsignatario ?? '').trim();
-        const cons = docCons ? this.consignatariosCatalogo().find((x: any) => String(x?.documento ?? '') === docCons || String(x?.documentoFiscal ?? '') === docCons) : undefined;
-        p.nombreConsignatario = String((cons as any)?.nombre ?? '').trim() || undefined;
-
-        const idDest = String(p?.idDestino ?? '').trim();
-        const dest = idDest ? this.destinosCatalogo().find((x: any) => String(x?.id ?? '') === idDest) : undefined;
-        p.nombreDestino = String((dest as any)?.pais ?? (dest as any)?.nacionalidad ?? '').trim() || undefined;
-
-        const codVar = String(p?.codigoVariedad ?? '').trim();
-        const vari = codVar ? this.variedadesCatalogo().find((x: any) => String(x?.codigo ?? '') === codVar) : undefined;
-        p.nombreVariedad = String((vari as any)?.variedad ?? '').trim() || undefined;
-
-        const idTran = String(p?.idTransporte ?? '').trim();
-        const tran = idTran ? this.transportesCatalogo().find((x: any) => String(x?.id ?? '') === idTran) : undefined;
-        p.nombreTransporte = String((tran as any)?.transporte ?? '').trim() || undefined;
-
-        p.detalleDescripcion = this.buildDetalleDescripcion(p, fruta);
+      if(detalleData?.error){
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Error', detalleData?.mensaje ?? 'Error al obtener el detalle de la guía.', 'error');
+        return;
       }
-
+      this.alertService.cerrarModalCarga();
       this.guiaDetalle.set(detalleData);
       this.modalVerDetalleAbierto.set(true);
     } catch (error: any) {
       console.error('Error obteniendo detalle guía:', error);
-      this.alertService.showAlert('Error', error?.error?.message ?? 'Error al obtener detalle de la guía.', 'error');
-    } finally {
       this.alertService.cerrarModalCarga();
-    }
+      this.alertService.showAlert('Error', error?.message ?? error?.error?.message ?? 'Error al obtener detalle de la guía.', 'error');
+    } 
+   
   }
 
   private buildDetalleDescripcion(p: any, fruta: string): string {

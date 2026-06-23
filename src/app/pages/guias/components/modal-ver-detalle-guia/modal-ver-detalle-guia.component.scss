@@ -166,6 +166,26 @@
 .badge-cerrada { background: #d1fae5; color: #065f46; }
 .badge-anulada { background: #fee2e2; color: #991b1b; }
 
+.badge-sunat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.badge-sunat-pendiente { background: #f1f5f9; color: #475569; }
+.badge-sunat-enviando  { background: #dbeafe; color: #1e40af; }
+.badge-sunat-enviado   { background: #fef3c7; color: #92400e; }
+.badge-sunat-aceptado  { background: #d1fae5; color: #065f46; }
+.badge-sunat-aceptado-obs { background: #ccfbf1; color: #0f766e; }
+.badge-sunat-rechazado { background: #fee2e2; color: #991b1b; }
+.badge-sunat-error     { background: #fee2e2; color: #7f1d1d; border: 1px solid #fecaca; }
+.badge-sunat-anulado   { background: #e2e8f0; color: #334155; }
+
 .info-sep {
   width: 1px;
   height: 14px;

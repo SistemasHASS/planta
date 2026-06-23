@@ -163,6 +163,28 @@
   color: #991b1b;
 }
 
+/* SUNAT status badges */
+.badge-sunat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.badge-sunat-pendiente { background: #f1f5f9; color: #475569; }
+.badge-sunat-enviando  { background: #dbeafe; color: #1e40af; }
+.badge-sunat-enviado   { background: #fef3c7; color: #92400e; }
+.badge-sunat-aceptado  { background: #d1fae5; color: #065f46; }
+.badge-sunat-aceptado-obs { background: #ccfbf1; color: #0f766e; }
+.badge-sunat-rechazado { background: #fee2e2; color: #991b1b; }
+.badge-sunat-error     { background: #fee2e2; color: #7f1d1d; border: 1px solid #fecaca; }
+.badge-sunat-anulado   { background: #e2e8f0; color: #334155; }
+
 /* Type badges */
 .badge-repo {
   background: #fef3c7;
@@ -408,20 +430,21 @@
 .col-fecha  { min-width: 130px; }
 .col-sync   { min-width: 115px; }
 .col-estado { min-width: 95px; }
+.col-sunat  { min-width: 110px; }
 .col-acc    { min-width: 170px; }
 
-/* Sticky right columns: Estado + Acciones (desktop only) */
+/* Sticky right columns: Estado + Estado SUNAT + Acciones (desktop only) */
 @media (min-width: 992px) {
-  .guia-table th.col-sync,
-  .guia-table td.col-sync {
+  .guia-table th.col-estado,
+  .guia-table td.col-estado {
     position: sticky;
-    right: 265px;
+    right: 280px;
     background: inherit;
     z-index: 2;
   }
 
-  .guia-table th.col-estado,
-  .guia-table td.col-estado {
+  .guia-table th.col-sunat,
+  .guia-table td.col-sunat {
     position: sticky;
     right: 170px;
     background: inherit;
@@ -437,10 +460,10 @@
   }
 
   /* Shadow on left edge of sticky columns to show there's more content */
-  .guia-table th.col-sync::before,
-  .guia-table td.col-sync::before,
   .guia-table th.col-estado::before,
   .guia-table td.col-estado::before,
+  .guia-table th.col-sunat::before,
+  .guia-table td.col-sunat::before,
   .guia-table th.col-acc::before,
   .guia-table td.col-acc::before {
     content: '';
@@ -453,16 +476,16 @@
     pointer-events: none;
   }
 
-  .guia-table th.col-sync,
   .guia-table th.col-estado,
+  .guia-table th.col-sunat,
   .guia-table th.col-acc {
     position: sticky;
     background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
     z-index: 3;
   }
 
-  .guia-table th.col-sync   { right: 265px; }
-  .guia-table th.col-estado { right: 170px; }
+  .guia-table th.col-estado { right: 280px; }
+  .guia-table th.col-sunat  { right: 170px; }
   .guia-table th.col-acc    { right: 0; }
 }
 

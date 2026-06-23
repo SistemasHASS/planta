@@ -27,6 +27,18 @@
       </div>
       <div class="info-sep"></div>
       <div class="info-item">
+        <i class="bi bi-globe"></i>
+        <span class="info-label">SUNAT:</span>
+        <span class="info-val">
+          @if (g.estadoSunat) {
+            <span class="badge-sunat" [class]="estadoSunatClass(g.estadoSunat)">{{ estadoSunatLabel(g.estadoSunat) }}</span>
+          } @else {
+            <span class="text-muted">—</span>
+          }
+        </span>
+      </div>
+      <div class="info-sep"></div>
+      <div class="info-item">
         <i class="bi bi-receipt"></i>
         <span class="info-label">Serie:</span>
         <span class="info-val info-mono">{{ g.serie || '—' }}</span>
@@ -47,15 +59,15 @@
       </div>
       <div class="info-sep"></div>
       <div class="info-item">
-        @if (g.nombreProces && (g.nombreProces.includes('NOCHE') || g.nombreProces.includes('noche'))) {
+        @if (g.nombreProceso && (g.nombreProceso.includes('NOCHE') || g.nombreProceso.includes('noche'))) {
           <i class="bi bi-moon-stars-fill" style="color:#818cf8;"></i>
-        } @else if (g.nombreProces && (g.nombreProces.includes('DIA') || g.nombreProces.includes('dia'))) {
+        } @else if (g.nombreProceso && (g.nombreProceso.includes('DIA') || g.nombreProceso.includes('dia'))) {
           <i class="bi bi-sun-fill" style="color:#f59e0b;"></i>
         } @else {
           <i class="bi bi-gear" style="color:#94a3b8;"></i>
         }
         <span class="info-label">Proceso:</span>
-        <span class="info-val">{{ g.nombreProces || g.codigoProceso || '—' }}</span>
+        <span class="info-val">{{ g.nombreProceso || g.codigoProceso || '—' }}</span>
       </div>
     </div>
 

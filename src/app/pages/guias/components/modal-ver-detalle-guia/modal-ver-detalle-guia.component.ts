@@ -40,7 +40,7 @@ export interface GuiaDetalleData {
   serie?: string;
   numero?: string;
   codigoProceso?: string;
-  nombreProces?: string;
+  nombreProceso?: string;
   documentoDestinatario?: string;
   nombreDestinatario?: string;
   puntoPartida?: string;
@@ -57,6 +57,7 @@ export interface GuiaDetalleData {
   inicioTraslado?: string | null;
   observaciones?: string | null;
   estado?: string;
+  estadoSunat?: string;
   pesoTotal?: number;
   totalCajas?: number;
   cantidadPalets?: number;
@@ -119,6 +120,34 @@ export class ModalVerDetalleGuiaComponent {
     if (!g?.fechaEmision) return 'Sin fecha';
     return formatDate(g.fechaEmision) || 'Sin fecha';
   });
+
+  estadoSunatLabel(estado?: string): string {
+    const map: Record<string, string> = {
+      PENDIENTE: 'Pendiente',
+      ENVIANDO: 'Enviando',
+      ENVIADO: 'Enviado',
+      ACEPTADO: 'Aceptado',
+      ACEPTADO_CON_OBSERVACIONES: 'Aceptado c/obs.',
+      RECHAZADO: 'Rechazado',
+      ERROR_ENVIO: 'Error envío',
+      ANULADO: 'Anulado',
+    };
+    return map[estado ?? ''] ?? (estado || '—');
+  }
+
+  estadoSunatClass(estado?: string): string {
+    switch (estado) {
+      case 'PENDIENTE': return 'badge-sunat badge-sunat-pendiente';
+      case 'ENVIANDO': return 'badge-sunat badge-sunat-enviando';
+      case 'ENVIADO': return 'badge-sunat badge-sunat-enviado';
+      case 'ACEPTADO': return 'badge-sunat badge-sunat-aceptado';
+      case 'ACEPTADO_CON_OBSERVACIONES': return 'badge-sunat badge-sunat-aceptado-obs';
+      case 'RECHAZADO': return 'badge-sunat badge-sunat-rechazado';
+      case 'ERROR_ENVIO': return 'badge-sunat badge-sunat-error';
+      case 'ANULADO': return 'badge-sunat badge-sunat-anulado';
+      default: return 'badge-sunat badge-sunat-pendiente';
+    }
+  }
 
   onCerrar(): void {
     this.cerrar.emit();
