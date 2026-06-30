@@ -141,6 +141,11 @@ export class CatalogoTablaComponent {
     const isDateTime = tipo.startsWith('datetime') || campo.includes('fechacreacion');
     if (isDateTime) return formatDate(raw) ?? '-';
 
+    if (tipo === 'select') {
+      const op = col.opciones?.find(o => String(o.value) === String(raw ?? ''));
+      return op?.label ?? raw ?? '-';
+    }
+
     if (raw === null || raw === undefined || raw === '') return '-';
     return raw;
   }

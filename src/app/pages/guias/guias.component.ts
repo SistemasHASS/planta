@@ -22,7 +22,7 @@ import { GuiasRemisionRepository } from '../../shared/dexiedb/repository/guias-r
 import { GuiaRemisionFacade } from '../../shared/facades/guia-remision.facade';
 import { CatalogosFacade } from '../../shared/facades/catalogos.facade';
 import { ProcesosFacade } from '../../shared/facades/procesos.facade';
-import { formatDateTime, toLocalISOString } from '../../shared/utils/datetime.utils';
+import { formatDateTime, toLocalISOString, formatDate } from '../../shared/utils/datetime.utils';
 
 type ViewPage = 'procesos' | 'guias' | 'detalle';
 
@@ -126,6 +126,7 @@ export class GuiasComponent implements OnInit {
   readonly transportesCatalogo = signal<any[]>([]);
   readonly campaniasCatalogo = signal<any[]>([]);
   readonly codigosCajaCatalogo = signal<any[]>([]);
+  readonly motivosTraslado = signal<any[]>([]);
 
   readonly filtroEstado = signal<string>('');
   readonly filtroTexto = signal<string>('');
@@ -153,6 +154,7 @@ export class GuiasComponent implements OnInit {
     this.filtroFechaHasta.set(hoy);
     void this.cargarConfiguracion();
     void this.cargarCodigosCajaCatalogo();
+    void this.cargarMotivosTraslado();
     void this.onBuscarGuias();
   }
 
@@ -399,10 +401,13 @@ export class GuiasComponent implements OnInit {
         destinatarioId,
         puntoPartida: detalleData?.puntoPartida ?? '',
         puntoLlegada: detalleData?.puntoLlegada ?? '',
+        ubigeoPartida: detalleData?.ubigeoPartida ?? '131202',
+        ubigeoLlegada: detalleData?.ubigeoLlegada ?? '131202',
         transportistaId: String(detalleData?.idTransportista ?? ''),
         conductorId: String(detalleData?.idConductor ?? ''),
         vehiculoId: String(detalleData?.idVehiculo ?? ''),
-        motivoTraslado: detalleData?.motivoTraslado ?? 'OTROS',
+        motivoTraslado: detalleData?.motivoTraslado ?? '13',
+        fechaEntregaBienes: detalleData?.fechaEntregaBienes ?? '',
         precinto: detalleData?.precinto ?? '',
         parihuelas: Number(detalleData?.parihuelas) || 0,
         observacionesUsuario: detalleData?.observacionesUsuario ?? '',
@@ -773,6 +778,11 @@ export class GuiasComponent implements OnInit {
     this.codigosCajaCatalogo.set(lista ?? []);
   }
 
+  async cargarMotivosTraslado(): Promise<void> {
+    const lista = await this.catalogosFacade.cargarMotivosTraslado();
+    this.motivosTraslado.set(lista ?? []);
+  }
+
   async abrirModalVerDetalle(g: GuiaRemision): Promise<void> {
     const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
     const codigoGuiaRemision = String(g?.codigoGuiaRemision ?? '').trim();
@@ -849,6 +859,7 @@ export class GuiasComponent implements OnInit {
         this.cargarConductores(),
         this.cargarVehiculos(),
         this.cargarDestinatarios(),
+        this.cargarMotivosTraslado(),
       ]);
 
       if (!resp || resp.length === 0) {
@@ -918,10 +929,13 @@ export class GuiasComponent implements OnInit {
       documentoDestinatario: documentoFiscal || '',
       puntoPartida: String(payload.puntoPartida ?? '').trim(),
       puntoLlegada: String(payload.puntoLlegada ?? '').trim() || undefined,
+      ubigeoPartida: String(payload.ubigeoPartida ?? '131202').trim(),
+      ubigeoLlegada: String(payload.ubigeoLlegada ?? '131202').trim(),
       idTransportista: Number(payload.transportistaId) || null,
       idConductor: Number(payload.conductorId) || null,
       idVehiculo: Number(payload.vehiculoId) || null,
-      motivoTraslado: String(payload.motivoTraslado ?? 'OTROS').trim(),
+      motivoTraslado: String(payload.motivoTraslado ?? '13').trim(),
+      fechaEntregaBienes: payload.fechaEntregaBienes || guiaOriginal?.fechaEntregaBienes || null,
       precinto: String(payload.precinto ?? '').trim() || null,
       estado: guiaOriginal?.estado ?? 'ABIERTA',
       pesoTotal: guiaOriginal?.pesoTotal ?? (null as any),
@@ -1057,10 +1071,13 @@ export class GuiasComponent implements OnInit {
       documentoDestinatario: documentoFiscal || '',
       puntoPartida: String(guia.puntoPartida ?? '').trim(),
       puntoLlegada: String(guia.puntoLlegada ?? '').trim() || undefined,
+      ubigeoPartida: String(guia.ubigeoPartida ?? '131202').trim(),
+      ubigeoLlegada: String(guia.ubigeoLlegada ?? '131202').trim(),
       idTransportista: Number(guia.transportistaId) || null,
       idConductor: Number(guia.conductorId) || null,
       idVehiculo: Number(guia.vehiculoId) || null,
-      motivoTraslado: String(guia.motivoTraslado ?? 'OTROS').trim(),
+      motivoTraslado: String(guia.motivoTraslado ?? '13').trim(),
+      fechaEntregaBienes: String(guia.fechaEntregaBienes ?? '').trim() || formatDate(new Date()),
       precinto: String(guia.precinto ?? '').trim() || null,
       estado: 'ABIERTA',
       pesoTotal: null as any,

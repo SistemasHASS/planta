@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { Calibre, Campania, Categoria, Cliente, CodigoCaja, CodigoRancho, Consignatario, Cultivo, Destinatario, Destino, Formato, Fundo, LugarProduccion, LugarProduccionConfig, Presentacion, TipoCaja, TipoClamshell, TipoEmpaque, TipoEmpaqueGuia, TipoProcesoEmpacado, Transporte, Variedad } from "../../interfaces/catalogo.interface";
+import { Calibre, Campania, Categoria, Cliente, CodigoCaja, CodigoRancho, Consignatario, Cultivo, Destinatario, Destino, Formato, Fundo, LugarProduccion, LugarProduccionConfig, MotivoTraslado, Presentacion, TipoCaja, TipoClamshell, TipoEmpaque, TipoEmpaqueGuia, TipoProcesoEmpacado, Transporte, Variedad } from "../../interfaces/catalogo.interface";
 import { BaseRepository } from "../db-base.repository";
 import { DexieService } from "../dexie-db.service";
 import { Configuracion } from "../../interfaces/administracion.interface";
@@ -31,6 +31,7 @@ export class CatalogosRepository {
         public readonly lugaresProduccionConfigRepo: LugarProduccionConfigRepository,
         public readonly destinatariosRepo: DestinatarioRepository,
         public readonly codigosCajaRepo: CodigoCajaRepository,
+        public readonly motivosTrasladoRepo: MotivoTrasladoRepository,
     ) { }
 }
 
@@ -191,5 +192,12 @@ export class DestinatarioRepository extends BaseRepository<Destinatario> {
 export class CodigoCajaRepository extends BaseRepository<CodigoCaja> {
     constructor(db: DexieService) {
         super(db, 'codigosCaja');
+    }
+}
+
+@Injectable({ providedIn: 'root' })
+export class MotivoTrasladoRepository extends BaseRepository<MotivoTraslado> {
+    constructor(db: DexieService) {
+        super(db, 'motivosTraslado');
     }
 }

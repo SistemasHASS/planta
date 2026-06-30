@@ -29,7 +29,13 @@ export type CampoTipo =
     | 'decimal'
     | 'bit'
     | 'datetime'
-    | 'datetime2';
+    | 'datetime2'
+    | 'select';
+
+export interface CatalogoOpcion {
+    value: string;
+    label: string;
+}
 
 export interface CatalogoColumna {
     campo: string;
@@ -44,6 +50,7 @@ export interface CatalogoColumna {
     auto?: boolean;
     fkTabla?: string;
     fkDisplay?: string;
+    opciones?: CatalogoOpcion[];
 }
 
 export interface CatalogoConfig {

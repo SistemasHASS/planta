@@ -27,7 +27,7 @@ export class DestinatariosComponent implements OnInit {
   readonly isLoading = signal(false);
   readonly searchTerm = signal('');
 
-  readonly estadoFiltro = signal<'activos' | 'inactivos' | 'todos'>('todos');
+  readonly estadoFiltro = signal<'activos' | 'inactivos' | 'todos'>('activos');
 
   readonly modalAbierto = signal(false);
   readonly modalModo = signal<'nuevo' | 'editado'>('nuevo');
@@ -191,6 +191,12 @@ export class DestinatariosComponent implements OnInit {
         nombre: item.nombre,
         domicilioFiscal: item.domicilioFiscal ?? '',
         puntoLlegada: item.puntoLlegada ?? '',
+        domicilioFiscalDepartamento: item.domicilioFiscalDepartamento ?? '',
+        domicilioFiscalProvincia: item.domicilioFiscalProvincia ?? '',
+        domicilioFiscalDistrito: item.domicilioFiscalDistrito ?? '',
+        puntoLlegadaDepartamento: item.puntoLlegadaDepartamento ?? '',
+        puntoLlegadaProvincia: item.puntoLlegadaProvincia ?? '',
+        puntoLlegadaDistrito: item.puntoLlegadaDistrito ?? '',
         activo: item.activo ?? true,
         fechaCreacion: item.fechaCreacion ?? new Date().toISOString(),
         bd: bd,
@@ -376,6 +382,8 @@ export class DestinatariosComponent implements OnInit {
       documento: (record.documento ?? record.documentoFiscal ?? '').trim(),
       domicilioFiscal: record.domicilioFiscal ?? '',
       puntoLlegada: record.puntoLlegada ?? '',
+      domicilioFiscalDistrito: record.domicilioFiscalDistrito ?? '',
+      puntoLlegadaDistrito: record.puntoLlegadaDistrito ?? '',
       activo: this.asBitBoolean(record.activo),
       nombre: record.nombre ?? '',
       tipoDocumento: record.tipoDocumento ?? '',

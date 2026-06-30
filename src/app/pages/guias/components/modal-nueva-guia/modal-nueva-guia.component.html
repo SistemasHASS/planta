@@ -43,6 +43,76 @@
             <label class="form-label" style="font-size:11px;font-weight:700">Punto Llegada <span class="text-danger">*</span></label>
             <input type="text" class="form-control form-control-sm" [class.is-invalid]="isInvalid('puntoLlegada')" [ngModel]="form().puntoLlegada" (ngModelChange)="updateField('puntoLlegada', $event)" placeholder="Punto de llegada">
           </div>
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:11px;font-weight:700">Ubigeo Partida</label>
+            <div class="row g-1">
+              <div class="col-4">
+                <app-advanced-select
+                  [itemsInput]="departamentos()"
+                  idField="codigoDepartamento"
+                  [labelFields]="['nombreDepartamento']"
+                  placeholder="Dep."
+                  [value]="(form().ubigeoPartida || '').substring(0, 2)"
+                  (valueChange)="updateField('departamentoPartida', $event)">
+                </app-advanced-select>
+              </div>
+              <div class="col-4">
+                <app-advanced-select
+                  [itemsInput]="provinciasPartida()"
+                  idField="codigoProvincia"
+                  [labelFields]="['nombreProvincia']"
+                  placeholder="Prov."
+                  [value]="(form().ubigeoPartida || '').substring(2, 4)"
+                  (valueChange)="updateField('provinciaPartida', $event)">
+                </app-advanced-select>
+              </div>
+              <div class="col-4">
+                <app-advanced-select
+                  [itemsInput]="distritosPartida()"
+                  idField="codigoUbigeo"
+                  [labelFields]="['nombreDistrito']"
+                  placeholder="Dist."
+                  [value]="form().ubigeoPartida"
+                  (valueChange)="updateField('distritoPartida', $event)">
+                </app-advanced-select>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:11px;font-weight:700">Ubigeo Llegada</label>
+            <div class="row g-1">
+              <div class="col-4">
+                <app-advanced-select
+                  [itemsInput]="departamentos()"
+                  idField="codigoDepartamento"
+                  [labelFields]="['nombreDepartamento']"
+                  placeholder="Dep."
+                  [value]="(form().ubigeoLlegada || '').substring(0, 2)"
+                  (valueChange)="updateField('departamentoLlegada', $event)">
+                </app-advanced-select>
+              </div>
+              <div class="col-4">
+                <app-advanced-select
+                  [itemsInput]="provinciasLlegada()"
+                  idField="codigoProvincia"
+                  [labelFields]="['nombreProvincia']"
+                  placeholder="Prov."
+                  [value]="(form().ubigeoLlegada || '').substring(2, 4)"
+                  (valueChange)="updateField('provinciaLlegada', $event)">
+                </app-advanced-select>
+              </div>
+              <div class="col-4">
+                <app-advanced-select
+                  [itemsInput]="distritosLlegada()"
+                  idField="codigoUbigeo"
+                  [labelFields]="['nombreDistrito']"
+                  placeholder="Dist."
+                  [value]="form().ubigeoLlegada"
+                  (valueChange)="updateField('distritoLlegada', $event)">
+                </app-advanced-select>
+              </div>
+            </div>
+          </div>
 
           <!-- Transporte -->
           <div class="col-12 mt-1">
@@ -66,7 +136,7 @@
               placeholder="Seleccione..."
               [itemsInput]="conductores"
               idField="id"
-              [labelFields]="['documentoIdentidad','nombreCompleto']"
+              [labelFields]="['documentoIdentidad','apellidos','nombres']"
               [value]="form().conductorId"
               (valueChange)="updateField('conductorId', $event)" />
           </div>
@@ -88,10 +158,19 @@
           </div>
           <div class="col-md-6">
             <label class="form-label" style="font-size:11px;font-weight:700">Motivo Traslado <span class="text-danger">*</span></label>
-            <select class="form-select form-select-sm" [ngModel]="form().motivoTraslado" (ngModelChange)="updateField('motivoTraslado', $event)">
-              <option value="OTROS" selected>OTROS</option>
-              <option value="MATERIAL">MATERIAL</option>
-            </select>
+            <app-advanced-select
+              [itemsInput]="motivosTraslado"
+              idField="codigo"
+              [labelFields]="['codigo', 'descripcion']"
+              placeholder="— Seleccionar —"
+              [required]="true"
+              [value]="form().motivoTraslado"
+              (valueChange)="updateField('motivoTraslado', $event)">
+            </app-advanced-select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:11px;font-weight:700">Fecha Entrega Bienes <span class="text-danger">*</span></label>
+            <input type="date" class="form-control form-control-sm" [class.is-invalid]="isInvalid('fechaEntregaBienes')" [ngModel]="form().fechaEntregaBienes" (ngModelChange)="updateField('fechaEntregaBienes', $event)">
           </div>
           <div class="col-md-6">
             <label class="form-label" style="font-size:11px;font-weight:700">Precinto <span class="text-danger">*</span></label>

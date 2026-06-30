@@ -16,7 +16,20 @@
             <div class="col-12 mb-3">
               <label class="form-label" [class.form-label-required]="col.required">{{ col.label }}</label>
 
-              @if (isBooleanBadgeColumn(col)) {
+              @if (col.tipo === 'select') {
+                <select class="form-select" [class.is-invalid]="isInvalid(col)"
+                        [ngModel]="form()[col.campo]"
+                        [ngModelOptions]="{standalone: true}"
+                        (ngModelChange)="updateField(col.campo, $event)">
+                  <option value="">— Seleccionar —</option>
+                  @for (op of col.opciones; track op.value) {
+                    <option [value]="op.value">{{ op.label }}</option>
+                  }
+                </select>
+                @if (isInvalid(col)) {
+                  <div class="invalid-feedback" style="display:block">Campo requerido</div>
+                }
+              } @else if (isBooleanBadgeColumn(col)) {
                 <select class="form-select" [class.is-invalid]="isInvalid(col)"
                         [ngModel]="form()[col.campo]"
                         [ngModelOptions]="{standalone: true}"

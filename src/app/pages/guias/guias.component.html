@@ -309,8 +309,8 @@
 
 @if (modalNuevaGuiaAbierto()) {
 <app-modal-nueva-guia [procesos]="procesos()" [transportistas]="transportistas()" [conductores]="conductores()"
-  [vehiculos]="vehiculos()" [destinatarios]="destinatarios()" [modoEdicion]="modoEdicionGuia()"
-  [guiaEditando]="guiaParaEditar()" (cerrar)="cerrarModalNuevaGuia()"
+  [vehiculos]="vehiculos()" [destinatarios]="destinatarios()" [motivosTraslado]="motivosTraslado()"
+  [modoEdicion]="modoEdicionGuia()" [guiaEditando]="guiaParaEditar()" (cerrar)="cerrarModalNuevaGuia()"
   (crear)="onCrearGuia($event)" (editar)="onEditarGuia($event)" />
 }
 

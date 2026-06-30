@@ -1,4 +1,32 @@
 
+export interface UbigeoDepartamento {
+  id: number;
+  codigoDepartamento: string;
+  nombreDepartamento: string;
+}
+
+export interface UbigeoProvincia {
+  id: number;
+  codigoDepartamento: string;
+  codigoProvincia: string;
+  nombreProvincia: string;
+}
+
+export interface UbigeoDistrito {
+  id: number;
+  codigoDepartamento: string;
+  codigoProvincia: string;
+  codigoDistrito: string;
+  nombreDistrito: string;
+  codigoUbigeo: string;
+}
+
+export interface MotivoTraslado {
+  id: number;
+  codigo: string;
+  descripcion: string;
+}
+
 export interface Destinatario{
   id: number;
   idCliente: number;
@@ -7,6 +35,12 @@ export interface Destinatario{
   nombre: string;
   domicilioFiscal: string;
   puntoLlegada: string;
+  domicilioFiscalDepartamento?: string;
+  domicilioFiscalProvincia?: string;
+  domicilioFiscalDistrito?: string;
+  puntoLlegadaDepartamento?: string;
+  puntoLlegadaProvincia?: string;
+  puntoLlegadaDistrito?: string;
   activo: boolean;
   fechaCreacion: string;
   bd?: number;
@@ -251,7 +285,8 @@ export interface Conductor {
   idproyecto: string;
   documentoIdentidad: string;
   licenciaConducir?: string;
-  nombreCompleto: string;
+  nombres: string;
+  apellidos: string;
   activo: boolean;
   fechaCreacion: string;
   bd?: number;

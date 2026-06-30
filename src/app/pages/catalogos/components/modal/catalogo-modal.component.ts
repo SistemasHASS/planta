@@ -137,6 +137,12 @@ export class CatalogoModalComponent {
   }
 
   getTitle(): string {
-    return this.modo === 'editar' ? `Editar ${this.config?.label ?? ''}` : `Nuevo ${this.config?.label ?? ''}`;
+    const base = this.modo === 'editar' ? `Editar ${this.config?.label ?? ''}` : `Nuevo ${this.config?.label ?? ''}`;
+    const apellidos = String(this.value?.['apellidos'] ?? '').trim();
+    const nombres = String(this.value?.['nombres'] ?? '').trim();
+    if (apellidos || nombres) {
+      return `${base}: ${[apellidos, nombres].filter(v => v).join(' ')}`;
+    }
+    return base;
   }
 }

@@ -15,6 +15,22 @@ export class CatalogoService {
     return this.http.get<any>(`${this.apiUrl}/get-destinatarios`, { withCredentials: true });
   }
 
+  listarDepartamentos(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/departamentos`, { withCredentials: true });
+  }
+
+  listarProvincias(codigoDepartamento: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/provincias`, { params: { codigoDepartamento }, withCredentials: true });
+  }
+
+  listarDistritos(codigoDepartamento: string, codigoProvincia: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/distritos`, { params: { codigoDepartamento, codigoProvincia }, withCredentials: true });
+  }
+
+  listarMotivosTraslado(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/motivos-traslado`, { withCredentials: true });
+  }
+
   sincronizarCatalogos(tabla: string, json: any): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/sincronizar`, { tabla, json }, { withCredentials: true });
   }

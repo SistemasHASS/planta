@@ -89,8 +89,16 @@
             <span class="value">{{ g.puntoPartida || '—' }}</span>
           </div>
           <div class="guia-row-item">
+            <span class="label">Ubigeo Partida</span>
+            <span class="value">{{ g.ubigeoPartida || '—' }}</span>
+          </div>
+          <div class="guia-row-item">
             <span class="label">Motivo Traslado</span>
-            <span class="value">{{ g.motivoTraslado || '—' }}</span>
+            <span class="value">{{g.codigoSunatMotivoTraslado + ' - ' + g.descripcionMotivoTraslado || '—' }}</span>
+          </div>
+          <div class="guia-row-item">
+            <span class="label">Fecha Entrega Bienes</span>
+            <span class="value">{{ g.fechaEntregaBienes | date: 'yyyy-MM-dd' }}</span>
           </div>
         </div>
         <div class="guia-col">
@@ -101,6 +109,10 @@
           <div class="guia-row-item">
             <span class="label">Punto Llegada</span>
             <span class="value">{{ g.puntoLlegada || '—' }}</span>
+          </div>
+          <div class="guia-row-item">
+            <span class="label">Ubigeo Llegada</span>
+            <span class="value">{{ g.ubigeoLlegada || '—' }}</span>
           </div>
         </div>
       </div>
@@ -121,7 +133,7 @@
           </div>
           <div class="guia-row-item">
             <span class="label">Conductor</span>
-            <span class="value value-strong">{{ g.nombreConductor || (g.idConductor ?? '—') }}</span>
+            <span class="value value-strong">{{ g.nombreCompletoConductor || (g.idConductor ?? '—') }}</span>
           </div>
         </div>
         <div class="guia-col">

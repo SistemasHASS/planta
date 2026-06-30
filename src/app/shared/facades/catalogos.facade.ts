@@ -423,4 +423,27 @@ export class CatalogosFacade {
       return await this.catalogosRepo.codigosCajaRepo.getAll() ?? [];
     }
   }
+
+  async cargarMotivosTraslado(): Promise<any[]> {
+    if (this.connectivity.isOnline()) {
+      try {
+        const resp: any = await firstValueFrom(this.catalogoService.listarMotivosTraslado());
+        const items = resp?.data ?? (Array.isArray(resp) ? resp : []);
+        if (items.length > 0) {
+          const dexiedb = await this.catalogosRepo.motivosTrasladoRepo.getAll();
+          if (dexiedb.length > 0) await this.catalogosRepo.motivosTrasladoRepo.clear();
+          for (const item of items) { (item as any).bd = 1; await this.catalogosRepo.motivosTrasladoRepo.save(item); }
+          return items;
+        } else {
+          await this.catalogosRepo.motivosTrasladoRepo.clear();
+          return [];
+        }
+      } catch (error) {
+        console.log('Error obteniendo motivosTraslado', error);
+        return [];
+      }
+    } else {
+      return await this.catalogosRepo.motivosTrasladoRepo.getAll() ?? [];
+    }
+  }
 }

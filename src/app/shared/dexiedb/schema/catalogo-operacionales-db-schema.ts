@@ -1,7 +1,7 @@
 
 
 export const CATELOGO_OPERACIONALES_SCHEMA_V1 = {
-    conductores: '++_pk,&id,idproyecto,documentoIdentidad,licenciaConducir,nombreCompleto,activo,fechaCreacion,bd',
+    conductores: '++_pk,&id,idproyecto,documentoIdentidad,licenciaConducir,nombres,apellidos,activo,fechaCreacion,bd',
     vehiculos: '++_pk,&id,idproyecto,placaPrincipal,placaRemolque,marca,certificadoInscripcion,activo,fechaCreacion,bd',
     transportistas: '++_pk,&id,idproyecto,ruc_Transportistas,razonSocial,activo,fechaCreacion,bd',
     supervisores: '++_pk,&id,idproyecto,dni,nombreCompleto,celular,activo,fechaCreacion,bd',

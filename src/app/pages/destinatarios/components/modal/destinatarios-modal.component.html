@@ -60,9 +60,90 @@
               </div>
 
               <div class="col-md-6">
-                <label class="form-label">Punto de Llegada</label>
-                <input class="form-control" [ngModel]="form().puntoLlegada"
+                <label class="form-label">Punto de Llegada <span class="required">*</span></label>
+                <input class="form-control" [class.is-invalid]="isInvalid('puntoLlegada')" [ngModel]="form().puntoLlegada"
                   (ngModelChange)="updateField('puntoLlegada', $event)" placeholder="Dirección de destino para guías" />
+                @if (isInvalid('puntoLlegada')) {
+                <div class="invalid-feedback d-block">Requerido</div>
+                }
+              </div>
+
+              <!-- Ubigeo Domicilio Fiscal -->
+              <div class="col-md-4">
+                <label class="form-label">Departamento (Domicilio Fiscal)</label>
+                <app-advanced-select
+                  [itemsInput]="departamentos()"
+                  idField="codigoDepartamento"
+                  [labelFields]="['nombreDepartamento']"
+                  placeholder="— Seleccionar —"
+                  [value]="form().domicilioFiscalDepartamento"
+                  (valueChange)="updateField('domicilioFiscalDepartamento', $event)">
+                </app-advanced-select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Provincia (Domicilio Fiscal)</label>
+                <app-advanced-select
+                  [itemsInput]="provinciasDomicilio()"
+                  idField="codigoProvincia"
+                  [labelFields]="['nombreProvincia']"
+                  placeholder="— Seleccionar —"
+                  [disabled]="!form().domicilioFiscalDepartamento"
+                  [value]="form().domicilioFiscalProvincia"
+                  (valueChange)="updateField('domicilioFiscalProvincia', $event)">
+                </app-advanced-select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Distrito (Domicilio Fiscal)</label>
+                <app-advanced-select
+                  [itemsInput]="distritosDomicilio()"
+                  idField="codigoUbigeo"
+                  [labelFields]="['nombreDistrito']"
+                  placeholder="— Seleccionar —"
+                  [disabled]="!form().domicilioFiscalProvincia"
+                  [value]="form().domicilioFiscalDistrito"
+                  (valueChange)="updateField('domicilioFiscalDistrito', $event)">
+                </app-advanced-select>
+              </div>
+
+              <!-- Ubigeo Punto de Llegada -->
+              <div class="col-md-4">
+                <label class="form-label">Departamento (Punto de Llegada)</label>
+                <app-advanced-select
+                  [itemsInput]="departamentos()"
+                  idField="codigoDepartamento"
+                  [labelFields]="['nombreDepartamento']"
+                  placeholder="— Seleccionar —"
+                  [value]="form().puntoLlegadaDepartamento"
+                  (valueChange)="updateField('puntoLlegadaDepartamento', $event)">
+                </app-advanced-select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Provincia (Punto de Llegada)</label>
+                <app-advanced-select
+                  [itemsInput]="provinciasPunto()"
+                  idField="codigoProvincia"
+                  [labelFields]="['nombreProvincia']"
+                  placeholder="— Seleccionar —"
+                  [disabled]="!form().puntoLlegadaDepartamento"
+                  [value]="form().puntoLlegadaProvincia"
+                  (valueChange)="updateField('puntoLlegadaProvincia', $event)">
+                </app-advanced-select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Distrito (Punto de Llegada) <span class="required">*</span></label>
+                <app-advanced-select
+                  [itemsInput]="distritosPunto()"
+                  idField="codigoUbigeo"
+                  [labelFields]="['nombreDistrito']"
+                  placeholder="— Seleccionar —"
+                  [required]="true"
+                  [disabled]="!form().puntoLlegadaProvincia"
+                  [value]="form().puntoLlegadaDistrito"
+                  (valueChange)="updateField('puntoLlegadaDistrito', $event)">
+                </app-advanced-select>
+                @if (isInvalid('puntoLlegadaDistrito')) {
+                <div class="invalid-feedback d-block">Requerido</div>
+                }
               </div>
 
               <div class="col-12">

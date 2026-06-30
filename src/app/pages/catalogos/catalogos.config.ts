@@ -324,14 +324,28 @@ export const CATALOGOS_CONFIG: Record<CatalogoKey, CatalogoConfig> = {
     icon: 'bi-person-badge',
     columnas: [
       { campo: 'id', label: 'ID', tipo: 'int', visible: false, editable: false },
-      { campo: 'nombreCompleto', label: 'Nombre Completo', tipo: 'varchar', maxLength: 200, required: true },
+      { campo: 'apellidos', label: 'Apellidos', tipo: 'varchar', maxLength: 200, required: true },
+      { campo: 'nombres', label: 'Nombres', tipo: 'varchar', maxLength: 200, required: true },
+      { campo: 'tipoDocumentoIdentidad', label: 'Tipo Documento', tipo: 'select', required: true, default: '1',
+        opciones: [
+          { value: '1', label: 'DNI' },
+          { value: '4', label: 'CE' },
+          { value: '6', label: 'RUC' },
+          { value: '7', label: 'PAS' },
+          { value: 'A', label: 'CDI' },
+          { value: 'B', label: 'CRP' },
+          { value: 'C', label: 'TIN' },
+          { value: 'D', label: 'IN' },
+          { value: '0', label: 'SIN RUC' }
+        ]
+      },
       { campo: 'documentoIdentidad', label: 'Documento Identidad', tipo: 'varchar', maxLength: 20, required: true, unique: true },
       { campo: 'licenciaConducir', label: 'Licencia de Conducir', tipo: 'varchar', maxLength: 30, required: false },
       { campo: 'bd', label: 'Sincronizado', tipo: 'bit', visible: true, editable: false, default: 0 },
       { campo: 'activo', label: 'Estado', tipo: 'bit',required: true },
       { campo: 'fechaCreacion', label: 'Fecha Creación', tipo: 'datetime', auto: true, visible: true, editable: false }
     ],
-    displayField: 'NombreCompleto',
+    displayField: 'apellidos',
     codigoField: 'documentoIdentidad',
     tieneActivo: true,
     editable: true,
