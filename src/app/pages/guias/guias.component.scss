@@ -253,6 +253,17 @@
   color: #fff;
 }
 
+.action-btn-refresh {
+  background: #e0e7ff;
+  color: #4f46e5;
+  border-color: #c7d2fe;
+}
+
+.action-btn-refresh:hover {
+  background: #4f46e5;
+  color: #fff;
+}
+
 .action-btn-view {
   background: #e0f2fe;
   color: #0284c7;
@@ -598,6 +609,137 @@
   min-height: 60vh;
   border: none;
   background: #fff;
+}
+
+.pdf-iframe.hidden {
+  display: none;
+}
+
+.pdf-loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: #fff;
+  z-index: 2;
+}
+
+.pdf-loader-text {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.anulacion-modal {
+  align-items: center;
+  justify-content: center;
+}
+
+.anulacion-modal .modal-dialog {
+  max-width: 440px;
+  margin: auto;
+}
+
+.anulacion-modal .modal-content {
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.anulacion-icono {
+  font-size: 52px;
+  color: #f59e0b;
+  margin-bottom: 10px;
+}
+
+.anulacion-titulo {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+
+.anulacion-mensaje {
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+
+.anulacion-datos {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 22px;
+  text-align: left;
+  display: grid;
+  gap: 10px;
+}
+
+.anulacion-dato {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.anulacion-etiqueta {
+  color: #64748b;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.anulacion-valor {
+  color: #0f172a;
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word;
+  max-width: 65%;
+}
+
+.anulacion-acciones {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.anulacion-acciones .btn {
+  padding: 8px 18px;
+  font-weight: 600;
+  border-radius: 8px;
+}
+
+@media (max-width: 576px) {
+  .anulacion-modal .modal-dialog {
+    max-width: 100%;
+    width: calc(100% - 20px);
+    margin: auto 10px;
+  }
+
+  .anulacion-dato {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .anulacion-valor {
+    text-align: left;
+    max-width: 100%;
+  }
+
+  .anulacion-acciones {
+    flex-direction: column;
+  }
+
+  .anulacion-acciones .btn {
+    width: 100%;
+  }
 }
 
 @media (max-width: 768px) {

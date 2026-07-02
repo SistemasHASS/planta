@@ -300,6 +300,9 @@ export class GuiasComponent implements OnInit {
 
   pdfModalAbierto = signal(false);
   pdfUrlRaw = signal<string | null>(null);
+  pdfCargando = signal(true);
+  modalAdvertenciaAnulacionAbierto = signal(false);
+  guiaAnularPendiente = signal<GuiaRemision | null>(null);
   pdfUrlSegura = computed<SafeResourceUrl | null>(() => {
     const url = this.pdfUrlRaw();
     if (!url) return null;
@@ -307,7 +310,15 @@ export class GuiasComponent implements OnInit {
   });
 
   abrirPdfModal(url: string | null | undefined): void {
-    if (!url) return;
+    if (!url) {
+      this.alertService.showAlertAcept(
+        'PDF no disponible',
+        'Aún no se ha generado el archivo PDF de SUNAT. Consulte el estado SUNAT con el botón <i class="bi bi-arrow-clockwise"></i> para actualizar la guía y obtener el PDF.',
+        'warning'
+      );
+      return;
+    }
+    this.pdfCargando.set(true);
     this.pdfUrlRaw.set(url);
     this.pdfModalAbierto.set(true);
   }
@@ -315,6 +326,10 @@ export class GuiasComponent implements OnInit {
   cerrarPdfModal(): void {
     this.pdfModalAbierto.set(false);
     this.pdfUrlRaw.set(null);
+  }
+
+  onPdfCargado(): void {
+    this.pdfCargando.set(false);
   }
 
   private async cargarConfiguracion(): Promise<void> {
@@ -549,6 +564,22 @@ export class GuiasComponent implements OnInit {
     );
     if (!confirmado) return;
 
+    this.guiaAnularPendiente.set(g);
+    this.modalAdvertenciaAnulacionAbierto.set(true);
+  }
+
+  cerrarAdvertenciaAnulacion(): void {
+    this.modalAdvertenciaAnulacionAbierto.set(false);
+    this.guiaAnularPendiente.set(null);
+  }
+
+  async ejecutarAnulacion(): Promise<void> {
+    const g = this.guiaAnularPendiente();
+    if (!g) return;
+
+    this.modalAdvertenciaAnulacionAbierto.set(false);
+    this.guiaAnularPendiente.set(null);
+
     const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
     const codigoGuiaRemision = String(g?.codigoGuiaRemision ?? '').trim();
     if (!idProyecto || !codigoGuiaRemision) {
@@ -562,6 +593,7 @@ export class GuiasComponent implements OnInit {
       if (Array.isArray(resp) && resp.length > 0) {
         resp = resp[0];
       }
+      this.alertService.cerrarModalCarga();
       if (resp?.error) {
         this.alertService.showAlert('Error', resp?.mensaje ?? 'Error al anular la guía.', 'error');
         return;
@@ -569,6 +601,7 @@ export class GuiasComponent implements OnInit {
       this.alertService.showAlertAcept('Éxito', 'Guía anulada correctamente.', 'success');
       await this.onBuscarGuias();
     } catch (error: any) {
+      this.alertService.cerrarModalCarga();
       console.error('Error anulando guía:', error);
       this.alertService.showAlert('Error', error?.error?.message ?? 'Error al anular la guía.', 'error');
     }

@@ -25,7 +25,7 @@
               (ngModelChange)="filtroEstado.set($event)" [ngModelOptions]="{standalone: true}">
               <option value="">Todos</option>
               <option value="ABIERTA">Abierta</option>
-              <option value="ANULADA">Anulada</option>
+              <option value="ANULADO">Anulado</option>
               <option value="CERRADA">Cerrada</option>
             </select>
             <input type="text" class="form-control filter-input" placeholder="Buscar..." [ngModel]="filtroTexto()"
@@ -72,7 +72,8 @@
               @for (g of guiasAgrupadas(); track g.transactionId_uuid + (g._esGrupo ? '_grupo' : g.codigoGuiaRemision)) {
               @if (g._esGrupo) {
               <!-- Grupo: una fila con subfilas limpias -->
-              <tr style="border-left:4px solid #16a34a;">
+              <tr style="border-left:4px solid #16a34a;"
+                  [class.opacity-50]="g._guiasDelGrupo.every(sg => sg.estado === 'ANULADO')">
                 <td class="col-guia" style="background:#f6fef9; vertical-align:middle;">
                   <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
                     <span class="badge" style="font-size:9px; background:#16a34a; color:#fff; padding:3px 8px;"><i class="bi bi-layers"></i> MULTIPLE</span>
@@ -143,7 +144,7 @@
                         @if (sg.estado === 'ABIERTA') {
                           <span class="badge-estado badge-abierta" style="font-size:10px;"><i class="bi bi-circle-fill" style="font-size:5px;"></i> ABIERTA</span>
                         } @else if (sg.estado === 'ANULADO') {
-                          <span class="badge-estado badge-anulada" style="font-size:10px;"><i class="bi bi-x-circle" style="font-size:7px;"></i> ANULADA</span>
+                          <span class="badge-estado badge-anulado" style="font-size:10px;"><i class="bi bi-x-circle" style="font-size:7px;"></i> ANULADO</span>
                         } @else {
                           <span class="badge-estado badge-cerrada" style="font-size:10px;"><i class="bi bi-check-circle" style="font-size:7px;"></i> CERRADA</span>
                         }
@@ -166,15 +167,17 @@
                     <div class="d-flex flex-column">
                       @for (sg of g._guiasDelGrupo; track sg.codigoGuiaRemision; let first = $first) {
                         <div style="display:flex;gap:4px;align-items:center;justify-content:center;min-height:32px;" [style.padding]="first ? '0 0 10px 0' : '10px 0'" [style.border-top]="first ? 'none' : '1px solid #bbf7d0'">
-                          <button class="btn action-btn action-btn-view btn-sm" style="padding:2px 6px;font-size:10px;"
-                                  title="Ver detalle" (click)="abrirModalVerDetalle(sg)"><i class="bi bi-eye"></i></button>
-                          @if (sg.estadoSunat && sg.estadoSunat !== 'No Enviado') {
-                          <button class="btn action-btn action-btn-refresh btn-sm" style="padding:2px 6px;font-size:10px;"
-                                  title="Consultar estado SUNAT" (click)="consultarEstadoSunat(sg)"><i class="bi bi-arrow-clockwise"></i></button>
-                          }
                           @if (esAceptadaSunat(sg.estadoSunat)) {
                           <button class="btn action-btn action-btn-pdf btn-sm" style="padding:2px 6px;font-size:10px;"
-                                  title="Ver PDF SUNAT" (click)="abrirPdfModal(sg.pdfFileUrl)"><i class="bi bi-file-earmark-pdf"></i></button>
+                                  title="Ver PDF SUNAT" (click)="abrirPdfModal(sg.pdfFileUrl)">
+                            <i class="bi bi-file-earmark-pdf"></i>
+                          </button>
+                          }
+                          <button class="btn action-btn action-btn-view btn-sm" style="padding:2px 6px;font-size:10px;"
+                                  title="Ver detalle" (click)="abrirModalVerDetalle(sg)"><i class="bi bi-eye"></i></button>
+                          @if (sg.estado?.toUpperCase() !== 'ANULADO' && sg.estadoSunat && sg.estadoSunat !== 'No Enviado') {
+                          <button class="btn action-btn action-btn-refresh btn-sm" style="padding:2px 6px;font-size:10px;"
+                                  title="Consultar estado SUNAT" (click)="consultarEstadoSunat(sg)"><i class="bi bi-arrow-clockwise"></i></button>
                           }
                         </div>
                       }
@@ -194,7 +197,7 @@
               </tr>
               } @else {
               <!-- Guía individual -->
-              <tr [class]="g.estado === 'ANULADA' ? 'opacity-50' : ''"
+              <tr [class]="g.estado === 'ANULADO' ? 'opacity-50' : ''"
                 [style.background]="g.esReposicion ? '#fffbeb' : (g.esEnsayo ? '#eff6ff' : '')">
                 <td class="col-guia">
                   @if (g.numero) {
@@ -238,7 +241,7 @@
                   @if (g.estado === 'ABIERTA') {
                   <span class="badge-estado badge-abierta"><i class="bi bi-circle-fill" style="font-size:6px;"></i> ABIERTA</span>
                   } @else if (g.estado === 'ANULADO') {
-                  <span class="badge-estado badge-anulada"><i class="bi bi-x-circle" style="font-size:8px;"></i> ANULADA</span>
+                  <span class="badge-estado badge-anulado"><i class="bi bi-x-circle" style="font-size:8px;"></i> ANULADO</span>
                   } @else {
                   <span class="badge-estado badge-cerrada"><i class="bi bi-check-circle" style="font-size:8px;"></i> CERRADA</span>
                   }
@@ -248,12 +251,12 @@
                 </td>
                 <td class="col-acc">
                   <div class="action-group">
-                    <button class="btn action-btn action-btn-view" title="Detalle" (click)="abrirModalVerDetalle(g)"><i class="bi bi-eye"></i></button>
-                    @if (g.estadoSunat && g.estadoSunat !== 'No Enviado') {
-                    <button class="btn action-btn action-btn-refresh" title="Consultar estado SUNAT" (click)="consultarEstadoSunat(g)"><i class="bi bi-arrow-clockwise"></i></button>
-                    }
                     @if (esAceptadaSunat(g.estadoSunat)) {
                     <button class="btn action-btn action-btn-pdf" title="Ver PDF SUNAT" (click)="abrirPdfModal(g.pdfFileUrl)"><i class="bi bi-file-earmark-pdf"></i></button>
+                    }
+                    <button class="btn action-btn action-btn-view" title="Detalle" (click)="abrirModalVerDetalle(g)"><i class="bi bi-eye"></i></button>
+                    @if (g.estado?.toUpperCase() !== 'ANULADO' && g.estadoSunat && g.estadoSunat !== 'No Enviado') {
+                    <button class="btn action-btn action-btn-refresh" title="Consultar estado SUNAT" (click)="consultarEstadoSunat(g)"><i class="bi bi-arrow-clockwise"></i></button>
                     }
                     @if (g.estado === 'ABIERTA') {
                     <button class="btn action-btn action-btn-edit" title="Editar" (click)="editarGuia(g)"><i class="bi bi-pencil"></i></button>
@@ -347,13 +350,65 @@
       </div>
       <div class="modal-body p-0">
         <div class="pdf-container">
-          @if (pdfUrlSegura()) {
-          <iframe [src]="pdfUrlSegura()" class="pdf-iframe" title="PDF SUNAT"></iframe>
+          @if (pdfCargando()) {
+          <div class="pdf-loader">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Cargando PDF...</span>
+            </div>
+            <p class="pdf-loader-text">Cargando PDF...</p>
+          </div>
           }
+          <iframe [src]="pdfUrlSegura()" class="pdf-iframe" [class.hidden]="pdfCargando()" title="PDF SUNAT" (load)="onPdfCargado()"></iframe>
         </div>
       </div>
     </div>
   </div>
 </div>
 <div class="modal-backdrop fade show" (click)="cerrarPdfModal()"></div>
+}
+
+@if (modalAdvertenciaAnulacionAbierto()) {
+<div class="modal fade show d-flex anulacion-modal" tabindex="-1" role="dialog" (click)="cerrarAdvertenciaAnulacion()">
+  <div class="modal-dialog modal-dialog-centered" role="document" (click)="$event.stopPropagation()">
+    <div class="modal-content">
+      <div class="modal-body p-4 text-center">
+        <div class="anulacion-icono">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <h4 class="anulacion-titulo">Advertencia de anulación</h4>
+        <p class="anulacion-mensaje">
+          Una vez anulada la guía <strong>no se podrá revertir</strong> esta acción.<br>
+          Verifique que la guía ya esté anulada en SUNAT antes de continuar.
+        </p>
+        @if (guiaAnularPendiente(); as g) {
+        <div class="anulacion-datos">
+          <div class="anulacion-dato">
+            <span class="anulacion-etiqueta">Guía</span>
+            <span class="anulacion-valor">{{ g.serie ?? '' }}-{{ g.numero ?? '' }}</span>
+          </div>
+          <div class="anulacion-dato">
+            <span class="anulacion-etiqueta">Destinatario</span>
+            <span class="anulacion-valor">{{ g.nombreDestinatario ?? '—' }}</span>
+          </div>
+          <div class="anulacion-dato">
+            <span class="anulacion-etiqueta">Estado SUNAT</span>
+            <span class="anulacion-valor" [class]="estadoSunatClass(g.estadoSunat)">{{ estadoSunatLabel(g.estadoSunat) }}</span>
+          </div>
+          <div class="anulacion-dato">
+            <span class="anulacion-etiqueta">Cajas / Peso</span>
+            <span class="anulacion-valor">{{ g.totalCajas }} cajas — {{ g.pesoTotal }} kg</span>
+          </div>
+        </div>
+        }
+        <div class="anulacion-acciones">
+          <button type="button" class="btn btn-secondary" (click)="cerrarAdvertenciaAnulacion()">Cancelar</button>
+          <button type="button" class="btn btn-danger" (click)="ejecutarAnulacion()">
+            <i class="bi bi-x-octagon"></i> Sí, anular guía
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade show" (click)="cerrarAdvertenciaAnulacion()"></div>
 }
