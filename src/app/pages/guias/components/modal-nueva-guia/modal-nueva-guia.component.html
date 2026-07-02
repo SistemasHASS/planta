@@ -168,6 +168,12 @@
               (valueChange)="updateField('motivoTraslado', $event)">
             </app-advanced-select>
           </div>
+          @if (esMotivoOtros()) {
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:11px;font-weight:700">Descripción Motivo Traslado <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" [class.is-invalid]="isInvalidDescripcionMotivoTraslado()" [ngModel]="form().descripcionMotivoTraslado" (ngModelChange)="updateField('descripcionMotivoTraslado', $event)" placeholder="Ej: Traslado por cambio de domicilio">
+          </div>
+          }
           <div class="col-md-6">
             <label class="form-label" style="font-size:11px;font-weight:700">Fecha Entrega Bienes <span class="text-danger">*</span></label>
             <input type="date" class="form-control form-control-sm" [class.is-invalid]="isInvalid('fechaEntregaBienes')" [ngModel]="form().fechaEntregaBienes" (ngModelChange)="updateField('fechaEntregaBienes', $event)">

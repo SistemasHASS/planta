@@ -23,6 +23,7 @@ export interface GuiaRemision {
   idVehiculo: number | null;
   placaPrincipalVehiculo?: string;
   motivoTraslado: string;
+  descripcionMotivoTraslado?: string | null;
   precinto?: string | null;
   fechaEntregaBienes?: string | null;
   inicioTraslado?: string | null;

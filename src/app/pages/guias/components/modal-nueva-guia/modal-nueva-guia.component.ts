@@ -80,7 +80,8 @@ export class ModalNuevaGuiaComponent implements OnChanges {
       String(init['inspeccionLibreMateriasExtranas'] ?? '') !== String(curr.inspeccionLibreMateriasExtranas ?? '') ||
       String(init['inspeccionUnidadLimpia'] ?? '') !== String(curr.inspeccionUnidadLimpia ?? '') ||
       String(init['inspeccionObservaciones'] ?? '') !== String(curr.inspeccionObservaciones ?? '') ||
-      String(init['inspeccionMedidaCorrectiva'] ?? '') !== String(curr.inspeccionMedidaCorrectiva ?? '');
+      String(init['inspeccionMedidaCorrectiva'] ?? '') !== String(curr.inspeccionMedidaCorrectiva ?? '') ||
+      String(init['descripcionMotivoTraslado'] ?? '') !== String(curr.descripcionMotivoTraslado ?? '');
     const initIds = Array.from(this.initialPaletsSeleccionados()).sort();
     const currIds = Array.from(this.paletsSeleccionados()).sort();
     const paletsChanged = initIds.length !== currIds.length || initIds.some((v, i) => v !== currIds[i]);
@@ -98,6 +99,7 @@ export class ModalNuevaGuiaComponent implements OnChanges {
     conductorId: '',
     vehiculoId: '',
     motivoTraslado: '13',
+    descripcionMotivoTraslado: '',
     fechaEntregaBienes: formatDate(new Date()),
     precinto: '',
     parihuelas: null as number | null,
@@ -119,6 +121,8 @@ export class ModalNuevaGuiaComponent implements OnChanges {
            f.inspeccionLibreMateriasExtranas === 'no' ||
            f.inspeccionUnidadLimpia === 'no';
   });
+
+  readonly esMotivoOtros = computed(() => this.form().motivoTraslado === '13');
 
   constructor() {
     effect(() => {
@@ -172,6 +176,7 @@ export class ModalNuevaGuiaComponent implements OnChanges {
         conductorId: String(g.conductorId ?? ''),
         vehiculoId: String(g.vehiculoId ?? ''),
         motivoTraslado: g.motivoTraslado ?? '13',
+        descripcionMotivoTraslado: g.descripcionMotivoTraslado ?? '',
         fechaEntregaBienes: g.fechaEntregaBienes ?? formatDate(new Date()),
         precinto: g.precinto ?? '',
         parihuelas: Number(g.parihuelas) || 0,
@@ -377,6 +382,7 @@ export class ModalNuevaGuiaComponent implements OnChanges {
       f.conductorId &&
       f.vehiculoId &&
       f.motivoTraslado?.trim() &&
+      (!this.esMotivoOtros() || f.descripcionMotivoTraslado?.trim()) &&
       f.fechaEntregaBienes?.trim() &&
       f.precinto?.trim() &&
       this.nroPaletsSeleccionados() > 0 &&
@@ -392,6 +398,13 @@ export class ModalNuevaGuiaComponent implements OnChanges {
     if (!this.submitAttempted()) return false;
     const v = Number((this.form() as any).parihuelas);
     return isNaN(v) || v < 1 || v > 99;
+  }
+
+  isInvalidDescripcionMotivoTraslado(): boolean {
+    if (!this.submitAttempted()) return false;
+    if (!this.esMotivoOtros()) return false;
+    const v = (this.form() as any).descripcionMotivoTraslado;
+    return v === null || v === undefined || String(v).trim() === '';
   }
 
   onCrear(): void {
@@ -412,6 +425,7 @@ export class ModalNuevaGuiaComponent implements OnChanges {
       inspeccionUnidadLimpia: f.inspeccionUnidadLimpia,
       inspeccionObservaciones: f.inspeccionObservaciones.trim() || undefined,
       inspeccionMedidaCorrectiva: f.inspeccionMedidaCorrectiva.trim() || undefined,
+      descripcionMotivoTraslado: this.esMotivoOtros() ? f.descripcionMotivoTraslado.trim() || undefined : undefined,
     };
     if (this.modoEdicion) {
       this.editar.emit(payload);
