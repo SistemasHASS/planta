@@ -461,4 +461,20 @@ export class GuiaRemisionFacade {
       return { error: true, mensaje: error?.error?.message ?? 'Error al editar la guía.' };
     }
   }
+
+  async consultarEstadoSunat(idProyecto: string, codigoGuiaRemision: string): Promise<any> {
+    if (!this.connectivity.isOnline()) {
+      return { error: true, mensaje: 'No hay conexión a internet.' };
+    }
+    try {
+      let resp: any = await firstValueFrom(this.guiaService.consultarEstadoSunat(idProyecto, codigoGuiaRemision));
+      if (Array.isArray(resp) && resp.length > 0) {
+        resp = resp[0];
+      }
+      return resp;
+    } catch (error: any) {
+      console.error('Error consultando estado SUNAT:', error);
+      return { error: true, mensaje: error?.error?.message ?? 'Error al consultar el estado SUNAT.' };
+    }
+  }
 }

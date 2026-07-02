@@ -29,6 +29,10 @@ export interface GuiaRemision {
   observaciones?: string | null;
   estado: string;
   estadoSunat?: string;
+  codigoEstadoSunat?: string;
+  pdfFileUrl?: string | null;
+  xmlFileSignUrl?: string | null;
+  xmlFileSunatUrl?: string | null;
   pesoTotal: number;
   totalCajas: number;
   cantidadPalets: number;

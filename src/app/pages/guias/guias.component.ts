@@ -1,4 +1,5 @@
 import { Component, ChangeDetectionStrategy, inject, signal, computed, OnInit } from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { firstValueFrom } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { GuiaService } from '../../shared/services/guia.service';
@@ -48,6 +49,7 @@ export class GuiasComponent implements OnInit {
   private readonly catalogosFacade = inject(CatalogosFacade);
   private readonly procesosFacade = inject(ProcesosFacade);
   private readonly auth = inject(AuthService);
+  private readonly sanitizer = inject(DomSanitizer);
 
   get online(): boolean {
     return this.connectivity.isOnline();
@@ -243,31 +245,76 @@ export class GuiasComponent implements OnInit {
   }
 
   estadoSunatLabel(estado?: string): string {
+    const key = this.normalizarEstadoSunat(estado);
     const map: Record<string, string> = {
       PENDIENTE: 'Pendiente',
+      PENDIENTE_DE_ENVIO: 'Pendiente de Envío',
       ENVIANDO: 'Enviando',
       ENVIADO: 'Enviado',
+      ENVIADO_A_DECLARAR: 'Enviado a Declarar',
       ACEPTADO: 'Aceptado',
       ACEPTADO_CON_OBSERVACIONES: 'Aceptado c/obs.',
       RECHAZADO: 'Rechazado',
+      ERROR: 'Error',
       ERROR_ENVIO: 'Error envío',
       ANULADO: 'Anulado',
+      NO_ENVIADO: 'No Enviado',
     };
-    return map[estado ?? ''] ?? (estado || '—');
+    return map[key] ?? (estado || '—');
   }
 
   estadoSunatClass(estado?: string): string {
-    switch (estado) {
-      case 'PENDIENTE': return 'badge-sunat badge-sunat-pendiente';
+    const key = this.normalizarEstadoSunat(estado);
+    switch (key) {
+      case 'PENDIENTE':
+      case 'PENDIENTE_DE_ENVIO':
+        return 'badge-sunat badge-sunat-pendiente';
       case 'ENVIANDO': return 'badge-sunat badge-sunat-enviando';
-      case 'ENVIADO': return 'badge-sunat badge-sunat-enviado';
+      case 'ENVIADO':
+      case 'ENVIADO_A_DECLARAR':
+        return 'badge-sunat badge-sunat-enviado';
       case 'ACEPTADO': return 'badge-sunat badge-sunat-aceptado';
       case 'ACEPTADO_CON_OBSERVACIONES': return 'badge-sunat badge-sunat-aceptado-obs';
       case 'RECHAZADO': return 'badge-sunat badge-sunat-rechazado';
-      case 'ERROR_ENVIO': return 'badge-sunat badge-sunat-error';
+      case 'ERROR':
+      case 'ERROR_ENVIO':
+        return 'badge-sunat badge-sunat-error';
       case 'ANULADO': return 'badge-sunat badge-sunat-anulado';
+      case 'NO_ENVIADO': return 'badge-sunat badge-sunat-no-enviado';
       default: return 'badge-sunat badge-sunat-pendiente';
     }
+  }
+
+  private normalizarEstadoSunat(estado?: string): string {
+    return (estado ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .replace(/\s+/g, '_')
+      .replace(/[^A-Z0-9_]/g, '');
+  }
+
+  esAceptadaSunat(estado?: string): boolean {
+    return this.normalizarEstadoSunat(estado) === 'ACEPTADO';
+  }
+
+  pdfModalAbierto = signal(false);
+  pdfUrlRaw = signal<string | null>(null);
+  pdfUrlSegura = computed<SafeResourceUrl | null>(() => {
+    const url = this.pdfUrlRaw();
+    if (!url) return null;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+  });
+
+  abrirPdfModal(url: string | null | undefined): void {
+    if (!url) return;
+    this.pdfUrlRaw.set(url);
+    this.pdfModalAbierto.set(true);
+  }
+
+  cerrarPdfModal(): void {
+    this.pdfModalAbierto.set(false);
+    this.pdfUrlRaw.set(null);
   }
 
   private async cargarConfiguracion(): Promise<void> {
@@ -467,6 +514,30 @@ export class GuiasComponent implements OnInit {
     } catch (error: any) {
       console.error('Error emitiendo guía:', error);
       this.alertService.showAlert('Error', error?.error?.message ?? 'Error al emitir la guía.', 'error');
+    }
+  }
+
+  async consultarEstadoSunat(g: GuiaRemision): Promise<void> {
+    const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
+    const codigoGuiaRemision = String(g?.codigoGuiaRemision ?? '').trim();
+    if (!idProyecto || !codigoGuiaRemision) {
+      this.alertService.showAlert('Error', 'No se pudo obtener la información de la guía.', 'error');
+      return;
+    }
+
+    this.alertService.mostrarModalCarga();
+    try {
+      const resp = await this.guiaRemisionFacade.consultarEstadoSunat(idProyecto, codigoGuiaRemision);
+      if (resp?.error) {
+        this.alertService.showAlertAcept('Error', resp?.mensaje ?? 'Error al consultar el estado SUNAT.', 'error');
+        return;
+      }
+      const mensaje = resp?.data?.mensajeSunat ?? resp?.mensaje ?? 'Estado actualizado correctamente.';
+      this.alertService.showAlertAcept('Estado SUNAT', mensaje, 'success');
+      await this.onBuscarGuias();
+    } catch (error: any) {
+      console.error('Error consultando estado SUNAT:', error);
+      this.alertService.showAlert('Error', error?.error?.message ?? 'Error al consultar el estado SUNAT.', 'error');
     }
   }
 

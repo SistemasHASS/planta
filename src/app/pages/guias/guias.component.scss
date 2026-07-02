@@ -184,6 +184,7 @@
 .badge-sunat-rechazado { background: #fee2e2; color: #991b1b; }
 .badge-sunat-error     { background: #fee2e2; color: #7f1d1d; border: 1px solid #fecaca; }
 .badge-sunat-anulado   { background: #e2e8f0; color: #334155; }
+.badge-sunat-no-enviado { background: #f3f4f6; color: #6b7280; }
 
 /* Type badges */
 .badge-repo {
@@ -547,4 +548,74 @@
   .col-sync   { display: none; }
   .col-estado { width: 85px; }
   .col-acc    { width: 145px; }
+}
+
+/* ── PDF Modal ── */
+.pdf-modal .modal-header {
+  background: linear-gradient(135deg, var(--color-primary) 0%, #5a4ad1 100%);
+  color: #fff;
+  border-bottom: none;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pdf-modal .modal-title {
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.pdf-modal .modal-content {
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.pdf-modal .modal-body {
+  flex: 1 1 auto;
+  overflow: hidden;
+  background: #f1f5f9;
+}
+
+.pdf-container {
+  width: 100%;
+  height: 100%;
+  min-height: 60vh;
+}
+
+.pdf-iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 60vh;
+  border: none;
+  background: #fff;
+}
+
+@media (max-width: 768px) {
+  .pdf-modal .modal-dialog {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    height: 100%;
+  }
+
+  .pdf-modal .modal-content {
+    border-radius: 0;
+    max-height: 100vh;
+    height: 100vh;
+  }
+
+  .pdf-container,
+  .pdf-iframe {
+    min-height: 80vh;
+  }
 }

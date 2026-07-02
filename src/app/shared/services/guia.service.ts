@@ -47,6 +47,13 @@ export class GuiaService {
     return this.http.get<any>(`${this.apiUrl}/emitir-guia-remision`, { params, withCredentials: true });
   }
 
+  consultarEstadoSunat(idProyecto: string, codigoGuiaRemision: string): Observable<any> {
+    const params = new HttpParams()
+      .set('idProyecto', idProyecto)
+      .set('codigoGuiaRemision', codigoGuiaRemision);
+    return this.http.get<any>(`${this.apiUrl}/consultar-estado-sunat`, { params, withCredentials: true });
+  }
+
   anularGuiaRemision(idProyecto: string, codigoGuiaRemision: string): Observable<any> {
     const params = new HttpParams()
       .set('idProyecto', idProyecto)
