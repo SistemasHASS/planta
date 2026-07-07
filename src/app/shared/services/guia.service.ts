@@ -58,7 +58,7 @@ export class GuiaService {
     const params = new HttpParams()
       .set('idProyecto', idProyecto)
       .set('codigoGuiaRemision', codigoGuiaRemision);
-    return this.http.delete<any>(`${this.apiUrl}/anular-guia-remision`, { params, withCredentials: true });
+    return this.http.get<any>(`${this.apiUrl}/anular-guia-remision`, { params, withCredentials: true });
   }
 
   editarGuiaRemision(payload: any): Observable<any> {

@@ -59,6 +59,7 @@ export interface GuiaDetalleData {
   motivoTraslado?: string;
   fechaEntregaBienes?: string | null;
   codigoSunatMotivoTraslado?: string;
+  descripcionMotivoTrasladoCatalogo?: string;
   descripcionMotivoTraslado?: string;
   precinto?: string | null;
   inicioTraslado?: string | null;

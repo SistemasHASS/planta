@@ -94,8 +94,14 @@
           </div>
           <div class="guia-row-item">
             <span class="label">Motivo Traslado</span>
-            <span class="value">{{g.codigoSunatMotivoTraslado + ' - ' + g.descripcionMotivoTraslado || '—' }}</span>
+            <span class="value">{{g.codigoSunatMotivoTraslado + ' - ' + g.descripcionMotivoTrasladoCatalogo || '—' }}</span>
           </div>
+          @if (g.codigoSunatMotivoTraslado === '13' && g.descripcionMotivoTraslado) {
+          <div class="guia-row-item">
+            <span class="label">Descripción Motivo Traslado</span>
+            <span class="value">{{g.descripcionMotivoTraslado}}</span>
+          </div>
+          }
           <div class="guia-row-item">
             <span class="label">Fecha Entrega Bienes</span>
             <span class="value">{{ g.fechaEntregaBienes | date: 'yyyy-MM-dd' }}</span>
