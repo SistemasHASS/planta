@@ -148,6 +148,11 @@ const childRoutes: Routes = [
       import('./pages/guias/guias.component').then((m) => m.GuiasComponent),
   },
   {
+    path: 'guias-manuales',
+    loadComponent: () =>
+      import('./pages/guias-manuales/guias-manuales.component').then((m) => m.GuiasManualesComponent),
+  },
+  {
     path: 'catalogos',
     loadComponent: () =>
       import('./pages/catalogos/catalogos.component').then((m) => m.CatalogosComponent),

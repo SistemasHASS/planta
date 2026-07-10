@@ -95,6 +95,12 @@ export class ModalNuevaGuiaComponent implements OnChanges {
     puntoLlegada: '',
     ubigeoPartida: '131202',
     ubigeoLlegada: '',
+    departamentoPartida: '13',
+    provinciaPartida: '12',
+    distritoPartida: '131202',
+    departamentoLlegada: '',
+    provinciaLlegada: '',
+    distritoLlegada: '',
     transportistaId: '',
     conductorId: '',
     vehiculoId: '',
@@ -124,27 +130,46 @@ export class ModalNuevaGuiaComponent implements OnChanges {
 
   readonly esMotivoOtros = computed(() => this.form().motivoTraslado === '13');
 
+  readonly ubigeoPartidaValido = computed(() => {
+    const u = String(this.form().ubigeoPartida ?? '').trim();
+    return u.length === 6;
+  });
+
+  readonly ubigeoLlegadaValido = computed(() => {
+    const u = String(this.form().ubigeoLlegada ?? '').trim();
+    return u.length === 6;
+  });
+
   constructor() {
     effect(() => {
       const f = this.form();
-      const uPartida = String(f.ubigeoPartida ?? '').trim();
-      if (uPartida.length === 6) {
-        const dep = uPartida.substring(0, 2);
-        const prov = uPartida.substring(2, 4);
-        this.loadProvinciasPartida(dep);
-        this.loadDistritosPartida(dep, prov);
+      const depPartida = String(f.departamentoPartida ?? '').trim();
+      const provPartida = String(f.provinciaPartida ?? '').trim();
+
+      if (depPartida && depPartida.length === 2) {
+        this.loadProvinciasPartida(depPartida);
       } else {
         this.provinciasPartida.set([]);
+      }
+
+      if (depPartida && provPartida && depPartida.length === 2 && provPartida.length === 2) {
+        this.loadDistritosPartida(depPartida, provPartida);
+      } else {
         this.distritosPartida.set([]);
       }
-      const uLlegada = String(f.ubigeoLlegada ?? '').trim();
-      if (uLlegada.length === 6) {
-        const dep = uLlegada.substring(0, 2);
-        const prov = uLlegada.substring(2, 4);
-        this.loadProvinciasLlegada(dep);
-        this.loadDistritosLlegada(dep, prov);
+
+      const depLlegada = String(f.departamentoLlegada ?? '').trim();
+      const provLlegada = String(f.provinciaLlegada ?? '').trim();
+
+      if (depLlegada && depLlegada.length === 2) {
+        this.loadProvinciasLlegada(depLlegada);
       } else {
         this.provinciasLlegada.set([]);
+      }
+
+      if (depLlegada && provLlegada && depLlegada.length === 2 && provLlegada.length === 2) {
+        this.loadDistritosLlegada(depLlegada, provLlegada);
+      } else {
         this.distritosLlegada.set([]);
       }
     }, { allowSignalWrites: true });
@@ -165,13 +190,21 @@ export class ModalNuevaGuiaComponent implements OnChanges {
     }
     if (changes['guiaEditando'] && this.modoEdicion && this.guiaEditando) {
       const g = this.guiaEditando;
+      const ubigeoPartida = String(g.ubigeoPartida ?? '131202').trim();
+      const ubigeoLlegada = String(g.ubigeoLlegada ?? '').trim();
       this.form.set({
         procesoId: String(g.procesoId ?? ''),
         destinatarioId: String(g.destinatarioId ?? ''),
         puntoPartida: g.puntoPartida ?? 'CARRETERA PANAMERICANA NORTE KM. 492.5',
         puntoLlegada: g.puntoLlegada ?? '',
-        ubigeoPartida: g.ubigeoPartida ?? '131202',
-        ubigeoLlegada: g.ubigeoLlegada ?? '131202',
+        ubigeoPartida,
+        ubigeoLlegada,
+        departamentoPartida: ubigeoPartida.substring(0, 2),
+        provinciaPartida: ubigeoPartida.substring(2, 4),
+        distritoPartida: ubigeoPartida,
+        departamentoLlegada: ubigeoLlegada.substring(0, 2),
+        provinciaLlegada: ubigeoLlegada.substring(2, 4),
+        distritoLlegada: ubigeoLlegada,
         transportistaId: String(g.transportistaId ?? ''),
         conductorId: String(g.conductorId ?? ''),
         vehiculoId: String(g.vehiculoId ?? ''),
@@ -267,7 +300,15 @@ export class ModalNuevaGuiaComponent implements OnChanges {
       const dest = this.destinatariosActivos().find((d: any) => String(d?.id ?? '').trim() === id);
       const puntoLlegada = dest?.puntoLlegada ?? dest?.domicilioFiscal ?? '';
       const ubigeoLlegada = String(dest?.puntoLlegadaDistrito ?? '').trim() || '131202';
-      this.form.update(f => ({ ...f, destinatarioId: value, puntoLlegada, ubigeoLlegada }));
+      this.form.update(f => ({
+        ...f,
+        destinatarioId: value,
+        puntoLlegada,
+        ubigeoLlegada,
+        departamentoLlegada: ubigeoLlegada.substring(0, 2),
+        provinciaLlegada: ubigeoLlegada.substring(2, 4),
+        distritoLlegada: ubigeoLlegada,
+      }));
       return;
     }
     if (field === 'parihuelas') {
@@ -378,6 +419,8 @@ export class ModalNuevaGuiaComponent implements OnChanges {
       f.destinatarioId &&
       f.puntoPartida?.trim() &&
       f.puntoLlegada?.trim() &&
+      this.ubigeoPartidaValido() &&
+      this.ubigeoLlegadaValido() &&
       f.transportistaId &&
       f.conductorId &&
       f.vehiculoId &&
@@ -388,6 +431,14 @@ export class ModalNuevaGuiaComponent implements OnChanges {
       this.nroPaletsSeleccionados() > 0 &&
       !isNaN(parihuelasNum) && parihuelasNum >= 1 && parihuelasNum <= 99
     );
+  }
+
+  isInvalidUbigeoPartida(): boolean {
+    return this.submitAttempted() && !this.ubigeoPartidaValido();
+  }
+
+  isInvalidUbigeoLlegada(): boolean {
+    return this.submitAttempted() && !this.ubigeoLlegadaValido();
   }
 
   isInvalidPalets(): boolean {

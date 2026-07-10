@@ -74,7 +74,6 @@ export class ProcesosComponent implements OnInit {
   }
   readonly activeLabel = computed(() => {
     const c = this.campania();
-    console.log('c', c)
     if (!c) return '—';
     const left = String(c.idproyecto ?? '').trim();
     const right = String(c.descripcion ?? '').trim();
@@ -116,7 +115,6 @@ export class ProcesosComponent implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
-    console.log('aa',this.auth.usuario())
     await this.cargarConfiguracion();
     await this.cargarDesdeDexieCampania();
     await this.cargarPersonalDisponible();
@@ -259,7 +257,6 @@ export class ProcesosComponent implements OnInit {
   }
 
   async listarProcesosApi(): Promise<void> {
-    console.log('Listar Procesos...')
     this.isLoading.set(true);
     let resp = await firstValueFrom(this.procesoService.listarProcesoForAcopio(this.savedConfig()?.codigoCultivo || '', this.savedConfig()?.idProyecto || ''));
     if (resp.length == 0) {
@@ -382,7 +379,6 @@ export class ProcesosComponent implements OnInit {
   }
 
   async sincronizarSupervisores(): Promise<void> {
-    console.log('Sincronizar supervisores...')
     // Sincronizar Supervisores
     let respDisponiblesSuper: any = await firstValueFrom(this.catalogoService.listarSupervisoresDisponibles(this.savedConfig()?.idProyecto, this.nuevoProceso().fechaProceso))
     if (respDisponiblesSuper.length > 0) {
@@ -404,7 +400,6 @@ export class ProcesosComponent implements OnInit {
     }
   }
   async sincronizarPersonalLogistica(): Promise<void> {
-    console.log('sincronizar Personal Logistico')
     let respDisponibles = await firstValueFrom(this.catalogoService.listarPersonaLogisticoDisponibles(this.savedConfig()?.idProyecto, this.nuevoProceso().fechaProceso))
     if (respDisponibles.length > 0) {
       let resp = respDisponibles[0]
@@ -476,7 +471,6 @@ export class ProcesosComponent implements OnInit {
   }
 
   async sincronizar() {
-    console.log('Sincronizar...')
     try {
       if (!this.online) {
         this.alertService.showAlert('Sin conexión', 'Necesitas internet para sincronizar.', 'warning')
@@ -672,7 +666,6 @@ export class ProcesosComponent implements OnInit {
         const idProceso = this.crearIdProceso(newProceso.fechaProceso, newProceso.turno)
 
         const existente = await this.procesoRepo.procesosRepo.getByField('idProceso', idProceso);
-        console.log('existente', existente)
         if (existente && (existente as any)?.db !== 1) {
           if (existente.db == 1) {
             this.alertService.cerrarModalCarga();
@@ -879,7 +872,6 @@ export class ProcesosComponent implements OnInit {
     const dSup = await this.procesoRepo.dProcesoSupervisoresRepo.getSincronizadosByIdProceso(idProceso);
 
     const resp = await firstValueFrom(this.procesoService.sincronizar(proceso,dLog as any,dSup as any,this.savedConfig()?.codigoCultivo ?? '',this.savedConfig()?.idProyecto ?? '',"cerrar"));
-
     if (!Array.isArray(resp) || resp.length === 0) {
       this.alertService.cerrarModalCarga();
       this.alertService.showAlertAcept('Error', `No se pudo sincronizar el proceso ${idProceso}.`, 'error');
@@ -914,7 +906,6 @@ export class ProcesosComponent implements OnInit {
     const dSup = await this.procesoRepo.dProcesoSupervisoresRepo.getSincronizadosByIdProceso(idProceso);
 
     const resp = await firstValueFrom(this.procesoService.sincronizar(proceso,dLog as any,dSup as any,this.savedConfig()?.codigoCultivo ?? '',this.savedConfig()?.idProyecto ?? '',"reabrir"));
-
     if (!Array.isArray(resp) || resp.length === 0) {
       this.alertService.cerrarModalCarga();
       this.alertService.showAlertAcept('Error', `No se pudo sincronizar el proceso ${idProceso}.`, 'error');

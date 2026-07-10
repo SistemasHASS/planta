@@ -512,7 +512,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
           item.modo = item.id == 0 ? 'nuevo' : 'editado';
         });
         const resp = await firstValueFrom(this.paletService.sincronizar(payloads));
-        console.log('respPalets', resp);
         const first = resp?.[0] as any;
         if (first?.error) {
           this.alertService.cerrarModalCarga();
@@ -548,7 +547,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
           delete item._pk;
         });
         const resp = await firstValueFrom(this.paletService.sincronizarDPalets(payloads));
-        console.log('respDPalets', resp);
         const dataResults: any[] = Array.isArray(resp) ? resp : [];
         const localMap = new Map<string, number>();
         for (const local of dpaletsNoSync as any[]) {
@@ -651,12 +649,40 @@ export class PaletsComponent implements OnInit, OnDestroy {
   }
 
   async verDetalle(p: Palet): Promise<void> {
+    this.alertService.mostrarModalCarga()
     this.paletSeleccionado.set(p);
 
-    // SIEMPRE cargar composiciones desde Dexie
     try {
-      const dpalets = await this.procesoRepo.dPaletsRepo.getByIdPalet(p.idPalet ?? '');
-      const activos = (dpalets ?? []).filter((d: any) => !(d as any)?.eliminado);
+      let activos: DPalet[] = [];
+      let errorEndpoint:boolean =false
+      let errorMesanje: string =''
+      if (this.online) {
+        const idPalet = String(p?.idPalet ?? '').trim();
+        const resp: any = await firstValueFrom(this.paletService.getDPaletsPorPalet(idPalet));
+        const first = Array.isArray(resp) ? resp[0] : resp;
+        if (first?.error) {
+          errorEndpoint = true;
+          errorMesanje = first?.mensaje ?? 'Error al obtener el detalle del palet';
+        } else {
+          const items: any[] = first?.data ?? [];
+          const enriquecidos = await this.resolverNombresDPalets(items);
+
+          // Reemplazar solo DPalets sincronizados (bd=1) del palet en Dexie, preservar locales (bd=0)
+          await this.procesoRepo.dPaletsRepo.deleteSincronizadosByIdPalet(idPalet);
+          for (const d of enriquecidos) {
+            const row: DPalet = {
+              ...d,
+              bd: 1,
+            };
+            await this.procesoRepo.dPaletsRepo.saveByIdDPalet(row);
+          }
+          activos = enriquecidos.filter((d: any) => !(d as any)?.eliminado);
+        }
+      } 
+      // else {
+        const dpalets = await this.procesoRepo.dPaletsRepo.getByIdPalet(p.idPalet ?? '');
+        activos = (dpalets ?? []).filter((d: any) => !(d as any)?.eliminado);
+      // }
       this.composiciones.set(activos);
 
       // Recalcular totales del palet solo con dpalets no eliminados
@@ -680,8 +706,12 @@ export class PaletsComponent implements OnInit, OnDestroy {
           return pk && uk && pk === uk ? paletActualizado : item;
         })
       );
+      this.alertService.cerrarModalCarga();
+      if(errorEndpoint){
+        this.alertService.showAlert('Error', errorMesanje, 'error');
+      }
     } catch (err) {
-      console.error('Error cargando detalle desde Dexie:', err);
+      console.error('Error cargando detalle del palet:', err);
       this.composiciones.set([]);
     }
   }
@@ -865,7 +895,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
       esReposicion: dpalet.esReposicion ?? false,
       esEnsayo: dpalet.esEnsayo ?? false,
     });
-    console.log('cajassssssssss',this.formCajas())
     const codigoAcopio = String(palet?.codigoAcopio ?? this.procesoSeleccionado()?.codigoAcopio ?? '').trim();
     this.alertService.mostrarModalCarga();
     let tipos: TipoProcesoEmpacado[] = [];
@@ -912,7 +941,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
     }
 
     // Ejecutar cascada desde consignatario para poblar listas filtradas
-    console.log('formCajas1111',this.formCajas())
     const valoresPrevios = { ...this.formCajas() };
     
     this._cargandoCascada = true;
@@ -921,7 +949,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
     (this.alertService as any).mostrarModalCarga = () => { };
     (this.alertService as any).cerrarModalCarga = () => { };
     try {
-      console.log('valoresss',valoresPrevios)
       if (consignatarioIdReal) {
         await this.onConsignatarioChange(String(consignatarioIdReal));
         this.updateFormCajas('destinoId', valoresPrevios.destinoId);
@@ -931,7 +958,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
         this.updateFormCajas('tipoEmpaqueGuiaId', valoresPrevios.tipoEmpaqueGuiaId);
         if (valoresPrevios.tipoEmpaqueGuiaId) await this.onTipoEmpaqueGuiaChange(String(valoresPrevios.tipoEmpaqueGuiaId));
         this.updateFormCajas('presentacionId', valoresPrevios.presentacionId);
-        if (valoresPrevios.presentacionId) this.onPresentacionChange(String(valoresPrevios.presentacionId));
+        if (valoresPrevios.presentacionId) await this.onPresentacionChange(String(valoresPrevios.presentacionId));
         // onPresentacionChange resetea tipoCajaId a 0; restaurarlo después
         this.updateFormCajas('tipoCajaId', valoresPrevios.tipoCajaId);
         if (valoresPrevios.tipoCajaId) await this.onTipoCajaChange(String(valoresPrevios.tipoCajaId));
@@ -959,7 +986,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
       case 'destinoId': await this.onDestinoChange(String(valor)); break;
       case 'formatoId': await this.onFormatoChange(String(valor)); break;
       case 'tipoEmpaqueGuiaId': await this.onTipoEmpaqueGuiaChange(String(valor)); break;
-      case 'presentacionId': this.onPresentacionChange(String(valor)); break;
+      case 'presentacionId': await this.onPresentacionChange(String(valor)); break;
       case 'tipoCajaId': await this.onTipoCajaChange(String(valor)); break;
       case 'tipoClamshellId': this.onTipoClamshellChange(String(valor)); break;
       case 'variedadId': this.onVariedadChange(String(valor)); break;
@@ -2205,17 +2232,27 @@ export class PaletsComponent implements OnInit, OnDestroy {
       const presFiltrados = (todosPres ?? []).filter((p: any) => presentacionesIds.includes(String(p?.id ?? '')));
       this.filteredPresentaciones.set(presFiltrados);
 
+      let presentacionAutoSeleccionada: number | null = null;
       if (presFiltrados.length === 1) {
-        const autoVal = presFiltrados[0].id ?? 0;
-        this.updateFormCajas('presentacionId', autoVal);
+        presentacionAutoSeleccionada = presFiltrados[0].id ?? 0;
+        this.updateFormCajas('presentacionId', presentacionAutoSeleccionada);
       } else if (presFiltrados.length === 0) {
         this.updateFormCajas('presentacionId', 0);
       }
 
-      const todosTc = await this.catalogosRepo.tiposCajaRepo.getAll();
-      const tcFiltrados = (todosTc ?? []).filter((t: any) => tiposCajaIds.includes(String(t?.id ?? '')));
-      this.filteredTiposCaja.set(tcFiltrados);
+      if (presentacionAutoSeleccionada != null && presentacionAutoSeleccionada > 0) {
+        if (this.online) {
+          await this.cargarTiposCajaPorMatriz(presentacionAutoSeleccionada);
+        } else {
+          await this.filtrarTiposCajaDesdeDexie(presentacionAutoSeleccionada);
+        }
+      } else {
+        const todosTc = await this.catalogosRepo.tiposCajaRepo.getAll();
+        const tcFiltrados = (todosTc ?? []).filter((t: any) => tiposCajaIds.includes(String(t?.id ?? '')));
+        this.filteredTiposCaja.set(tcFiltrados);
+      }
 
+      await this.cargarMatrizResults();
       this.alertService.cerrarModalCarga();
 
     } catch (err) {
@@ -2227,7 +2264,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     }
   }
 
-  onPresentacionChange(value: string): void {
+  async onPresentacionChange(value: string): Promise<void> {
     const presentacionId = (!value || value === 'NA' || value === '0') ? null : parseInt(value);
     this.updateFormCajas('presentacionId', presentacionId ?? 0);
     this.filteredTiposClamshell.set([]);
@@ -2235,30 +2272,81 @@ export class PaletsComponent implements OnInit, OnDestroy {
     this.updateFormCajas('tipoClamshellId', 0);
     this.updateFormCajas('calibreId', 0);
     this.updateFormCajas('tipoEmpaqueId', 0);
-    this.loadTiposCajaDinamicos(presentacionId, false);
+
+    this.alertService.mostrarModalCarga();
+    try {
+      if (this.online) {
+        await this.cargarTiposCajaPorMatriz(presentacionId);
+      } else {
+        await this.filtrarTiposCajaDesdeDexie(presentacionId);
+      }
+    } finally {
+      this.alertService.cerrarModalCarga();
+    }
   }
 
-  private loadTiposCajaDinamicos(presentacionId: number | null, setFilteredTiposCaja: boolean = true): void {
+  private async cargarTiposCajaPorMatriz(presentacionId: number | null): Promise<void> {
     const f = this.formCajas();
-    this.catalogoService.listarTiposDesdeMatriz({
-      consignatarioId: f.consignatarioId, destinoId: f.destinoId,
-      formatoId: f.formatoId, tipoEmpaqueGuiaId: f.tipoEmpaqueGuiaId,
-      presentacionId: presentacionId
-    }).subscribe({
-      next: (r: any) => {
-        const items = Array.isArray(r) ? r : r?.data ?? [];
-        if (setFilteredTiposCaja) {
-          const cajaMap = new Map<number, any>();
-          items.forEach((i: any) => { if (i.TipoCajaId) cajaMap.set(i.TipoCajaId, { id: i.TipoCajaId, nombre: i.TipoCajaNombre }); });
-          this.filteredTiposCaja.set(Array.from(cajaMap.values()));
-        }
-        this._matrizResults = items;
-      },
-      error: () => { if (setFilteredTiposCaja) this.filteredTiposCaja.set([]); }
-    });
+    const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
+
+    try {
+      const resp: any = await firstValueFrom(
+        this.paletService.getTiposCajaPorMatriz(
+          codigoCultivo,
+          f.consignatarioId.toString(),
+          String(f.destinoId),
+          f.formatoId,
+          f.tipoEmpaqueGuiaId,
+          presentacionId ?? undefined
+        )
+      );
+      const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
+      const tiposCajaIds = (items[0]?.data ?? []).map((x: any) => String(x?.id ?? x?.Id ?? '')).filter((id: string) => id);
+
+      const todosTc = await this.catalogosRepo.tiposCajaRepo.getAll();
+      const tcFiltrados = (todosTc ?? []).filter((t: any) => tiposCajaIds.includes(String(t?.id ?? '')));
+      this.filteredTiposCaja.set(tcFiltrados);
+    } catch (err) {
+      console.error('Error cargando tipos de caja por matriz:', err);
+      this.filteredTiposCaja.set([]);
+    }
+  }
+
+  private async filtrarTiposCajaDesdeDexie(presentacionId: number | null): Promise<void> {
+    const f = this.formCajas();
+    const matrices = await this.administracionRepo.matricesCompatibilidadRepository.getAll();
+    const matricesFiltradas = (matrices ?? []).filter((m: any) =>
+      String(m?.documentoConsignatario ?? '').trim() === f.consignatarioId.toString() &&
+      String(m?.destinoId ?? '').trim() === String(f.destinoId) &&
+      String(m?.formatoId ?? '') === String(f.formatoId) &&
+      String(m?.tipoEmpaqueGuiaId ?? '') === String(f.tipoEmpaqueGuiaId) &&
+      (presentacionId == null || String(m?.presentacionId ?? '') === String(presentacionId))
+    );
+    const tiposCajaIds = [...new Set(matricesFiltradas.map((m: any) => String(m?.tipoCajaId ?? '')).filter((id: string) => id))];
+
+    const todosTc = await this.catalogosRepo.tiposCajaRepo.getAll();
+    const tcFiltrados = (todosTc ?? []).filter((t: any) => tiposCajaIds.includes(String(t?.id ?? '')));
+    this.filteredTiposCaja.set(tcFiltrados);
   }
 
   private _matrizResults: any[] = [];
+
+  private async cargarMatrizResults(): Promise<void> {
+    const f = this.formCajas();
+    const matrices = await this.administracionRepo.matricesCompatibilidadRepository.getAll();
+    const matricesFiltradas = (matrices ?? []).filter((m: any) =>
+      String(m?.documentoConsignatario ?? '').trim() === f.consignatarioId.toString() &&
+      String(m?.destinoId ?? '').trim() === String(f.destinoId) &&
+      String(m?.formatoId ?? '') === String(f.formatoId) &&
+      String(m?.tipoEmpaqueGuiaId ?? '') === String(f.tipoEmpaqueGuiaId)
+    );
+    this._matrizResults = matricesFiltradas.map((m: any) => ({
+      TipoCajaId: m.tipoCajaId,
+      TipoClamshellId: m.tipoClamshellId,
+      CalibreId: m.calibreId,
+      TipoEmpaqueId: m.tiposEmpaqueId ?? m.tipoEmpaqueId
+    }));
+  }
 
   async onTipoCajaChange(value: string): Promise<void> {
     const tipoCajaId = parseInt(value) || 0;
@@ -2284,9 +2372,11 @@ export class PaletsComponent implements OnInit, OnDestroy {
     try {
       let tiposClamshellIds: string[] = [];
 
+      const presentacionId = f.presentacionId > 0 ? f.presentacionId : undefined;
+
       if (this.online) {
         const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
-        const resp: any = await firstValueFrom(this.paletService.getTiposClamshellPorMatriz(codigoCultivo, f.consignatarioId.toString(), String(f.destinoId), f.formatoId, f.tipoEmpaqueGuiaId || 0));
+        const resp: any = await firstValueFrom(this.paletService.getTiposClamshellPorMatriz(codigoCultivo, f.consignatarioId.toString(), String(f.destinoId), f.formatoId, f.tipoEmpaqueGuiaId || 0, f.tipoCajaId, presentacionId));
         const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
 
         if (items[0].data.length === 0) {
@@ -2314,7 +2404,9 @@ export class PaletsComponent implements OnInit, OnDestroy {
           String(m?.documentoConsignatario ?? '').trim() === f.consignatarioId.toString() &&
           String(m?.destinoId ?? '').trim() === String(f.destinoId) &&
           String(m?.formatoId ?? '') === String(f.formatoId) &&
-          String(m?.tipoEmpaqueGuiaId ?? '') === String(f.tipoEmpaqueGuiaId)
+          String(m?.tipoEmpaqueGuiaId ?? '') === String(f.tipoEmpaqueGuiaId) &&
+          String(m?.tipoCajaId ?? '') === String(f.tipoCajaId) &&
+          (presentacionId == null || String(m?.presentacionId ?? '') === String(presentacionId))
         );
         tiposClamshellIds = [...new Set(matricesFiltradas.map((m: any) => String(m?.tipoClamshellId ?? '')).filter((id: string) => id))];
 
@@ -2403,7 +2495,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
         } else {
           data = resp ?? [];
         }
-        console.log(data)
         codigosRancho = data
           .map((c: any) => ({
             id: c?.id ?? c?.Id ?? 0,

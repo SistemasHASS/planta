@@ -27,13 +27,15 @@
           </div>
           <div class="col-md-6">
             <label class="form-label" style="font-size:11px;font-weight:700">Destinatario <span class="text-danger">*</span></label>
-            <app-advanced-select
-              placeholder="Seleccione..."
-              [itemsInput]="destinatariosActivos()"
-              idField="id"
-              [labelFields]="['nombre','documentoFiscal']"
-              [value]="form().destinatarioId"
-              (valueChange)="updateField('destinatarioId', $event)" />
+            <div [class.select-invalid]="isInvalid('destinatarioId')">
+              <app-advanced-select
+                placeholder="Seleccione..."
+                [itemsInput]="destinatariosActivos()"
+                idField="id"
+                [labelFields]="['nombre','documentoFiscal']"
+                [value]="form().destinatarioId"
+                (valueChange)="updateField('destinatarioId', $event)" />
+            </div>
           </div>
           <div class="col-md-6">
             <label class="form-label" style="font-size:11px;font-weight:700">Punto Partida <span class="text-danger">*</span></label>
@@ -44,15 +46,15 @@
             <input type="text" class="form-control form-control-sm" [class.is-invalid]="isInvalid('puntoLlegada')" [ngModel]="form().puntoLlegada" (ngModelChange)="updateField('puntoLlegada', $event)" placeholder="Punto de llegada">
           </div>
           <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Ubigeo Partida</label>
-            <div class="row g-1">
+            <label class="form-label" style="font-size:11px;font-weight:700">Ubigeo Partida <span class="text-danger">*</span></label>
+            <div class="row g-1" [class.ubigeo-invalid]="isInvalidUbigeoPartida()">
               <div class="col-4">
                 <app-advanced-select
                   [itemsInput]="departamentos()"
                   idField="codigoDepartamento"
                   [labelFields]="['nombreDepartamento']"
                   placeholder="Dep."
-                  [value]="(form().ubigeoPartida || '').substring(0, 2)"
+                  [value]="form().departamentoPartida"
                   (valueChange)="updateField('departamentoPartida', $event)">
                 </app-advanced-select>
               </div>
@@ -62,7 +64,7 @@
                   idField="codigoProvincia"
                   [labelFields]="['nombreProvincia']"
                   placeholder="Prov."
-                  [value]="(form().ubigeoPartida || '').substring(2, 4)"
+                  [value]="form().provinciaPartida"
                   (valueChange)="updateField('provinciaPartida', $event)">
                 </app-advanced-select>
               </div>
@@ -72,22 +74,22 @@
                   idField="codigoUbigeo"
                   [labelFields]="['nombreDistrito']"
                   placeholder="Dist."
-                  [value]="form().ubigeoPartida"
+                  [value]="form().distritoPartida"
                   (valueChange)="updateField('distritoPartida', $event)">
                 </app-advanced-select>
               </div>
             </div>
           </div>
           <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Ubigeo Llegada</label>
-            <div class="row g-1">
+            <label class="form-label" style="font-size:11px;font-weight:700">Ubigeo Llegada <span class="text-danger">*</span></label>
+            <div class="row g-1" [class.ubigeo-invalid]="isInvalidUbigeoLlegada()">
               <div class="col-4">
                 <app-advanced-select
                   [itemsInput]="departamentos()"
                   idField="codigoDepartamento"
                   [labelFields]="['nombreDepartamento']"
                   placeholder="Dep."
-                  [value]="(form().ubigeoLlegada || '').substring(0, 2)"
+                  [value]="form().departamentoLlegada"
                   (valueChange)="updateField('departamentoLlegada', $event)">
                 </app-advanced-select>
               </div>
@@ -97,7 +99,7 @@
                   idField="codigoProvincia"
                   [labelFields]="['nombreProvincia']"
                   placeholder="Prov."
-                  [value]="(form().ubigeoLlegada || '').substring(2, 4)"
+                  [value]="form().provinciaLlegada"
                   (valueChange)="updateField('provinciaLlegada', $event)">
                 </app-advanced-select>
               </div>
@@ -107,7 +109,7 @@
                   idField="codigoUbigeo"
                   [labelFields]="['nombreDistrito']"
                   placeholder="Dist."
-                  [value]="form().ubigeoLlegada"
+                  [value]="form().distritoLlegada"
                   (valueChange)="updateField('distritoLlegada', $event)">
                 </app-advanced-select>
               </div>
@@ -120,36 +122,42 @@
           </div>
           <div class="col-md-6">
             <label class="form-label" style="font-size:11px;font-weight:700">Transporte <span class="text-danger">*</span></label>
-            <app-advanced-select
-              table="transportistas"
-              placeholder="Seleccione..."
-              [itemsInput]="transportistas"
-              idField="id"
-              [labelFields]="['razonSocial']"
-              [value]="form().transportistaId"
-              (valueChange)="updateField('transportistaId', $event)" />
+            <div [class.select-invalid]="isInvalid('transportistaId')">
+              <app-advanced-select
+                table="transportistas"
+                placeholder="Seleccione..."
+                [itemsInput]="transportistas"
+                idField="id"
+                [labelFields]="['razonSocial']"
+                [value]="form().transportistaId"
+                (valueChange)="updateField('transportistaId', $event)" />
+            </div>
           </div>
           <div class="col-md-6">
             <label class="form-label" style="font-size:11px;font-weight:700">Conductor <span class="text-danger">*</span></label>
-            <app-advanced-select
-              table="conductores"
-              placeholder="Seleccione..."
-              [itemsInput]="conductores"
-              idField="id"
-              [labelFields]="['documentoIdentidad','apellidos','nombres']"
-              [value]="form().conductorId"
-              (valueChange)="updateField('conductorId', $event)" />
+            <div [class.select-invalid]="isInvalid('conductorId')">
+              <app-advanced-select
+                table="conductores"
+                placeholder="Seleccione..."
+                [itemsInput]="conductores"
+                idField="id"
+                [labelFields]="['documentoIdentidad','apellidos','nombres']"
+                [value]="form().conductorId"
+                (valueChange)="updateField('conductorId', $event)" />
+            </div>
           </div>
           <div class="col-md-6">
             <label class="form-label" style="font-size:11px;font-weight:700">Vehículo <span class="text-danger">*</span></label>
-            <app-advanced-select
-              table="vehiculos"
-              placeholder="Seleccione..."
-              [itemsInput]="vehiculos"
-              idField="id"
-              [labelFields]="['placaPrincipal','marca']"
-              [value]="form().vehiculoId"
-              (valueChange)="updateField('vehiculoId', $event)" />
+            <div [class.select-invalid]="isInvalid('vehiculoId')">
+              <app-advanced-select
+                table="vehiculos"
+                placeholder="Seleccione..."
+                [itemsInput]="vehiculos"
+                idField="id"
+                [labelFields]="['placaPrincipal','marca']"
+                [value]="form().vehiculoId"
+                (valueChange)="updateField('vehiculoId', $event)" />
+            </div>
           </div>
 
           <!-- Detalles -->
@@ -158,15 +166,17 @@
           </div>
           <div class="col-md-6">
             <label class="form-label" style="font-size:11px;font-weight:700">Motivo Traslado <span class="text-danger">*</span></label>
-            <app-advanced-select
-              [itemsInput]="motivosTraslado"
-              idField="codigo"
-              [labelFields]="['codigo', 'descripcion']"
-              placeholder="— Seleccionar —"
-              [required]="true"
-              [value]="form().motivoTraslado"
-              (valueChange)="updateField('motivoTraslado', $event)">
-            </app-advanced-select>
+            <div [class.select-invalid]="isInvalid('motivoTraslado')">
+              <app-advanced-select
+                [itemsInput]="motivosTraslado"
+                idField="codigo"
+                [labelFields]="['codigo', 'descripcion']"
+                placeholder="— Seleccionar —"
+                [required]="true"
+                [value]="form().motivoTraslado"
+                (valueChange)="updateField('motivoTraslado', $event)">
+              </app-advanced-select>
+            </div>
           </div>
           @if (esMotivoOtros()) {
           <div class="col-md-6">

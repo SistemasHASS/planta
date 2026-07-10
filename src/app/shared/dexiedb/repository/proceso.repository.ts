@@ -231,6 +231,17 @@ export class DPaletsRepo extends BaseRepository<DPalet> {
     if (keys?.length) await this.table.bulkDelete(keys as any);
   }
 
+  async deleteSincronizadosByIdPalet(idPalet: string): Promise<void> {
+    const id = String(idPalet ?? '').trim();
+    if (!id) return;
+    const rows = await this.table.where('idPalet' as any).equals(id as any).toArray();
+    const keys = (rows ?? [])
+      .filter((r: any) => (r as any)?.bd === 1)
+      .map((r: any) => (r as any)._pk)
+      .filter((k: any) => k != null);
+    if (keys.length) await this.table.bulkDelete(keys as any);
+  }
+
   async saveByIdDPalet(item: DPalet): Promise<any> {
     const anyItem = item as any;
     const idDPalet = String(anyItem?.idDPalet ?? '').trim();

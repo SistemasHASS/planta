@@ -143,6 +143,7 @@ export class LayoutComponent {
           { label: 'Gestión de Palets', path: '/palets', icon: 'bi-box-seam-fill' },
           { label: 'Gestión de Procesos', path: '/procesos', icon: 'bi-calendar-event-fill' },
           { label: 'Despachos / Guías', path: '/guias', icon: 'bi-truck' },
+          { label: 'Guías Manuales', path: '/guias-manuales', icon: 'bi bi-pencil-square' },
           // { label: 'Alertas Despacho', path: '/alertas-despacho', icon: 'bi-alarm-fill' },
         ]
       });
@@ -235,6 +236,7 @@ export class LayoutComponent {
           { label: 'Procesos', path: '/procesos', icon: 'bi-calendar-event-fill' },
           { label: 'Palets', path: '/palets', icon: 'bi-box-seam-fill' },
           { label: 'Guías', path: '/guias', icon: 'bi-truck' },
+          { label: 'Guías Manuales', path: '/guias-manuales', icon: 'bi bi-pencil-square' },
           // { label: 'Reporte Producción', path: '/reporte-logistica', icon: 'bi-clipboard-data-fill' },
           // { label: 'Documentación', path: '/despacho', icon: 'bi-clipboard-check-fill' },
         ]

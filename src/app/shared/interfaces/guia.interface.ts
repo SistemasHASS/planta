@@ -36,6 +36,7 @@ export interface GuiaRemision {
   xmlFileSunatUrl?: string | null;
   pesoTotal: number;
   totalCajas: number;
+  cantidad?: number;
   cantidadPalets: number;
   usuarioEmision: string;
   fechaCreacionWeb: string;

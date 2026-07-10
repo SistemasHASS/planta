@@ -48,22 +48,37 @@ export class PaletService {
     });
   }
 
-  getTiposCajaPorMatriz(codigoCultivo: string, documentoConsignatario: string, destinoId: string, formatoId: number, tipoEmpaqueGuiaId: number): Observable<any> {
+  getTiposCajaPorMatriz(codigoCultivo: string, documentoConsignatario: string, destinoId: string, formatoId: number, tipoEmpaqueGuiaId: number, presentacionId?: number): Observable<any> {
+    const params: any = { codigoCultivo, documentoConsignatario, destinoId, formatoId: String(formatoId), tipoEmpaqueGuiaId: String(tipoEmpaqueGuiaId) };
+    if (presentacionId != null && presentacionId > 0) {
+      params.presentacionId = String(presentacionId);
+    }
     return this.http.get<any>(`${this.apiUrl}/get-tipos-caja-por-matriz`, {
-      params: { codigoCultivo, documentoConsignatario, destinoId, formatoId: String(formatoId), tipoEmpaqueGuiaId: String(tipoEmpaqueGuiaId) },
+      params,
       withCredentials: true
     });
   }
 
-  getTiposClamshellPorMatriz(codigoCultivo: string, documentoConsignatario: string, destinoId: string, formatoId: number, tipoEmpaqueGuiaId: number): Observable<any> {
+  getTiposClamshellPorMatriz(codigoCultivo: string, documentoConsignatario: string, destinoId: string, formatoId: number, tipoEmpaqueGuiaId: number, tipoCajaId?: number, presentacionId?: number): Observable<any> {
+    const params: any = { codigoCultivo, documentoConsignatario, destinoId, formatoId: String(formatoId), tipoEmpaqueGuiaId: String(tipoEmpaqueGuiaId) };
+    if (tipoCajaId != null && tipoCajaId > 0) {
+      params.tipoCajaId = String(tipoCajaId);
+    }
+    if (presentacionId != null && presentacionId > 0) {
+      params.presentacionId = String(presentacionId);
+    }
     return this.http.get<any>(`${this.apiUrl}/get-tipos-clamshell-por-matriz`, {
-      params: { codigoCultivo, documentoConsignatario, destinoId, formatoId: String(formatoId), tipoEmpaqueGuiaId: String(tipoEmpaqueGuiaId) },
+      params,
       withCredentials: true
     });
   }
 
   getDPaletsPorAcopio(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/get-dpalets-por-acopio`, { withCredentials: true });
+  }
+
+  getDPaletsPorPalet(idPalet: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/get-dpalets-por-palet`, { params: { idPalet }, withCredentials: true });
   }
 
   sincronizar(palets:any){

@@ -1,0 +1,242 @@
+<div class="modal-backdrop-detalle" (click)="onCerrar()"></div>
+<div class="modal-content-detalle">
+  <div class="modal-header-detalle">
+    <div class="header-left">
+      <i class="bi bi-file-text"></i>
+      <div>
+        <h5 class="modal-title-detalle">Guía de Remisión</h5>
+        <!-- <span class="modal-subtitle" *ngIf="guia()?.codigoGuiaRemision">{{ guia()?.codigoGuiaRemision }}</span> -->
+      </div>
+    </div>
+    <button type="button" class="btn-close btn-close-white" (click)="onCerrar()"></button>
+  </div>
+
+  <div class="modal-body-detalle">
+    @if (guia(); as g) {
+
+    <!-- INFO BAR: estado, serie/numero, fecha, proceso -->
+    <div class="guia-info-bar">
+      <div class="info-item info-estado">
+        @if (g.estado === 'ABIERTA') {
+          <span class="badge-estado badge-abierta"><i class="bi bi-circle-fill" style="font-size:6px;"></i> {{ g.estado }}</span>
+        } @else if (g.estado === 'ANULADO') {
+          <span class="badge-estado badge-anulada"><i class="bi bi-x-circle" style="font-size:8px;"></i> {{ g.estado }}</span>
+        } @else {
+          <span class="badge-estado badge-cerrada"><i class="bi bi-check-circle" style="font-size:8px;"></i> {{ g.estado }}</span>
+        }
+      </div>
+      <div class="info-sep"></div>
+      <div class="info-item">
+        <i class="bi bi-globe"></i>
+        <span class="info-label">SUNAT:</span>
+        <span class="info-val">
+          @if (g.estadoSunat) {
+            <span class="badge-sunat" [class]="estadoSunatClass(g.estadoSunat)">{{ estadoSunatLabel(g.estadoSunat) }}</span>
+          } @else {
+            <span class="text-muted">—</span>
+          }
+        </span>
+      </div>
+      <div class="info-sep"></div>
+      <div class="info-item">
+        <i class="bi bi-receipt"></i>
+        <span class="info-label">Serie:</span>
+        <span class="info-val info-mono">{{ g.serie || '—' }}</span>
+        <span class="info-label" style="margin-left:4px;">N°:</span>
+        <span class="info-val info-mono">{{ g.numero || '—' }}</span>
+      </div>
+      <div class="info-sep"></div>
+       <div class="info-item">
+        <i class="bi bi-calendar-event"></i>
+        <span class="info-label">Fecha Creación:</span>
+        <span class="info-val">{{ fechaCreacionFmt() }}</span>
+      </div>
+      <div class="info-sep"></div>
+      <div class="info-item">
+        <i class="bi bi-calendar-event"></i>
+        <span class="info-label">Fecha Emisión:</span>
+        <span class="info-val">{{ fechaEmisionFmt() }}</span>
+      </div>
+      <div class="info-sep"></div>
+      <div class="info-item">
+        @if (g.nombreProceso && (g.nombreProceso.includes('NOCHE') || g.nombreProceso.includes('noche'))) {
+          <i class="bi bi-moon-stars-fill" style="color:#818cf8;"></i>
+        } @else if (g.nombreProceso && (g.nombreProceso.includes('DIA') || g.nombreProceso.includes('dia'))) {
+          <i class="bi bi-sun-fill" style="color:#f59e0b;"></i>
+        } @else {
+          <i class="bi bi-gear" style="color:#94a3b8;"></i>
+        }
+        <span class="info-label">Proceso:</span>
+        <span class="info-val">{{ g.nombreProceso || g.codigoProceso || '—' }}</span>
+      </div>
+    </div>
+
+    <!-- SECCION DESTINATARIO / TRASLADO -->
+    <div class="guia-section">
+      <div class="section-header-line">
+        <i class="bi bi-geo-alt"></i>
+        <span>Traslado</span>
+        <div class="line"></div>
+      </div>
+      <div class="guia-row">
+        <div class="guia-col">
+          <div class="guia-row-item">
+            <span class="label">Destinatario</span>
+            <span class="value value-strong">{{ g.nombreDestinatario || g.documentoDestinatario || '—' }}</span>
+          </div>
+          <div class="guia-row-item">
+            <span class="label">Punto Partida</span>
+            <span class="value">{{ g.puntoPartida || '—' }}</span>
+          </div>
+          <div class="guia-row-item">
+            <span class="label">Ubigeo Partida</span>
+            <span class="value">{{ g.ubigeoPartida || '—' }}</span>
+          </div>
+          <div class="guia-row-item">
+            <span class="label">Motivo Traslado</span>
+            <span class="value">{{g.codigoSunatMotivoTraslado + ' - ' + g.descripcionMotivoTrasladoCatalogo || '—' }}</span>
+          </div>
+          @if (g.codigoSunatMotivoTraslado === '13' && g.descripcionMotivoTraslado) {
+          <div class="guia-row-item">
+            <span class="label">Descripción Motivo Traslado</span>
+            <span class="value">{{g.descripcionMotivoTraslado}}</span>
+          </div>
+          }
+          <div class="guia-row-item">
+            <span class="label">Fecha Entrega Bienes</span>
+            <span class="value">{{ g.fechaEntregaBienes | date: 'yyyy-MM-dd' }}</span>
+          </div>
+        </div>
+        <div class="guia-col">
+          <div class="guia-row-item">
+            <span class="label">Ruc</span>
+            <span class="value value-strong">{{ g.documentoDestinatario || '—' }}</span>
+          </div>
+          <div class="guia-row-item">
+            <span class="label">Punto Llegada</span>
+            <span class="value">{{ g.puntoLlegada || '—' }}</span>
+          </div>
+          <div class="guia-row-item">
+            <span class="label">Ubigeo Llegada</span>
+            <span class="value">{{ g.ubigeoLlegada || '—' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCION TRANSPORTE -->
+    <div class="guia-section">
+      <div class="section-header-line">
+        <i class="bi bi-truck"></i>
+        <span>Transporte</span>
+        <div class="line"></div>
+      </div>
+      <div class="guia-row guia-row-2">
+        <div class="guia-col">
+          <div class="guia-row-item">
+            <span class="label">Transportista</span>
+            <span class="value value-strong">{{ g.razonSocialTransportista || (g.idTransportista ?? '—') }}</span>
+          </div>
+          <div class="guia-row-item">
+            <span class="label">Conductor</span>
+            <span class="value value-strong">{{ g.nombreCompletoConductor || (g.idConductor ?? '—') }}</span>
+          </div>
+        </div>
+        <div class="guia-col">
+          <div class="guia-row-item">
+            <span class="label">Vehículo</span>
+            <span class="value value-strong">{{ g.placaPrincipalVehiculo || (g.idVehiculo ?? '—') }}</span>
+          </div>
+          <div class="guia-row-item">
+            <span class="label">Precinto</span>
+            <span class="value">{{ g.precinto || '—' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCION RESUMEN: Carga + Observaciones -->
+    <div class="guia-section guia-section-resumen">
+      <div class="section-header-line">
+        <i class="bi bi-clipboard-data"></i>
+        <span>Resumen</span>
+        <div class="line"></div>
+      </div>
+
+      <!-- Carga badges -->
+      <div class="resumen-carga">
+        <div class="resumen-badge">
+          <i class="bi bi-layers"></i>
+          <span class="resumen-val">{{ g.cantidad ?? 0 }}</span>
+          <span class="resumen-lbl">Cantidad</span>
+        </div>
+        <div class="resumen-sep"></div>
+        <div class="resumen-badge">
+          <i class="bi bi-speedometer2"></i>
+          <span class="resumen-val">{{ g.pesoTotal ?? 0 }}<small>kg</small></span>
+          <span class="resumen-lbl">Peso</span>
+        </div>
+      </div>
+
+      <!-- Observaciones inline -->
+      @if (g.observacionesUsuario) {
+      <div class="resumen-observaciones">
+        <span class="resumen-obs-item"><i class="bi bi-person"></i><span class="obs-label">Obs. Usuario:</span> {{ g.observacionesUsuario }}</span>
+      </div>
+      }
+    </div>
+
+    <!-- DETALLE -->
+    <div class="guia-section guia-section-palets">
+      <div class="section-header-line">
+        <i class="bi bi-list-check"></i>
+        <span>Detalle</span>
+        <div class="line"></div>
+      </div>
+      @if (tieneDetalle()) {
+      <div class="table-responsive-detalle">
+        <table class="detalle-table">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Descripción</th>
+              <th>Unidad Medida</th>
+              <th class="text-center">Cantidad</th>
+              <th class="text-center">Peso Estimado (kg)</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (d of detallePalets(); track d.id) {
+            <tr>
+              <td>{{ d.codigoItem || '—' }}</td>
+              <td>{{ d.descripcion || '—' }}</td>
+              <td>{{ d.unidadMedida || '—' }}</td>
+              <td class="text-center"><strong>{{ d.cantidad }}</strong></td>
+              <td class="text-center"><strong>{{ d.pesoEstimado || 0 }}</strong></td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      } @else {
+      <div class="empty-detalle">
+        <i class="bi bi-inbox"></i>
+        <span>No hay detalle para esta guía</span>
+      </div>
+      }
+    </div>
+
+    } @else {
+    <div class="loading-detalle">
+      <div class="spinner-border text-primary"></div>
+      <span>Cargando detalle...</span>
+    </div>
+    }
+  </div>
+
+  <div class="modal-footer-detalle">
+    <button type="button" class="btn btn-outline-secondary" (click)="onCerrar()">
+      <i class="bi bi-x-lg"></i> Cerrar
+    </button>
+  </div>
+</div>

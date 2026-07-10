@@ -1,6 +1,6 @@
 <div class="page-title-area">
-  <h2><i class="bi bi-truck" style="color: var(--color-primary);"></i> Guías de Remisión</h2>
-  <p class="page-subtitle">Genera y administra guías de remisión para despachos</p>
+  <h2><i class="bi bi-pencil-square" style="color: var(--color-primary);"></i> Guías Manuales</h2>
+  <p class="page-subtitle">Guías de remisión con ingreso manual de detalle (sin pallets)</p>
 </div>
 
 @if (onlineSignal()) {
@@ -10,14 +10,14 @@
       <div class="sp-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div class="d-flex align-items-center gap-3 flex-wrap">
           <h5 class="mb-0"><i class="bi bi-list-ul"></i> Guías Generadas</h5>
-          <!-- @if (false) { -->
+          @if (false) {
           <button class="btn btn-success" title="Exportar Excel" (click)="exportarExcel()">
             <i class="bi bi-file-earmark-excel"></i> Excel
           </button>
-          <!-- } -->
+          }
           @if (!esAdmin()) {
-          <button class="btn btn-crear-guia" (click)="abrirModalNuevaGuia()">
-            <i class="bi bi-plus-circle"></i> Nueva Guía
+          <button class="btn btn-crear-guia" (click)="abrirModalNuevaGuiaManual()">
+            <i class="bi bi-plus-circle"></i> Crear Guía
           </button>
           }
           @if (online && tieneGuiasNoSincronizadas) {
@@ -62,12 +62,9 @@
               <tr>
                 <th class="col-guia">N° Guía</th>
                 <th class="col-dest">Destinatario</th>
-                <th class="col-proc">Proceso</th>
-                <th class="col-num">Palets</th>
-                <th class="col-num">Cajas</th>
+                <th class="col-num">Cantidad</th>
                 <th class="col-num">Peso</th>
                 <th class="col-prec">Precinto</th>
-                <th class="col-via">Viaje</th>
                 <th class="col-fecha">Fecha</th>
                 @if (esAdmin()) {
                 <th class="col-creador">Creado por</th>
@@ -105,23 +102,11 @@
                 <td class="col-dest" style="background:#f6fef9; vertical-align:middle;">
                   {{ g.nombreDestinatario || g.documentoDestinatario || '' }}
                 </td>
-                <td class="col-proc" style="background:#f6fef9; vertical-align:middle;">
-                  <span class="sp-badge sp-badge-info proc-badge">{{ g.nombreProceso || g.codigoProceso }}</span>
-                </td>
                 <td class="col-num" style="background:#f6fef9; vertical-align:middle; text-align:center;">
                   <div class="d-flex flex-column" style="align-items:center;">
                     @for (sg of g._guiasDelGrupo; track sg.codigoGuiaRemision; let first = $first) {
                       <div style="min-height:32px; display:flex; align-items:center; justify-content:center;" [style.padding]="first ? '0 0 10px 0' : '10px 0'" [style.border-top]="first ? 'none' : '1px solid #bbf7d0'">
-                        <strong>{{ sg.cantidadPalets }}</strong>
-                      </div>
-                    }
-                  </div>
-                </td>
-                <td class="col-num" style="background:#f6fef9; vertical-align:middle; text-align:center;">
-                  <div class="d-flex flex-column" style="align-items:center;">
-                    @for (sg of g._guiasDelGrupo; track sg.codigoGuiaRemision; let first = $first) {
-                      <div style="min-height:32px; display:flex; align-items:center; justify-content:center;" [style.padding]="first ? '0 0 10px 0' : '10px 0'" [style.border-top]="first ? 'none' : '1px solid #bbf7d0'">
-                        {{ sg.totalCajas }}
+                        {{ sg.cantidad }}
                       </div>
                     }
                   </div>
@@ -137,9 +122,6 @@
                 </td>
                 <td class="col-prec" style="background:#f6fef9; vertical-align:middle;">
                   <span class="badge bg-secondary" style="font-size:10px;">{{ g.precinto || '—' }}</span>
-                </td>
-                <td class="col-via" style="background:#f6fef9; vertical-align:middle;">
-                  @if (g.numeroViaje) { <span class="badge bg-secondary" style="font-size:10px;">{{ g.numeroViaje }}</span> } @else { — }
                 </td>
                 <td class="col-fecha" style="background:#f6fef9; vertical-align:middle;">
                   @if (g.fechaEmision) { {{ fmtDateTime(g.fechaEmision) }} } @else if (g.fechaCreacionWeb) { <span class="text-muted">{{ fmtDateTime(g.fechaCreacionWeb) }}</span> } @else { — }
@@ -190,7 +172,11 @@
                           }
                           <button class="btn action-btn action-btn-view btn-sm" style="padding:2px 6px;font-size:10px;"
                                   title="Ver detalle" (click)="abrirModalVerDetalle(sg)"><i class="bi bi-eye"></i></button>
-                          @if (sg.estado?.toUpperCase() !== 'ANULADO' && sg.estadoSunat && sg.estadoSunat !== 'No Enviado' && !esAdmin()) {
+                          @if (sg.estado === 'CERRADA' && !sg.enviadoBizlinks && !esAdmin()) {
+                          <button class="btn action-btn action-btn-send btn-sm" style="padding:2px 6px;font-size:10px;"
+                                  title="Reenviar a SUNAT" (click)="reenviarGuia(sg)"><i class="bi bi-send"></i></button>
+                          }
+                          @if (sg.estado === 'CERRADA' && !esAdmin()) {
                           <button class="btn action-btn action-btn-refresh btn-sm" style="padding:2px 6px;font-size:10px;"
                                   title="Consultar estado SUNAT" (click)="consultarEstadoSunat(sg)"><i class="bi bi-arrow-clockwise"></i></button>
                           }
@@ -214,39 +200,21 @@
               </tr>
               } @else {
               <!-- Guía individual -->
-              <tr [class]="g.estado === 'ANULADO' ? 'opacity-50' : ''"
-                [style.background]="g.esReposicion ? '#fffbeb' : (g.esEnsayo ? '#eff6ff' : '')">
+              <tr [class]="g.estado === 'ANULADO' ? 'opacity-50' : ''">
                 <td class="col-guia">
                   @if (g.numero) {
                   <span class="guia-numero">{{ g.serie }} N° {{ g.numero }} </span>
                   } @else {
                   <span class="guia-borrador">(borrador)</span>
                   }
-                  @if (g.esReposicion) {
-                  <span class="badge-repo ms-1"><i class="bi bi-arrow-repeat"></i> REPO</span>
-                  }
-                  @if (g.esEnsayo) {
-                  <span class="badge-ensayo ms-1"><i class="bi bi-flask"></i> ENSAYO</span>
-                  }
                 </td>
                 <td class="col-dest" [title]="g.documentoDestinatario">
                   @if (g.nombreDestinatario) { {{ g.nombreDestinatario }} } @else { {{ g.documentoDestinatario || '' }} }
                 </td>
-                <td class="col-proc" [title]="g.codigoProceso">
-                  @if (g.nombreProceso) {
-                  <span class="sp-badge sp-badge-info proc-badge">{{ g.nombreProceso }}</span>
-                  } @else {
-                  <span class="sp-badge sp-badge-info proc-badge">{{ g.codigoProceso }}</span>
-                  }
-                </td>
-                <td class="col-num"><strong>{{ g.cantidadPalets }}</strong></td>
-                <td class="col-num">{{ g.totalCajas }}</td>
+                <td class="col-num">{{ g.cantidad }}</td>
                 <td class="col-num">{{ g.pesoTotal }} kg</td>
                 <td class="col-prec">
                   <span class="badge bg-secondary" style="font-size:10px;">{{ g.precinto || '—' }}</span>
-                </td>
-                <td class="col-via">
-                  @if (g.numeroViaje) { <span class="badge bg-secondary" style="font-size:10px;">{{ g.numeroViaje }}</span> } @else { — }
                 </td>
                 <td class="col-fecha">
                   @if (g.fechaEmision) { {{ fmtDateTime(g.fechaEmision) }} } @else if (g.fechaCreacionWeb) { <span class="text-muted">{{ fmtDateTime(g.fechaCreacionWeb) }}</span> } @else { — }
@@ -277,7 +245,7 @@
                     <button class="btn action-btn action-btn-pdf" title="Ver PDF SUNAT" (click)="abrirPdfModal(g.pdfFileUrl)"><i class="bi bi-file-earmark-pdf"></i></button>
                     }
                     <button class="btn action-btn action-btn-view" title="Detalle" (click)="abrirModalVerDetalle(g)"><i class="bi bi-eye"></i></button>
-                    @if (g.estado?.toUpperCase() !== 'ANULADO' && g.estadoSunat && g.estadoSunat !== 'No Enviado' && !esAdmin()) {
+                    @if (g.estado === 'CERRADA' && !esAdmin()) {
                     <button class="btn action-btn action-btn-refresh" title="Consultar estado SUNAT" (click)="consultarEstadoSunat(g)"><i class="bi bi-arrow-clockwise"></i></button>
                     }
                     @if (g.estado === 'ABIERTA') {
@@ -286,6 +254,9 @@
                     <button class="btn action-btn action-btn-close" title="Cerrar y numerar" (click)="cerrarGuia(g)"><i class="bi bi-check-circle"></i></button>
                     <button class="btn action-btn action-btn-delete" title="Eliminar" (click)="eliminarGuia(g)"><i class="bi bi-trash"></i></button>
                     }
+                    }
+                    @if (g.estado === 'CERRADA' && !g.enviadoBizlinks && !esAdmin()) {
+                    <button class="btn action-btn action-btn-send" title="Reenviar a SUNAT" (click)="reenviarGuia(g)"><i class="bi bi-send"></i></button>
                     }
                     @if (g.estado === 'CERRADA' && !esAdmin()) {
                     <button class="btn action-btn action-btn-anular" title="Anular guía" (click)="anularGuia(g)"><i class="bi bi-x-octagon"></i> Anular</button>
@@ -342,17 +313,11 @@
     </div>
   </div>
 </div>
-
-@if (modalInspeccionAbierto()) {
-<app-modal-inspeccion [guiaPayload]="pendingGuiaPayload()" (cerrar)="cerrarModalInspeccion()"
-  (confirmar)="onConfirmarInspeccion($event)" />
-}
-
-@if (modalNuevaGuiaAbierto()) {
-<app-modal-nueva-guia [procesos]="procesos()" [transportistas]="transportistas()" [conductores]="conductores()"
+@if (modalNuevaGuiaManualVisible()) {
+<app-modal-nueva-guia-manual [transportistas]="transportistas()" [conductores]="conductores()"
   [vehiculos]="vehiculos()" [destinatarios]="destinatarios()" [motivosTraslado]="motivosTraslado()"
-  [modoEdicion]="modoEdicionGuia()" [guiaEditando]="guiaParaEditar()" (cerrar)="cerrarModalNuevaGuia()"
-  (crear)="onCrearGuia($event)" (editar)="onEditarGuia($event)" />
+  [modoEdicion]="modoEdicionGuia()" [guiaEditando]="guiaParaEditar()" (cerrar)="cerrarModalNuevaGuiaManual()"
+  (crear)="onCrearGuiaManual($event)" (editar)="onEditarGuiaManual($event)" />
 }
 
 @if (modalVerDetalleAbierto()) {

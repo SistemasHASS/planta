@@ -90,6 +90,7 @@
     <div class="row g-3 palets-work-area-row">
       <!-- Columna izquierda: acciones + listado de palets -->
       <div class="col-lg-4">
+        @if (!permissions.esAdmin()) {
         <!-- Card: Crear nuevo palet -->
         <div class="sp-card mb-3">
           <div class="sp-card-header">
@@ -100,12 +101,10 @@
             @if (permissions.puedeCrearPalet()) {
             <button class="btn-sp-primary palets-btn-crear" (click)="crearPalet()"><i class="bi bi-plus-circle"></i>
               Crear Palet</button>
-            } @else {
-            <p class="text-muted" style="font-size:12px"><i class="bi bi-info-circle"></i> Solo ADMINISTRADOR y
-              LOGISTICA pueden crear palets</p>
             }
           </div>
         </div>
+        }
 
         <!-- Card: Palets en proceso / cerrados -->
         <div class="sp-card mb-2 palets-card-activos">
@@ -264,7 +263,7 @@
             </div>
 
             <!-- Acciones principales (según estado del palet) -->
-            @if (paletSeleccionado()!.estado === 'ABIERTO') {
+            @if (paletSeleccionado()!.estado === 'ABIERTO' && !permissions.esAdmin()) {
             <div class="mb-3 d-flex gap-2 flex-wrap acciones-palet">
               @if (permissions.puedeAgregarCajas()) {
               <button class="btn btn-agregar" (click)="abrirModalAgregarCajas(paletSeleccionado()!)">
@@ -285,7 +284,8 @@
                 || paletSeleccionado()!.estado === 'CERRADO_SALDO' ) 
                 && (paletSeleccionado()!.numeroViaje == null 
                     || paletSeleccionado()!.numeroViaje == 0
-                    || paletSeleccionado()!.numeroViaje == undefined))
+                    || paletSeleccionado()!.numeroViaje == undefined)
+                && !permissions.esAdmin())
             {
             <div class="mb-3 d-flex gap-2 flex-wrap acciones-palet">
               <button class="btn btn-warning" (click)="reabrirPalet(paletSeleccionado()!)">
@@ -327,7 +327,7 @@
                         <th>Cant.</th>
                         <th>Peso</th>
                         <th>Tipo</th>
-                        @if (paletSeleccionado()!.estado === 'ABIERTO') {
+                        @if (paletSeleccionado()!.estado === 'ABIERTO' && !permissions.esAdmin()) {
                         <th class="col-acciones">Acciones</th>
                         }
                       </tr>
@@ -337,7 +337,7 @@
                       <tr [style.background]="c.esReposicion ? '#fff3cd44' : c.esEnsayo ? '#dbeafe44' : ''">
                         <td>
                           @if (c.bd === 1) {
-                          <span class="badge bg-success">Sí</span>
+                          <span class="badge bg-success"> Sí</span>
                           } @else {
                           <span class="badge bg-danger">No</span>
                           }
@@ -368,7 +368,7 @@
                           }
                         </td>
 
-                        @if (paletSeleccionado()!.estado === 'ABIERTO') {
+                        @if (paletSeleccionado()!.estado === 'ABIERTO' && !permissions.esAdmin()) {
                         <td class="col-acciones">
                           <div class="acciones-btns">
                             <button class="btn btn-sm btn-outline-primary" type="button" title="Editar" (click)="abrirModalEditarCajas(c)"><i

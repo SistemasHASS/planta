@@ -13,8 +13,7 @@ import { GuiaRemision, GuiaRemisionPalet } from '../../shared/interfaces/guia.in
 import { Proceso } from '../../shared/interfaces/proceso.interface';
 import { Configuracion } from '../../shared/interfaces/administracion.interface';
 import { Transportista, Conductor, Vehiculo } from '../../shared/interfaces/catalogo.interface';
-import { ModalNuevaGuiaComponent } from './components/modal-nueva-guia/modal-nueva-guia.component';
-import { ModalInspeccionComponent } from './components/modal-inspeccion/modal-inspeccion.component';
+import { ModalNuevaGuiaManualComponent } from './components/modal-nueva-guia-manual/modal-nueva-guia-manual.component';
 import { ModalVerDetalleGuiaComponent } from './components/modal-ver-detalle-guia/modal-ver-detalle-guia.component';
 import { ProcesoRepository } from '../../shared/dexiedb/repository/proceso.repository';
 import { CatalogosRepository } from '../../shared/dexiedb/repository/catalogos.repository';
@@ -28,13 +27,13 @@ import { formatDateTime, toLocalISOString, formatDate } from '../../shared/utils
 type ViewPage = 'procesos' | 'guias' | 'detalle';
 
 @Component({
-  selector: 'app-guias',
+  selector: 'app-guias-manuales',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ModalNuevaGuiaComponent, ModalInspeccionComponent, ModalVerDetalleGuiaComponent, FormsModule],
-  templateUrl: './guias.component.html',
-  styleUrl: './guias.component.scss'
+  imports: [ModalNuevaGuiaManualComponent, ModalVerDetalleGuiaComponent, FormsModule],
+  templateUrl: './guias-manuales.component.html',
+  styleUrl: './guias-manuales.component.scss'
 })
-export class GuiasComponent implements OnInit {
+export class GuiasManualesComponent implements OnInit {
   private readonly guiaService = inject(GuiaService);
   private readonly procesoService = inject(ProcesoService);
   readonly permissions = inject(PermissionService);
@@ -57,6 +56,7 @@ export class GuiasComponent implements OnInit {
 
   readonly onlineSignal = computed(() => this.connectivity.isOnline());
   readonly esAdmin = computed(() => this.auth.perfil() === 'ADMINISTRADOR');
+  readonly modalNuevaGuiaManualVisible = signal(false);
 
   get tieneGuiasNoSincronizadas(): boolean {
     return this.guias().some((g: any) => g?.sincroniza === 'no_sincronizado');
@@ -180,29 +180,18 @@ export class GuiasComponent implements OnInit {
       const fechaDesde = this.filtroFechaDesde().trim() || null;
       const fechaHasta = this.filtroFechaHasta().trim() || null;
 
-      const resultado = await this.guiaRemisionFacade.listarGuiasRemision(idProyectoFinal, estado, fechaDesde, fechaHasta, texto);
-      if (resultado.error) {
-        this.alertService.showAlert('Error', resultado.error, 'error');
+      const resp = await firstValueFrom(this.guiaService.listarGuiasRemisionManual(idProyectoFinal, estado, fechaDesde, fechaHasta, texto));
+      const { error, mensaje, data } = this.normalizeBackendResp(resp);
+      if (error) {
+        this.alertService.showAlert('Error', mensaje, 'error');
         return;
       }
-      const guiasRaw = resultado.data;
+      const guiasRaw = data ?? [];
 
-      await this.cargarProcesosCatalogo();
       await this.cargarDestinatarios();
-
-      const procesos = this.procesosCatalogo();
       const destinatarios = this.destinatarios();
 
       const guiasEnriquecidas = guiasRaw.map((g: any) => {
-        const codigoProceso = String(g?.codigoProceso ?? '').trim();
-        const proceso = procesos.find((p: any) => {
-          const pId = String(p?.idProceso ?? p?.codigoProceso ?? p?.id ?? '').trim();
-          return pId === codigoProceso;
-        });
-        const fechaProceso = String((proceso as any)?.fechaProceso ?? '').trim();
-        const turno = String((proceso as any)?.turno ?? '').trim();
-        const nombreProceso = fechaProceso && turno ? `${fechaProceso} - ${turno}` : (fechaProceso || turno || codigoProceso);
-
         const documentoDest = String(g?.documentoDestinatario ?? '').trim();
         const destinatario = destinatarios.find((d: any) => {
           const dDoc = String(d?.documentoFiscal ?? '').trim();
@@ -212,7 +201,6 @@ export class GuiasComponent implements OnInit {
 
         return {
           ...g,
-          nombreProceso,
           nombreDestinatario,
         };
       });
@@ -220,8 +208,8 @@ export class GuiasComponent implements OnInit {
       this.guias.set(guiasEnriquecidas);
       this.alertService.cerrarModalCarga();
     } catch (error: any) {
-      console.error('Error listando guías:', error);
-      this.alertService.showAlert('Error', error?.error?.message ?? 'Error al listar guías.', 'error');
+      console.error('Error listando guías manuales:', error);
+      this.alertService.showAlert('Error', error?.error?.message ?? 'Error al listar guías manuales.', 'error');
     } finally {
       this.isLoading.set(false);
     }
@@ -386,10 +374,20 @@ export class GuiasComponent implements OnInit {
     }
     this.alertService.mostrarModalCarga();
     try {
-      const detalleData: any = await this.guiaRemisionFacade.getGuiaRemisionDetalle(idProyecto, codigoGuiaRemision);
-      
+      const resp = await firstValueFrom(this.guiaService.getGuiaRemisionManual(idProyecto, codigoGuiaRemision));
+      const { error, mensaje, data } = this.normalizeBackendResp(resp);
+
+      if (error) {
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Error', mensaje, 'error');
+        return;
+      }
+
+      const detalleData = Array.isArray(data) ? data[0] : data;
+
       if (!detalleData) {
-        this.alertService.showAlert('Error', this.online ? 'Error al obtener detalle.' : 'No se encontró la guía en almacenamiento local.', 'error');
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Error', 'No se encontró el detalle de la guía manual.', 'error');
         return;
       }
 
@@ -397,89 +395,7 @@ export class GuiasComponent implements OnInit {
       await this.cargarConductores();
       await this.cargarVehiculos();
       await this.cargarDestinatarios();
-
-      const [procesosResp] = await Promise.all([this.guiaRemisionFacade.cargarProcesosParaGuia(codigoGuiaRemision)]);
-      if (!procesosResp || procesosResp.length === 0) {
-        this.alertService.showAlert('Error', 'No se encontraron procesos.', 'error');
-        return;
-      }
-      const first = procesosResp[0];
-      if (first?.error) {
-        this.alertService.showAlert('Error', first?.mensaje ?? 'Error al obtener procesos', 'error');
-        return;
-      }
-      const procesosData = (Array.isArray(first?.data) ? first.data : []).map((p: any) => {
-        const nro = p.nroPalets ?? 0;
-        return { ...p, 
-                 paletsCerradosDisponibles: nro, 
-                 label: `${p.codigoAcopio} - ${p.turno} - ${p.fechaProceso} (${nro} ${nro === 1 ? 'Palet' : 'Palets'})` 
-                };
-      });
-       const codigoProceso = String(detalleData?.codigoProceso ?? '').trim();
-
-      let paletsSeleccionados: string[] = [];
-
-      // Reemplazar palets del proceso con filtrado: libres + los de la guía actual marcados
-      if (codigoProceso) {
-        let procesoIdx = procesosData.findIndex((p: any) => {
-          const pId = String(p?.idProceso ?? p?.id ?? '').trim();
-          return pId === codigoProceso;
-        });
-
-        // Si el proceso no está en la lista (API lo excluyó porque todos sus palets están en esta guía),
-        // lo buscamos en Dexie y lo agregamos manualmente
-        if (procesoIdx < 0) {
-          const allProcesos = await this.procesoRepo.procesosRepo.getAll();
-          const procesoInfo = (allProcesos ?? []).find((p: any) => String(p?.idProceso ?? '').trim() === codigoProceso);
-          const nombreProceso = String(detalleData?.nombreProceso ?? '').trim();
-
-          const procesoEntry: any = {
-            ...(procesoInfo || {}),
-            idProceso: codigoProceso,
-            id: codigoProceso,
-            codigoProceso,
-            codigoAcopio: procesoInfo?.codigoAcopio ?? '',
-            turno: procesoInfo?.turno ?? '',
-            fechaProceso: procesoInfo?.fechaProceso ?? '',
-            nombreProceso,
-            paletsCerradosDisponibles: 0,
-            palets: [],
-          };
-          const nro = procesoEntry.paletsCerradosDisponibles ?? 0;
-          procesoEntry.label = procesoEntry.codigoAcopio && procesoEntry.turno && procesoEntry.fechaProceso
-            ? `${procesoEntry.codigoAcopio} - ${procesoEntry.turno} - ${procesoEntry.fechaProceso} (${nro} ${nro === 1 ? 'Palet' : 'Palets'})`
-            : (nombreProceso || codigoProceso);
-          procesosData.push(procesoEntry);
-          procesoIdx = procesosData.length - 1;
-        }
-        if (procesoIdx >= 0) {
-          const proceso = procesosData[procesoIdx];
-          const detalleCajas = Array.isArray(detalleData?.detalle) ? detalleData.detalle : [];
-          const resultado = await this.guiaRemisionFacade.obtenerPaletsParaEdicion(idProyecto, codigoProceso, codigoGuiaRemision, detalleCajas);
-          proceso.palets = (resultado?.palets ?? []).map((p: any) => ({
-            ...p,
-            idPalet: String(p?.idPalet ?? '').trim(),
-            numeroPalet: p?.numeroPalet ?? null,
-            cantidadCajas: Number(p?.cantidadCajas ?? 0),
-            pesoTotal: Number(p?.pesoTotal ?? 0),
-            estado: String(p?.estado ?? 'CERRADO_COMPLETO'),
-          }));
-          proceso.nroPalets = proceso.palets.length;
-          const nro = proceso.nroPalets;
-          proceso.paletsCerradosDisponibles = nro;
-          proceso.label = `${proceso.codigoAcopio} - ${proceso.turno} - ${proceso.fechaProceso} (${nro} ${nro === 1 ? 'Palet' : 'Palets'})`;
-
-          paletsSeleccionados = resultado?.paletsSeleccionados ?? [];
-        }
-      }
-
-      this.procesos.set(procesosData);
-
-      const procesoEncontrado = procesosData.find((p: any) => {
-        const pId = String(p?.idProceso ?? p?.id ?? '').trim();
-        return pId === codigoProceso;
-      });
-      const procesoId = String((procesoEncontrado as any)?.id ?? (procesoEncontrado as any)?.idProceso ?? '').trim();
+      await this.cargarMotivosTraslado();
 
       const documentoDest = String(detalleData?.documentoDestinatario ?? '').trim();
       const destinatarioEncontrado = this.destinatarios().find((d: any) => {
@@ -488,8 +404,9 @@ export class GuiasComponent implements OnInit {
       });
       const destinatarioId = String((destinatarioEncontrado as any)?.id ?? '').trim();
 
+      const detalleItems = Array.isArray(detalleData?.detalle) ? detalleData.detalle : [];
+
       this.guiaParaEditar.set({
-        procesoId,
         destinatarioId,
         puntoPartida: detalleData?.puntoPartida ?? '',
         puntoLlegada: detalleData?.puntoLlegada ?? '',
@@ -499,31 +416,30 @@ export class GuiasComponent implements OnInit {
         conductorId: String(detalleData?.idConductor ?? ''),
         vehiculoId: String(detalleData?.idVehiculo ?? ''),
         motivoTraslado: detalleData?.motivoTraslado ?? '13',
+        descripcionMotivoTraslado: detalleData?.descripcionMotivoTraslado ?? '',
         fechaEntregaBienes: detalleData?.fechaEntregaBienes ?? '',
         precinto: detalleData?.precinto ?? '',
-        parihuelas: Number(detalleData?.parihuelas) || 0,
         observacionesUsuario: detalleData?.observacionesUsuario ?? '',
-        paletsSeleccionados,
         codigoGuiaRemision: detalleData?.codigoGuiaRemision,
         transactionId_uuid: detalleData?.transactionId_uuid,
         fechaCreacionWeb: detalleData?.fechaCreacionWeb,
         estado: detalleData?.estado,
-        inspeccionTemperatura: detalleData?.inspeccionTemperatura ?? null,
-        inspeccionLibreOlores: detalleData?.inspeccionLibreOlores ?? null,
-        inspeccionLibreInsectos: detalleData?.inspeccionLibreInsectos ?? null,
-        inspeccionLibreMateriasExtranas: detalleData?.inspeccionLibreMateriasExtranas ?? null,
-        inspeccionUnidadLimpia: detalleData?.inspeccionUnidadLimpia ?? null,
-        inspeccionObservaciones: detalleData?.inspeccionObservaciones ?? undefined,
-        inspeccionMedidaCorrectiva: detalleData?.inspeccionMedidaCorrectiva ?? undefined,
-        numeroViaje: detalleData?.numeroViaje ?? null,
-        paletsDetalleOriginal: detalleData?.detalle ?? [],
+        detalleManual: detalleItems.map((d: any) => ({
+          id: d.id,
+          descripcion: d.descripcion ?? '',
+          codigoUnidadMedida: d.codigoUnidadMedida ?? 'NIU',
+          cantidad: d.cantidad ?? 0,
+          pesoEstimado: d.pesoEstimado ?? 0,
+          codigoItem: d.codigoItem ?? '',
+        })),
       });
 
       this.modoEdicionGuia.set(true);
-      this.modalNuevaGuiaAbierto.set(true);
+      this.modalNuevaGuiaManualVisible.set(true);
     } catch (error: any) {
-      console.error('Error preparando edición:', error);
-      this.alertService.showAlert('Error', 'Error al preparar la edición de la guía.', 'error');
+      console.error('Error preparando edición guía manual:', error);
+      this.alertService.cerrarModalCarga();
+      this.alertService.showAlert('Error', error?.error?.message ?? 'Error al preparar la edición de la guía manual.', 'error');
     } finally {
       this.alertService.cerrarModalCarga();
     }
@@ -546,19 +462,21 @@ export class GuiasComponent implements OnInit {
 
     this.alertService.mostrarModalCarga();
     try {
-      let resp: any = await firstValueFrom(this.guiaService.emitirGuiaRemision(idProyecto, codigoGuiaRemision));
+      let resp: any = await firstValueFrom(this.guiaService.emitirGuiaRemisionManual(idProyecto, codigoGuiaRemision));
       if (Array.isArray(resp) && resp.length > 0) {
         resp = resp[0];
       }
+      await this.onBuscarGuias();
       if (resp?.error) {
         this.alertService.showAlertAcept('Error', resp?.mensaje ?? 'Error al emitir la guía.', 'error');
-        return;
+      } else {
+        this.alertService.showAlert('Éxito', 'Guía emitida y numerada correctamente.', 'success');
       }
-      this.alertService.showAlert('Éxito', 'Guía emitida y numerada correctamente.', 'success');
-      await this.onBuscarGuias();
     } catch (error: any) {
       console.error('Error emitiendo guía:', error);
       this.alertService.showAlert('Error', error?.error?.message ?? 'Error al emitir la guía.', 'error');
+    } finally {
+      // this.alertService.cerrarModalCarga();
     }
   }
 
@@ -572,17 +490,55 @@ export class GuiasComponent implements OnInit {
 
     this.alertService.mostrarModalCarga();
     try {
-      const resp = await this.guiaRemisionFacade.consultarEstadoSunat(idProyecto, codigoGuiaRemision);
+      let resp: any = await firstValueFrom(this.guiaService.consultarEstadoSunatGuiaRemisionManual(idProyecto, codigoGuiaRemision));
+      if (Array.isArray(resp) && resp.length > 0) {
+        resp = resp[0];
+      }
+      await this.onBuscarGuias();
       if (resp?.error) {
         this.alertService.showAlertAcept('Error', resp?.mensaje ?? 'Error al consultar el estado SUNAT.', 'error');
-        return;
+      } else {
+        const mensaje = resp?.data?.mensajeSunat ?? resp?.mensaje ?? 'Estado actualizado correctamente.';
+        this.alertService.showAlertAcept('Estado SUNAT', mensaje, 'success');
       }
-      const mensaje = resp?.data?.mensajeSunat ?? resp?.mensaje ?? 'Estado actualizado correctamente.';
-      this.alertService.showAlertAcept('Estado SUNAT', mensaje, 'success');
-      await this.onBuscarGuias();
     } catch (error: any) {
       console.error('Error consultando estado SUNAT:', error);
       this.alertService.showAlert('Error', error?.error?.message ?? 'Error al consultar el estado SUNAT.', 'error');
+    }
+  }
+
+  async reenviarGuia(g: GuiaRemision): Promise<void> {
+    const confirmado = await this.alertService.showConfirm(
+      'Confirmar reenvío',
+      `¿Está seguro de reenviar la guía <strong>${g.serie ?? ''}-${g.numero ?? ''}</strong> (${g.codigoGuiaRemision}) a SUNAT?`,
+      'question'
+    );
+    if (!confirmado) return;
+
+    const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
+    const codigoGuiaRemision = String(g?.codigoGuiaRemision ?? '').trim();
+    if (!idProyecto || !codigoGuiaRemision) {
+      this.alertService.showAlert('Error', 'No se pudo obtener la información de la guía.', 'error');
+      return;
+    }
+
+    this.alertService.mostrarModalCarga();
+    try {
+      let resp: any = await firstValueFrom(this.guiaService.reenviarGuiaRemisionManual(idProyecto, codigoGuiaRemision));
+      if (Array.isArray(resp) && resp.length > 0) {
+        resp = resp[0];
+      }
+      await this.onBuscarGuias();
+      if (resp?.error) {
+        this.alertService.showAlertAcept('Error', resp?.mensaje ?? 'Error al reenviar la guía.', 'error');
+      } else {
+        this.alertService.showAlert('Éxito', 'Guía reenviada correctamente.', 'success');
+      }
+    } catch (error: any) {
+      console.error('Error reenviando guía:', error);
+      this.alertService.showAlert('Error', error?.error?.message ?? 'Error al reenviar la guía.', 'error');
+    } finally {
+      // this.alertService.cerrarModalCarga();
     }
   }
 
@@ -619,7 +575,7 @@ export class GuiasComponent implements OnInit {
 
     this.alertService.mostrarModalCarga();
     try {
-      let resp: any = await firstValueFrom(this.guiaService.anularGuiaRemision(idProyecto, codigoGuiaRemision));
+      let resp: any = await firstValueFrom(this.guiaService.anularGuiaRemisionManual(idProyecto, codigoGuiaRemision));
       if (Array.isArray(resp) && resp.length > 0) {
         resp = resp[0];
       }
@@ -638,25 +594,19 @@ export class GuiasComponent implements OnInit {
   }
 
   async eliminarGuia(g: GuiaRemision): Promise<void> {
-    const paletsList = (g.detallePalets ?? [])
-      .map((p: any) => `<span style="background:#f1f5f9;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:600;color:#0f172a;">${p.codigoPalet}</span>`)
-      .join(' ');
-
     const msg = `
       <div style="text-align:left;font-size:14px;color:#334155;line-height:1.6;">
-        <p style="margin-bottom:12px;">¿Está seguro de eliminar esta guía?</p>
+        <p style="margin-bottom:12px;">¿Está seguro de eliminar esta guía manual?</p>
         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:12px;">
           <div style="font-size:18px;font-weight:700;color:#0f172a;margin-bottom:10px;">
-            ${g.serie ?? ''}-${g.numero ?? ''}
+            ${g.codigoGuiaRemision ?? ''}
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;">
-            <div><span style="color:#64748b;font-size:12px;">Palets</span><br><strong>${g.cantidadPalets ?? 0}</strong></div>
-            <div><span style="color:#64748b;font-size:12px;">Cajas</span><br><strong>${g.totalCajas ?? 0}</strong></div>
+            <div><span style="color:#64748b;font-size:12px;">Cantidad</span><br><strong>${g.cantidad ?? 0}</strong></div>
             <div><span style="color:#64748b;font-size:12px;">Peso</span><br><strong>${g.pesoTotal ?? 0} kg</strong></div>
             <div><span style="color:#64748b;font-size:12px;">Precinto</span><br><strong>${g.precinto ?? '—'}</strong></div>
-            <div><span style="color:#64748b;font-size:12px;">Viaje</span><br><strong>${g.numeroViaje ?? '—'}</strong></div>
+            <div><span style="color:#64748b;font-size:12px;">Estado</span><br><strong>${g.estado ?? '—'}</strong></div>
           </div>
-          ${paletsList ? `<div style="margin-top:10px;"><span style="color:#64748b;font-size:12px;">Id Palets</span><br><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${paletsList}</div></div>` : ''}
         </div>
         <p style="color:#dc2626;font-size:13px;font-weight:600;margin:0;">Esta acción no se puede deshacer.</p>
       </div>
@@ -674,12 +624,12 @@ export class GuiasComponent implements OnInit {
 
     this.alertService.mostrarModalCarga();
     try {
-      let resp: any = await firstValueFrom(this.guiaService.eliminarGuiaRemision(idProyecto, codigoGuiaRemision));
+      let resp: any = await firstValueFrom(this.guiaService.eliminarGuiaRemisionManual(idProyecto, codigoGuiaRemision));
       if (Array.isArray(resp) && resp.length > 0) {
         resp = resp[0];
       }
       if (resp?.error) {
-        this.alertService.showAlert('Error', resp?.mensaje ?? 'Error al eliminar la guía.', 'error');
+        this.alertService.showAlert('Error', resp?.mensaje ?? 'Error al eliminar la guía manual.', 'error');
         return;
       }
       this.alertService.showAlert('Éxito', 'Guía eliminada correctamente.', 'success');
@@ -785,7 +735,7 @@ export class GuiasComponent implements OnInit {
     }
     this.alertService.mostrarModalCarga();
     try {
-      let resp: any = await firstValueFrom(this.guiaService.anularGuiaRemision(idProyecto, codigo));
+      let resp: any = await firstValueFrom(this.guiaService.anularGuiaRemisionManual(idProyecto, codigo));
       if (Array.isArray(resp) && resp.length > 0) resp = resp[0];
       this.alertService.cerrarModalCarga();
       if (resp?.error) {
@@ -927,52 +877,28 @@ export class GuiasComponent implements OnInit {
     }
     this.alertService.mostrarModalCarga();
     try {
-      const detalleData = await this.guiaRemisionFacade.getGuiaRemisionDetalle(idProyecto, codigoGuiaRemision);
-
-      if (!detalleData) {
+      const resp = await firstValueFrom(this.guiaService.getGuiaRemisionManual(idProyecto, codigoGuiaRemision));
+      const { error, mensaje, data } = this.normalizeBackendResp(resp);
+      if (error) {
         this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Error', 'Error al obtener el detalle de la guía. Comuníquese con el administrador del sistema.', 'error');
+        this.alertService.showAlert('Error', mensaje, 'error');
         return;
       }
 
-      if(detalleData?.error){
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Error', detalleData?.mensaje ?? 'Error al obtener el detalle de la guía.', 'error');
-        return;
-      }
       this.alertService.cerrarModalCarga();
-      this.guiaDetalle.set(detalleData);
+      const guiaData = Array.isArray(data) && data.length > 0 ? data[0] : data;
+      if (!guiaData || typeof guiaData !== 'object') {
+        this.alertService.showAlert('Error', 'No se encontró el detalle de la guía.', 'error');
+        return;
+      }
+      this.guiaDetalle.set(guiaData);
       this.modalVerDetalleAbierto.set(true);
     } catch (error: any) {
-      console.error('Error obteniendo detalle guía:', error);
+      console.error('Error obteniendo detalle guía manual:', error);
       this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Error', error?.message ?? error?.error?.message ?? 'Error al obtener detalle de la guía.', 'error');
-    } 
-   
-  }
+      this.alertService.showAlert('Error', error?.error?.message ?? 'Error al obtener detalle de la guía.', 'error');
+    }
 
-  private buildDetalleDescripcion(p: any, fruta: string): string {
-
-    const s = (v: any) => String(v ?? '').trim();
-    const part = (arr: (string | undefined | null)[]) => arr.map(s).filter(Boolean).join(' ');
-
-    const bloque1 = part([p.nombreTipoProcesoEmpacado]);
-    const bloque2 = part([p.nombreConsignatario, p.nombreDestino, p.nombrePresentacion, p.nombreFormato]);
-    const bloque3 = part([fruta, 'var.', p.nombreVariedad, p.pesoPorCaja ? `${p.pesoPorCaja} kg` : '']);
-    const bloque4 = part([p.nombreTipoEmpaqueGuia, '/', p.codigoRancho]);
-    const bloque5 = part(['LDP', p.codigoLugarProduccion]);
-    const bloque6 = s(p.nombreTransporte);
-
-    const secciones = [
-      bloque1,
-      bloque2,
-      bloque3,
-      bloque4,
-      bloque5,
-      bloque6 ? `(${bloque6})` : undefined,
-    ].filter(Boolean);
-
-    return secciones.join(' - ');
   }
 
   cerrarModalVerDetalle(): void {
@@ -980,194 +906,101 @@ export class GuiasComponent implements OnInit {
     this.guiaDetalle.set(null);
   }
 
-  async abrirModalNuevaGuia(): Promise<void> {
+  async abrirModalNuevaGuiaManual(): Promise<void> {
     this.alertService.mostrarModalCarga();
-    this.isLoadingModalProcesos.set(true);
     try {
       if (!this.savedConfig()) {
         await this.cargarConfiguracion();
       }
-      const [resp] = await Promise.all([
-        this.cargarProcesosParaGuia(),
+      await Promise.all([
         this.cargarTransportistas(),
         this.cargarConductores(),
         this.cargarVehiculos(),
         this.cargarDestinatarios(),
         this.cargarMotivosTraslado(),
       ]);
-
-      if (!resp || resp.length === 0) {
-        this.alertService.showAlert('Error', 'No se encontraron procesos.', 'error');
-        return;
-      }
-      const first = resp[0];
-      if (first?.error) {
-        this.alertService.showAlert('Error', first?.mensaje ?? 'Error al obtener procesos', 'error');
-        return;
-      }
-      const data = (Array.isArray(first?.data) ? first.data : []).map((p: any) => {
-        const nro = p.nroPalets ?? 0;
-        return {
-          ...p,
-          paletsCerradosDisponibles: nro,
-          label: `${p.codigoAcopio} - ${p.turno} - ${p.fechaProceso} (${nro} ${nro === 1 ? 'Palet' : 'Palets'})`,
-        };
-      });
-      if (data.length === 0) {
-        this.alertService.showAlert('Información', 'No hay procesos abiertos con palets cerrados disponibles.', 'warning');
-        return;
-      }
-      this.procesos.set(data);
-      this.modalNuevaGuiaAbierto.set(true);
+      this.modalNuevaGuiaManualVisible.set(true);
       this.alertService.cerrarModalCarga();
     } catch (err: any) {
-      console.error('Error cargando procesos guía:', err);
-      this.alertService.showAlert('Error', err?.error?.message ?? 'Error al cargar procesos', 'error');
-    } finally {
-      this.isLoadingModalProcesos.set(false);
+      console.error('Error cargando catálogos guía manual:', err);
+      this.alertService.showAlert('Error', err?.error?.message ?? 'Error al cargar catálogos', 'error');
     }
   }
 
-  cerrarModalNuevaGuia(): void {
-    this.modalNuevaGuiaAbierto.set(false);
+  cerrarModalNuevaGuiaManual(): void {
+    this.modalNuevaGuiaManualVisible.set(false);
     this.modoEdicionGuia.set(false);
     this.guiaParaEditar.set(null);
   }
 
-  onCrearGuia(payload: any): void {
-    this.pendingGuiaPayload.set(payload);
-    this.modalNuevaGuiaAbierto.set(false);
-    this.modalInspeccionAbierto.set(true);
-  }
-
-  async onEditarGuia(payload: any): Promise<void> {
-    this.modalNuevaGuiaAbierto.set(false);
-    const guiaOriginal = this.guiaParaEditar();
-    const paletsDetalle: any[] = payload.paletsDetalle ?? [];
-    const cantidadPalets = paletsDetalle.length;
-
-    const proceso = this.procesos().find(p => {
-      const pid = String((p as any)?.id ?? '').trim();
-      const pIdProceso = String((p as any)?.idProceso ?? '').trim();
-      return pid === String(payload.procesoId ?? '').trim() || pIdProceso === String(payload.procesoId ?? '').trim();
-    });
-    const codigoProceso = (proceso as any)?.idProceso ?? String(payload.procesoId ?? '').trim();
-
-    const destinatario = this.destinatarios().find(d => String((d as any)?.id ?? '').trim() === String(payload.destinatarioId ?? '').trim());
-    const documentoFiscal = String((destinatario as any)?.documentoFiscal ?? '').trim();
-
-    const guiaPayload: GuiaRemision = {
-      codigoGuiaRemision: guiaOriginal?.codigoGuiaRemision,
-      codigoProceso: codigoProceso,
-      transactionId_uuid: guiaOriginal?.transactionId_uuid ?? this.generateUUID(),
-      documentoDestinatario: documentoFiscal || '',
-      puntoPartida: String(payload.puntoPartida ?? '').trim(),
-      puntoLlegada: String(payload.puntoLlegada ?? '').trim() || undefined,
-      ubigeoPartida: String(payload.ubigeoPartida ?? '131202').trim(),
-      ubigeoLlegada: String(payload.ubigeoLlegada ?? '131202').trim(),
-      idTransportista: Number(payload.transportistaId) || null,
-      idConductor: Number(payload.conductorId) || null,
-      idVehiculo: Number(payload.vehiculoId) || null,
-      motivoTraslado: String(payload.motivoTraslado ?? '13').trim(),
-      descripcionMotivoTraslado: String(payload.descripcionMotivoTraslado ?? '').trim() || undefined,
-      fechaEntregaBienes: payload.fechaEntregaBienes || guiaOriginal?.fechaEntregaBienes || null,
-      precinto: String(payload.precinto ?? '').trim() || null,
-      estado: guiaOriginal?.estado ?? 'ABIERTA',
-      pesoTotal: guiaOriginal?.pesoTotal ?? (null as any),
-      totalCajas: guiaOriginal?.totalCajas ?? (null as any),
-      cantidadPalets: cantidadPalets,
-      usuarioEmision: guiaOriginal?.usuarioEmision ?? (null as any),
-      fechaCreacionWeb: guiaOriginal?.fechaCreacionWeb ?? toLocalISOString(),
-      parihuelas: Number(payload.parihuelas) || 0,
-      observacionesUsuario: String(payload.observacionesUsuario ?? '').trim() || undefined,
-      esReposicion: guiaOriginal?.esReposicion ?? (null as any),
-      esEnsayo: guiaOriginal?.esEnsayo ?? (null as any),
-      eliminado: false,
-      inspeccionTemperatura: payload?.inspeccionTemperatura ?? guiaOriginal?.inspeccionTemperatura ?? null,
-      inspeccionLibreOlores: payload?.inspeccionLibreOlores === 'si' ? true : (payload?.inspeccionLibreOlores === 'no' ? false : guiaOriginal?.inspeccionLibreOlores ?? null),
-      inspeccionLibreInsectos: payload?.inspeccionLibreInsectos === 'si' ? true : (payload?.inspeccionLibreInsectos === 'no' ? false : guiaOriginal?.inspeccionLibreInsectos ?? null),
-      inspeccionLibreMateriasExtranas: payload?.inspeccionLibreMateriasExtranas === 'si' ? true : (payload?.inspeccionLibreMateriasExtranas === 'no' ? false : guiaOriginal?.inspeccionLibreMateriasExtranas ?? null),
-      inspeccionUnidadLimpia: payload?.inspeccionUnidadLimpia === 'si' ? true : (payload?.inspeccionUnidadLimpia === 'no' ? false : guiaOriginal?.inspeccionUnidadLimpia ?? null),
-      inspeccionObservaciones:  payload?.inspeccionObservaciones?.trim() === '' ? null : payload?.inspeccionObservaciones?.trim(),
-      inspeccionMedidaCorrectiva: payload?.inspeccionMedidaCorrectiva?.trim() === '' ? null : payload?.inspeccionMedidaCorrectiva?.trim(),
-      numeroViaje: payload?.numeroViaje ?? guiaOriginal?.numeroViaje ?? null,
-      snapshotDetalle: guiaOriginal?.snapshotDetalle ?? null,
-      detallePalets: (() => {
-        const paletsOriginal: any[] = guiaOriginal?.paletsDetalleOriginal ?? [];
-        const codigosNuevos = new Set(paletsDetalle.map((p: any) => String(p.idPalet ?? p.codigoPalet ?? p.id ?? '').trim()));
-        const detalle: any[] = [];
-
-        // Palets seleccionados ahora (mantenidos + nuevos) -> eliminado: 0
-        for (const p of paletsDetalle) {
-          detalle.push({
-            codigoGuiaRemision: guiaOriginal?.codigoGuiaRemision ?? '',
-            transactionId_uuid: guiaOriginal?.transactionId_uuid ?? '',
-            codigoPalet: String(p.idPalet ?? p.codigoPalet ?? p.id ?? '').trim(),
-            codigoItem: String(p.codigoItem ?? '').trim(),
-            cantidadCajas: Number(p.cantidadCajas ?? 0),
-            eliminado: 0,
-          });
-        }
-
-        // Palets que estaban antes pero ya no estan seleccionados -> eliminado: 1
-        for (const p of paletsOriginal) {
-          const codigo = String(p.codigoPalet ?? p.idPalet ?? p.id ?? '').trim();
-          if (!codigosNuevos.has(codigo)) {
-            detalle.push({
-              codigoGuiaRemision: guiaOriginal?.codigoGuiaRemision ?? '',
-              transactionId_uuid: guiaOriginal?.transactionId_uuid ?? '',
-              codigoPalet: codigo,
-              codigoItem: String(p.codigoItem ?? '').trim(),
-              cantidadCajas: Number(p.cantidadCajas ?? 0),
-              eliminado: 1,
-            });
-          }
-        }
-
-        return detalle;
-      })(),
-    };
-
+  async onCrearGuiaManual(payload: any): Promise<void> {
     const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
     if (!idProyecto) {
-      this.alertService.showAlert('Error', 'No se encontró la configuración del proyecto.', 'error');
-      this.modoEdicionGuia.set(false);
-      this.guiaParaEditar.set(null);
+      this.alertService.showAlert('Error', 'No se encontró el proyecto.', 'error');
       return;
     }
-
-    // const syncPayload = { idProyecto, guias: [guiaPayload] };
-    const syncPayload = [guiaPayload];
-    
     if (!this.online) {
-      this.alertService.showAlert('Error', 'No hay conexión a internet. La edición requiere conexión.', 'error');
-      this.modoEdicionGuia.set(false);
-      this.guiaParaEditar.set(null);
+      this.alertService.showAlert('Error', 'No hay conexión a internet.', 'error');
       return;
     }
 
+    const destinatario = this.destinatarios().find(d => String((d as any)?.id ?? '').trim() === String(payload.destinatarioId ?? '').trim());
+    const documentoDestinatario = String((destinatario as any)?.documentoFiscal ?? '').trim();
+
+    const guiaPayload = {
+      ...payload,
+      documentoDestinatario,
+      estado: 'ABIERTA'
+    };
+    delete (guiaPayload as any).destinatarioId;
+
+    this.alertService.mostrarModalCarga();
     try {
-      this.alertService.mostrarModalCarga();
-      const rawResp: any = await this.guiaRemisionFacade.editarGuiaRemision({idProyecto:idProyecto,guias:syncPayload});
-      const { error, mensaje } = this.normalizeBackendResp(rawResp);
+      const resp = await firstValueFrom(this.guiaService.sincronizarGuiaRemisionManual({ idProyecto, guias: [guiaPayload] }));
+      const { error, mensaje, data } = this.normalizeBackendResp(resp);
+      this.alertService.cerrarModalCarga();
+      if (error) {
+        this.alertService.showAlert('Error', mensaje, 'error');
+        return;
+      }
+      this.alertService.showAlert('Éxito', mensaje || 'Guía manual registrada correctamente.', 'success');
+      this.modalNuevaGuiaManualVisible.set(false);
+      await this.onBuscarGuias();
+    } catch (err: any) {
+      this.alertService.cerrarModalCarga();
+      console.error('Error guardando guía manual:', err);
+      this.alertService.showAlert('Error', err?.error?.mensaje ?? err?.message ?? 'Error al guardar la guía manual.', 'error');
+    }
+  }
+
+  async onEditarGuiaManual(payload: any): Promise<void> {
+    this.alertService.mostrarModalCarga();
+    try {
+      const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
+      if (!idProyecto) {
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Error', 'No se encontró la configuración del proyecto.', 'error');
+        return;
+      }
+      const resp = await firstValueFrom(this.guiaService.editarGuiaRemisionManual(idProyecto, payload));
+      const { error, mensaje } = this.normalizeBackendResp(resp);
+
       this.alertService.cerrarModalCarga();
 
       if (error) {
-        this.alertService.showAlertAcept('Error', mensaje || 'Error al editar la guía.', 'error');
+        this.alertService.showAlert('Error', mensaje, 'error');
         return;
       }
-      if (mensaje) {
-        this.alertService.showAlert('Info', mensaje, 'info');
-      }
 
-      this.alertService.showAlert('Éxito', 'Guía editada correctamente.', 'success');
-      await this.onBuscarGuias();
-    } catch (error: any) {
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlertAcept('Error', error?.error?.message ?? 'Error al editar la guía.', 'error');
-    } finally {
+      this.alertService.showAlert('Éxito', mensaje || 'Guía manual editada correctamente.', 'success');
+      this.modalNuevaGuiaManualVisible.set(false);
       this.modoEdicionGuia.set(false);
       this.guiaParaEditar.set(null);
+      await this.onBuscarGuias();
+    } catch (err: any) {
+      this.alertService.cerrarModalCarga();
+      console.error('Error editando guía manual:', err);
+      this.alertService.showAlert('Error', err?.error?.mensaje ?? err?.message ?? 'Error al editar la guía manual.', 'error');
     }
   }
 

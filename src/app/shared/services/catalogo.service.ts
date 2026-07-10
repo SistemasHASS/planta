@@ -31,6 +31,14 @@ export class CatalogoService {
     return this.http.get<any>(`${this.apiUrl}/motivos-traslado`, { withCredentials: true });
   }
 
+  listarUnidadesMedida(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/unidades-medida`, { withCredentials: true });
+  }
+
+  listarSeriesGuia(): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/administracion/correlativos-documentos/listar`, { withCredentials: true });
+  }
+
   sincronizarCatalogos(tabla: string, json: any): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/sincronizar`, { tabla, json }, { withCredentials: true });
   }
