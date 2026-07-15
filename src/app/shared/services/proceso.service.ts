@@ -8,6 +8,8 @@ import { Proceso, CrearProcesoRequest } from '../interfaces/proceso.interface';
 export class ProcesoService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/procesos`;
+  private readonly apiDashboard = `${environment.apiUrl}/palets`;
+  
 
 
   listarProcesoForAcopio(codigoCultivo:string, idproyecto:string): Observable<any>{
@@ -59,4 +61,11 @@ export class ProcesoService {
   // listarPorAcopio(codigoAcopio: string): Observable<any> {
   //   return this.http.post<any>(`${this.apiUrl}/listar-por-acopio`, { codigoAcopio }, { withCredentials: true });
   // }
+
+  obtenerReporteDiario(fecha: string, acopios: string = '', idCampana: string = ''): Observable<any> {
+    return this.http.get<any>(`${this.apiDashboard}/reporte-diario`, {
+      params: { fecha, acopios, idCampana },
+      withCredentials: true,
+    });
+  }
 }

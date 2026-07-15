@@ -1,0 +1,248 @@
+
+@if (onlineSignal()) {
+<div class="report-page">
+  <section class="report-hero">
+    <div class="report-header">
+      <div class="report-heading">
+        <h2>Producción de Empaque</h2>
+        <p class="page-subtitle">Vista consolidada del reporte diario</p>
+      </div>
+
+      <div class="report-toolbar">
+        <div class="toolbar-field">
+          <label for="fechaReporte">Fecha</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-calendar3"></i></span>
+            <input id="fechaReporte" type="date" class="form-control" [ngModel]="fechaConsulta()" (ngModelChange)="fechaConsulta.set($event)">
+          </div>
+        </div>
+        <div class="toolbar-field">
+          <label>Acopio</label>
+          <div class="acopio-multiselect" (clickOutside)="closeAcopios()">
+            <button type="button" class="acopio-trigger form-select" (click)="toggleAcopios()">
+              <span>{{ acopiosLabel() }}</span>
+              <i class="bi bi-chevron-down"></i>
+            </button>
+            @if (acopiosOpen()) {
+            <div class="acopio-dropdown">
+              <div class="acopio-actions">
+                <button type="button" class="btn btn-sm btn-link" (click)="seleccionarTodosAcopios()">Todos</button>
+                <button type="button" class="btn btn-sm btn-link" (click)="limpiarAcopios()">Ninguno</button>
+              </div>
+              <div class="acopio-list">
+                @for (a of acopios(); track a.codigoAcopio) {
+                <label class="acopio-item">
+                  <input type="checkbox" [checked]="a.selected" (change)="toggleAcopio(a)">
+                  <span>{{ a.acopioNombre || a.codigoAcopio }}</span>
+                </label>
+                }
+              </div>
+            </div>
+            }
+          </div>
+        </div>
+        <div class="toolbar-action">
+          <button type="button" class="btn btn-primary" (click)="aplicarFiltros()" [disabled]="isLoading()">
+            <i class="bi bi-funnel"></i> Filtrar
+          </button>
+        </div>
+      </div>
+
+      <div class="report-header-actions">
+        <div class="report-meta">
+          <div class="report-meta-date">
+            <i class="bi bi-calendar3"></i>
+            <span>{{ fechaFormateada() }}</span>
+          </div>
+          <div class="report-meta-status" [class.status-success]="hayProcesosAbiertos()" [class.status-warning]="!hayProcesosAbiertos()">
+            <i class="bi" [class.bi-check-circle-fill]="hayProcesosAbiertos()" [class.bi-exclamation-circle-fill]="!hayProcesosAbiertos()"></i>
+            <span>{{ hayProcesosAbiertos() ? 'Procesos abiertos' : 'Sin procesos abiertos' }}</span>
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary report-refresh-button" (click)="actualizar()" [disabled]="isLoading()">
+          <i class="bi" [class.bi-arrow-clockwise]="!isLoading()" [class.bi-arrow-repeat]="isLoading()"></i> Actualizar
+        </button>
+      </div>
+    </div>
+  </section>
+
+  @if (errorMensaje()) {
+  <div class="alert alert-danger mb-3">
+    {{ errorMensaje() }}
+  </div>
+  }
+
+  <div class="report-kpis">
+    <div class="report-kpi-card report-kpi-orange">
+      <div class="report-kpi-main">
+        <div class="report-kpi-icon"><i class="bi bi-hourglass-split"></i></div>
+        <div class="report-kpi-info">
+          <span class="report-kpi-label">Pallets en proceso</span>
+          <strong>{{ kpiPalletsEnProceso() }}</strong>
+        </div>
+      </div>
+      <small>Pendientes de cierre</small>
+    </div>
+
+    <div class="report-kpi-card report-kpi-blue">
+      <div class="report-kpi-main">
+        <div class="report-kpi-icon"><i class="bi bi-box-seam"></i></div>
+        <div class="report-kpi-info">
+          <span class="report-kpi-label">Pallets completos</span>
+          <strong>{{ kpiPalletsCompletos() }}</strong>
+        </div>
+      </div>
+      <small>Procesados en el día</small>
+    </div>
+
+    <div class="report-kpi-card report-kpi-green">
+      <div class="report-kpi-main">
+        <div class="report-kpi-icon"><i class="bi bi-truck"></i></div>
+        <div class="report-kpi-info">
+          <span class="report-kpi-label">Pallets despachados</span>
+          <strong>{{ kpiPalletsDespachados() }}</strong>
+        </div>
+      </div>
+      <small>Listos para entrega</small>
+    </div>
+
+    <div class="report-kpi-card report-kpi-purple">
+      <div class="report-kpi-main">
+        <div class="report-kpi-icon"><i class="bi bi-box-arrow-right"></i></div>
+        <div class="report-kpi-info">
+          <span class="report-kpi-label">Cajas Despachadas</span>
+          <strong>{{ kpiCajasDespachadas() | number }}</strong>
+        </div>
+      </div>
+      <small>Unidades enviadas</small>
+    </div>
+
+    <div class="report-kpi-card report-kpi-cyan">
+      <div class="report-kpi-main">
+        <div class="report-kpi-icon"><i class="bi bi-boxes"></i></div>
+        <div class="report-kpi-info">
+          <span class="report-kpi-label">Cajas totales</span>
+          <strong>{{ kpiCajasTotales() | number }}</strong>
+        </div>
+      </div>
+      <small>Unidades procesadas</small>
+    </div>
+
+    <div class="report-kpi-card report-kpi-green">
+      <div class="report-kpi-main">
+        <div class="report-kpi-icon"><i class="bi bi-speedometer2"></i></div>
+        <div class="report-kpi-info">
+          <span class="report-kpi-label">KG despachados</span>
+          <strong>{{ kpiKgDespachados() | number: '1.2-2' }}</strong>
+        </div>
+      </div>
+      <small>Peso enviado</small>
+    </div>
+
+    <div class="report-kpi-card report-kpi-red">
+      <div class="report-kpi-main">
+        <div class="report-kpi-icon"><i class="bi bi-bar-chart-fill"></i></div>
+        <div class="report-kpi-info">
+          <span class="report-kpi-label">KG totales</span>
+          <strong>{{ kpiKgTotales() | number: '1.2-2' }}</strong>
+        </div>
+      </div>
+      <small>Peso acumulado</small>
+    </div>
+  </div>
+
+  <div class="report-charts">
+    <div class="report-card chart-card">
+      <div class="report-card-header">
+        <h5>Detalle Producción por Variedad</h5>
+      </div>
+      <div class="report-table-wrapper table-scrollable">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Variedad</th>
+              <th class="text-end">Cajas</th>
+              <th class="text-end">KG</th>
+              <th class="text-end">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (v of produccionPorVariedad(); track v.variedadId) {
+            <tr>
+              <td>{{ v.variedad }}</td>
+              <td class="text-end">{{ v.cajas | number }}</td>
+              <td class="text-end">{{ v.kg | number: '1.2-2' }}</td>
+              <td class="text-end"><span class="badge bg-primary">{{ v.porcentaje }}%</span></td>
+            </tr>
+            }
+            @if (produccionPorVariedad().length === 0) {
+            <tr>
+              <td colspan="4" class="text-center text-muted">Sin datos</td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <!-- <div class="chart-wrapper">
+        <canvas #chartVariedad></canvas>
+      </div> -->
+    </div>
+
+    <div class="report-card chart-card">
+      <div class="report-card-header">
+        <h5>KG por Planta de Empaque</h5>
+      </div>
+      <div class="chart-wrapper chart-wrapper-tall">
+        <canvas #chartAcopio></canvas>
+      </div>
+    </div>
+
+    <div class="report-card chart-card full-width">
+      <div class="report-card-header">
+        <h5>Avance por Consignatario</h5>
+      </div>
+      <div class="chart-row">
+        <div class="chart-wrapper chart-wrapper-pie">
+          <canvas #chartConsignatario></canvas>
+        </div>
+        <div class="report-table-wrapper">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Consignatario</th>
+                <th class="text-end">Cajas</th>
+                <th class="text-end">KG</th>
+                <th class="text-end">%</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of avancePorConsignatario(); track c.consignatarioId) {
+              <tr>
+                <td>{{ c.consignatario }}</td>
+                <td class="text-end">{{ c.cajas | number }}</td>
+                <td class="text-end">{{ c.kg | number: '1.2-2' }}</td>
+                <td class="text-end"><span class="badge bg-success">{{ c.porcentaje }}%</span></td>
+              </tr>
+              }
+              @if (avancePorConsignatario().length === 0) {
+              <tr>
+                <td colspan="4" class="text-center text-muted">Sin datos</td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+} @else {
+<div class="sp-card report-offline-state">
+  <div class="sp-card-body">
+    <div class="offline-icon"><i class="bi bi-wifi-off"></i></div>
+    <h4>Sin conexión a internet</h4>
+    <p>El Reporte Diario solo está disponible en modo online. Conéctate a internet para continuar.</p>
+  </div>
+</div>
+}

@@ -217,6 +217,7 @@ export class GuiasManualesComponent implements OnInit {
 
   async exportarExcel(): Promise<void> {
     const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
+    const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim() || null;
     if (!idProyecto) {
       this.alertService.showAlert('Error', 'No se encontró la configuración del proyecto.', 'error');
       return;
@@ -228,7 +229,19 @@ export class GuiasManualesComponent implements OnInit {
       const fechaDesde = this.filtroFechaDesde().trim() || null;
       const fechaHasta = this.filtroFechaHasta().trim() || null;
 
-      const blob = await firstValueFrom(this.guiaService.exportarGuiasRemisionExcel(idProyecto, estado, fechaDesde, fechaHasta, texto));
+      const blob = await firstValueFrom(this.guiaService.exportarGuiasRemisionExcel(idProyecto, estado, fechaDesde, fechaHasta, texto, codigoCultivo));
+      const clone = blob.slice(0, blob.size, blob.type);
+      const text = await clone.text();
+      let errorPayload: any = null;
+      try {
+        errorPayload = JSON.parse(text);
+      } catch { }
+
+      if (errorPayload?.error) {
+        this.alertService.showAlert('Información', errorPayload.mensaje ?? 'No se encontraron guías para exportar.', 'warning');
+        return;
+      }
+
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -237,10 +250,11 @@ export class GuiasManualesComponent implements OnInit {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-      this.alertService.cerrarModalCarga();
     } catch (error: any) {
       console.error('Error exportando Excel:', error);
       this.alertService.showAlert('Error', error?.error?.message ?? 'Error al exportar el Excel.', 'error');
+    } finally {
+      this.alertService.cerrarModalCarga();
     }
   }
 

@@ -109,12 +109,13 @@ export class GuiaService {
     return this.http.get<any>(`${this.apiUrl}/anular-guia-remision`, { params, withCredentials: true });
   }
 
-  exportarGuiasRemisionExcel(idProyecto: string, estado: string | null = null, fechaDesde: string | null = null, fechaHasta: string | null = null, texto: string | null = null): Observable<Blob> {
+  exportarGuiasRemisionExcel(idProyecto: string, estado: string | null = null, fechaDesde: string | null = null, fechaHasta: string | null = null, texto: string | null = null, codigoCultivo: string | null = null): Observable<Blob> {
     let params = new HttpParams().set('idProyecto', idProyecto);
     if (estado) params = params.set('estado', estado);
     if (fechaDesde) params = params.set('fechaDesde', fechaDesde);
     if (fechaHasta) params = params.set('fechaHasta', fechaHasta);
     if (texto) params = params.set('texto', texto);
+    if (codigoCultivo) params = params.set('codigoCultivo', codigoCultivo);
     return this.http.get(`${this.apiUrl}/exportar-guias-remision-excel`, { params, responseType: 'blob', withCredentials: true });
   }
 

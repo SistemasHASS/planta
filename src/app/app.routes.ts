@@ -38,10 +38,9 @@ const childRoutes: Routes = [
     data: { title: 'Reporte Producción', subtitle: 'Reporte de producción logística', icon: 'bi-clipboard-data-fill' }
   },
   {
-    path: 'reportes-dashboard',
+    path: 'reportes-dashboard-diario',
     loadComponent: () =>
-      import('./pages/placeholder/placeholder.component').then((m) => m.PlaceholderComponent),
-    data: { title: 'Reporte Diario', subtitle: 'Reporte de producción diaria', icon: 'bi-bar-chart-line-fill' }
+      import('./pages/dashboard/administrador/reporte-diario/reporte-diario.component').then((m) => m.ReporteDiarioComponent),
   },
   {
     path: 'reportes-secundarios',

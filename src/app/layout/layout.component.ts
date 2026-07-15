@@ -195,37 +195,37 @@ export class LayoutComponent {
           },
         ]
       });
-      // sections.push({
-      //   title: 'Reportes',
-      //   items: [
-      //     { label: 'Generar Excel', path: '/excel-export', icon: 'bi-file-earmark-spreadsheet-fill' },
-      //     { label: 'Reporte Diario', path: '/reportes-dashboard', icon: 'bi-bar-chart-line-fill' },
-      //     {
-      //       label: 'Reportes Generales',
-      //       path: '#reportes-generales',
-      //       icon: 'bi-file-earmark-bar-graph-fill',
-      //       submenu: [
-      //         { label: 'Semana', path: '/reportes-secundarios#tabSemana', icon: 'bi-dot' },
-      //         { label: 'Campaña', path: '/reportes-secundarios#tabCampania', icon: 'bi-dot' },
-      //         { label: 'Comparativo', path: '/reportes-secundarios#tabComparativo', icon: 'bi-dot' },
-      //       ]
-      //     },
-      //     {
-      //       label: 'Reportes Detallados',
-      //       path: '#reportes-detallados',
-      //       icon: 'bi-clipboard-data-fill',
-      //       submenu: [
-      //         { label: 'Producción por Día', path: '/reportes-detallados#tabProdDia', icon: 'bi-dot' },
-      //         { label: 'Producción por Acopio', path: '/reportes-detallados#tabProdAcopio', icon: 'bi-dot' },
-      //         { label: 'KG por Destino', path: '/reportes-detallados#tabKgDestino', icon: 'bi-dot' },
-      //         { label: 'Despachos (Guías)', path: '/reportes-detallados#tabDespachos', icon: 'bi-dot' },
-      //         { label: 'Formatos x Consignatario', path: '/reportes-detallados#tabFormatos', icon: 'bi-dot' },
-      //         { label: 'Sobrepeso', path: '/reportes-detallados#tabSobrepeso', icon: 'bi-dot' },
-      //         { label: 'Reposiciones', path: '/reportes-detallados#tabReposiciones', icon: 'bi-dot' },
-      //       ]
-      //     }
-      //   ]
-      // });
+      sections.push({
+        title: 'Reportes',
+        items: [
+          // { label: 'Generar Excel', path: '/excel-export', icon: 'bi-file-earmark-spreadsheet-fill' },
+          { label: 'Reporte Diario', path: '/reportes-dashboard-diario', icon: 'bi-bar-chart-line-fill' },
+          {
+            label: 'Reportes Generales',
+            path: '#reportes-generales',
+            icon: 'bi-file-earmark-bar-graph-fill',
+            submenu: [
+              { label: 'Semana', path: '/reportes-secundarios#tabSemana', icon: 'bi-dot' },
+              // { label: 'Campaña', path: '/reportes-secundarios#tabCampania', icon: 'bi-dot' },
+              // { label: 'Comparativo', path: '/reportes-secundarios#tabComparativo', icon: 'bi-dot' },
+            ]
+          },
+          // {
+          //   label: 'Reportes Detallados',
+          //   path: '#reportes-detallados',
+          //   icon: 'bi-clipboard-data-fill',
+          //   submenu: [
+          //     { label: 'Producción por Día', path: '/reportes-detallados#tabProdDia', icon: 'bi-dot' },
+          //     { label: 'Producción por Acopio', path: '/reportes-detallados#tabProdAcopio', icon: 'bi-dot' },
+          //     { label: 'KG por Destino', path: '/reportes-detallados#tabKgDestino', icon: 'bi-dot' },
+          //     { label: 'Despachos (Guías)', path: '/reportes-detallados#tabDespachos', icon: 'bi-dot' },
+          //     { label: 'Formatos x Consignatario', path: '/reportes-detallados#tabFormatos', icon: 'bi-dot' },
+          //     { label: 'Sobrepeso', path: '/reportes-detallados#tabSobrepeso', icon: 'bi-dot' },
+          //     { label: 'Reposiciones', path: '/reportes-detallados#tabReposiciones', icon: 'bi-dot' },
+          //   ]
+          // }
+        ]
+      });
     } else if (p === 'LOGISTICA') { //Logistica
       sections.push({
         items: [{ label: 'Parametros', path: '/parametros', icon: 'bi bi-sliders' }]
