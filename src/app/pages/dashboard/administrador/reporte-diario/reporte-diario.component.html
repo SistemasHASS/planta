@@ -1,6 +1,6 @@
 
 @if (onlineSignal()) {
-<div class="report-page">
+<div class="report-page" #reportPage>
   <section class="report-hero">
     <div class="report-header">
       <div class="report-heading">
@@ -61,6 +61,9 @@
         </div>
         <button type="button" class="btn btn-primary report-refresh-button" (click)="actualizar()" [disabled]="isLoading()">
           <i class="bi" [class.bi-arrow-clockwise]="!isLoading()" [class.bi-arrow-repeat]="isLoading()"></i> Actualizar
+        </button>
+        <button type="button" class="btn btn-outline-success report-capture-button" (click)="capturarDashboard()" [disabled]="isLoading()">
+          <i class="bi bi-camera"></i> Capturar
         </button>
       </div>
     </div>
@@ -182,6 +185,12 @@
             }
           </tbody>
         </table>
+      </div>
+      <div class="report-table-total">
+        <span class="total-label">Total</span>
+        <span class="total-value">{{ totalCajasVariedad() | number }}</span>
+        <span class="total-value">{{ totalKgVariedad() | number: '1.2-2' }} kg</span>
+        <span class="total-value">{{ totalPorcentajeVariedad() | number: '1.2-2' }}%</span>
       </div>
       <!-- <div class="chart-wrapper">
         <canvas #chartVariedad></canvas>

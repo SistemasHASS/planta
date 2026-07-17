@@ -116,23 +116,23 @@ export class GuiaRemisionFacade {
     if (estado) {
       guiasRaw = guiasRaw.filter((g: any) => String(g?.estado ?? '').toUpperCase() === estado.toUpperCase());
     }
-    if (fechaDesde || fechaHasta) {
-      guiasRaw = guiasRaw.filter((g: any) => {
-        const f = String(g?.fechaCreacionWeb ?? g?.fechaCreacion ?? '').trim();
-        if (!f) return false;
-        const d = new Date(f).getTime();
-        if (isNaN(d)) return false;
-        if (fechaDesde) {
-          const desde = new Date(fechaDesde + 'T00:00:00').getTime();
-          if (d < desde) return false;
-        }
-        if (fechaHasta) {
-          const hasta = new Date(fechaHasta + 'T23:59:59').getTime();
-          if (d > hasta) return false;
-        }
-        return true;
-      });
-    }
+    // if (fechaDesde || fechaHasta) {
+    //   guiasRaw = guiasRaw.filter((g: any) => {
+    //     const f = String(g?.fechaCreacionWeb ?? g?.fechaCreacion ?? '').trim();
+    //     if (!f) return false;
+    //     const d = new Date(f).getTime();
+    //     if (isNaN(d)) return false;
+    //     if (fechaDesde) {
+    //       const desde = new Date(fechaDesde + 'T00:00:00').getTime();
+    //       if (d < desde) return false;
+    //     }
+    //     if (fechaHasta) {
+    //       const hasta = new Date(fechaHasta + 'T23:59:59').getTime();
+    //       if (d > hasta) return false;
+    //     }
+    //     return true;
+    //   });
+    // }
     if (texto) {
       const t = texto.toLowerCase();
       guiasRaw = guiasRaw.filter((g: any) => {

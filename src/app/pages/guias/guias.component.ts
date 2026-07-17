@@ -181,6 +181,7 @@ export class GuiasComponent implements OnInit {
       const fechaHasta = this.filtroFechaHasta().trim() || null;
 
       const resultado = await this.guiaRemisionFacade.listarGuiasRemision(idProyectoFinal, estado, fechaDesde, fechaHasta, texto);
+      console.log('1-1-1-1-',resultado)
       if (resultado.error) {
         this.alertService.showAlert('Error', resultado.error, 'error');
         return;

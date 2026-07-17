@@ -14,6 +14,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
+import html2canvas from 'html2canvas';
 import { ConnectivityService } from '../../../../shared/services/connectivity.service';
 import { AuthService } from '../../../../shared/services/auth.service';
 import { CatalogoService } from '../../../../shared/services/catalogo.service';
@@ -79,6 +80,7 @@ export class ReporteDiarioComponent implements AfterViewInit, OnDestroy {
   private readonly chartVariedadRef = viewChild<ElementRef<HTMLCanvasElement>>('chartVariedad');
   private readonly chartAcopioRef = viewChild<ElementRef<HTMLCanvasElement>>('chartAcopio');
   private readonly chartConsignatarioRef = viewChild<ElementRef<HTMLCanvasElement>>('chartConsignatario');
+  private readonly reportPageRef = viewChild<ElementRef<HTMLElement>>('reportPage');
 
   readonly fechaFormateada = computed(() => {
     const parts = this.fechaConsulta().split('-').map(Number);
@@ -115,6 +117,18 @@ export class ReporteDiarioComponent implements AfterViewInit, OnDestroy {
   readonly kgPorAcopio = computed(() => this.reporteData()?.kgPorAcopio ?? []);
   readonly avancePorConsignatario = computed(() => this.reporteData()?.avancePorConsignatario ?? []);
 
+  readonly totalCajasVariedad = computed(() =>
+    this.produccionPorVariedad().reduce((sum, v) => sum + v.cajas, 0)
+  );
+
+  readonly totalKgVariedad = computed(() =>
+    this.produccionPorVariedad().reduce((sum, v) => sum + v.kg, 0)
+  );
+
+  readonly totalPorcentajeVariedad = computed(() =>
+    this.produccionPorVariedad().reduce((sum, v) => sum + v.porcentaje, 0)
+  );
+
   constructor() {
     effect(() => {
       const data = this.reporteData();
@@ -123,6 +137,30 @@ export class ReporteDiarioComponent implements AfterViewInit, OnDestroy {
         this.renderCharts(data);
       }
     });
+  }
+
+  async capturarDashboard(): Promise<void> {
+    const elemento = this.reportPageRef()?.nativeElement;
+    if (!elemento) {
+      return;
+    }
+
+    try {
+      this.isLoading.set(true);
+      const canvas = await html2canvas(elemento, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#f5f7fa',
+      });
+      const enlace = document.createElement('a');
+      enlace.download = `reporte-diario-${new Date().toISOString().slice(0, 10)}.png`;
+      enlace.href = canvas.toDataURL('image/png');
+      enlace.click();
+    } catch (error) {
+      console.error('Error al capturar el dashboard diario', error);
+    } finally {
+      this.isLoading.set(false);
+    }
   }
 
   async ngOnInit(): Promise<void> {
@@ -166,13 +204,18 @@ export class ReporteDiarioComponent implements AfterViewInit, OnDestroy {
   }
 
   async cargarAcopios(): Promise<void> {
-    if (!this.onlineSignal()) return;
+    this.alertService.mostrarModalCarga()
+    if (!this.onlineSignal()) {
+      this.alertService.cerrarModalCarga()
+      return
+    };
 
     try {
       const idProyecto = await this.obtenerIdProyecto();
       if (!idProyecto) {
         const dexie = await this.catalogosOperativosRepo.acopiosRepo.getAll();
         this.acopios.set(this.normalizarAcopios(dexie));
+        this.alertService.cerrarModalCarga()
         return;
       }
 
@@ -182,18 +225,23 @@ export class ReporteDiarioComponent implements AfterViewInit, OnDestroy {
         console.warn('Error listando acopios:', resp?.mensaje);
         const dexie = await this.catalogosOperativosRepo.acopiosRepo.getAll();
         this.acopios.set(this.normalizarAcopios(dexie));
+        this.alertService.cerrarModalCarga()
         return;
       }
 
       this.acopios.set(this.normalizarAcopios(data));
+      this.alertService.cerrarModalCarga()
     } catch (error) {
       console.error('Error cargando acopios', error);
       try {
         const dexie = await this.catalogosOperativosRepo.acopiosRepo.getAll();
         this.acopios.set(this.normalizarAcopios(dexie));
+        
       } catch {
         this.acopios.set([]);
+        this.alertService.cerrarModalCarga()
       }
+      this.alertService.cerrarModalCarga()
     }
   }
 
@@ -228,13 +276,37 @@ export class ReporteDiarioComponent implements AfterViewInit, OnDestroy {
     this.acopios.update(list => list.map(a => ({ ...a, selected: false })));
   }
 
+  private validarAcopiosSeleccionados(): boolean {
+    if (this.acopiosSeleccionados().length === 0) {
+      this.alertService.showAlert('Selecciona acopios', 'Debes elegir al menos un acopio para consultar el reporte.', 'warning');
+      return false;
+    }
+    return true;
+  }
+
   async aplicarFiltros(): Promise<void> {
-    await this.cargarReporte();
+    if (!this.validarAcopiosSeleccionados()) {
+      return;
+    }
+    this.alertService.mostrarModalCarga();
+    try {
+      await this.cargarReporte();
+    } finally {
+      this.alertService.cerrarModalCarga();
+    }
   }
 
   async actualizar(): Promise<void> {
-    await this.cargarAcopios();
-    await this.cargarReporte();
+    if (!this.validarAcopiosSeleccionados()) {
+      return;
+    }
+    this.alertService.mostrarModalCarga();
+    try {
+      await this.cargarAcopios();
+      await this.cargarReporte();
+    } finally {
+      this.alertService.cerrarModalCarga();
+    }
   }
 
   private async cargarReporte(): Promise<void> {

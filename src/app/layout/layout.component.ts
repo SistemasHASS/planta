@@ -205,8 +205,8 @@ export class LayoutComponent {
             path: '#reportes-generales',
             icon: 'bi-file-earmark-bar-graph-fill',
             submenu: [
-              { label: 'Semana', path: '/reportes-secundarios#tabSemana', icon: 'bi-dot' },
-              // { label: 'Campaña', path: '/reportes-secundarios#tabCampania', icon: 'bi-dot' },
+              { label: 'Semana', path: '/reporte-semanal', icon: 'bi-dot' },
+              { label: 'Campaña', path: '/reporte-campania', icon: 'bi-dot' },
               // { label: 'Comparativo', path: '/reportes-secundarios#tabComparativo', icon: 'bi-dot' },
             ]
           },

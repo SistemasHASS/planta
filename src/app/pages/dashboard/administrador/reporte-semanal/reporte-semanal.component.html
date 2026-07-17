@@ -1,0 +1,363 @@
+@if (onlineSignal()) {
+<div class="report-page" #reportPage>
+  <section class="report-hero">
+    <div class="report-header">
+      <div class="report-heading">
+        <h2>Producción Semanal</h2>
+        <p class="page-subtitle">Vista consolidada de la semana</p>
+      </div>
+
+      <div class="report-controls">
+        <div class="report-toolbar">
+          <div class="toolbar-field toolbar-field--wide">
+            <label>Campaña</label>
+            <select
+              class="form-select"
+              [disabled]="campanias().length === 0 || isLoading()"
+              [ngModel]="campaniaSeleccionada()"
+              (ngModelChange)="onCampaniaChange($event)"
+            >
+              <option value="" disabled>Selecciona campaña</option>
+              @for (camp of campanias(); track camp.id) {
+              <option [value]="camp.id">{{ camp.nombre }}</option>
+              }
+            </select>
+          </div>
+          <div class="toolbar-field" data-dropdown="semanas">
+            <label>Semana</label>
+            <div class="multi-select-control" (click)="toggleDropdown('semanas')">
+              <span>{{ resumenSeleccion('semanas') }}</span>
+              <i class="bi" [class.bi-chevron-up]="dropdownAbierto() === 'semanas'" [class.bi-chevron-down]="dropdownAbierto() !== 'semanas'"></i>
+            </div>
+            @if (dropdownAbierto() === 'semanas') {
+            <div class="multi-select-panel">
+              <div class="multi-select-search">
+                <input type="text" class="form-control form-control-sm" placeholder="Buscar..." [ngModel]="busquedaSemanas()" (ngModelChange)="busquedaSemanas.set($event)">
+              </div>
+              <label class="multi-select-item all-option">
+                <input type="checkbox" [checked]="estaTodoSeleccionado('semanas')" (change)="toggleTodosPrincipales('semanas', $any($event.target).checked)">
+                <span>Todos</span>
+              </label>
+              <div class="multi-select-list">
+                @for (s of semanasFiltradas(); track s.id) {
+                <label class="multi-select-item">
+                  <input type="checkbox" [checked]="semanasSeleccionadas().includes(s.id)" (change)="onSeleccionPrincipalChange('semanas', s.id, $any($event.target).checked)">
+                  <span>{{ s.nombre }}</span>
+                </label>
+                }
+              </div>
+            </div>
+            }
+          </div>
+          <div class="toolbar-field" data-dropdown="variedades">
+            <label>Variedad</label>
+            <div class="multi-select-control" (click)="toggleDropdown('variedades')">
+              <span>{{ resumenSeleccion('variedades') }}</span>
+              <i class="bi" [class.bi-chevron-up]="dropdownAbierto() === 'variedades'" [class.bi-chevron-down]="dropdownAbierto() !== 'variedades'"></i>
+            </div>
+            @if (dropdownAbierto() === 'variedades') {
+            <div class="multi-select-panel">
+              <div class="multi-select-search">
+                <input type="text" class="form-control form-control-sm" placeholder="Buscar..." [ngModel]="busquedaVariedades()" (ngModelChange)="busquedaVariedades.set($event)">
+              </div>
+              <label class="multi-select-item all-option">
+                <input type="checkbox" [checked]="estaTodoSeleccionado('variedades')" (change)="toggleTodosPrincipales('variedades', $any($event.target).checked)">
+                <span>Todos</span>
+              </label>
+              <div class="multi-select-list">
+                @for (v of variedadesFiltradas(); track v.id) {
+                <label class="multi-select-item">
+                  <input type="checkbox" [checked]="variedadesSeleccionadas().includes(v.id)" (change)="onSeleccionPrincipalChange('variedades', v.id, $any($event.target).checked)">
+                  <span>{{ v.nombre }}</span>
+                </label>
+                }
+              </div>
+            </div>
+            }
+          </div>
+          <div class="toolbar-field" data-dropdown="formatos">
+            <label>Formato</label>
+            <div class="multi-select-control" (click)="toggleDropdown('formatos')">
+              <span>{{ resumenSeleccion('formatos') }}</span>
+              <i class="bi" [class.bi-chevron-up]="dropdownAbierto() === 'formatos'" [class.bi-chevron-down]="dropdownAbierto() !== 'formatos'"></i>
+            </div>
+            @if (dropdownAbierto() === 'formatos') {
+            <div class="multi-select-panel">
+              <div class="multi-select-search">
+                <input type="text" class="form-control form-control-sm" placeholder="Buscar..." [ngModel]="busquedaFormatos()" (ngModelChange)="busquedaFormatos.set($event)">
+              </div>
+              <label class="multi-select-item all-option">
+                <input type="checkbox" [checked]="estaTodoSeleccionado('formatos')" (change)="toggleTodosPrincipales('formatos', $any($event.target).checked)">
+                <span>Todos</span>
+              </label>
+              <div class="multi-select-list">
+                @for (f of formatosFiltrados(); track f.id) {
+                <label class="multi-select-item">
+                  <input type="checkbox" [checked]="formatosSeleccionados().includes(f.id)" (change)="onSeleccionPrincipalChange('formatos', f.id, $any($event.target).checked)">
+                  <span>{{ f.nombre }}</span>
+                </label>
+                }
+              </div>
+            </div>
+            }
+          </div>
+          <div class="toolbar-action">
+            <button type="button" class="btn btn-primary" (click)="aplicarFiltros()" [disabled]="isLoading()">
+              <i class="bi bi-funnel"></i> Filtrar
+            </button>
+          </div>
+        </div>
+
+        <div class="report-header-actions">
+          <button type="button" class="btn btn-outline-primary report-refresh-button" (click)="actualizar()" [disabled]="isLoading()">
+            <i class="bi" [class.bi-arrow-clockwise]="!isLoading()" [class.bi-arrow-repeat]="isLoading()"></i> Actualizar
+          </button>
+          <button type="button" class="btn btn-outline-success report-capture-button" (click)="capturarDashboard()" [disabled]="isLoading()">
+            <i class="bi bi-camera"></i> Capturar
+          </button>
+        </div>
+
+        <div class="report-toolbar-advanced">
+          <button
+            type="button"
+            class="btn btn-outline-secondary mobile-filter-toggle"
+            (click)="toggleSidebarMovil()"
+            [attr.aria-expanded]="sidebarMovilAbierto()"
+          >
+            <i class="bi bi-sliders"></i>
+            <span>{{ sidebarMovilAbierto() ? 'Ocultar filtros avanzados' : 'Filtros avanzados' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="report-body" [class.sidebar-open]="sidebarMovilAbierto()">
+    <aside class="report-sidebar" [class.sidebar-mobile-open]="sidebarMovilAbierto()">
+      <div class="sidebar-top-bar">
+        <h5>Filtros avanzados</h5>
+        <button type="button" class="btn btn-link sidebar-close" (click)="cerrarSidebarMovil()">
+          <i class="bi bi-x-lg"></i> Cerrar
+        </button>
+      </div>
+
+      <div class="sidebar-card">
+        <div class="sidebar-card-header">
+          <div class="sidebar-header">
+            <i class="bi bi-geo-alt"></i>
+            <span>Destinos</span>
+          </div>
+          <div class="sidebar-actions">
+            <button type="button" class="btn btn-sm btn-link" (click)="seleccionarTodos('destinos')">Todos</button>
+            <button type="button" class="btn btn-sm btn-link" (click)="limpiarTodos('destinos')">Ninguno</button>
+          </div>
+        </div>
+        <div class="sidebar-search">
+          <input
+            type="text"
+            class="form-control form-control-sm"
+            placeholder="Buscar destino..."
+            [ngModel]="busquedaDestinos()"
+            (ngModelChange)="busquedaDestinos.set($event)"
+          >
+        </div>
+        <div class="sidebar-card-body">
+          <div class="sidebar-list">
+            @for (d of destinosFiltrados(); track d.id) {
+            <label class="sidebar-item">
+              <input type="checkbox" [checked]="d.selected" (change)="toggleOpcion('destinos', d)">
+              <span>{{ d.nombre }}</span>
+            </label>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-card">
+        <div class="sidebar-card-header">
+          <div class="sidebar-header">
+            <i class="bi bi-people"></i>
+            <span>Clientes</span>
+          </div>
+          <div class="sidebar-actions">
+            <button type="button" class="btn btn-sm btn-link" (click)="seleccionarTodos('clientes')">Todos</button>
+            <button type="button" class="btn btn-sm btn-link" (click)="limpiarTodos('clientes')">Ninguno</button>
+          </div>
+        </div>
+        <div class="sidebar-search">
+          <input
+            type="text"
+            class="form-control form-control-sm"
+            placeholder="Buscar cliente..."
+            [ngModel]="busquedaClientes()"
+            (ngModelChange)="busquedaClientes.set($event)"
+          >
+        </div>
+        <div class="sidebar-card-body">
+          <div class="sidebar-list">
+            @for (c of clientesFiltrados(); track c.id) {
+            <label class="sidebar-item">
+              <input type="checkbox" [checked]="c.selected" (change)="toggleOpcion('clientes', c)">
+              <span>{{ c.nombre }}</span>
+            </label>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-card">
+        <div class="sidebar-card-header">
+          <div class="sidebar-header">
+            <i class="bi bi-truck"></i>
+            <span>Consignatarios</span>
+          </div>
+          <div class="sidebar-actions">
+            <button type="button" class="btn btn-sm btn-link" (click)="seleccionarTodos('consignatarios')">Todos</button>
+            <button type="button" class="btn btn-sm btn-link" (click)="limpiarTodos('consignatarios')">Ninguno</button>
+          </div>
+        </div>
+        <div class="sidebar-search">
+          <input
+            type="text"
+            class="form-control form-control-sm"
+            placeholder="Buscar consignatario..."
+            [ngModel]="busquedaConsignatarios()"
+            (ngModelChange)="busquedaConsignatarios.set($event)"
+          >
+        </div>
+        <div class="sidebar-card-body">
+          <div class="sidebar-list">
+            @for (c of consignatariosFiltrados(); track c.id) {
+            <label class="sidebar-item">
+              <input type="checkbox" [checked]="c.selected" (change)="toggleOpcion('consignatarios', c)">
+              <span>{{ c.nombre }}</span>
+            </label>
+            }
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="report-main">
+      <div class="report-kpis">
+        <div class="report-kpi-card report-kpi-blue">
+          <div class="report-kpi-main">
+            <div class="report-kpi-icon"><i class="bi bi-box-seam"></i></div>
+            <div class="report-kpi-info">
+              <span class="report-kpi-label">N° Cajas</span>
+              <strong>{{ kpiCajas() | number }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="report-kpi-card report-kpi-green">
+          <div class="report-kpi-main">
+            <div class="report-kpi-icon"><i class="bi bi-speedometer2"></i></div>
+            <div class="report-kpi-info">
+              <span class="report-kpi-label">Peso (KG)</span>
+              <strong>{{ kpiPeso() | number: '1.2-2' }}</strong>
+            </div>
+          </div>        </div>
+      </div>
+
+      <div class="report-charts">
+        <div class="report-card chart-card">
+          <div class="report-card-header">
+            <h5>Peso por Día de la Semana</h5>
+          </div>
+          <div class="chart-wrapper chart-wrapper-tall">
+            <canvas #chartPesoDia></canvas>
+          </div>
+        </div>
+
+        <div class="report-card chart-card">
+          <div class="report-card-header">
+            <h5>Peso por Tipo de Empaque</h5>
+          </div>
+          <div class="chart-wrapper chart-wrapper-tall">
+            <canvas #chartPesoTipo></canvas>
+          </div>
+        </div>
+
+        <div class="report-card chart-card">
+          <div class="report-card-header">
+            <h5>Detalle Producción por Variedad</h5>
+          </div>
+          <div class="report-table-wrapper table-scrollable">
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th>Variedad</th>
+                  <th class="text-end">Peso (KG)</th>
+                  <th class="text-end">% Aportación</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (v of produccionPorVariedad(); track v.variedad) {
+                <tr>
+                  <td>{{ v.variedad }}</td>
+                  <td class="text-end">{{ v.peso | number: '1.2-2' }}</td>
+                  <td class="text-end"><span class="badge bg-primary">{{ v.porcentaje }}%</span></td>
+                </tr>
+                }
+                @if (produccionPorVariedad().length === 0) {
+                <tr>
+                  <td colspan="3" class="text-center text-muted">Sin datos</td>
+                </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="report-table-total">
+            <span class="total-label">Total</span>
+            <span class="total-value">{{ totalPesoVariedad() | number: '1.2-2' }} kg</span>
+            <span class="total-value">{{ totalPorcentajeVariedad() | number: '1.2-2' }}%</span>
+          </div>
+        </div>
+
+        <div class="report-card chart-card">
+          <div class="report-card-header">
+            <h5>Prod. de Var. Driscoll's y Públicas</h5>
+          </div>
+          <div class="chart-row">
+            <div class="chart-wrapper chart-wrapper-pie">
+              <canvas #chartProdVar></canvas>
+            </div>
+            <div class="report-table-wrapper">
+              <table class="report-table">
+                <thead>
+                  <tr>
+                    <th>Tipo</th>
+                    <th class="text-end">%</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (d of driscollsVsPublicas(); track d.tipo) {
+                  <tr>
+                    <td>{{ d.tipo }}</td>
+                    <td class="text-end"><span class="badge bg-primary">{{ d.porcentaje }}%</span></td>
+                  </tr>
+                  }
+                  @if (driscollsVsPublicas().length === 0) {
+                  <tr>
+                    <td colspan="2" class="text-center text-muted">Sin datos</td>
+                  </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+} @else {
+<div class="sp-card report-offline-state">
+  <div class="sp-card-body">
+    <div class="offline-icon"><i class="bi bi-wifi-off"></i></div>
+    <h4>Sin conexión a internet</h4>
+    <p>El Reporte Semanal solo está disponible en modo online. Conéctate a internet para continuar.</p>
+  </div>
+</div>
+}
