@@ -1,5 +1,5 @@
 .campania-active {
-  background: linear-gradient(135deg, #312e81 0%, #4f46e5 45%, #0ea5e9 100%);
+  background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 52%, #34d399 100%);
   color: #fff;
   border: none;
   position: relative;
@@ -72,13 +72,13 @@
 }
 
 .table tr.is-active {
-  background: rgba(37, 99, 235, 0.10);
+  background: rgba(47, 166, 121, 0.10);
 }
 
 .table tr.is-active td {
-  border-top-color: rgba(37, 99, 235, 0.25);
+  border-top-color: rgba(47, 166, 121, 0.25);
 }
 
 .table tr.is-active .fw-semibold {
-  color: #1d4ed8;
+  color: var(--color-primary-dark);
 }

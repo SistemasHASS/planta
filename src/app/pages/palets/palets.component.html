@@ -1,12 +1,13 @@
+<div class="palets-page">
 <div class="page-title-area">
   <h2><i class="bi bi-box-seam-fill" style="color:var(--color-primary)"></i> Gestión de Palets</h2>
   <p class="page-subtitle">Administra los palets de tus procesos activos</p>
 </div>
 
-<div class="row">
+<div class="row palets-page-row">
   <!-- ═══ Selector de proceso (siempre visible) ═══ -->
   <div class="col-12">
-    <div class="sp-card">
+    <div class="sp-card palets-selector-card">
       <div class="sp-card-header">
         <h5><i class="bi bi-calendar-check"></i> Selecciona un Proceso</h5>
       </div>
@@ -60,7 +61,7 @@
   @if (procesoSeleccionado()) {
   <div class="col-12">
     <!-- Proceso seleccionado: resumen visible -->
-    <div class="sp-card mb-3 palets-proceso-seleccionado">
+    <div class="sp-card mb-3 palets-proceso-seleccionado palets-selected-process-card">
       <div class="sp-card-body" style="padding:12px 14px">
         <div class="d-flex justify-content-between align-items-center flex-wrap" style="gap:10px">
           <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -89,7 +90,7 @@
 
     <div class="row g-3 palets-work-area-row">
       <!-- Columna izquierda: acciones + listado de palets -->
-      <div class="col-lg-4">
+      <div class="col-lg-4 palets-list-column">
         @if (!permissions.esAdmin()) {
         <!-- Card: Crear nuevo palet -->
         <div class="sp-card mb-3">
@@ -207,12 +208,12 @@
       </div>
 
       <!-- Columna derecha: detalle del palet seleccionado -->
-      <div class="col-lg-8">
-        <div class="sp-card">
+      <div class="col-lg-8 palets-detail-column">
+        <div class="sp-card palets-detail-card">
           <div class="sp-card-header">
             <h5><i class="bi bi-box"></i> Detalle del Palet</h5>
           </div>
-          <div class="sp-card-body" id="detallePalet">
+          <div class="sp-card-body palets-detail-body" id="detallePalet">
             @if (paletSeleccionado()) {
             <!-- Cabecera del palet: número + estado -->
             <div class="mb-3">
@@ -308,7 +309,7 @@
               @if (seccionComposicionAbierta()) {
               <div class="accordion-body-custom" style="padding:0">
                 @if (composiciones().length > 0) {
-                <div class="table-responsive table-composiciones-wrapper">
+                <div class="table-responsive table-composiciones-wrapper palets-composiciones-scroll">
                   <table class="table table-hover table-sm mb-0 table-composiciones">
                     <thead>
                       <tr>
@@ -427,6 +428,7 @@
     </div>
   </div>
   }
+</div>
 </div>
 
 <!-- ═══════ MODAL: Agregar/Editar Cajas al Palet ═══════ -->

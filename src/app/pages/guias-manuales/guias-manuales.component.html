@@ -56,7 +56,7 @@
       </div>
       <div class="sp-card-body" style="padding:0;">
         @if (guiasAgrupadas() && guiasAgrupadas().length > 0) {
-        <div class="table-responsive">
+        <div class="table-responsive guias-table-scroll">
           <table class="sp-table guia-table">
             <thead>
               <tr>
@@ -76,7 +76,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (g of guiasAgrupadas(); track g.transactionId_uuid + (g._esGrupo ? '_grupo' : g.codigoGuiaRemision)) {
+              @for (g of guiasPaginadas(); track g.transactionId_uuid + (g._esGrupo ? '_grupo' : g.codigoGuiaRemision)) {
               @if (g._esGrupo) {
               <!-- Grupo: una fila con subfilas limpias -->
               <tr style="border-left:4px solid #16a34a;"
@@ -268,6 +268,20 @@
               }
             </tbody>
           </table>
+        </div>
+        <div class="guias-pagination">
+          <div class="pagination-summary">
+            Mostrando {{ rangoGuiasDesde() }}-{{ rangoGuiasHasta() }} de {{ totalGuiasAgrupadas() }} guías
+          </div>
+          <div class="pagination-actions">
+            <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="paginaActualGuias() <= 1" (click)="paginaGuiasAnterior()">
+              <i class="bi bi-chevron-left"></i> Anterior
+            </button>
+            <span class="pagination-page">Página {{ paginaActualGuias() }} de {{ totalPaginasGuias() }}</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="paginaActualGuias() >= totalPaginasGuias()" (click)="paginaGuiasSiguiente()">
+              Siguiente <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
         </div>
         } @else {
         <div class="empty-guias">

@@ -99,6 +99,40 @@ export class GuiasManualesComponent implements OnInit {
     return result;
   });
 
+  readonly itemsPorPaginaGuias = signal(25);
+  readonly paginaGuias = signal(1);
+  readonly totalGuiasAgrupadas = computed(() => this.guiasAgrupadas().length);
+  readonly totalPaginasGuias = computed(() =>
+    Math.max(1, Math.ceil(this.totalGuiasAgrupadas() / this.itemsPorPaginaGuias()))
+  );
+  readonly paginaActualGuias = computed(() =>
+    Math.min(Math.max(this.paginaGuias(), 1), this.totalPaginasGuias())
+  );
+  readonly guiasPaginadas = computed(() => {
+    const page = this.paginaActualGuias();
+    const size = this.itemsPorPaginaGuias();
+    const start = (page - 1) * size;
+    return this.guiasAgrupadas().slice(start, start + size);
+  });
+  readonly rangoGuiasDesde = computed(() =>
+    this.totalGuiasAgrupadas() === 0 ? 0 : (this.paginaActualGuias() - 1) * this.itemsPorPaginaGuias() + 1
+  );
+  readonly rangoGuiasHasta = computed(() =>
+    Math.min(this.paginaActualGuias() * this.itemsPorPaginaGuias(), this.totalGuiasAgrupadas())
+  );
+
+  setPaginaGuias(page: number): void {
+    this.paginaGuias.set(Math.min(Math.max(page, 1), this.totalPaginasGuias()));
+  }
+
+  paginaGuiasAnterior(): void {
+    this.setPaginaGuias(this.paginaActualGuias() - 1);
+  }
+
+  paginaGuiasSiguiente(): void {
+    this.setPaginaGuias(this.paginaActualGuias() + 1);
+  }
+
   guiaSeleccionada = signal<GuiaRemision | null>(null);
   isLoading = signal(false);
   modalNuevaGuiaAbierto = signal(false);
@@ -162,6 +196,7 @@ export class GuiasManualesComponent implements OnInit {
   }
 
   async onBuscarGuias(): Promise<void> {
+    this.paginaGuias.set(1);
     const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
     if (!idProyecto) {
       await this.cargarConfiguracion();
@@ -1202,7 +1237,6 @@ export class GuiasManualesComponent implements OnInit {
     });
   }
 }
-
 
 
 

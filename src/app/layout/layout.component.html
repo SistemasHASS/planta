@@ -4,68 +4,69 @@
 
   <!-- Sidebar -->
   <aside class="app-sidebar" [class.show]="sidebarOpen()">
-    <!-- Brand -->
-    <a routerLink="/dashboard" class="sidebar-brand" (click)="closeSidebar()">
-      <div class="sidebar-brand-icon"><i class="bi bi-box-seam-fill"></i></div>
-      <div class="sidebar-brand-text">
-        Sistema de Palets
-        <small>Agroexportación</small>
-      </div>
-    </a>
+    <!-- User Header -->
+    <div class="sidebar-header">
+      <button type="button" class="sidebar-mobile-close" aria-label="Cerrar menú" (click)="closeSidebar()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+      <img class="sidebar-profile-image" src="images/favicon.svg" alt="Perfil" />
+      <div class="sidebar-profile-greeting">Hola</div>
+      <div class="sidebar-profile-name" [attr.title]="nombreCompleto()">{{ nombreCompleto() }}</div>
+      <div class="sidebar-profile-role">{{ perfilName() }}</div>
+    </div>
 
-    <!-- Navigation -->
-    <nav class="sidebar-nav">
-      @for (section of navSections(); track $index) {
-        <div class="sidebar-section">
-          @if (section.title) {
-            <div class="sidebar-section-title">{{ section.title }}</div>
-          }
-          @for (item of section.items; track item.path) {
-            @if (item.submenu) {
-              <!-- Item with submenu -->
-              <a [href]="item.path"
-                 class="sidebar-link sidebar-submenu-toggle"
-                 [class.active]="submenuOpen() === item.path"
-                 (click)="toggleSubmenu(item.path); $event.preventDefault()">
-                <i class="bi" [class]="item.icon"></i>
-                <span>{{ item.label }}</span>
-              </a>
-              <div class="sidebar-submenu" [class.show]="submenuOpen() === item.path">
-                @for (subitem of item.submenu; track subitem.path) {
-                  <a [routerLink]="subitem.path"
-                     routerLinkActive="active"
-                     class="sidebar-link"
-                     (click)="closeSidebar()">
-                    <i class="bi" [class]="subitem.icon"></i>
-                    <span>{{ subitem.label }}</span>
-                  </a>
-                }
-              </div>
-            } @else {
-              <!-- Regular item -->
-              <a [routerLink]="item.path"
-                 routerLinkActive="active"
-                 [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' }"
-                 class="sidebar-link"
-                 (click)="closeSidebar()">
-                <i class="bi" [class]="item.icon"></i>
-                <span>{{ item.label }}</span>
-              </a>
+    <div class="sidebar-body">
+      <!-- Navigation -->
+      <nav class="sidebar-nav">
+        @for (section of navSections(); track $index) {
+          <div class="sidebar-section">
+            @if (section.title) {
+              <div class="sidebar-section-title">{{ section.title }}</div>
             }
-          }
-        </div>
-      }
-    </nav>
+            @for (item of section.items; track item.path) {
+              @if (item.submenu) {
+                <!-- Item with submenu -->
+                <a [href]="item.path"
+                   class="sidebar-link sidebar-submenu-toggle"
+                   [class.active]="submenuOpen() === item.path"
+                   (click)="toggleSubmenu(item.path); $event.preventDefault()">
+                  <i class="bi" [class]="item.icon"></i>
+                  <span>{{ item.label }}</span>
+                </a>
+                <div class="sidebar-submenu" [class.show]="submenuOpen() === item.path">
+                  @for (subitem of item.submenu; track subitem.path) {
+                    <a [routerLink]="subitem.path"
+                       routerLinkActive="active"
+                       class="sidebar-link"
+                       (click)="closeSidebar()">
+                      <i class="bi" [class]="subitem.icon"></i>
+                      <span>{{ subitem.label }}</span>
+                    </a>
+                  }
+                </div>
+              } @else {
+                <!-- Regular item -->
+                <a [routerLink]="item.path"
+                   routerLinkActive="active"
+                   [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' }"
+                   class="sidebar-link"
+                   (click)="closeSidebar()">
+                  <i class="bi" [class]="item.icon"></i>
+                  <span>{{ item.label }}</span>
+                </a>
+              }
+            }
+          </div>
+        }
+      </nav>
+    </div>
 
-    <!-- User Footer -->
+    <!-- Footer -->
     <div class="sidebar-footer">
-      <div class="sidebar-user">
-        <div class="sidebar-user-avatar">{{ inicialUsuario() }}</div>
-        <div class="sidebar-user-info">
-          <div class="sidebar-user-name">{{ nombreCompleto() }}</div>
-          <div class="sidebar-user-role">{{ perfil() }}</div>
-        </div>
-      </div>
+      <button type="button" class="sidebar-logout" (click)="logout()">
+        <i class="bi bi-box-arrow-right"></i>
+        Cerrar sesión
+      </button>
     </div>
   </aside>
 
@@ -80,7 +81,7 @@
       <div class="topbar-breadcrumb">
         <a routerLink="/dashboard"><i class="bi bi-house-door"></i></a>
         <span class="separator"><i class="bi bi-chevron-right"></i></span>
-        <span class="current">Sistema de Palets</span>
+        <span class="current">Sistema de Empaque Planta</span>
       </div>
 
       <div class="topbar-right">
@@ -120,7 +121,7 @@
         </button>
 
         <!-- User Dropdown -->
-        <div class="dropdown">
+        <!-- <div class="dropdown">
           <button class="topbar-user-btn dropdown-toggle"
                   type="button"
                   data-bs-toggle="dropdown"
@@ -142,7 +143,7 @@
               </a>
             </li>
           </ul>
-        </div>
+        </div> -->
       </div>
     </div>
 

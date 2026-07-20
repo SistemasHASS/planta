@@ -57,7 +57,7 @@
 }
 
 .campania-active {
-  background: linear-gradient(135deg, #312e81 0%, #4f46e5 45%, #0ea5e9 100%);
+  background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 52%, #34d399 100%);
   color: #fff;
   border: none;
   position: relative;

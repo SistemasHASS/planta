@@ -132,6 +132,7 @@ export class LayoutComponent {
     const sections: { title?: string; items: NavItem[] }[] = [];
     if (p === 'ADMINISTRADOR') { //Administrador
       sections.push({
+        title: 'Configuraciones',
         items: [{ label: 'Parametros', path: '/parametros', icon: 'bi bi-sliders' }]
       });
       // sections.push({
@@ -228,9 +229,11 @@ export class LayoutComponent {
       });
     } else if (p === 'LOGISTICA') { //Logistica
       sections.push({
+        title: 'Configuraciones',
         items: [{ label: 'Parametros', path: '/parametros', icon: 'bi bi-sliders' }]
       });
       sections.push({
+        title: 'Gestión',
         items: [
           // { label: 'Dashboard', path: '/dashboard', icon: 'bi-grid-1x2-fill' },
           { label: 'Procesos', path: '/procesos', icon: 'bi-calendar-event-fill' },
@@ -243,6 +246,7 @@ export class LayoutComponent {
       });
     } else if (p === 'COORDINACION') { //Coordinacion
       sections.push({
+        title: 'Configuraciones',
         items: [{ label: 'Parametros', path: '/parametros', icon: 'bi bi-sliders' }]
       });
       sections.push({
@@ -281,6 +285,7 @@ export class LayoutComponent {
       });
     } else if (p === 'OPERACIONES') { //Operaciones
       sections.push({
+        title: 'Configuraciones',
         items: [{ label: 'Parametros', path: '/parametros', icon: 'bi bi-sliders' }]
       });
       // sections.push({
@@ -302,6 +307,7 @@ export class LayoutComponent {
       // });
     } else {
       sections.push({
+        title: 'Configuraciones',
         items: [{ label: 'Parametros', path: '/parametros', icon: 'bi bi-sliders' }]
       });
       // sections.push({

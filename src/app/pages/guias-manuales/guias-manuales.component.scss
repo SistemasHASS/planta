@@ -409,13 +409,19 @@
 
 /* Table responsive scroll container */
 .table-responsive {
-  overflow-x: auto;
+  overflow: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 #f1f5f9;
 }
 
+.guias-table-scroll {
+  max-height: calc(100vh - 330px);
+  min-height: 320px;
+}
+
 .table-responsive::-webkit-scrollbar {
+  width: 10px;
   height: 10px;
 }
 
@@ -455,6 +461,34 @@
 .col-estado { min-width: 95px; }
 .col-sunat  { min-width: 110px; }
 .col-acc    { min-width: 170px; }
+
+.guias-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-top: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.pagination-summary,
+.pagination-page {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-actions .btn {
+  border-radius: 8px;
+  font-size: 12px;
+}
 
 /* Sticky right columns: Estado + Estado SUNAT + Acciones (desktop only) */
 @media (min-width: 992px) {
@@ -555,6 +589,20 @@
     width: auto;
   }
 
+  .guias-table-scroll {
+    max-height: 58vh;
+    min-height: 280px;
+  }
+
+  .guias-pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pagination-actions {
+    justify-content: space-between;
+  }
+
   .filter-group.filter-actions {
     margin-left: 0;
     justify-content: flex-end;
@@ -581,6 +629,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .pdf-modal .modal-title {
@@ -590,6 +640,24 @@
   align-items: center;
   gap: 8px;
   margin: 0;
+  min-width: 0;
+}
+
+.pdf-modal .modal-header .d-flex {
+  flex: 0 0 auto;
+  gap: 8px !important;
+}
+
+.pdf-modal .modal-header .btn-close {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  padding: 0;
+  margin: 0;
+  border-radius: 999px;
+  opacity: 1;
+  background-size: 14px;
+  background-color: rgba(255, 255, 255, 0.16);
 }
 
 .pdf-modal .modal-content {
@@ -763,8 +831,30 @@
 
   .pdf-modal .modal-content {
     border-radius: 0;
-    max-height: 100vh;
-    height: 100vh;
+    max-height: 100dvh;
+    height: 100dvh;
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .pdf-modal .modal-header {
+    min-height: 52px;
+    padding: 8px 10px;
+  }
+
+  .pdf-modal .modal-title {
+    font-size: 14px;
+  }
+
+  .pdf-modal .modal-header .btn.btn-sm {
+    height: 34px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .pdf-modal .modal-header .btn-close {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
   }
 
   .pdf-container,
