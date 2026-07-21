@@ -374,28 +374,6 @@
   gap: 12px;
 }
 
-.topbar-user-btn {
-  border: 1px solid #e2e8f0;
-  border-radius: 999px;
-  padding: 6px 12px;
-  background: #fff;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.user-avatar-sm {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #e0ecff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  color: #1d4ed8;
-}
-
 .app-content {
   flex: 1;
   min-height: 0;
@@ -484,28 +462,35 @@ button.conn-status {
   box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.14);
 }
 
-.campania-chip .conn-status-icon {
-  color: #2b1f7a;
-  background: radial-gradient(circle at 30% 30%, #d5d2ff, #9b94ff);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
-}
-
 .campania-chip {
   border-color: rgba(79, 70, 229, 0.18);
   background: linear-gradient(135deg, #f6f5ff, #ebe9ff);
 }
 
-.campania-chip:hover {
-  box-shadow:
-    0 10px 22px rgba(79, 70, 229, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+.campania-chip .conn-status-icon {
+  color: #2b1f7a;
+  background: #d5d2ff;
 }
 
-.campania-chip-value {
+.campania-chip-value,
+.topbar-empresa-value {
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.2px;
   color: #1f1b5e;
+}
+
+.topbar-empresa {
+  border-color: rgba(20, 83, 45, 0.18);
+  background: linear-gradient(135deg, #f4fff7, #ecfdf3);
+}
+
+.topbar-empresa .conn-status-icon {
+  color: #14532d;
+  background: #bbf7d0;
+}
+
+.topbar-empresa-value {
+  color: #14532d;
 }
 
 .topbar-acopio .conn-status-icon {
@@ -662,6 +647,7 @@ button.conn-status {
   }
 
   .campania-chip,
+  .topbar-empresa,
   .topbar-acopio {
     flex: 1 1 0;
     min-width: 0;
@@ -681,7 +667,7 @@ button.conn-status {
     overflow: hidden;
   }
 
-  .topbar-right > .conn-status:not(.campania-chip):not(.topbar-acopio) {
+  .topbar-right > .conn-status:not(.campania-chip):not(.topbar-empresa):not(.topbar-acopio) {
     flex: 0 0 36px;
     width: 36px;
     max-width: 36px;
@@ -690,6 +676,7 @@ button.conn-status {
   }
 
   .campania-chip-value,
+  .topbar-empresa-value,
   .topbar-acopio-value {
     display: inline-block !important;
     min-width: 0;
@@ -701,11 +688,13 @@ button.conn-status {
   }
 
   .campania-chip .campania-chip-value.d-none.d-lg-inline,
+  .topbar-empresa .topbar-empresa-value.d-none.d-lg-inline,
   .topbar-acopio .topbar-acopio-value.d-none.d-lg-inline {
     display: none !important;
   }
 
   .campania-chip .campania-chip-value.d-inline.d-lg-none,
+  .topbar-empresa .topbar-empresa-value.d-inline.d-lg-none,
   .topbar-acopio .topbar-acopio-value.d-inline.d-lg-none {
     display: inline-block !important;
   }
@@ -849,19 +838,21 @@ button.conn-status {
   }
 
   .campania-chip,
+  .topbar-empresa,
   .topbar-acopio {
     max-width: none;
   }
 
   .campania-chip {
-    flex: 1 1 auto;
+    flex: 0.8 1 auto;
+    justify-content: center;
   }
 
   .topbar-acopio {
     flex: 1.2 1 auto;
   }
 
-  .topbar-right > .conn-status:not(.campania-chip):not(.topbar-acopio) {
+  .topbar-right > .conn-status:not(.campania-chip):not(.topbar-empresa):not(.topbar-acopio) {
     flex-basis: 34px;
     width: 34px;
     max-width: 34px;
@@ -874,18 +865,9 @@ button.conn-status {
   }
 
   .campania-chip-value,
+  .topbar-empresa-value,
   .topbar-acopio-value {
     font-size: 10.5px;
-  }
-
-  .topbar-user-btn {
-    max-width: 42px;
-    padding: 4px 6px;
-    overflow: hidden;
-  }
-
-  .topbar-user-btn::after {
-    display: none;
   }
 
   .app-footer {

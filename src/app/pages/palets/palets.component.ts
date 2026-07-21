@@ -343,7 +343,6 @@ export class PaletsComponent implements OnInit, OnDestroy {
         const listaProcesos = await this.procesoRepo.procesosRepo.getAll();
         let procesosAbiertos = listaProcesos.filter((p: Proceso) => p.estado === 'ABIERTO');
         this.procesosAbiertos.set(procesosAbiertos);
-
         this.isLoading.set(false);
         return;
       }

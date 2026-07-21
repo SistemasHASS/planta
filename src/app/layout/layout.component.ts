@@ -58,11 +58,16 @@ export class LayoutComponent {
   readonly selectedCampania = signal<Campania | null>(null);
 
   readonly topbarInfoModalAbierto = signal(false);
-  readonly topbarInfoModalTab = signal<'CAMPANIA' | 'ACOPIO'>('CAMPANIA');
+  readonly topbarInfoModalTab = signal<'CAMPANIA' | 'ACOPIO' | 'EMPRESA'>('CAMPANIA');
 
   readonly campaniaFrutaLabel = computed(() => {
     const fruta = String(this.selectedCampania()?.fruta ?? '').trim();
     return fruta ? fruta : null;
+  });
+
+  readonly razonSocialLabel = computed(() => {
+    const razonSocial = String((this.usuario() as any)?.razonSocial ?? '').trim();
+    return razonSocial ? razonSocial : null;
   });
 
   fmtDate(value: unknown): string {
@@ -83,7 +88,14 @@ export class LayoutComponent {
     return `${parts.slice(0, maxWords).join(' ')}...`;
   }
 
-  abrirTopbarModal(tab: 'CAMPANIA' | 'ACOPIO'): void {
+  getRazonSocialResumen(maxWords = 2): string {
+    const razonSocial = String(this.razonSocialLabel() ?? '').trim();
+    const parts = razonSocial.split(/\s+/).filter(Boolean);
+    if (parts.length <= maxWords) return razonSocial;
+    return `${parts.slice(0, maxWords).join(' ')}...`;
+  }
+
+  abrirTopbarModal(tab: 'CAMPANIA' | 'ACOPIO' | 'EMPRESA'): void {
     this.topbarInfoModalTab.set(tab);
     this.topbarInfoModalAbierto.set(true);
   }

@@ -26,6 +26,7 @@ export class ProcesosHistorialTablaComponent {
 
   @Output() reabrir = new EventEmitter<Proceso>();
   @Output() cerrar = new EventEmitter<Proceso>();
+  @Output() editar = new EventEmitter<Proceso>();
 
   modalAbierto = signal(false);
   modalTipo = signal<'SUP' | 'LOG'>('SUP');
@@ -86,5 +87,9 @@ export class ProcesosHistorialTablaComponent {
 
   onCerrar(p: Proceso): void {
     this.cerrar.emit(p);
+  }
+
+  onEditar(p: Proceso): void {
+    this.editar.emit(p);
   }
 }

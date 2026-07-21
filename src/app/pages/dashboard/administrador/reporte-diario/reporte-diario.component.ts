@@ -29,7 +29,8 @@ Chart.register(...registerables);
 type AcopioOption = { codigoAcopio: string; acopioNombre: string; selected: boolean };
 type VariedadItem = { variedadId: string; variedad: string; cajas: number; kg: number; porcentaje: number };
 type AcopioKgItem = { acopio: string; kg: number };
-type ConsignatarioItem = { consignatarioId: string;consignatario: string; cajas: number; kg: number; porcentaje: number };
+type ConsignatarioItem = { consignatarioId: string; destinoId: string; formato: string; consignatario: string; cajas: number; kg: number; porcentaje: number };
+type ConsignatarioChartItem = { consignatarioId: string; consignatario: string; cajas: number; kg: number; porcentaje: number };
 
 interface ReporteData {
   kpis: {
@@ -262,6 +263,14 @@ export class ReporteDiarioComponent implements AfterViewInit, OnDestroy {
     this.acopiosOpen.set(false);
   }
 
+  consignatarioRowKey(item: ConsignatarioItem): string {
+    return [
+      item.consignatarioId,
+      item.destinoId,
+      item.formato,
+    ].map(value => String(value ?? '').trim()).join('|');
+  }
+
   toggleAcopio(item: AcopioOption): void {
     this.acopios.update(list =>
       list.map(a => (a.codigoAcopio === item.codigoAcopio ? { ...a, selected: !a.selected } : a))
@@ -452,8 +461,9 @@ export class ReporteDiarioComponent implements AfterViewInit, OnDestroy {
     if (!canvas) return;
     this.consignatarioChart?.destroy();
 
-    const labels = items.map(i => i.consignatario);
-    const values = items.map(i => i.kg);
+    const chartItems = this.agruparConsignatariosParaGrafico(items);
+    const labels = chartItems.map(i => i.consignatario);
+    const values = chartItems.map(i => i.kg);
     const colors = this.generatePalette(labels.length);
     const totalKg = values.reduce((acc, val) => acc + val, 0);
 
@@ -472,7 +482,7 @@ export class ReporteDiarioComponent implements AfterViewInit, OnDestroy {
             return;
           }
 
-          const item = items[index];
+          const item = chartItems[index];
           const value = values[index];
           const percentage = item?.porcentaje != null
             ? `${item.porcentaje}%`
@@ -518,11 +528,11 @@ export class ReporteDiarioComponent implements AfterViewInit, OnDestroy {
                 const dataset = chart.data.datasets[0];
                 const chartLabels = chart.data.labels as string[];
                 return chart.getDatasetMeta(0).data.map((arc: any, index: number) => {
-                  const item = items[index];
+                  const item = chartItems[index];
                   const value = values[index];
                   const percentage = item?.porcentaje != null
                     ? `${item.porcentaje}%`
-                    : `${((value / totalKg) * 100).toFixed(1)}%`;
+                    : `${(totalKg > 0 ? (value / totalKg) * 100 : 0).toFixed(1)}%`;
                   const label = chartLabels[index] ?? '';
                   return {
                     text: `${label} - ${percentage}`,
@@ -538,7 +548,7 @@ export class ReporteDiarioComponent implements AfterViewInit, OnDestroy {
           tooltip: {
             callbacks: {
               label: (ctx: any) => {
-                const item = items[ctx.dataIndex];
+                const item = chartItems[ctx.dataIndex];
                 return `${item?.consignatario}: ${item?.kg} kg (${item?.porcentaje}%)`;
               },
             },
@@ -547,6 +557,40 @@ export class ReporteDiarioComponent implements AfterViewInit, OnDestroy {
       },
       plugins: [pieLabelsPlugin],
     });
+  }
+
+  private agruparConsignatariosParaGrafico(items: ConsignatarioItem[]): ConsignatarioChartItem[] {
+    const grouped = new Map<string, ConsignatarioChartItem>();
+
+    for (const item of items) {
+      const key = String(item.consignatarioId || item.consignatario || '').trim();
+      if (!key) {
+        continue;
+      }
+
+      const consignatario = String(item.consignatario || item.consignatarioId || '').trim();
+      const current = grouped.get(key);
+      if (current) {
+        current.cajas += Number(item.cajas ?? 0);
+        current.kg += Number(item.kg ?? 0);
+      } else {
+        grouped.set(key, {
+          consignatarioId: key,
+          consignatario,
+          cajas: Number(item.cajas ?? 0),
+          kg: Number(item.kg ?? 0),
+          porcentaje: 0,
+        });
+      }
+    }
+
+    const result = Array.from(grouped.values()).sort((a, b) => b.kg - a.kg);
+    const totalKg = result.reduce((sum, item) => sum + item.kg, 0);
+
+    return result.map(item => ({
+      ...item,
+      porcentaje: totalKg > 0 ? Math.round((item.kg * 1000) / totalKg) / 10 : 0,
+    }));
   }
 
   private generatePalette(count: number): string[] {

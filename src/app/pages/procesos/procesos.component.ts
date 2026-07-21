@@ -69,6 +69,10 @@ export class ProcesosComponent implements OnInit {
   readonly usuario = this.auth.usuario;
   readonly activeCampaniaId = signal<string | null>(null);
 
+  // Modal edición signals
+  modalEdicionAbierto = signal(false);
+  procesoEditando = signal<Proceso | null>(null);
+
   get online(): boolean {
     return this.connectivity.isOnline();
   }
@@ -184,7 +188,8 @@ export class ProcesosComponent implements OnInit {
       idProceso: String(it?.idProceso ?? p.idProceso ?? '').trim(),
       idLogistico: Number(it?.idLogistico ?? 0),
       fechaCreacion: it?.fechaCreacion ?? undefined,
-      db: 1
+      db: 1,
+      eliminado: Number(it?.eliminado ?? 0)
     }));
 
     const dProcesoSupervisores: DProcesoSupervisor[] = (Array.isArray(proceso?.supervisores) ? proceso.supervisores : []).map((it: any) => ({
@@ -192,7 +197,8 @@ export class ProcesosComponent implements OnInit {
       idProceso: String(it?.idProceso ?? p.idProceso ?? '').trim(),
       idSupervisor: Number(it?.idSupervisor ?? 0),
       fechaCreacion: it?.fechaCreacion ?? undefined,
-      db: 1
+      db: 1,
+      eliminado: Number(it?.eliminado ?? 0)
     }));
 
     return { proceso: p, dProcesoLogisticos, dProcesoSupervisores };
@@ -214,8 +220,10 @@ export class ProcesosComponent implements OnInit {
       const idProceso = String(p?.idProceso ?? '').trim();
       if (!idProceso) continue;
 
-      const relSup = await this.procesoRepo.dProcesoSupervisoresRepo.getByFields({ idProceso });
-      const relLog = await this.procesoRepo.dProcesoLogisticosRepo.getByFields({ idProceso });
+      const relSup = (await this.procesoRepo.dProcesoSupervisoresRepo.getByFields({ idProceso }))
+        .filter(r => Number((r as any).eliminado ?? 0) !== 1);
+      const relLog = (await this.procesoRepo.dProcesoLogisticosRepo.getByFields({ idProceso }))
+        .filter(r => Number((r as any).eliminado ?? 0) !== 1);
 
       const supList = (relSup ?? [])
         .map((r) => supById.get(Number((r as any).idSupervisor)))
@@ -454,8 +462,8 @@ export class ProcesosComponent implements OnInit {
   toggleSupervisor(sup: any, checked: boolean, event?: Event): void {
     const current = this.nuevoProceso().supervisores;
     const next = checked
-      ? Array.from(new Set([...current, sup]))
-      : current.filter(x => x !== sup);
+      ? [...current, sup]
+      : current.filter(x => x.id !== sup.id);
     if (next.length > 2) {
       this.alertService.showAlert('Validación', 'Máximo 2 supervisores permitidos', 'warning');
       const input = event?.target as HTMLInputElement | undefined;
@@ -467,7 +475,7 @@ export class ProcesosComponent implements OnInit {
   }
 
   isSupervisorSeleccionado(sup: Supervisor): boolean {
-    return this.nuevoProceso().supervisores.includes(sup);
+    return this.nuevoProceso().supervisores.some(s => s.id === sup.id);
   }
 
   async sincronizar() {
@@ -594,8 +602,8 @@ export class ProcesosComponent implements OnInit {
   toggleLogistico(log: PersonalLogistico, checked: boolean, event?: Event): void {
     const current = this.nuevoProceso().logisticos;
     const next = checked
-      ? Array.from(new Set([...current, log]))
-      : current.filter(x => x !== log);
+      ? [...current, log]
+      : current.filter(x => x.id !== log.id);
     if (next.length > 5) {
       this.alertService.showAlert('Validación', 'Máximo 5 personal de logística permitidos', 'warning');
       const input = event?.target as HTMLInputElement | undefined;
@@ -607,7 +615,7 @@ export class ProcesosComponent implements OnInit {
   }
 
   isLogisticoSeleccionado(log: PersonalLogistico): boolean {
-    return this.nuevoProceso().logisticos.includes(log);
+    return this.nuevoProceso().logisticos.some(l => l.id === log.id);
   }
 
   limpiarNewProceso() {
@@ -924,6 +932,135 @@ export class ProcesosComponent implements OnInit {
       this.alertService.showAlert('Éxito', resp[0].mensaje, 'success');
     }
 
+  }
+
+  async editarProceso(p: Proceso): Promise<void> {
+    const idProceso = String(p?.idProceso ?? '').trim();
+    if (!idProceso) return;
+
+    // Cargar personal actual del proceso en el formulario
+    const sups = this.supPersonalByProceso()[idProceso] ?? [];
+    const logs = this.logPersonalByProceso()[idProceso] ?? [];
+
+    this.nuevoProceso.set({
+      fechaProceso: p.fechaProceso.split('T')[0],
+      turno: p.turno,
+      supervisores: [...sups],
+      logisticos: [...logs]
+    });
+
+    this.procesoEditando.set(p);
+    this.modalEdicionAbierto.set(true);
+
+    // Cargar personal disponible para esa fecha y turno
+    await this.cargarPersonalDisponible();
+
+    // Desbloquear al personal que ya pertenece a este proceso (match por ID)
+    const currentSupsIds = sups.map(s => s.id);
+    this.supervisoresDisponibles.update(list => list.map(s => ({
+      ...s,
+      ocupado: currentSupsIds.includes(s.id) ? false : s.ocupado
+    })));
+
+    const currentLogsIds = logs.map(l => l.id);
+    this.logisticosDisponibles.update(list => list.map(l => ({
+      ...l,
+      ocupado: currentLogsIds.includes(l.id) ? false : l.ocupado
+    })));
+  }
+
+  cerrarModalEdicion(): void {
+    this.modalEdicionAbierto.set(false);
+    this.procesoEditando.set(null);
+    this.limpiarNewProceso();
+  }
+
+  async guardarEdicion(): Promise<void> {
+    const original = this.procesoEditando();
+    if (!original) return;
+
+    const current = this.nuevoProceso();
+    const idProceso = String(original.idProceso ?? '').trim();
+
+    // Obtener los IDs originales
+    const originalSups = this.supPersonalByProceso()[idProceso] ?? [];
+    const originalLogs = this.logPersonalByProceso()[idProceso] ?? [];
+
+    // Construir lista de supervisores para enviar
+    // 1. Los que están seleccionados ahora (eliminado: 0)
+    // 2. Los que estaban antes pero ya no (eliminado: 1)
+    const supsParaEnviar = [
+      ...current.supervisores.map(s => ({
+        idProceso: idProceso,
+        idSupervisor: s.id,
+        eliminado: 0
+      })),
+      ...originalSups
+        .filter(os => !current.supervisores.some(s => s.id === os.id))
+        .map(os => ({
+          idProceso: idProceso,
+          idSupervisor: os.id,
+          eliminado: 1
+        }))
+    ];
+
+    // Construir lista de logísticos para enviar
+    const logsParaEnviar = [
+      ...current.logisticos.map(l => ({
+        idProceso: idProceso,
+        idLogistico: l.id,
+        eliminado: 0
+      })),
+      ...originalLogs
+        .filter(ol => !current.logisticos.some(l => l.id === ol.id))
+        .map(ol => ({
+          idProceso: idProceso,
+          idLogistico: ol.id,
+          eliminado: 1
+        }))
+    ];
+
+    const procesoParaSinc = {
+      ...original,
+      fechaProceso: current.fechaProceso,
+      turno: current.turno,
+      db: 0
+    };
+
+    console.log('DATOS PARA GUARDAR EDICIÓN:', {
+      proceso: procesoParaSinc,
+      logisticos: logsParaEnviar,
+      supervisores: supsParaEnviar
+    });
+
+    this.alertService.mostrarModalCarga();
+
+    try {
+      const resp = await firstValueFrom(
+        this.procesoService.sincronizar(
+          procesoParaSinc,
+          logsParaEnviar,
+          supsParaEnviar,
+          this.savedConfig()?.codigoCultivo ?? '',
+          this.savedConfig()?.idProyecto ?? '',
+          'editar'
+        )
+      );
+
+      if (resp && resp.length > 0 && !resp[0].error) {
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Éxito', 'Proceso actualizado correctamente.', 'success');
+        this.cerrarModalEdicion();
+        await this.listarProcesosApi(); // Recargar lista
+      } else {
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Error', resp?.[0]?.mensaje ?? 'Error al actualizar el proceso.', 'error');
+      }
+    } catch (error) {
+      console.error('Error al guardar edición de proceso', error);
+      this.alertService.cerrarModalCarga();
+      this.alertService.showAlert('Error', 'Ocurrió un error inesperado al guardar.', 'error');
+    }
   }
 
   formatearFechaLarga(fecha: string): string {

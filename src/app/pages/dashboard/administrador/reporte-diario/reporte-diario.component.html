@@ -219,15 +219,19 @@
             <thead>
               <tr>
                 <th>Consignatario</th>
+                <th>Destino</th>
+                <th>Formato</th>
                 <th class="text-end">Cajas</th>
                 <th class="text-end">KG</th>
                 <th class="text-end">%</th>
               </tr>
             </thead>
             <tbody>
-              @for (c of avancePorConsignatario(); track c.consignatarioId) {
+              @for (c of avancePorConsignatario(); track consignatarioRowKey(c)) {
               <tr>
                 <td>{{ c.consignatario }}</td>
+                <td>{{ c.destinoId }}</td>
+                <td>{{ c.formato }}</td>
                 <td class="text-end">{{ c.cajas | number }}</td>
                 <td class="text-end">{{ c.kg | number: '1.2-2' }}</td>
                 <td class="text-end"><span class="badge bg-success">{{ c.porcentaje }}%</span></td>
@@ -235,7 +239,7 @@
               }
               @if (avancePorConsignatario().length === 0) {
               <tr>
-                <td colspan="4" class="text-center text-muted">Sin datos</td>
+                <td colspan="6" class="text-center text-muted">Sin datos</td>
               </tr>
               }
             </tbody>

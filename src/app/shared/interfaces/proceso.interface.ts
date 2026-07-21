@@ -25,7 +25,8 @@ export interface DProcesoLogistico{
   idProceso: string;
   idLogistico: number; 
   fechaCreacion?: string;
-  db?:number
+  db?:number;
+  eliminado?: number;
 }
 
 export interface DProcesoSupervisor{
@@ -33,7 +34,8 @@ export interface DProcesoSupervisor{
   idProceso: string;
   idSupervisor: number;
   fechaCreacion?: string;
-  db?:number
+  db?:number;
+  eliminado?: number;
 }
 
 // supervisores: string | null;

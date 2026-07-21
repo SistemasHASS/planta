@@ -24,7 +24,7 @@
                   <div class="d-flex justify-content-between align-items-center" style="margin-bottom:8px">
                     <h5 class="mb-0" style="font-size:15px">
                       <i class="bi" [class]="p.turno === 'DIA' ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i>
-                      Turno {{ p.turno }}
+                      Turno {{ p.turno }} - ({{p.codigoAcopio}})
                     </h5>
                     <div class="d-flex align-items-center gap-2">
                       @if (procesoSeleccionado()?.id === p.id) {

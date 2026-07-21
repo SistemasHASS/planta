@@ -261,6 +261,7 @@
       [formatearFechaHora]="formatearFechaHora.bind(this)"
       (reabrir)="reabrirProceso($event)"
       (cerrar)="cerrarProceso($event)"
+      (editar)="editarProceso($event)"
     />
     } @else {
     <div class="empty-state"><i class="bi bi-inbox"></i>
@@ -270,3 +271,92 @@
     }
   </div>
 </div>
+
+<!-- ═══════ MODAL EDICIÓN DE PROCESO ═══════ -->
+@if (modalEdicionAbierto()) {
+  <div class="modal-backdrop-custom" (click)="cerrarModalEdicion()"></div>
+  <div class="modal-custom modal-lg" role="dialog" aria-modal="true">
+    <div class="modal-header-custom">
+      <h5><i class="bi bi-pencil-square"></i> Editar Personal del Proceso</h5>
+      <button type="button" class="btn-close btn-close-white" (click)="cerrarModalEdicion()" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body-custom">
+      <div class="sp-card" style="margin-bottom:0">
+        <div class="sp-card-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label"><strong>Fecha del Proceso</strong></label>
+              <input type="date" class="form-control" [ngModel]="nuevoProceso().fechaProceso" disabled>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label"><strong>Turno</strong></label>
+              <input type="text" class="form-control" [ngModel]="nuevoProceso().turno" disabled>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label"><strong>Supervisores</strong> <small class="text-muted">(1 a 2)</small></label>
+            @if (cargandoPersonal()) {
+              <div class="form-select text-muted d-flex align-items-center gap-2" style="min-height:38px">
+                <span class="spinner-border spinner-border-sm"></span> Cargando...
+              </div>
+            } @else if (supervisoresDisponibles().length === 0) {
+              <div class="form-select text-muted" style="min-height:38px">No hay supervisores disponibles</div>
+            } @else {
+              <div class="form-control" style="max-height:160px; overflow:auto; padding:8px">
+                @for (sup of supervisoresDisponibles(); track sup.id) {
+                  <label class="d-flex align-items-center gap-2 mb-1" [style.opacity]="sup.ocupado && !isSupervisorSeleccionado(sup) ? '0.6' : '1'"
+                    [style.cursor]="sup.ocupado && !isSupervisorSeleccionado(sup) ? 'not-allowed' : 'pointer'">
+                    <input type="checkbox" class="form-check-input" [disabled]="sup.ocupado && !isSupervisorSeleccionado(sup)"
+                      [checked]="isSupervisorSeleccionado(sup)"
+                      (change)="toggleSupervisor(sup, $any($event.target).checked, $event)" />
+                    <span [style.fontWeight]="isSupervisorSeleccionado(sup) ? '700' : '400'">
+                      {{ sup.nombreCompleto }}{{ sup.dni && sup.dni !== 'POR-ASIGNAR' ? ' (DNI: ' + sup.dni + ')' : '' }}{{
+                      sup.ocupado && !isSupervisorSeleccionado(sup) ? ' — asignado' : '' }}
+                    </span>
+                  </label>
+                }
+              </div>
+            }
+            <small class="text-muted">Seleccionados: {{ nuevoProceso().supervisores.length }}/2</small>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label"><strong>Personal de Logística</strong> <small class="text-muted">(1 a 5)</small></label>
+            @if (cargandoPersonal()) {
+              <div class="form-select text-muted d-flex align-items-center gap-2" style="min-height:38px">
+                <span class="spinner-border spinner-border-sm"></span> Cargando...
+              </div>
+            } @else if (logisticosDisponibles().length === 0) {
+              <div class="form-select text-muted" style="min-height:38px">No hay personal logístico disponible</div>
+            } @else {
+              <div class="form-control" style="max-height:160px; overflow:auto; padding:8px">
+                @for (log of logisticosDisponibles(); track log.id) {
+                  <label class="d-flex align-items-center gap-2 mb-1" [style.opacity]="log.ocupado && !isLogisticoSeleccionado(log) ? '0.6' : '1'"
+                    [style.cursor]="log.ocupado && !isLogisticoSeleccionado(log) ? 'not-allowed' : 'pointer'">
+                    <input type="checkbox" class="form-check-input" [disabled]="log.ocupado && !isLogisticoSeleccionado(log)"
+                      [checked]="isLogisticoSeleccionado(log)"
+                      (change)="toggleLogistico(log, $any($event.target).checked, $event)" />
+                    <span [style.fontWeight]="isLogisticoSeleccionado(log) ? '700' : '400'">
+                      {{ log.nombreCompleto }}{{ log.dni && log.dni !== 'POR-ASIGNAR' ? ' (DNI: ' + log.dni + ')' : '' }}{{
+                      log.ocupado && !isLogisticoSeleccionado(log) ? ' — asignado' : '' }}
+                    </span>
+                  </label>
+                }
+              </div>
+            }
+            <small class="text-muted">Seleccionados: {{ nuevoProceso().logisticos.length }}/5</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer-custom">
+      <button type="button" class="btn btn-sp-outline" (click)="cerrarModalEdicion()">Cancelar</button>
+      <button type="button" class="btn btn-sp-primary" (click)="guardarEdicion()">
+        <i class="bi bi-save"></i> Guardar Cambios
+      </button>
+    </div>
+  </div>
+}
