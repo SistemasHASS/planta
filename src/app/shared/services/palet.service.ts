@@ -119,4 +119,12 @@ export class PaletService {
     return this.http.post<any>(`${this.apiUrl}/eliminar-composicion`, { composicionId }, { withCredentials: true });
   }
 
+  descargarFichaComposicion(idPalet: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/descargar-ficha-composicion`, {
+      params: { idPalet },
+      responseType: 'blob',
+      withCredentials: true
+    });
+  }
+
 }

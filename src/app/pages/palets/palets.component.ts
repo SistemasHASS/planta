@@ -465,6 +465,27 @@ export class PaletsComponent implements OnInit, OnDestroy {
     }
   }
 
+  async descargarFichaComposicion(palet: any): Promise<void> {
+    if (!palet?.idPalet) return;
+
+    this.alertService.mostrarModalCarga();
+    try {
+      const blob = await firstValueFrom(this.paletService.descargarFichaComposicion(palet.idPalet));
+      this.alertService.cerrarModalCarga();
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `FichaComposicion_${palet.numeroPalet ?? palet.idPalet}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error al descargar ficha de composición', error);
+      this.alertService.cerrarModalCarga();
+      this.alertService.showAlert('Error', 'No se pudo descargar la ficha de composición.', 'error');
+    }
+  }
+
   async onSincronizar(): Promise<void> {
     try {
       if (!this.online) {
