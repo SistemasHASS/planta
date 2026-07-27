@@ -41,12 +41,12 @@ export class LayoutComponent {
 
   readonly sidebarOpen = signal(false);
   readonly perfil = this.auth.perfil;
-  readonly perfilName= computed(() => {
+  readonly perfilName = computed(() => {
     return this.perfil() === 'ADMINISTRADOR' ? 'Administrador' :
-           this.perfil() === 'LOGISTICA' ? 'Logística' :
-           this.perfil() === 'COORDINACION' ? 'Coordinación' :
-           this.perfil() === 'OPERACIONES' ? 'Operaciones' :
-           (this.perfil() ?? '');
+      this.perfil() === 'LOGISTICA' ? 'Logística' :
+        this.perfil() === 'COORDINACION' ? 'Coordinación' :
+          this.perfil() === 'OPERACIONES' ? 'Operaciones' :
+            (this.perfil() ?? '');
   })
   readonly nombreCompleto = this.auth.nombreCompleto;
   readonly inicialUsuario = this.auth.inicialUsuario;
@@ -257,49 +257,49 @@ export class LayoutComponent {
         ]
       });
     } else if (p === 'COORDINACION') { //Coordinacion
-      sections.push({
-        title: 'Configuraciones',
-        items: [{ label: 'Parametros', path: '/parametros', icon: 'bi bi-sliders' }]
-      });
-      sections.push({
-        items: [
-          // { label: 'Dashboard', path: '/dashboard', icon: 'bi-grid-1x2-fill' },
-          { label: 'Procesos', path: '/procesos', icon: 'bi-calendar-event-fill' },
-          // { label: 'Documentación', path: '/despacho', icon: 'bi-clipboard-check-fill' },
-          // { label: 'Alertas Despacho', path: '/alertas-despacho', icon: 'bi-alarm-fill' },
-          // { label: 'Generar Excel', path: '/excel-export', icon: 'bi-file-earmark-spreadsheet-fill' },
-          // { label: 'Reporte Diario', path: '/reportes-dashboard', icon: 'bi-bar-chart-line-fill' },
-          // {
-          //   label: 'Reportes Generales',
-          //   path: '#reportes-generales',
-          //   icon: 'bi-file-earmark-bar-graph-fill',
-          //   submenu: [
-          //     { label: 'Semana', path: '/reportes-secundarios#tabSemana', icon: 'bi-dot' },
-          //     { label: 'Campaña', path: '/reportes-secundarios#tabCampania', icon: 'bi-dot' },
-          //     { label: 'Comparativo', path: '/reportes-secundarios#tabComparativo', icon: 'bi-dot' },
-          //   ]
-          // },
-          // {
-          //   label: 'Reportes Detallados',
-          //   path: '#reportes-detallados',
-          //   icon: 'bi-clipboard-data-fill',
-          //   submenu: [
-          //     { label: 'Producción por Día', path: '/reportes-detallados#tabProdDia', icon: 'bi-dot' },
-          //     { label: 'Producción por Acopio', path: '/reportes-detallados#tabProdAcopio', icon: 'bi-dot' },
-          //     { label: 'KG por Destino', path: '/reportes-detallados#tabKgDestino', icon: 'bi-dot' },
-          //     { label: 'Despachos (Guías)', path: '/reportes-detallados#tabDespachos', icon: 'bi-dot' },
-          //     { label: 'Formatos x Consignatario', path: '/reportes-detallados#tabFormatos', icon: 'bi-dot' },
-          //     { label: 'Sobrepeso', path: '/reportes-detallados#tabSobrepeso', icon: 'bi-dot' },
-          //     { label: 'Reposiciones', path: '/reportes-detallados#tabReposiciones', icon: 'bi-dot' },
-          //   ]
-          // },
-        ]
-      });
+      // sections.push({
+      //   title: 'Configuraciones',
+      //   items: [{ label: 'Parametros', path: '/parametros', icon: 'bi bi-sliders' }]
+      // });
+      // sections.push({
+      //   items: [
+      //     // { label: 'Dashboard', path: '/dashboard', icon: 'bi-grid-1x2-fill' },
+      //     { label: 'Procesos', path: '/procesos', icon: 'bi-calendar-event-fill' },
+      //     // { label: 'Documentación', path: '/despacho', icon: 'bi-clipboard-check-fill' },
+      //     // { label: 'Alertas Despacho', path: '/alertas-despacho', icon: 'bi-alarm-fill' },
+      //     // { label: 'Generar Excel', path: '/excel-export', icon: 'bi-file-earmark-spreadsheet-fill' },
+      //     // { label: 'Reporte Diario', path: '/reportes-dashboard', icon: 'bi-bar-chart-line-fill' },
+      //     // {
+      //     //   label: 'Reportes Generales',
+      //     //   path: '#reportes-generales',
+      //     //   icon: 'bi-file-earmark-bar-graph-fill',
+      //     //   submenu: [
+      //     //     { label: 'Semana', path: '/reportes-secundarios#tabSemana', icon: 'bi-dot' },
+      //     //     { label: 'Campaña', path: '/reportes-secundarios#tabCampania', icon: 'bi-dot' },
+      //     //     { label: 'Comparativo', path: '/reportes-secundarios#tabComparativo', icon: 'bi-dot' },
+      //     //   ]
+      //     // },
+      //     // {
+      //     //   label: 'Reportes Detallados',
+      //     //   path: '#reportes-detallados',
+      //     //   icon: 'bi-clipboard-data-fill',
+      //     //   submenu: [
+      //     //     { label: 'Producción por Día', path: '/reportes-detallados#tabProdDia', icon: 'bi-dot' },
+      //     //     { label: 'Producción por Acopio', path: '/reportes-detallados#tabProdAcopio', icon: 'bi-dot' },
+      //     //     { label: 'KG por Destino', path: '/reportes-detallados#tabKgDestino', icon: 'bi-dot' },
+      //     //     { label: 'Despachos (Guías)', path: '/reportes-detallados#tabDespachos', icon: 'bi-dot' },
+      //     //     { label: 'Formatos x Consignatario', path: '/reportes-detallados#tabFormatos', icon: 'bi-dot' },
+      //     //     { label: 'Sobrepeso', path: '/reportes-detallados#tabSobrepeso', icon: 'bi-dot' },
+      //     //     { label: 'Reposiciones', path: '/reportes-detallados#tabReposiciones', icon: 'bi-dot' },
+      //     //   ]
+      //     // },
+      //   ]
+      // });
     } else if (p === 'OPERACIONES') { //Operaciones
-      sections.push({
-        title: 'Configuraciones',
-        items: [{ label: 'Parametros', path: '/parametros', icon: 'bi bi-sliders' }]
-      });
+      // sections.push({
+      //   title: 'Configuraciones',
+      //   items: [{ label: 'Parametros', path: '/parametros', icon: 'bi bi-sliders' }]
+      // });
       // sections.push({
       //   title: 'Reportes',
       //   items: [
@@ -317,11 +317,38 @@ export class LayoutComponent {
       //     { label: 'Generar Excel', path: '/excel-export', icon: 'bi-file-earmark-spreadsheet-fill' },
       //   ]
       // });
-    } else {
+    } else if (p === 'MONITOR') {
       sections.push({
         title: 'Configuraciones',
         items: [{ label: 'Parametros', path: '/parametros', icon: 'bi bi-sliders' }]
       });
+      sections.push({
+        title: 'Gestión',
+        items: [
+          { label: 'Despachos / Guías', path: '/guias', icon: 'bi-truck' },
+          { label: 'Guías Manuales', path: '/guias-manuales', icon: 'bi bi-pencil-square' },
+        ]
+      });
+      sections.push({
+        title: 'Reportes',
+        items: [
+          { label: 'Reporte Diario', path: '/reportes-dashboard-diario', icon: 'bi-bar-chart-line-fill' },
+          {
+            label: 'Reportes Generales',
+            path: '#reportes-generales',
+            icon: 'bi-file-earmark-bar-graph-fill',
+            submenu: [
+              { label: 'Semana', path: '/reporte-semanal', icon: 'bi-dot' },
+              { label: 'Campaña', path: '/reporte-campania', icon: 'bi-dot' },
+            ]
+          }
+        ]
+      });
+    } else {
+      // sections.push({
+      //   title: 'Configuraciones',
+      //   items: [{ label: 'Parametros', path: '/parametros', icon: 'bi bi-sliders' }]
+      // });
       // sections.push({
       //   items: [
       //     { label: 'Dashboard', path: '/dashboard', icon: 'bi-grid-1x2-fill' },

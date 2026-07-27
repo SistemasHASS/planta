@@ -190,7 +190,9 @@
         <span class="total-label">Total</span>
         <span class="total-value">{{ totalCajasVariedad() | number }}</span>
         <span class="total-value">{{ totalKgVariedad() | number: '1.2-2' }} kg</span>
-        <span class="total-value">{{ totalPorcentajeVariedad() | number: '1.2-2' }}%</span>
+        <!-- <span class="total-value">{{ totalPorcentajeVariedad() | number: '1.2-2' }}%</span> -->
+        <span class="total-value">{{ 100 | number: '1.2-2' }}%</span>
+
       </div>
       <!-- <div class="chart-wrapper">
         <canvas #chartVariedad></canvas>

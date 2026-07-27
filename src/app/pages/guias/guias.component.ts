@@ -56,7 +56,7 @@ export class GuiasComponent implements OnInit {
   }
 
   readonly onlineSignal = computed(() => this.connectivity.isOnline());
-  readonly esAdmin = computed(() => this.auth.perfil() === 'ADMINISTRADOR');
+  readonly esAdmin = computed(() => this.auth.perfil() === 'ADMINISTRADOR' || this.auth.perfil() === 'MONITOR');
 
   get tieneGuiasNoSincronizadas(): boolean {
     return this.guias().some((g: any) => g?.sincroniza === 'no_sincronizado');

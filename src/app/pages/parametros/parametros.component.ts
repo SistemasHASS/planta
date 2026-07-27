@@ -531,6 +531,7 @@ export class ParametrosComponent implements OnInit {
             let tareas: any = [];
             switch (this.usuario()?.idRol) {
                 case 'ADPLA': //admin
+                case 'MOPLA':
                     tareas = [
                         this.getAcopiosMaestros(),
                         this.getTipoProcesoEmpacado(parametros[0].idProyecto),
