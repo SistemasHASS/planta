@@ -376,20 +376,23 @@ export class PaletsComponent implements OnInit, OnDestroy {
     const idProceso = String(idproceso ?? '').trim();
     if (!idProceso) {
       this.palets.set([]);
+      this.alertService.cerrarModalCarga();
       return;
     }
-    const showLoading = options?.showLoading ?? true;
-    if (showLoading) this.alertService.mostrarModalCarga();
+    // const showLoading = options?.showLoading ?? true;
+    // if (showLoading) this.alertService.mostrarModalCarga();
     try {
       if (this.online) {
         const resp = await firstValueFrom(this.paletService.listarPaletPorProceso(idProceso));
         if (!resp?.length) {
+          this.alertService.cerrarModalCarga();
           this.alertService.showAlert('Error', 'Error al obtener los palets del proceso', 'error');
           return;
         }
 
         const first = resp[0] as any;
         if (first?.error) {
+          this.alertService.cerrarModalCarga();
           this.alertService.showAlert('Error', first?.mensaje ?? 'Error al obtener los palets del proceso', 'error');
           return;
         }
@@ -411,20 +414,20 @@ export class PaletsComponent implements OnInit, OnDestroy {
 
       const paletsDb = await this.procesoRepo.paletsRepo.getByIdProceso(idProceso);
       const activos = (paletsDb ?? []).filter((p: any) => !(p as any)?.eliminado);
-      const ordenados = activos.slice().sort((a: any, b: any) => {
-        const ak = String(a?.idPalet ?? '').trim();
-        const bk = String(b?.idPalet ?? '').trim();
-        if (ak && bk) return bk.localeCompare(ak);
-        if (ak) return 1;
-        if (bk) return -1;
-        return Number(a?.id ?? 0) - Number(b?.id ?? 0);
-      });
-      this.palets.set(ordenados);
+      // const ordenados = activos.slice().sort((a: any, b: any) => {
+      //   const ak = String(a?.idPalet ?? '').trim();
+      //   const bk = String(b?.idPalet ?? '').trim(); 
+      //   if (ak && bk) return bk.localeCompare(ak);
+      //   if (ak) return 1;
+      //   if (bk) return -1;
+      //   return Number(a?.id ?? 0) - Number(b?.id ?? 0);
+      // });
+      this.palets.set(activos);
+      this.alertService.cerrarModalCarga();
     } catch (error: any) {
       console.log(error);
+      this.alertService.cerrarModalCarga();
       this.alertService.showAlert('Error', `${error?.error?.message ?? 'Error al obtener los palets del proceso'}`, 'error');
-    } finally {
-      if (showLoading) this.alertService.cerrarModalCarga();
     }
   }
 
@@ -647,12 +650,11 @@ export class PaletsComponent implements OnInit, OnDestroy {
     this.paletSeleccionado.set(null);
     this.composiciones.set([]);
     this.isLoading.set(true);
-
+    this.alertService.cerrarModalCarga();
     await this.listarPaletsForProceso(p.idProceso, { showLoading: false })
 
     //======================================
     this.isLoading.set(false);
-    this.alertService.cerrarModalCarga();
   }
 
   cambiarProceso(): void {
@@ -1021,7 +1023,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     if (!palet || !dpaletOriginal) return;
 
     const f = this.formCajas();
-    if (!f.consignatarioId || !f.destinoId || !f.formatoId || !f.variedadId || !f.cantidadCajas) {
+    if (!f.tipoProcesoEmpacadoId || !f.consignatarioId || !f.destinoId || !f.formatoId || !f.variedadId || !f.cantidadCajas) {
       this.alertService.showAlert('Validacion', 'Complete todos los campos requeridos', 'warning'); return;
     }
     if (!f.tipoEmpaqueGuiaId || !f.tipoCajaId || !f.tipoClamshellId) {
@@ -1350,7 +1352,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     if (!palet) return;
 
     const f = this.formCajas();
-    if (!f.consignatarioId || !f.destinoId || !f.formatoId || !f.variedadId || !f.cantidadCajas) {
+    if (!f.tipoProcesoEmpacadoId || !f.consignatarioId || !f.destinoId || !f.formatoId || !f.variedadId || !f.cantidadCajas) {
       this.alertService.showAlert('Validación', 'Complete todos los campos requeridos', 'warning');
       return;
     }
@@ -1746,21 +1748,31 @@ export class PaletsComponent implements OnInit, OnDestroy {
 
     if (this.online) {
       try {
-        await firstValueFrom(this.paletService.sincronizar(paletReabierto));
-        await this.procesoRepo.paletsRepo.saveByIdPalet(paletReabierto);
+        const resp = await firstValueFrom(this.paletService.sincronizar(paletReabierto));
+        const first = resp?.[0] as any;
+        const resultData = first?.data?.[0];
 
-        this.paletSeleccionado.set(paletReabierto);
-        this.palets.update(palets =>
-          palets.map(p => {
-            const pk = String(p?.idPalet ?? '').trim();
-            const uk = String(paletReabierto?.idPalet ?? '').trim();
-            return pk && uk && pk === uk ? paletReabierto : p;
-          })
-        );
+        if (resultData && !resultData.success) {
+          this.alertService.cerrarModalCarga();
+          await this.listarPaletsForProceso(palet.idProceso);
+          this.alertService.showAlertAcept('Error', resultData.mensaje || 'No se pudo reabrir el palet', 'error');
+          // Forzamos recarga desde API para asegurar que la UI refleje el estado real del servidor
+          return;
+        }
+
+        await this.procesoRepo.paletsRepo.saveByIdPalet(paletReabierto);
+        
+        // Forzamos recarga desde API para obtener el estado oficial
+        await this.listarPaletsForProceso(palet.idProceso);
 
         this.alertService.cerrarModalCarga();
         this.alertService.showAlert('Éxito', 'Palet reabierto correctamente', 'success');
-        await this.verDetalle(paletReabierto);
+
+        // Buscar el palet actualizado en la lista para ver su detalle
+        const actualizado = this.palets().find(p => String(p.idPalet).trim() === String(palet.idPalet).trim());
+        if (actualizado) {
+          await this.verDetalle(actualizado);
+        }
       } catch (err) {
         console.error('Error reabriendo palet online:', err);
         this.alertService.cerrarModalCarga();
