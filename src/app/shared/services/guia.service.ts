@@ -102,10 +102,11 @@ export class GuiaService {
     return this.http.get<any>(`${this.apiUrl}/consultar-estado-sunat`, { params, withCredentials: true });
   }
 
-  anularGuiaRemision(idProyecto: string, codigoGuiaRemision: string): Observable<any> {
+  anularGuiaRemision(idProyecto: string, codigoGuiaRemision: string, codigoAcopio: string): Observable<any> {
     const params = new HttpParams()
       .set('idProyecto', idProyecto)
-      .set('codigoGuiaRemision', codigoGuiaRemision);
+      .set('codigoGuiaRemision', codigoGuiaRemision)
+      .set('codigoAcopio', codigoAcopio);
     return this.http.get<any>(`${this.apiUrl}/anular-guia-remision`, { params, withCredentials: true });
   }
 

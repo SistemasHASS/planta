@@ -662,14 +662,15 @@ export class GuiasComponent implements OnInit {
 
     const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
     const codigoGuiaRemision = String(g?.codigoGuiaRemision ?? '').trim();
-    if (!idProyecto || !codigoGuiaRemision) {
+    const codigoAcopio = String(g?.codigoAcopio ?? '').trim();
+    if (!idProyecto || !codigoGuiaRemision ) {
       this.alertService.showAlert('Error', 'No se pudo obtener la información de la guía.', 'error');
       return;
     }
 
     this.alertService.mostrarModalCarga();
     try {
-      let resp: any = await firstValueFrom(this.guiaService.anularGuiaRemision(idProyecto, codigoGuiaRemision));
+      let resp: any = await firstValueFrom(this.guiaService.anularGuiaRemision(idProyecto, codigoGuiaRemision,codigoAcopio));
       if (Array.isArray(resp) && resp.length > 0) {
         resp = resp[0];
       }
@@ -833,9 +834,10 @@ export class GuiasComponent implements OnInit {
       this.alertService.showAlert('Error', 'No se pudo obtener el código de guía.', 'error');
       return;
     }
+    const codigoAcopio = String(primeraGuia?.codigoAcopio ?? '').trim();
     this.alertService.mostrarModalCarga();
     try {
-      let resp: any = await firstValueFrom(this.guiaService.anularGuiaRemision(idProyecto, codigo));
+      let resp: any = await firstValueFrom(this.guiaService.anularGuiaRemision(idProyecto, codigo,codigoAcopio));
       if (Array.isArray(resp) && resp.length > 0) resp = resp[0];
       this.alertService.cerrarModalCarga();
       if (resp?.error) {

@@ -5,6 +5,7 @@ export interface GuiaRemision {
   transactionId_uuid: string;
   serie?: string;
   numero?: string;
+  codigoAcopio?: string;
   codigoProceso: string;
   nombreProceso?:string;
   documentoDestinatario: string;
