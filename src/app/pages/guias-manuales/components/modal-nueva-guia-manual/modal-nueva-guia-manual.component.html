@@ -62,9 +62,23 @@
             <label class="form-label" style="font-size:11px;font-weight:700">Fecha Entrega Bienes <span class="text-danger">*</span></label>
             <input type="date" class="form-control form-control-sm" [class.is-invalid]="isInvalid('fechaEntregaBienes')" [ngModel]="form().fechaEntregaBienes" (ngModelChange)="updateField('fechaEntregaBienes', $event)">
           </div>
+          @if (esTrasladoEntreEstablecimientos()) {
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:11px;font-weight:700">Establecimiento partida <span class="text-danger">*</span></label>
+            <div [class.select-invalid]="isInvalidEstablecimientoPartida()">
+              <app-advanced-select
+                placeholder="Seleccione establecimiento..."
+                [itemsInput]="getEstablecimientosPartida()"
+                idField="idEstablecimiento"
+                [labelFields]="['idEstablecimiento','descripcion','direccion']"
+                [value]="form().idEstablecimientoPartida"
+                (valueChange)="updateField('establecimientoPartidaId', $event)" />
+            </div>
+          </div>
+          }
           <div class="col-md-6">
             <label class="form-label" style="font-size:11px;font-weight:700">Punto Partida <span class="text-danger">*</span></label>
-            <input type="text" class="form-control form-control-sm" [class.is-invalid]="isInvalid('puntoPartida')" [ngModel]="form().puntoPartida" (ngModelChange)="updateField('puntoPartida', $event)" placeholder="Punto de partida">
+            <input type="text" class="form-control form-control-sm" [class.is-invalid]="isInvalid('puntoPartida')" [ngModel]="form().puntoPartida" (ngModelChange)="updateField('puntoPartida', $event)" placeholder="Punto de partida" [readonly]="esTrasladoEntreEstablecimientos()">
           </div>
           <div class="col-md-6">
             <label class="form-label" style="font-size:11px;font-weight:700">Ubigeo Partida <span class="text-danger">*</span></label>
@@ -76,6 +90,7 @@
                   [labelFields]="['nombreDepartamento']"
                   placeholder="Dep."
                   [value]="form().departamentoPartida"
+                  [disabled]="esTrasladoEntreEstablecimientos()"
                   (valueChange)="updateField('departamentoPartida', $event)">
                 </app-advanced-select>
               </div>
@@ -86,6 +101,7 @@
                   [labelFields]="['nombreProvincia']"
                   placeholder="Prov."
                   [value]="form().provinciaPartida"
+                  [disabled]="esTrasladoEntreEstablecimientos()"
                   (valueChange)="updateField('provinciaPartida', $event)">
                 </app-advanced-select>
               </div>
@@ -96,6 +112,7 @@
                   [labelFields]="['nombreDistrito']"
                   placeholder="Dist."
                   [value]="form().distritoPartida"
+                  [disabled]="esTrasladoEntreEstablecimientos()"
                   (valueChange)="updateField('distritoPartida', $event)">
                 </app-advanced-select>
               </div>
@@ -147,6 +164,7 @@
                   [labelFields]="['nombreDepartamento']"
                   placeholder="Dep."
                   [value]="form().departamentoLlegada"
+                  [disabled]="esTrasladoEntreEstablecimientos()"
                   (valueChange)="updateField('departamentoLlegada', $event)">
                 </app-advanced-select>
               </div>
@@ -157,6 +175,7 @@
                   [labelFields]="['nombreProvincia']"
                   placeholder="Prov."
                   [value]="form().provinciaLlegada"
+                  [disabled]="esTrasladoEntreEstablecimientos()"
                   (valueChange)="updateField('provinciaLlegada', $event)">
                 </app-advanced-select>
               </div>
@@ -167,6 +186,7 @@
                   [labelFields]="['nombreDistrito']"
                   placeholder="Dist."
                   [value]="form().distritoLlegada"
+                  [disabled]="esTrasladoEntreEstablecimientos()"
                   (valueChange)="updateField('distritoLlegada', $event)">
                 </app-advanced-select>
               </div>

@@ -155,11 +155,12 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
   readonly formularioValido = computed(() => {
     const f = this.form();
     return !!(
-      (this.esTrasladoEntreEstablecimientos() ? this.establecimientoDestinoId() : f.destinatarioId) &&
+      (this.esTrasladoEntreEstablecimientos() ? f.idEstablecimientoPartida?.trim() && this.establecimientoDestinoId() : f.destinatarioId) &&
       f.puntoPartida?.trim() &&
       f.puntoLlegada?.trim() &&
       f.idEstablecimientoPartida?.trim() &&
       (!this.esTrasladoEntreEstablecimientos() || f.idEstablecimientoLlegada?.trim()) &&
+      (!this.esTrasladoEntreEstablecimientos() || this.establecimientosTrasladoDiferentes()) &&
       f.transportistaId &&
       f.conductorId &&
       f.vehiculoId &&
@@ -227,6 +228,7 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
       const ubigeoPartida = String(g.ubigeoPartida ?? datosEmisor.ubigeo).trim();
       const ubigeoLlegada = String(g.ubigeoLlegada ?? '').trim();
       const motivoTraslado = String(g.motivoTraslado ?? '13').trim();
+      const idEstablecimientoPartida = String(g.idEstablecimientoPartida ?? datosEmisor.idEstablecimiento).trim();
       const idEstablecimientoLlegada = String(g.idEstablecimientoLlegada ?? '').trim();
       this.establecimientoDestinoId.set(motivoTraslado === '04' ? idEstablecimientoLlegada : '');
       this.form.set({
@@ -235,7 +237,7 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
         puntoLlegada: g.puntoLlegada ?? '',
         ubigeoPartida: ubigeoPartida,
         ubigeoLlegada: ubigeoLlegada,
-        idEstablecimientoPartida: String(g.idEstablecimientoPartida ?? datosEmisor.idEstablecimiento).trim(),
+        idEstablecimientoPartida,
         idEstablecimientoLlegada,
         departamentoPartida: ubigeoPartida.substring(0, 2),
         provinciaPartida: ubigeoPartida.substring(2, 4),
@@ -258,6 +260,7 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
       if (motivoTraslado === '09' && this.form().tipoLocacionId) {
         void this.loadLocacionesTraslado(this.form().tipoLocacionId);
       }
+      this.aplicarEstablecimientosTrasladoSeleccionados();
       this.detalle.set(Array.isArray(g.detalleManual) ? g.detalleManual.map((d: any) => ({
         codigo: String(d.codigoItem ?? '0000000'),
         descripcion: d.descripcion ?? '',
@@ -270,6 +273,10 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
 
     if (changes['establecimientoEmisor'] && !this.modoEdicion && this.establecimientoEmisor) {
       this.aplicarEstablecimientoEmisor();
+    }
+
+    if (changes['establecimientos'] && this.esTrasladoEntreEstablecimientos()) {
+      this.aplicarEstablecimientosTrasladoSeleccionados();
     }
   }
 
@@ -336,15 +343,32 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
   }
 
   isInvalidEstablecimientoDestino(): boolean {
-    return this.submitAttempted() && this.esTrasladoEntreEstablecimientos() && !this.establecimientoDestinoId();
+    return this.submitAttempted() && this.esTrasladoEntreEstablecimientos() && (
+      !this.establecimientoDestinoId() || !this.establecimientosTrasladoDiferentes()
+    );
+  }
+
+  isInvalidEstablecimientoPartida(): boolean {
+    return this.submitAttempted() && this.esTrasladoEntreEstablecimientos() && !this.form().idEstablecimientoPartida?.trim();
+  }
+
+  getEstablecimientosPartida(): any[] {
+    return (this.establecimientos ?? []).filter((e: any) => String(e?.idEstablecimiento ?? '').trim());
   }
 
   getEstablecimientosDestino(): any[] {
-    const origen = String(this.establecimientoEmisor?.idEstablecimiento ?? '').trim();
+    const origen = String(this.form().idEstablecimientoPartida ?? '').trim();
     return (this.establecimientos ?? []).filter((e: any) => {
       const idEstablecimiento = String(e?.idEstablecimiento ?? '').trim();
       return idEstablecimiento && idEstablecimiento !== origen;
     });
+  }
+
+  establecimientosTrasladoDiferentes(): boolean {
+    if (!this.esTrasladoEntreEstablecimientos()) return true;
+    const partida = String(this.form().idEstablecimientoPartida ?? '').trim();
+    const llegada = String(this.form().idEstablecimientoLlegada ?? '').trim();
+    return !!partida && !!llegada && partida !== llegada;
   }
 
   isInvalidDescripcionMotivoTraslado(): boolean {
@@ -521,6 +545,33 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
       }));
       return;
     }
+    if (field === 'establecimientoPartidaId') {
+      const id = String(value ?? '').trim();
+      const establecimiento = this.getEstablecimientosPartida().find((e: any) => String(e?.idEstablecimiento ?? '').trim() === id);
+      const puntoPartida = String(establecimiento?.direccion ?? '').trim();
+      const ubigeoPartida = String(establecimiento?.codigoUbigeo ?? '').trim();
+
+      this.form.update(f => {
+        const destinoIgual = id && id === String(f.idEstablecimientoLlegada ?? '').trim();
+        if (destinoIgual) this.establecimientoDestinoId.set('');
+        return {
+          ...f,
+          puntoPartida,
+          ubigeoPartida,
+          idEstablecimientoPartida: id,
+          departamentoPartida: ubigeoPartida.substring(0, 2),
+          provinciaPartida: ubigeoPartida.substring(2, 4),
+          distritoPartida: ubigeoPartida,
+          puntoLlegada: destinoIgual ? '' : f.puntoLlegada,
+          ubigeoLlegada: destinoIgual ? '' : f.ubigeoLlegada,
+          idEstablecimientoLlegada: destinoIgual ? '' : f.idEstablecimientoLlegada,
+          departamentoLlegada: destinoIgual ? '' : f.departamentoLlegada,
+          provinciaLlegada: destinoIgual ? '' : f.provinciaLlegada,
+          distritoLlegada: destinoIgual ? '' : f.distritoLlegada,
+        };
+      });
+      return;
+    }
     if (field === 'establecimientoDestinoId') {
       const id = String(value ?? '').trim();
       const establecimiento = this.getEstablecimientosDestino().find((e: any) => String(e?.idEstablecimiento ?? '').trim() === id);
@@ -583,6 +634,8 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
   }
 
   private limpiarCamposPorCambioMotivo(motivo: string): void {
+    const datosEmisor = this.getDatosEstablecimientoEmisor();
+    const usarPartidaPorDefecto = motivo !== '04';
     this.establecimientoDestinoId.set('');
     this.detalle.set([]);
     this.detalleSubmitAttempted.set(false);
@@ -595,6 +648,12 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
       tipoLocacionId: '',
       codigoLocacion: '',
       destinatarioId: '',
+      puntoPartida: usarPartidaPorDefecto ? datosEmisor.direccion : '',
+      ubigeoPartida: usarPartidaPorDefecto ? datosEmisor.ubigeo : '',
+      idEstablecimientoPartida: usarPartidaPorDefecto ? datosEmisor.idEstablecimiento : '',
+      departamentoPartida: usarPartidaPorDefecto ? datosEmisor.ubigeo.substring(0, 2) : '',
+      provinciaPartida: usarPartidaPorDefecto ? datosEmisor.ubigeo.substring(2, 4) : '',
+      distritoPartida: usarPartidaPorDefecto ? datosEmisor.ubigeo : '',
       puntoLlegada: '',
       ubigeoLlegada: '',
       idEstablecimientoLlegada: '',
@@ -607,6 +666,40 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
       precinto: '',
       observacionesUsuario: '',
     }));
+  }
+
+  private aplicarEstablecimientosTrasladoSeleccionados(): void {
+    if (!this.esTrasladoEntreEstablecimientos()) return;
+    const f = this.form();
+    const partida = this.getEstablecimientoPorId(f.idEstablecimientoPartida);
+    const llegada = this.getEstablecimientoPorId(f.idEstablecimientoLlegada);
+
+    if (!partida && !llegada) return;
+
+    const puntoPartida = String(partida?.direccion ?? f.puntoPartida ?? '').trim();
+    const ubigeoPartida = String(partida?.codigoUbigeo ?? f.ubigeoPartida ?? '').trim();
+    const puntoLlegada = String(llegada?.direccion ?? f.puntoLlegada ?? '').trim();
+    const ubigeoLlegada = String(llegada?.codigoUbigeo ?? f.ubigeoLlegada ?? '').trim();
+
+    this.form.update(curr => ({
+      ...curr,
+      puntoPartida,
+      ubigeoPartida,
+      departamentoPartida: ubigeoPartida.substring(0, 2),
+      provinciaPartida: ubigeoPartida.substring(2, 4),
+      distritoPartida: ubigeoPartida,
+      puntoLlegada,
+      ubigeoLlegada,
+      departamentoLlegada: ubigeoLlegada.substring(0, 2),
+      provinciaLlegada: ubigeoLlegada.substring(2, 4),
+      distritoLlegada: ubigeoLlegada,
+    }));
+  }
+
+  private getEstablecimientoPorId(id: string | null | undefined): any | null {
+    const idBuscado = String(id ?? '').trim();
+    if (!idBuscado) return null;
+    return (this.establecimientos ?? []).find((e: any) => String(e?.idEstablecimiento ?? '').trim() === idBuscado) ?? null;
   }
 
   async loadDepartamentos(): Promise<void> {

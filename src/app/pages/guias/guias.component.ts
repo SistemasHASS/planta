@@ -461,6 +461,9 @@ export class GuiasComponent implements OnInit {
       await this.cargarConductores();
       await this.cargarVehiculos();
       await this.cargarDestinatarios();
+      await this.cargarMotivosTraslado();
+      await this.cargarEstablecimientoEmisor();
+      await this.cargarEstablecimientos();
 
       const [procesosResp] = await Promise.all([this.guiaRemisionFacade.cargarProcesosParaGuia(codigoGuiaRemision)]);
       if (!procesosResp || procesosResp.length === 0) {
@@ -1487,7 +1490,6 @@ export class GuiasComponent implements OnInit {
     });
   }
 }
-
 
 
 
