@@ -62,6 +62,7 @@
               <tr>
                 <th class="col-guia">N° Guía</th>
                 <th class="col-dest">Destinatario</th>
+                <th class="col-dest">motivoTraslado</th>
                 <th class="col-num">Cantidad</th>
                 <th class="col-num">Peso</th>
                 <th class="col-prec">Precinto</th>
@@ -211,6 +212,7 @@
                 <td class="col-dest" [title]="g.documentoDestinatario">
                   @if (g.nombreDestinatario) { {{ g.nombreDestinatario }} } @else { {{ g.documentoDestinatario || '' }} }
                 </td>
+                <td class="col-num">{{ g.motivoTraslado }}</td>
                 <td class="col-num">{{ g.cantidad }}</td>
                 <td class="col-num">{{ g.pesoTotal }} kg</td>
                 <td class="col-prec">
@@ -330,7 +332,8 @@
 @if (modalNuevaGuiaManualVisible()) {
 <app-modal-nueva-guia-manual [transportistas]="transportistas()" [conductores]="conductores()"
   [vehiculos]="vehiculos()" [destinatarios]="destinatarios()" [motivosTraslado]="motivosTraslado()"
-  [modoEdicion]="modoEdicionGuia()" [guiaEditando]="guiaParaEditar()" (cerrar)="cerrarModalNuevaGuiaManual()"
+  [establecimientoEmisor]="establecimientoEmisor()" [establecimientos]="establecimientos()" [modoEdicion]="modoEdicionGuia()"
+  [guiaEditando]="guiaParaEditar()" [guardando]="guardandoGuiaManual()" (cerrar)="cerrarModalNuevaGuiaManual()"
   (crear)="onCrearGuiaManual($event)" (editar)="onEditarGuiaManual($event)" />
 }
 

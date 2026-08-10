@@ -31,8 +31,28 @@ export class CatalogoService {
     return this.http.get<any>(`${this.apiUrl}/motivos-traslado`, { withCredentials: true });
   }
 
+  getEstablecimientoEmisor(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/get-establecimiento-emisor`, { withCredentials: true });
+  }
+
+  listarEstablecimientos(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/get-establecimientos`, { withCredentials: true });
+  }
+
   listarUnidadesMedida(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/unidades-medida`, { withCredentials: true });
+  }
+
+  listarTiposLocacion(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/tipos-locacion`, { withCredentials: true });
+  }
+
+  listarPuertos(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/puertos`, { withCredentials: true });
+  }
+
+  listarAeroPuertos(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/aeropuertos`, { withCredentials: true });
   }
 
   listarSeriesGuia(): Observable<any> {

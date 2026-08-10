@@ -14,6 +14,8 @@ export interface GuiaRemision {
   puntoLlegada?: string;
   ubigeoPartida?: string;
   ubigeoLlegada?: string;
+  idEstablecimientoPartida?: string | null;
+  idEstablecimientoLlegada?: string | null;
   fechaEmision?: string | null;
   idTransportista: number | null;
   razonSocialTransportista?:string;

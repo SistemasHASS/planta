@@ -80,10 +80,26 @@
       </div>
       <div class="guia-row">
         <div class="guia-col">
+          @if (esTrasladoEntreEstablecimientos()) {
+          <div class="guia-row-item">
+            <span class="label">Remitente / Destinatario</span>
+            <span class="value value-strong">{{ g.razonSocialRemitente || g.documentoDestinatario || '—' }}</span>
+          </div>
+          <div class="guia-row-item">
+            <span class="label">Establecimiento Partida</span>
+            <span class="value value-strong">
+              {{ g.idEstablecimientoPartida || '—' }}
+              @if (g.descripcionEstablecimientoPartida) {
+                - {{ g.descripcionEstablecimientoPartida }}
+              }
+            </span>
+          </div>
+          } @else {
           <div class="guia-row-item">
             <span class="label">Destinatario</span>
             <span class="value value-strong">{{ g.nombreDestinatario || g.documentoDestinatario || '—' }}</span>
           </div>
+          }
           <div class="guia-row-item">
             <span class="label">Punto Partida</span>
             <span class="value">{{ g.puntoPartida || '—' }}</span>
@@ -94,9 +110,9 @@
           </div>
           <div class="guia-row-item">
             <span class="label">Motivo Traslado</span>
-            <span class="value">{{g.codigoSunatMotivoTraslado + ' - ' + g.descripcionMotivoTrasladoCatalogo || '—' }}</span>
+            <span class="value">{{ motivoTrasladoLabel(g) }}</span>
           </div>
-          @if (g.codigoSunatMotivoTraslado === '13' && g.descripcionMotivoTraslado) {
+          @if (esMotivoOtros() && g.descripcionMotivoTraslado) {
           <div class="guia-row-item">
             <span class="label">Descripción Motivo Traslado</span>
             <span class="value">{{g.descripcionMotivoTraslado}}</span>
@@ -109,9 +125,20 @@
         </div>
         <div class="guia-col">
           <div class="guia-row-item">
-            <span class="label">Ruc</span>
+            <span class="label">{{ esTrasladoEntreEstablecimientos() ? 'RUC empresa' : 'Ruc' }}</span>
             <span class="value value-strong">{{ g.documentoDestinatario || '—' }}</span>
           </div>
+          @if (esTrasladoEntreEstablecimientos()) {
+          <div class="guia-row-item">
+            <span class="label">Establecimiento Llegada</span>
+            <span class="value value-strong">
+              {{ g.idEstablecimientoLlegada || '—' }}
+              @if (g.descripcionEstablecimientoLlegada) {
+                - {{ g.descripcionEstablecimientoLlegada }}
+              }
+            </span>
+          </div>
+          }
           <div class="guia-row-item">
             <span class="label">Punto Llegada</span>
             <span class="value">{{ g.puntoLlegada || '—' }}</span>
@@ -120,6 +147,12 @@
             <span class="label">Ubigeo Llegada</span>
             <span class="value">{{ g.ubigeoLlegada || '—' }}</span>
           </div>
+          @if (esTrasladoEntreEstablecimientos()) {
+          <div class="guia-row-item">
+            <span class="label">Código SUNAT Llegada</span>
+            <span class="value">{{ g.codigoEstablecimientoSunatLlegada || '—' }}</span>
+          </div>
+          }
         </div>
       </div>
     </div>

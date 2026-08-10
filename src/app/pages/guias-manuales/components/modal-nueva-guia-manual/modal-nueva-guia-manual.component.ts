@@ -22,8 +22,11 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
   @Input() vehiculos: any[] = [];
   @Input() destinatarios: any[] = [];
   @Input() motivosTraslado: any[] = [];
+  @Input() establecimientoEmisor: any = null;
+  @Input() establecimientos: any[] = [];
   @Input() modoEdicion = false;
   @Input() guiaEditando: any = null;
+  @Input() guardando = false;
 
   private readonly auth = inject(AuthService);
   private readonly catalogoService = inject(CatalogoService);
@@ -43,6 +46,8 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
   });
 
   readonly unidadesMedida = signal<any[]>([]);
+  readonly tiposLocacion = signal<any[]>([]);
+  readonly locacionesTraslado = signal<any[]>([]);
 
   readonly unidadesMedidaActivas = computed(() => {
     const list = this.unidadesMedida() ?? [];
@@ -67,16 +72,19 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
   @Output() editar = new EventEmitter<any>();
 
   readonly submitAttempted = signal(false);
+  private transactionIdCreacion: string | null = null;
 
   readonly form = signal({
     destinatarioId: '',
-    puntoPartida: 'CARRETERA PANAMERICANA NORTE KM. 492.5',
+    puntoPartida: '',
     puntoLlegada: '',
-    ubigeoPartida: '131202',
+    ubigeoPartida: '',
     ubigeoLlegada: '',
-    departamentoPartida: '13',
-    provinciaPartida: '12',
-    distritoPartida: '131202',
+    idEstablecimientoPartida: '',
+    idEstablecimientoLlegada: '',
+    departamentoPartida: '',
+    provinciaPartida: '',
+    distritoPartida: '',
     departamentoLlegada: '',
     provinciaLlegada: '',
     distritoLlegada: '',
@@ -85,6 +93,8 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
     vehiculoId: '',
     motivoTraslado: '13',
     descripcionMotivoTraslado: 'SERVICIO DE FRÍO',
+    tipoLocacionId: '',
+    codigoLocacion: '',
     fechaEntregaBienes: formatDate(new Date()) ?? '',
     precinto: '',
     parihuelas: 0,
@@ -102,6 +112,23 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
     const motivo = String(this.form().motivoTraslado ?? '').trim();
     return motivo === '13' || motivo.toUpperCase() === 'OTROS';
   });
+
+  readonly esTrasladoEntreEstablecimientos = computed(() => {
+    const motivo = String(this.form().motivoTraslado ?? '').trim();
+    return motivo === '04';
+  });
+
+  readonly esExportacion = computed(() => {
+    const motivo = String(this.form().motivoTraslado ?? '').trim();
+    return motivo === '09';
+  });
+
+  readonly locacionTrasladoLabel = computed(() => {
+    const tipo = String(this.form().tipoLocacionId ?? '').trim();
+    return tipo === '2' ? 'Aeropuerto' : 'Puerto';
+  });
+
+  readonly establecimientoDestinoId = signal('');
 
   readonly detalleValido = computed(() => {
     const det = this.detalle();
@@ -128,9 +155,11 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
   readonly formularioValido = computed(() => {
     const f = this.form();
     return !!(
-      f.destinatarioId &&
+      (this.esTrasladoEntreEstablecimientos() ? this.establecimientoDestinoId() : f.destinatarioId) &&
       f.puntoPartida?.trim() &&
       f.puntoLlegada?.trim() &&
+      f.idEstablecimientoPartida?.trim() &&
+      (!this.esTrasladoEntreEstablecimientos() || f.idEstablecimientoLlegada?.trim()) &&
       f.transportistaId &&
       f.conductorId &&
       f.vehiculoId &&
@@ -184,19 +213,30 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
   ngOnInit(): void {
     void this.loadDepartamentos();
     void this.loadUnidadesMedida();
+    void this.loadTiposLocacion();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['guiaEditando'] || changes['modoEdicion']) {
+      this.transactionIdCreacion = null;
+    }
+
     if (changes['guiaEditando'] && this.modoEdicion && this.guiaEditando) {
       const g = this.guiaEditando;
-      const ubigeoPartida = String(g.ubigeoPartida ?? '131202').trim();
+      const datosEmisor = this.getDatosEstablecimientoEmisor();
+      const ubigeoPartida = String(g.ubigeoPartida ?? datosEmisor.ubigeo).trim();
       const ubigeoLlegada = String(g.ubigeoLlegada ?? '').trim();
+      const motivoTraslado = String(g.motivoTraslado ?? '13').trim();
+      const idEstablecimientoLlegada = String(g.idEstablecimientoLlegada ?? '').trim();
+      this.establecimientoDestinoId.set(motivoTraslado === '04' ? idEstablecimientoLlegada : '');
       this.form.set({
         destinatarioId: String(g.destinatarioId ?? ''),
-        puntoPartida: g.puntoPartida ?? 'CARRETERA PANAMERICANA NORTE KM. 492.5',
+        puntoPartida: g.puntoPartida ?? datosEmisor.direccion,
         puntoLlegada: g.puntoLlegada ?? '',
         ubigeoPartida: ubigeoPartida,
         ubigeoLlegada: ubigeoLlegada,
+        idEstablecimientoPartida: String(g.idEstablecimientoPartida ?? datosEmisor.idEstablecimiento).trim(),
+        idEstablecimientoLlegada,
         departamentoPartida: ubigeoPartida.substring(0, 2),
         provinciaPartida: ubigeoPartida.substring(2, 4),
         distritoPartida: ubigeoPartida,
@@ -206,13 +246,18 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
         transportistaId: String(g.transportistaId ?? ''),
         conductorId: String(g.conductorId ?? ''),
         vehiculoId: String(g.vehiculoId ?? ''),
-        motivoTraslado: String(g.motivoTraslado ?? '13'),
+        motivoTraslado,
         descripcionMotivoTraslado: g.descripcionMotivoTraslado ?? 'SERVICIO DE FRÍO',
+        tipoLocacionId: String(g.tipoLocacionId ?? ''),
+        codigoLocacion: String(g.codigoLocacion ?? ''),
         fechaEntregaBienes: g.fechaEntregaBienes ? formatDate(g.fechaEntregaBienes) ?? '' : formatDate(new Date()) ?? '',
         precinto: g.precinto ?? '',
         parihuelas: g.parihuelas ?? 0,
         observacionesUsuario: g.observacionesUsuario ?? '',
       });
+      if (motivoTraslado === '09' && this.form().tipoLocacionId) {
+        void this.loadLocacionesTraslado(this.form().tipoLocacionId);
+      }
       this.detalle.set(Array.isArray(g.detalleManual) ? g.detalleManual.map((d: any) => ({
         codigo: String(d.codigoItem ?? '0000000'),
         descripcion: d.descripcion ?? '',
@@ -222,6 +267,32 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
         id: d.id,
       })) : []);
     }
+
+    if (changes['establecimientoEmisor'] && !this.modoEdicion && this.establecimientoEmisor) {
+      this.aplicarEstablecimientoEmisor();
+    }
+  }
+
+  private aplicarEstablecimientoEmisor(): void {
+    const datos = this.getDatosEstablecimientoEmisor();
+    if (!datos.direccion && !datos.ubigeo) return;
+
+    this.form.update(f => ({
+      ...f,
+      puntoPartida: datos.direccion,
+      ubigeoPartida: datos.ubigeo,
+      idEstablecimientoPartida: datos.idEstablecimiento,
+      departamentoPartida: datos.ubigeo.substring(0, 2),
+      provinciaPartida: datos.ubigeo.substring(2, 4),
+      distritoPartida: datos.ubigeo,
+    }));
+  }
+
+  private getDatosEstablecimientoEmisor(): { direccion: string; ubigeo: string; idEstablecimiento: string } {
+    const direccion = String(this.establecimientoEmisor?.direccion ?? '').trim();
+    const ubigeo = String(this.establecimientoEmisor?.codigoUbigeo ?? '').trim();
+    const idEstablecimiento = String(this.establecimientoEmisor?.idEstablecimiento ?? '').trim();
+    return { direccion, ubigeo, idEstablecimiento };
   }
 
   async loadUnidadesMedida(): Promise<void> {
@@ -234,11 +305,46 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
     }
   }
 
+  async loadTiposLocacion(): Promise<void> {
+    try {
+      const resp: any = await firstValueFrom(this.catalogoService.listarTiposLocacion());
+      this.tiposLocacion.set(resp?.data ?? []);
+    } catch (e) {
+      console.error('Error cargando tipos de locación', e);
+      this.tiposLocacion.set([]);
+    }
+  }
+
+  async loadLocacionesTraslado(tipoLocacionId: string): Promise<void> {
+    try {
+      const resp: any = tipoLocacionId === '2'
+        ? await firstValueFrom(this.catalogoService.listarAeroPuertos())
+        : await firstValueFrom(this.catalogoService.listarPuertos());
+      this.locacionesTraslado.set(resp?.data ?? []);
+    } catch (e) {
+      console.error('Error cargando locaciones de traslado', e);
+      this.locacionesTraslado.set([]);
+    }
+  }
+
   isInvalid(field: string): boolean {
     if (!this.submitAttempted()) return false;
+    if (field === 'destinatarioId' && this.esTrasladoEntreEstablecimientos()) return false;
     const f = this.form();
     const value = (f as any)[field];
     return value === null || value === undefined || String(value).trim() === '';
+  }
+
+  isInvalidEstablecimientoDestino(): boolean {
+    return this.submitAttempted() && this.esTrasladoEntreEstablecimientos() && !this.establecimientoDestinoId();
+  }
+
+  getEstablecimientosDestino(): any[] {
+    const origen = String(this.establecimientoEmisor?.idEstablecimiento ?? '').trim();
+    return (this.establecimientos ?? []).filter((e: any) => {
+      const idEstablecimiento = String(e?.idEstablecimiento ?? '').trim();
+      return idEstablecimiento && idEstablecimiento !== origen;
+    });
   }
 
   isInvalidDescripcionMotivoTraslado(): boolean {
@@ -254,10 +360,14 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
   }
 
   onCancelar(): void {
+    if (this.guardando) return;
+    this.transactionIdCreacion = null;
     this.cerrar.emit();
   }
 
   onSubmit(): void {
+    if (this.guardando) return;
+
     this.submitAttempted.set(true);
     this.detalleSubmitAttempted.set(true);
     if (!this.formularioValido()) return;
@@ -287,7 +397,7 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
       };
       this.editar.emit(payload);
     } else {
-      const transactionId_uuid = this.generateUUID();
+      const transactionId_uuid = this.getOrCreateTransactionId();
       const payload = {
         ...this.form(),
         transactionId_uuid,
@@ -299,6 +409,14 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
       };
       this.crear.emit(payload);
     }
+  }
+
+  private getOrCreateTransactionId(): string {
+    if (!this.transactionIdCreacion) {
+      this.transactionIdCreacion = this.generateUUID();
+    }
+
+    return this.transactionIdCreacion;
   }
 
   private generateUUID(): string {
@@ -372,6 +490,55 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
   }
 
   updateField(field: string, value: any): void {
+    if (field === 'motivoTraslado') {
+      const motivo = String(value ?? '').trim();
+      const motivoActual = String(this.form().motivoTraslado ?? '').trim();
+      if (motivo === motivoActual) return;
+
+      this.limpiarCamposPorCambioMotivo(motivo);
+      if (motivo === '09') {
+        void this.loadTiposLocacion();
+      }
+      return;
+    }
+    if (field === 'tipoLocacionId') {
+      const tipoLocacionId = String(value ?? '').trim();
+      this.locacionesTraslado.set([]);
+      this.form.update(f => ({
+        ...f,
+        tipoLocacionId,
+        codigoLocacion: '',
+      }));
+      if (tipoLocacionId) {
+        void this.loadLocacionesTraslado(tipoLocacionId);
+      }
+      return;
+    }
+    if (field === 'codigoLocacion') {
+      this.form.update(f => ({
+        ...f,
+        codigoLocacion: String(value ?? '').trim(),
+      }));
+      return;
+    }
+    if (field === 'establecimientoDestinoId') {
+      const id = String(value ?? '').trim();
+      const establecimiento = this.getEstablecimientosDestino().find((e: any) => String(e?.idEstablecimiento ?? '').trim() === id);
+      const puntoLlegada = String(establecimiento?.direccion ?? '').trim();
+      const ubigeoLlegada = String(establecimiento?.codigoUbigeo ?? '').trim();
+
+      this.establecimientoDestinoId.set(id);
+      this.form.update(f => ({
+        ...f,
+        puntoLlegada,
+        ubigeoLlegada,
+        idEstablecimientoLlegada: id,
+        departamentoLlegada: ubigeoLlegada.substring(0, 2),
+        provinciaLlegada: ubigeoLlegada.substring(2, 4),
+        distritoLlegada: ubigeoLlegada,
+      }));
+      return;
+    }
     if (field === 'destinatarioId') {
       const id = String(value ?? '').trim();
       const dest = this.destinatariosActivos().find((d: any) => String(d?.id ?? '').trim() === id);
@@ -381,6 +548,7 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
         destinatarioId: value,
         puntoLlegada,
         ubigeoLlegada,
+        idEstablecimientoLlegada: '',
         departamentoLlegada: ubigeoLlegada.substring(0, 2),
         provinciaLlegada: ubigeoLlegada.substring(2, 4),
         distritoLlegada: ubigeoLlegada,
@@ -412,6 +580,33 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
       return;
     }
     this.form.update(f => ({ ...f, [field]: value }));
+  }
+
+  private limpiarCamposPorCambioMotivo(motivo: string): void {
+    this.establecimientoDestinoId.set('');
+    this.detalle.set([]);
+    this.detalleSubmitAttempted.set(false);
+    this.submitAttempted.set(false);
+
+    this.form.update(f => ({
+      ...f,
+      motivoTraslado: motivo,
+      descripcionMotivoTraslado: motivo === '13' ? 'SERVICIO DE FRÍO' : '',
+      tipoLocacionId: '',
+      codigoLocacion: '',
+      destinatarioId: '',
+      puntoLlegada: '',
+      ubigeoLlegada: '',
+      idEstablecimientoLlegada: '',
+      departamentoLlegada: '',
+      provinciaLlegada: '',
+      distritoLlegada: '',
+      transportistaId: '',
+      conductorId: '',
+      vehiculoId: '',
+      precinto: '',
+      observacionesUsuario: '',
+    }));
   }
 
   async loadDepartamentos(): Promise<void> {

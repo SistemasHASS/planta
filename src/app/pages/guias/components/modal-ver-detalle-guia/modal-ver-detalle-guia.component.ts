@@ -34,6 +34,8 @@ export interface GuiaDetalleData {
   id?: number;
   idempresa?: string;
   ruc?: string;
+  numeroDocumentoRemitente?: string;
+  razonSocialRemitente?: string;
   idProyecto?: string;
   codigoAcopio?: string;
   codigoGuiaRemision?: string;
@@ -47,6 +49,14 @@ export interface GuiaDetalleData {
   puntoLlegada?: string;
   ubigeoPartida?: string;
   ubigeoLlegada?: string;
+  idEstablecimientoPartida?: string;
+  idEstablecimientoLlegada?: string;
+  descripcionEstablecimientoPartida?: string;
+  descripcionEstablecimientoLlegada?: string;
+  codigoEstablecimientoSunatPartida?: string;
+  codigoEstablecimientoSunatLlegada?: string;
+  idTipoEstablecimientoPartida?: string;
+  idTipoEstablecimientoLlegada?: string;
   fechaEmision?: string | null;
   idTransportista?: number | null;
   razonSocialTransportista?: string;
@@ -109,6 +119,10 @@ export class ModalVerDetalleGuiaComponent {
 
   readonly guia = computed(() => this.guiaDetalle ?? null);
 
+  readonly esMotivoOtros = computed(() => this.guiaDetalle?.codigoSunatMotivoTraslado === '13');
+
+  readonly esTrasladoEntreEstablecimientos = computed(() => this.guiaDetalle?.codigoSunatMotivoTraslado === '04');
+
   readonly detallePalets = computed<GuiaDetalleItem[]>(() => {
     const d = this.guiaDetalle?.detalle;
     if (!d) return [];
@@ -128,6 +142,13 @@ export class ModalVerDetalleGuiaComponent {
     if (!g?.fechaEmision) return 'Sin fecha';
     return formatDate(g.fechaEmision) || 'Sin fecha';
   });
+
+  motivoTrasladoLabel(g: GuiaDetalleData): string {
+    const codigo = g.codigoSunatMotivoTraslado || g.motivoTraslado || '';
+    const descripcion = g.descripcionMotivoTrasladoCatalogo || '';
+    if (codigo && descripcion) return `${codigo} - ${descripcion}`;
+    return codigo || descripcion || '—';
+  }
 
   estadoSunatLabel(estado?: string): string {
     const map: Record<string, string> = {

@@ -10,29 +10,61 @@
     <div class="sp-card" style="margin:0">
       <div class="sp-card-body" style="padding:14px">
         <div class="row g-2">
-          <!-- Destino -->
+          <!-- Datos del traslado -->
           <div class="col-12">
-            <div class="form-section-title-modal"><i class="bi bi-geo-alt"></i> Destino</div>
+            <div class="form-section-title-modal"><i class="bi bi-clipboard-check"></i> Datos del traslado</div>
           </div>
           <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Destinatario <span class="text-danger">*</span></label>
-            <div [class.select-invalid]="isInvalid('destinatarioId')">
+            <label class="form-label" style="font-size:11px;font-weight:700">Motivo Traslado <span class="text-danger">*</span></label>
+            <div [class.select-invalid]="isInvalid('motivoTraslado')">
               <app-advanced-select
-                placeholder="Seleccione..."
-                [itemsInput]="destinatariosActivos()"
-                idField="id"
-                [labelFields]="['nombre','documentoFiscal']"
-                [value]="form().destinatarioId"
-                (valueChange)="updateField('destinatarioId', $event)" />
+                [itemsInput]="motivosTraslado"
+                idField="codigo"
+                [labelFields]="['codigo', 'descripcion']"
+                placeholder="— Seleccionar —"
+                [required]="true"
+                [value]="form().motivoTraslado"
+                [disabled]="modoEdicion"
+                (valueChange)="updateField('motivoTraslado', $event)">
+              </app-advanced-select>
             </div>
+          </div>
+          @if (esMotivoOtros()) {
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:11px;font-weight:700">Descripción Motivo Traslado <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" [class.is-invalid]="isInvalidDescripcionMotivoTraslado()" [ngModel]="form().descripcionMotivoTraslado" (ngModelChange)="updateField('descripcionMotivoTraslado', $event)">
+          </div>
+          }
+          @if (esExportacion()) {
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:11px;font-weight:700">Tipo Locación <span class="text-danger">*</span></label>
+            <app-advanced-select
+              placeholder="Seleccione tipo..."
+              [itemsInput]="tiposLocacion()"
+              idField="idTipoLocacion"
+              [labelFields]="['descripcion']"
+              [value]="form().tipoLocacionId"
+              (valueChange)="updateField('tipoLocacionId', $event)" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:11px;font-weight:700">{{ locacionTrasladoLabel() }} <span class="text-danger">*</span></label>
+            <app-advanced-select
+              [placeholder]="form().tipoLocacionId ? 'Seleccione...' : 'Seleccione tipo locación primero'"
+              [itemsInput]="locacionesTraslado()"
+              idField="codigo"
+              [labelFields]="['codigo','nombre','codigoUbigeo']"
+              [value]="form().codigoLocacion"
+              [disabled]="!form().tipoLocacionId"
+              (valueChange)="updateField('codigoLocacion', $event)" />
+          </div>
+          }
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:11px;font-weight:700">Fecha Entrega Bienes <span class="text-danger">*</span></label>
+            <input type="date" class="form-control form-control-sm" [class.is-invalid]="isInvalid('fechaEntregaBienes')" [ngModel]="form().fechaEntregaBienes" (ngModelChange)="updateField('fechaEntregaBienes', $event)">
           </div>
           <div class="col-md-6">
             <label class="form-label" style="font-size:11px;font-weight:700">Punto Partida <span class="text-danger">*</span></label>
             <input type="text" class="form-control form-control-sm" [class.is-invalid]="isInvalid('puntoPartida')" [ngModel]="form().puntoPartida" (ngModelChange)="updateField('puntoPartida', $event)" placeholder="Punto de partida">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Punto Llegada <span class="text-danger">*</span></label>
-            <input type="text" class="form-control form-control-sm" [class.is-invalid]="isInvalid('puntoLlegada')" [ngModel]="form().puntoLlegada" (ngModelChange)="updateField('puntoLlegada', $event)" placeholder="Punto de llegada">
           </div>
           <div class="col-md-6">
             <label class="form-label" style="font-size:11px;font-weight:700">Ubigeo Partida <span class="text-danger">*</span></label>
@@ -68,6 +100,42 @@
                 </app-advanced-select>
               </div>
             </div>
+          </div>
+
+          <!-- Destino -->
+          <div class="col-12 mt-1">
+            <div class="form-section-title-modal"><i class="bi bi-geo-alt"></i> Destino</div>
+          </div>
+          @if (esTrasladoEntreEstablecimientos()) {
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:11px;font-weight:700">Establecimiento destino <span class="text-danger">*</span></label>
+            <div [class.select-invalid]="isInvalidEstablecimientoDestino()">
+              <app-advanced-select
+                placeholder="Seleccione establecimiento..."
+                [itemsInput]="getEstablecimientosDestino()"
+                idField="idEstablecimiento"
+                [labelFields]="['idEstablecimiento','descripcion','direccion']"
+                [value]="establecimientoDestinoId()"
+                (valueChange)="updateField('establecimientoDestinoId', $event)" />
+            </div>
+          </div>
+          } @else {
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:11px;font-weight:700">Destinatario <span class="text-danger">*</span></label>
+            <div [class.select-invalid]="isInvalid('destinatarioId')">
+              <app-advanced-select
+                placeholder="Seleccione..."
+                [itemsInput]="destinatariosActivos()"
+                idField="id"
+                [labelFields]="['nombre','documentoFiscal']"
+                [value]="form().destinatarioId"
+                (valueChange)="updateField('destinatarioId', $event)" />
+            </div>
+          </div>
+          }
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:11px;font-weight:700">Punto Llegada <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" [class.is-invalid]="isInvalid('puntoLlegada')" [ngModel]="form().puntoLlegada" (ngModelChange)="updateField('puntoLlegada', $event)" placeholder="Punto de llegada" [readonly]="esTrasladoEntreEstablecimientos()">
           </div>
           <div class="col-md-6">
             <label class="form-label" style="font-size:11px;font-weight:700">Ubigeo Llegada <span class="text-danger">*</span></label>
@@ -149,41 +217,17 @@
             </div>
           </div>
 
-          <!-- Detalles -->
+          <!-- Control -->
           <div class="col-12 mt-1">
-            <div class="form-section-title-modal"><i class="bi bi-clipboard-check"></i> Detalles</div>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Motivo Traslado <span class="text-danger">*</span></label>
-            <div [class.select-invalid]="isInvalid('motivoTraslado')">
-              <app-advanced-select
-                [itemsInput]="motivosTraslado"
-                idField="codigo"
-                [labelFields]="['codigo', 'descripcion']"
-                placeholder="— Seleccionar —"
-                [required]="true"
-                [value]="form().motivoTraslado"
-                (valueChange)="updateField('motivoTraslado', $event)">
-              </app-advanced-select>
-            </div>
-          </div>
-          @if (esMotivoOtros()) {
-          <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Descripción Motivo Traslado <span class="text-danger">*</span></label>
-            <input type="text" class="form-control form-control-sm" [class.is-invalid]="isInvalidDescripcionMotivoTraslado()" [ngModel]="form().descripcionMotivoTraslado" (ngModelChange)="updateField('descripcionMotivoTraslado', $event)">
-          </div>
-          }
-          <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Fecha Entrega Bienes <span class="text-danger">*</span></label>
-            <input type="date" class="form-control form-control-sm" [class.is-invalid]="isInvalid('fechaEntregaBienes')" [ngModel]="form().fechaEntregaBienes" (ngModelChange)="updateField('fechaEntregaBienes', $event)">
+            <div class="form-section-title-modal"><i class="bi bi-shield-check"></i> Control</div>
           </div>
           <div class="col-md-6">
             <label class="form-label" style="font-size:11px;font-weight:700">Precinto <span class="text-danger">*</span></label>
             <input type="text" class="form-control form-control-sm" [class.is-invalid]="isInvalid('precinto')" [ngModel]="form().precinto" (ngModelChange)="updateField('precinto', $event)" placeholder="Ej: 017373">
           </div>
           <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Observaciones</label>
-            <input type="text" class="form-control form-control-sm" [ngModel]="form().observacionesUsuario" (ngModelChange)="updateField('observacionesUsuario', $event)" placeholder="Observaciones (máx 200)" maxlength="200">
+            <label class="form-label" style="font-size:11px;font-weight:700">Observaciones <small class="text-muted">(máx 1000)</small></label>
+            <input type="text" class="form-control form-control-sm" [ngModel]="form().observacionesUsuario" (ngModelChange)="updateField('observacionesUsuario', $event)" placeholder="Observaciones" maxlength="1000">
           </div>
 
           <!-- Detalle de ítems -->
@@ -300,9 +344,10 @@
 
   <div class="modal-footer-custom">
     <div class="footer-actions">
-      <button type="button" class="btn btn-sp-outline btn-cancel" (click)="onCancelar()">Cancelar</button>
-      <button type="button" class="btn btn-sp-primary btn-save" (click)="onSubmit()">
-        <i class="bi bi-plus-lg"></i> {{ modoEdicion ? 'Guardar cambios' : 'Crear Guía' }}
+      <button type="button" class="btn btn-sp-outline btn-cancel" [disabled]="guardando" (click)="onCancelar()">Cancelar</button>
+      <button type="button" class="btn btn-sp-primary btn-save" [disabled]="guardando" (click)="onSubmit()">
+        <i class="bi" [class.bi-hourglass-split]="guardando" [class.bi-plus-lg]="!guardando"></i>
+        {{ guardando ? 'Guardando...' : (modoEdicion ? 'Guardar cambios' : 'Crear Guía') }}
       </button>
     </div>
   </div>

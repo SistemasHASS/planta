@@ -3,7 +3,9 @@
 <div class="modal-custom" role="dialog" aria-modal="true">
   <div class="modal-header-custom" style="background: linear-gradient(135deg, var(--color-primary) 0%, #5a4ad1 100%);">
     <h3 class="modal-title"><i class="bi bi-clipboard-check"></i> Parámetros de Inspección</h3>
-    <button type="button" class="modal-close" (click)="onCerrar()" aria-label="Cerrar">×</button>
+    <button type="button" class="modal-close inspection-close" [disabled]="guardando" (click)="onCerrar()" aria-label="Cerrar">
+      <i class="bi bi-x-lg"></i>
+    </button>
   </div>
 
   <div class="modal-body-custom">
@@ -122,10 +124,14 @@
   </div>
 
   <div class="modal-footer-custom">
-    <div class="footer-actions">
-      <button type="button" class="btn btn-sp-outline btn-cancel" (click)="onCerrar()">Cancelar</button>
-      <button type="button" class="btn btn-sp-primary btn-save" (click)="onConfirmar()">
-        <i class="bi bi-file-earmark-plus"></i> Confirmar y Crear Guía
+    <div class="footer-actions inspection-actions">
+      <button type="button" class="btn inspection-btn inspection-btn-back" [disabled]="guardando" (click)="onAtras()">
+        <i class="bi bi-arrow-left"></i> Atrás
+      </button>
+      <button type="button" class="btn inspection-btn inspection-btn-cancel" [disabled]="guardando" (click)="onCerrar()">Cancelar</button>
+      <button type="button" class="btn inspection-btn inspection-btn-confirm" [disabled]="guardando" (click)="onConfirmar()">
+        <i class="bi" [class.bi-hourglass-split]="guardando" [class.bi-file-earmark-plus]="!guardando"></i>
+        {{ guardando ? 'Creando...' : 'Confirmar y Crear Guía' }}
       </button>
     </div>
   </div>

@@ -57,6 +57,7 @@ export class GuiasManualesComponent implements OnInit {
   readonly onlineSignal = computed(() => this.connectivity.isOnline());
   readonly esAdmin = computed(() => this.auth.perfil() === 'ADMINISTRADOR' || this.auth.perfil() === 'MONITOR');
   readonly modalNuevaGuiaManualVisible = signal(false);
+  readonly guardandoGuiaManual = signal(false);
 
   get tieneGuiasNoSincronizadas(): boolean {
     return this.guias().some((g: any) => g?.sincroniza === 'no_sincronizado');
@@ -164,6 +165,8 @@ export class GuiasManualesComponent implements OnInit {
   readonly campaniasCatalogo = signal<any[]>([]);
   readonly codigosCajaCatalogo = signal<any[]>([]);
   readonly motivosTraslado = signal<any[]>([]);
+  readonly establecimientoEmisor = signal<any | null>(null);
+  readonly establecimientos = signal<any[]>([]);
 
   readonly filtroEstado = signal<string>('');
   readonly filtroTexto = signal<string>('');
@@ -445,6 +448,8 @@ export class GuiasManualesComponent implements OnInit {
       await this.cargarVehiculos();
       await this.cargarDestinatarios();
       await this.cargarMotivosTraslado();
+      await this.cargarEstablecimientoEmisor();
+      await this.cargarEstablecimientos();
 
       const documentoDest = String(detalleData?.documentoDestinatario ?? '').trim();
       const destinatarioEncontrado = this.destinatarios().find((d: any) => {
@@ -454,6 +459,11 @@ export class GuiasManualesComponent implements OnInit {
       const destinatarioId = String((destinatarioEncontrado as any)?.id ?? '').trim();
 
       const detalleItems = Array.isArray(detalleData?.detalle) ? detalleData.detalle : [];
+      const motivoTraslado = String(
+        detalleData?.codigoSunatMotivoTraslado ??
+        detalleData?.motivoTraslado ??
+        '13'
+      ).trim();
 
       this.guiaParaEditar.set({
         destinatarioId,
@@ -461,10 +471,12 @@ export class GuiasManualesComponent implements OnInit {
         puntoLlegada: detalleData?.puntoLlegada ?? '',
         ubigeoPartida: detalleData?.ubigeoPartida ?? '131202',
         ubigeoLlegada: detalleData?.ubigeoLlegada ?? '131202',
+        idEstablecimientoPartida: String(detalleData?.idEstablecimientoPartida ?? '').trim(),
+        idEstablecimientoLlegada: String(detalleData?.idEstablecimientoLlegada ?? '').trim(),
         transportistaId: String(detalleData?.idTransportista ?? ''),
         conductorId: String(detalleData?.idConductor ?? ''),
         vehiculoId: String(detalleData?.idVehiculo ?? ''),
-        motivoTraslado: detalleData?.motivoTraslado ?? '13',
+        motivoTraslado,
         descripcionMotivoTraslado: detalleData?.descripcionMotivoTraslado ?? '',
         fechaEntregaBienes: detalleData?.fechaEntregaBienes ?? '',
         precinto: detalleData?.precinto ?? '',
@@ -916,6 +928,31 @@ export class GuiasManualesComponent implements OnInit {
     this.motivosTraslado.set(lista ?? []);
   }
 
+  async cargarEstablecimientoEmisor(): Promise<void> {
+    const resp = await firstValueFrom(this.catalogoService.getEstablecimientoEmisor());
+    const { error, mensaje, data } = this.normalizeBackendResp(resp);
+    if (error) {
+      throw new Error(mensaje || 'No se pudo cargar el establecimiento emisor.');
+    }
+
+    const establecimiento = Array.isArray(data) ? data[0] : data;
+    if (!establecimiento) {
+      throw new Error('No se encontró el establecimiento emisor.');
+    }
+
+    this.establecimientoEmisor.set(establecimiento);
+  }
+
+  async cargarEstablecimientos(): Promise<void> {
+    const resp = await firstValueFrom(this.catalogoService.listarEstablecimientos());
+    const { error, mensaje, data } = this.normalizeBackendResp(resp);
+    if (error) {
+      throw new Error(mensaje || 'No se pudieron cargar los establecimientos.');
+    }
+
+    this.establecimientos.set(Array.isArray(data) ? data : []);
+  }
+
   async abrirModalVerDetalle(g: GuiaRemision): Promise<void> {
     const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
     const codigoGuiaRemision = String(g?.codigoGuiaRemision ?? '').trim();
@@ -967,6 +1004,8 @@ export class GuiasManualesComponent implements OnInit {
         this.cargarVehiculos(),
         this.cargarDestinatarios(),
         this.cargarMotivosTraslado(),
+        this.cargarEstablecimientoEmisor(),
+        this.cargarEstablecimientos(),
       ]);
       this.modalNuevaGuiaManualVisible.set(true);
       this.alertService.cerrarModalCarga();
@@ -977,19 +1016,26 @@ export class GuiasManualesComponent implements OnInit {
   }
 
   cerrarModalNuevaGuiaManual(): void {
+    if (this.guardandoGuiaManual()) return;
     this.modalNuevaGuiaManualVisible.set(false);
     this.modoEdicionGuia.set(false);
     this.guiaParaEditar.set(null);
+    this.guardandoGuiaManual.set(false);
   }
 
   async onCrearGuiaManual(payload: any): Promise<void> {
+    if (this.guardandoGuiaManual()) return;
+    this.guardandoGuiaManual.set(true);
+
     const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
     if (!idProyecto) {
       this.alertService.showAlert('Error', 'No se encontró el proyecto.', 'error');
+      this.guardandoGuiaManual.set(false);
       return;
     }
     if (!this.online) {
       this.alertService.showAlert('Error', 'No hay conexión a internet.', 'error');
+      this.guardandoGuiaManual.set(false);
       return;
     }
 
@@ -1010,6 +1056,7 @@ export class GuiasManualesComponent implements OnInit {
       this.alertService.cerrarModalCarga();
       if (error) {
         this.alertService.showAlert('Error', mensaje, 'error');
+        this.guardandoGuiaManual.set(false);
         return;
       }
       this.alertService.showAlert('Éxito', mensaje || 'Guía manual registrada correctamente.', 'success');
@@ -1019,6 +1066,11 @@ export class GuiasManualesComponent implements OnInit {
       this.alertService.cerrarModalCarga();
       console.error('Error guardando guía manual:', err);
       this.alertService.showAlert('Error', err?.error?.mensaje ?? err?.message ?? 'Error al guardar la guía manual.', 'error');
+      this.guardandoGuiaManual.set(false);
+    } finally {
+      if (!this.modalNuevaGuiaManualVisible()) {
+        this.guardandoGuiaManual.set(false);
+      }
     }
   }
 
@@ -1088,7 +1140,7 @@ export class GuiasManualesComponent implements OnInit {
       documentoDestinatario: documentoFiscal || '',
       puntoPartida: String(guia.puntoPartida ?? '').trim(),
       puntoLlegada: String(guia.puntoLlegada ?? '').trim() || undefined,
-      ubigeoPartida: String(guia.ubigeoPartida ?? '131202').trim(),
+      ubigeoPartida: String(guia.ubigeoPartida ?? '').trim(),
       ubigeoLlegada: String(guia.ubigeoLlegada ?? '131202').trim(),
       idTransportista: Number(guia.transportistaId) || null,
       idConductor: Number(guia.conductorId) || null,
@@ -1237,11 +1289,6 @@ export class GuiasManualesComponent implements OnInit {
     });
   }
 }
-
-
-
-
-
 
 
 

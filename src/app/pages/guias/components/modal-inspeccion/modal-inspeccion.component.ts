@@ -24,8 +24,10 @@ export interface InspeccionData {
 })
 export class ModalInspeccionComponent {
   @Input() guiaPayload: any = null;
+  @Input() guardando = false;
 
   @Output() cerrar = new EventEmitter<void>();
+  @Output() atras = new EventEmitter<void>();
   @Output() confirmar = new EventEmitter<{ guia: any; inspeccion: InspeccionData }>();
 
   readonly temperatura = signal<string>('');
@@ -70,10 +72,18 @@ export class ModalInspeccionComponent {
   });
 
   onCerrar(): void {
+    if (this.guardando) return;
     this.cerrar.emit();
   }
 
+  onAtras(): void {
+    if (this.guardando) return;
+    this.atras.emit();
+  }
+
   onConfirmar(): void {
+    if (this.guardando) return;
+
     this.submitAttempted.set(true);
     if (!this.isValid()) return;
 

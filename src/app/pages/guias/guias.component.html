@@ -359,13 +359,14 @@
 
 @if (modalInspeccionAbierto()) {
 <app-modal-inspeccion [guiaPayload]="pendingGuiaPayload()" (cerrar)="cerrarModalInspeccion()"
-  (confirmar)="onConfirmarInspeccion($event)" />
+  [guardando]="guardandoGuia()" (atras)="volverAFormularioGuia()" (confirmar)="onConfirmarInspeccion($event)" />
 }
 
 @if (modalNuevaGuiaAbierto()) {
 <app-modal-nueva-guia [procesos]="procesos()" [transportistas]="transportistas()" [conductores]="conductores()"
   [vehiculos]="vehiculos()" [destinatarios]="destinatarios()" [motivosTraslado]="motivosTraslado()"
-  [modoEdicion]="modoEdicionGuia()" [guiaEditando]="guiaParaEditar()" (cerrar)="cerrarModalNuevaGuia()"
+  [establecimientoEmisor]="establecimientoEmisor()" [establecimientos]="establecimientos()"
+  [modoEdicion]="modoEdicionGuia()" [guiaEditando]="guiaParaEditar()" [borradorGuia]="pendingGuiaPayload()" (cerrar)="cerrarModalNuevaGuia()"
   (crear)="onCrearGuia($event)" (editar)="onEditarGuia($event)" />
 }
 

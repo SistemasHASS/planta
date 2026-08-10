@@ -142,6 +142,7 @@ export class GuiasComponent implements OnInit {
   modalVerDetalleAbierto = signal(false);
   guiaDetalle = signal<any>(null);
   isLoadingModalProcesos = signal(false);
+  guardandoGuia = signal(false);
 
   pendingGuiaPayload = signal<any>(null);
 
@@ -164,6 +165,8 @@ export class GuiasComponent implements OnInit {
   readonly campaniasCatalogo = signal<any[]>([]);
   readonly codigosCajaCatalogo = signal<any[]>([]);
   readonly motivosTraslado = signal<any[]>([]);
+  readonly establecimientoEmisor = signal<any | null>(null);
+  readonly establecimientos = signal<any[]>([]);
 
   readonly filtroEstado = signal<string>('');
   readonly filtroTexto = signal<string>('');
@@ -195,7 +198,8 @@ export class GuiasComponent implements OnInit {
     void this.onBuscarGuias();
   }
 
-  async onBuscarGuias(): Promise<void> {
+  async onBuscarGuias(options: { mostrarCarga?: boolean } = {}): Promise<void> {
+    const mostrarCarga = options.mostrarCarga ?? true;
     this.paginaGuias.set(1);
     const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
     if (!idProyecto) {
@@ -207,7 +211,9 @@ export class GuiasComponent implements OnInit {
       }
     }
     const idProyectoFinal = String(this.savedConfig()?.idProyecto ?? '').trim();
-    this.alertService.mostrarModalCarga();
+    if (mostrarCarga) {
+      this.alertService.mostrarModalCarga();
+    }
     try {
       this.isLoading.set(true);
       const estado = this.filtroEstado().trim() || null;
@@ -218,6 +224,9 @@ export class GuiasComponent implements OnInit {
       const resultado = await this.guiaRemisionFacade.listarGuiasRemision(idProyectoFinal, estado, fechaDesde, fechaHasta, texto);
       console.log('1-1-1-1-',resultado)
       if (resultado.error) {
+        if (mostrarCarga) {
+          this.alertService.cerrarModalCarga();
+        }
         this.alertService.showAlert('Error', resultado.error, 'error');
         return;
       }
@@ -254,9 +263,14 @@ export class GuiasComponent implements OnInit {
       });
 
       this.guias.set(guiasEnriquecidas);
-      this.alertService.cerrarModalCarga();
+      if (mostrarCarga) {
+        this.alertService.cerrarModalCarga();
+      }
     } catch (error: any) {
       console.error('Error listando guías:', error);
+      if (mostrarCarga) {
+        this.alertService.cerrarModalCarga();
+      }
       this.alertService.showAlert('Error', error?.error?.message ?? 'Error al listar guías.', 'error');
     } finally {
       this.isLoading.set(false);
@@ -538,6 +552,12 @@ export class GuiasComponent implements OnInit {
       });
       const destinatarioId = String((destinatarioEncontrado as any)?.id ?? '').trim();
 
+      const motivoTraslado = String(
+        detalleData?.codigoSunatMotivoTraslado ??
+        detalleData?.motivoTraslado ??
+        '13'
+      ).trim();
+
       this.guiaParaEditar.set({
         procesoId,
         destinatarioId,
@@ -545,10 +565,13 @@ export class GuiasComponent implements OnInit {
         puntoLlegada: detalleData?.puntoLlegada ?? '',
         ubigeoPartida: detalleData?.ubigeoPartida ?? '131202',
         ubigeoLlegada: detalleData?.ubigeoLlegada ?? '131202',
+        idEstablecimientoPartida: String(detalleData?.idEstablecimientoPartida ?? '').trim(),
+        idEstablecimientoLlegada: String(detalleData?.idEstablecimientoLlegada ?? '').trim(),
         transportistaId: String(detalleData?.idTransportista ?? ''),
         conductorId: String(detalleData?.idConductor ?? ''),
         vehiculoId: String(detalleData?.idVehiculo ?? ''),
-        motivoTraslado: detalleData?.motivoTraslado ?? '13',
+        motivoTraslado,
+        descripcionMotivoTraslado: detalleData?.descripcionMotivoTraslado ?? '',
         fechaEntregaBienes: detalleData?.fechaEntregaBienes ?? '',
         precinto: detalleData?.precinto ?? '',
         parihuelas: Number(detalleData?.parihuelas) || 0,
@@ -600,13 +623,15 @@ export class GuiasComponent implements OnInit {
       if (Array.isArray(resp) && resp.length > 0) {
         resp = resp[0];
       }
+      this.alertService.cerrarModalCarga();
       if (resp?.error) {
         this.alertService.showAlertAcept('Error', resp?.mensaje ?? 'Error al emitir la guía.', 'error');
         return;
       }
+      await this.onBuscarGuias({ mostrarCarga: false });
       this.alertService.showAlert('Éxito', 'Guía emitida y numerada correctamente.', 'success');
-      await this.onBuscarGuias();
     } catch (error: any) {
+      this.alertService.cerrarModalCarga();
       console.error('Error emitiendo guía:', error);
       this.alertService.showAlert('Error', error?.error?.message ?? 'Error al emitir la guía.', 'error');
     }
@@ -623,14 +648,16 @@ export class GuiasComponent implements OnInit {
     this.alertService.mostrarModalCarga();
     try {
       const resp = await this.guiaRemisionFacade.consultarEstadoSunat(idProyecto, codigoGuiaRemision);
+      this.alertService.cerrarModalCarga();
       if (resp?.error) {
         this.alertService.showAlertAcept('Error', resp?.mensaje ?? 'Error al consultar el estado SUNAT.', 'error');
         return;
       }
       const mensaje = resp?.data?.mensajeSunat ?? resp?.mensaje ?? 'Estado actualizado correctamente.';
+      await this.onBuscarGuias({ mostrarCarga: false });
       this.alertService.showAlertAcept('Estado SUNAT', mensaje, 'success');
-      await this.onBuscarGuias();
     } catch (error: any) {
+      this.alertService.cerrarModalCarga();
       console.error('Error consultando estado SUNAT:', error);
       this.alertService.showAlert('Error', error?.error?.message ?? 'Error al consultar el estado SUNAT.', 'error');
     }
@@ -966,7 +993,32 @@ export class GuiasComponent implements OnInit {
 
   async cargarMotivosTraslado(): Promise<void> {
     const lista = await this.catalogosFacade.cargarMotivosTraslado();
-    this.motivosTraslado.set(lista ?? []);
+    this.motivosTraslado.set((lista ?? []).filter((m: any) => ['13', '04'].includes(String(m?.codigo ?? '').trim())));
+  }
+
+  async cargarEstablecimientoEmisor(): Promise<void> {
+    const resp = await firstValueFrom(this.catalogoService.getEstablecimientoEmisor());
+    const { error, mensaje, data } = this.normalizeBackendResp(resp);
+    if (error) {
+      throw new Error(mensaje || 'No se pudo cargar el establecimiento emisor.');
+    }
+
+    const establecimiento = Array.isArray(data) ? data[0] : data;
+    if (!establecimiento) {
+      throw new Error('No se encontró el establecimiento emisor.');
+    }
+
+    this.establecimientoEmisor.set(establecimiento);
+  }
+
+  async cargarEstablecimientos(): Promise<void> {
+    const resp = await firstValueFrom(this.catalogoService.listarEstablecimientos());
+    const { error, mensaje, data } = this.normalizeBackendResp(resp);
+    if (error) {
+      throw new Error(mensaje || 'No se pudieron cargar los establecimientos.');
+    }
+
+    this.establecimientos.set(Array.isArray(data) ? data : []);
   }
 
   async abrirModalVerDetalle(g: GuiaRemision): Promise<void> {
@@ -1046,6 +1098,8 @@ export class GuiasComponent implements OnInit {
         this.cargarVehiculos(),
         this.cargarDestinatarios(),
         this.cargarMotivosTraslado(),
+        this.cargarEstablecimientoEmisor(),
+        this.cargarEstablecimientos(),
       ]);
 
       if (!resp || resp.length === 0) {
@@ -1084,6 +1138,8 @@ export class GuiasComponent implements OnInit {
     this.modalNuevaGuiaAbierto.set(false);
     this.modoEdicionGuia.set(false);
     this.guiaParaEditar.set(null);
+    this.pendingGuiaPayload.set(null);
+    this.guardandoGuia.set(false);
   }
 
   onCrearGuia(payload: any): void {
@@ -1107,21 +1163,25 @@ export class GuiasComponent implements OnInit {
 
     const destinatario = this.destinatarios().find(d => String((d as any)?.id ?? '').trim() === String(payload.destinatarioId ?? '').trim());
     const documentoFiscal = String((destinatario as any)?.documentoFiscal ?? '').trim();
+    const motivoTraslado = String(payload.motivoTraslado ?? '13').trim();
+    const documentoEmpresa = String(this.savedConfig()?.nrodocumento ?? '').trim();
 
     const guiaPayload: GuiaRemision = {
       codigoGuiaRemision: guiaOriginal?.codigoGuiaRemision,
       codigoProceso: codigoProceso,
       transactionId_uuid: guiaOriginal?.transactionId_uuid ?? this.generateUUID(),
-      documentoDestinatario: documentoFiscal || '',
+      documentoDestinatario: motivoTraslado === '04' ? documentoEmpresa : (documentoFiscal || ''),
       puntoPartida: String(payload.puntoPartida ?? '').trim(),
       puntoLlegada: String(payload.puntoLlegada ?? '').trim() || undefined,
       ubigeoPartida: String(payload.ubigeoPartida ?? '131202').trim(),
       ubigeoLlegada: String(payload.ubigeoLlegada ?? '131202').trim(),
+      idEstablecimientoPartida: String(payload.idEstablecimientoPartida ?? '').trim() || null,
+      idEstablecimientoLlegada: String(payload.idEstablecimientoLlegada ?? '').trim() || null,
       idTransportista: Number(payload.transportistaId) || null,
       idConductor: Number(payload.conductorId) || null,
       idVehiculo: Number(payload.vehiculoId) || null,
-      motivoTraslado: String(payload.motivoTraslado ?? '13').trim(),
-      descripcionMotivoTraslado: String(payload.descripcionMotivoTraslado ?? '').trim() || undefined,
+      motivoTraslado,
+      descripcionMotivoTraslado: motivoTraslado === '13' ? (String(payload.descripcionMotivoTraslado ?? '').trim() || undefined) : undefined,
       fechaEntregaBienes: payload.fechaEntregaBienes || guiaOriginal?.fechaEntregaBienes || null,
       precinto: String(payload.precinto ?? '').trim() || null,
       estado: guiaOriginal?.estado ?? 'ABIERTA',
@@ -1208,12 +1268,8 @@ export class GuiasComponent implements OnInit {
         this.alertService.showAlertAcept('Error', mensaje || 'Error al editar la guía.', 'error');
         return;
       }
-      if (mensaje) {
-        this.alertService.showAlert('Info', mensaje, 'info');
-      }
-
-      this.alertService.showAlert('Éxito', 'Guía editada correctamente.', 'success');
-      await this.onBuscarGuias();
+      await this.onBuscarGuias({ mostrarCarga: false });
+      this.alertService.showAlert('Éxito', mensaje || 'Guía editada correctamente.', 'success');
     } catch (error: any) {
       this.alertService.cerrarModalCarga();
       this.alertService.showAlertAcept('Error', error?.error?.message ?? 'Error al editar la guía.', 'error');
@@ -1235,8 +1291,8 @@ export class GuiasComponent implements OnInit {
   }
 
   async onConfirmarInspeccion(ev: { guia: any; inspeccion: any }): Promise<void> {
-    this.modalInspeccionAbierto.set(false);
-    this.pendingGuiaPayload.set(null);
+    if (this.guardandoGuia()) return;
+    this.guardandoGuia.set(true);
 
     const guia = ev.guia;
     const inspeccion = ev.inspeccion;
@@ -1249,22 +1305,26 @@ export class GuiasComponent implements OnInit {
 
     const destinatario = this.destinatarios().find(d => String((d as any)?.id ?? '').trim() === String(guia.destinatarioId ?? '').trim());
     const documentoFiscal = String((destinatario as any)?.documentoFiscal ?? '').trim();
+    const motivoTraslado = String(guia.motivoTraslado ?? '13').trim();
+    const documentoEmpresa = String(this.savedConfig()?.nrodocumento ?? '').trim();
 
-    const transactionId = this.generateUUID();
+    const transactionId = String(guia?.transactionId_uuid ?? '').trim() || this.generateUUID();
 
     const guiaPayload: GuiaRemision = {
       codigoProceso: codigoProceso,
       transactionId_uuid: transactionId,
-      documentoDestinatario: documentoFiscal || '',
+      documentoDestinatario: motivoTraslado === '04' ? documentoEmpresa : (documentoFiscal || ''),
       puntoPartida: String(guia.puntoPartida ?? '').trim(),
       puntoLlegada: String(guia.puntoLlegada ?? '').trim() || undefined,
       ubigeoPartida: String(guia.ubigeoPartida ?? '131202').trim(),
       ubigeoLlegada: String(guia.ubigeoLlegada ?? '131202').trim(),
+      idEstablecimientoPartida: String(guia.idEstablecimientoPartida ?? '').trim() || null,
+      idEstablecimientoLlegada: String(guia.idEstablecimientoLlegada ?? '').trim() || null,
       idTransportista: Number(guia.transportistaId) || null,
       idConductor: Number(guia.conductorId) || null,
       idVehiculo: Number(guia.vehiculoId) || null,
-      motivoTraslado: String(guia.motivoTraslado ?? '13').trim(),
-      descripcionMotivoTraslado: String(guia.descripcionMotivoTraslado ?? '').trim() || undefined,
+      motivoTraslado,
+      descripcionMotivoTraslado: motivoTraslado === '13' ? (String(guia.descripcionMotivoTraslado ?? '').trim() || undefined) : undefined,
       fechaEntregaBienes: String(guia.fechaEntregaBienes ?? '').trim() || formatDate(new Date()),
       precinto: String(guia.precinto ?? '').trim() || null,
       estado: 'ABIERTA',
@@ -1297,6 +1357,7 @@ export class GuiasComponent implements OnInit {
     const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
     if (!idProyecto) {
       this.alertService.showAlert('Error', 'No se encontró la configuración del proyecto.', 'error');
+      this.guardandoGuia.set(false);
       return;
     }
 
@@ -1330,9 +1391,12 @@ export class GuiasComponent implements OnInit {
         });
       }
 
-      this.alertService.showAlert('Éxito', 'Guía guardada localmente (sin sincronizar).', 'success');
+      this.modalInspeccionAbierto.set(false);
+      this.pendingGuiaPayload.set(null);
       await this.cargarProcesosParaGuia();
-      await this.onBuscarGuias();
+      await this.onBuscarGuias({ mostrarCarga: false });
+      this.alertService.showAlert('Éxito', 'Guía guardada localmente (sin sincronizar).', 'success');
+      this.guardandoGuia.set(false);
       return;
     }
 
@@ -1344,25 +1408,37 @@ export class GuiasComponent implements OnInit {
 
       if (error) {
         this.alertService.showAlertAcept('Error', mensaje || 'Error al sincronizar guía.', 'error');
+        this.guardandoGuia.set(false);
         return;
       }
-      if (mensaje) {
-        this.alertService.showAlert('Info', mensaje, 'info');
-      }
-
-      this.alertService.showAlert('Éxito', 'Guía sincronizada correctamente.', 'success');
+      this.modalInspeccionAbierto.set(false);
+      this.pendingGuiaPayload.set(null);
       await this.cargarProcesosParaGuia();
-      await this.onBuscarGuias();
+      await this.onBuscarGuias({ mostrarCarga: false });
+      this.alertService.showAlert('Éxito', mensaje || 'Guía sincronizada correctamente.', 'success');
     } catch (error: any) {
       console.error('Error sincronizando guía:', error);
       this.alertService.cerrarModalCarga();
       this.alertService.showAlertAcept('Error', error?.error?.message ?? 'Error al sincronizar guía.', 'error');
+      this.guardandoGuia.set(false);
+    } finally {
+      if (!this.modalInspeccionAbierto()) {
+        this.guardandoGuia.set(false);
+      }
     }
   }
 
   cerrarModalInspeccion(): void {
+    if (this.guardandoGuia()) return;
     this.modalInspeccionAbierto.set(false);
     this.pendingGuiaPayload.set(null);
+    this.guardandoGuia.set(false);
+  }
+
+  volverAFormularioGuia(): void {
+    if (this.guardandoGuia()) return;
+    this.modalInspeccionAbierto.set(false);
+    this.modalNuevaGuiaAbierto.set(true);
   }
 
   async onSincronizar(): Promise<void> {
@@ -1400,6 +1476,10 @@ export class GuiasComponent implements OnInit {
   }
 
   private generateUUID(): string {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
       const r = Math.random() * 16 | 0;
       const v = c === 'x' ? r : (r & 0x3 | 0x8);
@@ -1407,17 +1487,6 @@ export class GuiasComponent implements OnInit {
     });
   }
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 
