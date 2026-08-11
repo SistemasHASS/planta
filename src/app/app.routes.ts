@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './shared/guards/auth.guard';
 import { parametrosConfigChildGuard } from './shared/guards/parametros-config.guard';
+import { roleAccessChildGuard } from './shared/guards/role-access.guard';
 
 const childRoutes: Routes = [
   { path: '', redirectTo: 'parametros', pathMatch: 'full' },
@@ -179,7 +180,7 @@ export const appRoutes: Routes = [
     loadComponent: () =>
       import('./layout/layout.component').then((m) => m.LayoutComponent),
     canActivate: [authGuard],
-    canActivateChild: [parametrosConfigChildGuard],
+    canActivateChild: [parametrosConfigChildGuard, roleAccessChildGuard],
     children: childRoutes,
   },
   { path: '**', redirectTo: '' },

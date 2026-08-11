@@ -22,10 +22,7 @@
           <td>{{ row.nombre }}</td>
           <td>
             <span [class]="perfilClass(row.idRol)">
-              <i class="bi" [class.bi-shield-check]="(row.idRol || '').toUpperCase() === 'ADMINISTRADOR'"
-                [class.bi-box-seam]="(row.idRol || '').toUpperCase() === 'LOGISTICA'"
-                [class.bi-eye]="(row.idRol || '').toUpperCase() === 'COORDINACION'"
-                [class.bi-bar-chart-line]="(row.idRol || '').toUpperCase() === 'OPERACIONES'"></i>
+              <i class="bi" [class]="perfilIconClass(row.idRol)"></i>
               {{ perfilConvert(row.idRol) }}
             </span>
           </td>

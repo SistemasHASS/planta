@@ -113,29 +113,52 @@ export class UsuariosTablaComponent {
 
   trackById = (_: number, item: Usuario) => item?.id ?? item;
 
-  perfilConvert(perfil:string):string{
-    switch(perfil){
+  perfilConvert(perfil: string): string {
+    const p = String(perfil ?? '').trim().toUpperCase();
+    switch (p) {
       case 'ADPLA':
+      case 'ADMINISTRADOR':
         return 'Administrador';
       case 'LOPLA':
+      case 'LOGISTICA':
         return 'Logística';
+      case 'MOPLA':
+      case 'MONITOR':
+        return 'Monitor';
+      case 'GMPLA':
+      case 'GUIAS_MANUALES':
+        return 'Guías Manuales';
       case 'COPLA':
+      case 'COORDINACION':
         return 'Coordinación';
       case 'OPPLA':
+      case 'OPERACIONES':
         return 'Operaciones';
       default:
-        return 'Unknown';
+        return p || '—';
     }
-    return '' 
   }
 
   perfilClass(perfil: string): string {
-    const p = String(perfil ?? '').toUpperCase();
-    if (p === 'ADPLA') return 'sp-badge sp-badge-primary';
-    if (p === 'LOPLA') return 'sp-badge sp-badge-info';
-    if (p === 'COPLA') return 'sp-badge sp-badge-warning';
-    if (p === 'OPPLA') return 'sp-badge sp-badge-success';
+    const p = String(perfil ?? '').trim().toUpperCase();
+    if (p === 'ADPLA' || p === 'ADMINISTRADOR') return 'sp-badge sp-badge-primary';
+    if (p === 'LOPLA' || p === 'LOGISTICA') return 'sp-badge sp-badge-info';
+    if (p === 'MOPLA' || p === 'MONITOR') return 'sp-badge sp-badge-muted';
+    if (p === 'GMPLA' || p === 'GUIAS_MANUALES') return 'sp-badge sp-badge-info';
+    if (p === 'COPLA' || p === 'COORDINACION') return 'sp-badge sp-badge-warning';
+    if (p === 'OPPLA' || p === 'OPERACIONES') return 'sp-badge sp-badge-success';
     return 'sp-badge sp-badge-muted';
+  }
+
+  perfilIconClass(perfil: string): string {
+    const p = String(perfil ?? '').trim().toUpperCase();
+    if (p === 'ADPLA' || p === 'ADMINISTRADOR') return 'bi-shield-check';
+    if (p === 'LOPLA' || p === 'LOGISTICA') return 'bi-box-seam';
+    if (p === 'MOPLA' || p === 'MONITOR') return 'bi-display';
+    if (p === 'GMPLA' || p === 'GUIAS_MANUALES') return 'bi-pencil-square';
+    if (p === 'COPLA' || p === 'COORDINACION') return 'bi-eye';
+    if (p === 'OPPLA' || p === 'OPERACIONES') return 'bi-bar-chart-line';
+    return 'bi-question-circle';
   }
 
   estadoClass(activo: any): string {

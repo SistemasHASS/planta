@@ -44,6 +44,7 @@ export class LayoutComponent {
   readonly perfilName = computed(() => {
     return this.perfil() === 'ADMINISTRADOR' ? 'Administrador' :
       this.perfil() === 'LOGISTICA' ? 'Logística' :
+        this.perfil() === 'GUIAS_MANUALES' ? 'Guías Manuales' :
         this.perfil() === 'COORDINACION' ? 'Coordinación' :
           this.perfil() === 'OPERACIONES' ? 'Operaciones' :
             (this.perfil() ?? '');
@@ -254,6 +255,17 @@ export class LayoutComponent {
           { label: 'Guías Manuales', path: '/guias-manuales', icon: 'bi bi-pencil-square' },
           // { label: 'Reporte Producción', path: '/reporte-logistica', icon: 'bi-clipboard-data-fill' },
           // { label: 'Documentación', path: '/despacho', icon: 'bi-clipboard-check-fill' },
+        ]
+      });
+    } else if (p === 'GUIAS_MANUALES') {
+      sections.push({
+        title: 'Configuraciones',
+        items: [{ label: 'Parametros', path: '/parametros', icon: 'bi bi-sliders' }]
+      });
+      sections.push({
+        title: 'Gestión',
+        items: [
+          { label: 'Guías Manuales', path: '/guias-manuales', icon: 'bi bi-pencil-square' },
         ]
       });
     } else if (p === 'COORDINACION') { //Coordinacion

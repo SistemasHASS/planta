@@ -9,6 +9,7 @@ export class PermissionService {
 
   readonly esAdmin = computed(() => this.perfil() === 'ADMINISTRADOR');
   readonly esLogistica = computed(() => this.perfil() === 'LOGISTICA');
+  readonly esGuiasManuales = computed(() => this.perfil() === 'GUIAS_MANUALES');
   readonly esCoordinacion = computed(() => this.perfil() === 'COORDINACION');
   readonly esOperaciones = computed(() => this.perfil() === 'OPERACIONES');
 
@@ -70,5 +71,9 @@ export class PermissionService {
 
   puedeGestionarCatalogos(): boolean {
     return this.esAdmin();
+  }
+
+  puedeGestionarGuiasManuales(): boolean {
+    return this.esAdminOLogistica() || this.esGuiasManuales();
   }
 }

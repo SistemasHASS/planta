@@ -324,13 +324,20 @@ export class ParametrosComponent implements OnInit {
             await this.catalogosRepo.configuracionRepo.save(cfg as any);
             this.savedConfig.set(cfg);
             await this.getListarCatalogosUsuarios();
-            await this.catalogosFacade.cargarCodigosCajaCatalogo();
-            await this.guiaRemisionFacade.listarGuiasRemision(campaniaOk);
+            if (!this.esRolGuiasManuales()) {
+                await this.catalogosFacade.cargarCodigosCajaCatalogo();
+                await this.guiaRemisionFacade.listarGuiasRemision(campaniaOk);
+            }
             // this.alertService.showAlert('Guardado', 'Configuración guardada correctamente', 'success');
         } catch (error) {
             console.log('Error guardando configuración', error);
             this.alertService.showAlertAcept('Error', 'No se pudo guardar la configuración', 'error');
         }
+    }
+
+    private esRolGuiasManuales(): boolean {
+        const rol = String(this.usuario()?.idRol ?? this.usuario()?.idrol ?? '').trim().toUpperCase();
+        return rol === 'GMPLA';
     }
 
     private async apiListarReglasSobrePeso(): Promise<void> {
@@ -591,6 +598,15 @@ export class ParametrosComponent implements OnInit {
 
                     ];
                     break;
+                case 'GMPLA':
+                    tareas = [
+                        this.getTransportistasMaestros(parametros[0].idProyecto),
+                        this.getConductoresMaestros(parametros[0].idProyecto),
+                        this.getVehiculosMaestros(parametros[0].idProyecto),
+                        this.getDestinatariosMaestros(),
+                        this.catalogosFacade.cargarMotivosTraslado()
+                    ];
+                    break;
 
                 default:
                     tareas = [];
@@ -607,10 +623,12 @@ export class ParametrosComponent implements OnInit {
                     }
                 });
 
-                await this.apiListarMatricesCompatibilidad()
-                await this.apiListarReglasSobrePeso()
-                await this.apiListarCorrelativosDocumentos()
-                await this.sincronizarDPaletsPorAcopio()
+                if (!this.esRolGuiasManuales()) {
+                    await this.apiListarMatricesCompatibilidad()
+                    await this.apiListarReglasSobrePeso()
+                    await this.apiListarCorrelativosDocumentos()
+                    await this.sincronizarDPaletsPorAcopio()
+                }
                 this.alertService.cerrarModalCarga();
                 this.alertService.showAlert('Listo', 'Sincronización completada', 'success');
             } else {

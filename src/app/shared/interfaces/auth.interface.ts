@@ -12,7 +12,7 @@ export interface UsuarioAuth {
   id: number;
   usuario: string;
   nombreCompleto?: string;
-  perfil?: 'ADMINISTRADOR' | 'LOGISTICA' | 'COORDINACION' | 'OPERACIONES' | 'MONITOR' | null;
+  perfil?: 'ADMINISTRADOR' | 'LOGISTICA' | 'COORDINACION' | 'OPERACIONES' | 'MONITOR' | 'GUIAS_MANUALES' | null;
   codigoAcopio?: string;
   acopioCodigo?: string;
   acopioNombre?: string;

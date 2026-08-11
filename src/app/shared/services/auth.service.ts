@@ -28,11 +28,12 @@ export class AuthService {
     if (v === 'ADPLA') return 'ADMINISTRADOR';
     if (v === 'LOPLA') return 'LOGISTICA';
     if (v === 'MOPLA') return 'MONITOR';
+    if (v === 'GMPLA') return 'GUIAS_MANUALES';
     if (v === 'COPLA') return 'COORDINACION';
     if (v === 'OPPLA') return 'OPERACIONES';
 
     // Si ya viene normalizado, dejarlo pasar
-    if (v === 'ADMINISTRADOR' || v === 'LOGISTICA' || v === 'MONITOR' ||v === 'COORDINACION' || v === 'OPERACIONES') {
+    if (v === 'ADMINISTRADOR' || v === 'LOGISTICA' || v === 'MONITOR' || v === 'GUIAS_MANUALES' || v === 'COORDINACION' || v === 'OPERACIONES') {
       return v as UsuarioAuth['perfil'];
     }
 

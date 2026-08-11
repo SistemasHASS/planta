@@ -217,6 +217,8 @@ export class UsuariosModalComponent {
     const p = String(perfil ?? '').trim().toUpperCase();
     if (p === 'ADPLA' || p === 'ADMINISTRADOR') return 'Administrador';
     if (p === 'LOPLA' || p === 'LOGISTICA') return 'Logística';
+    if (p === 'MOPLA' || p === 'MONITOR') return 'Monitor';
+    if (p === 'GMPLA' || p === 'GUIAS_MANUALES') return 'Guías Manuales';
     if (p === 'COPLA' || p === 'COORDINACION') return 'Coordinación';
     if (p === 'OPPLA' || p === 'OPERACIONES') return 'Operaciones';
     return p || '';
