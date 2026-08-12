@@ -28,7 +28,8 @@ Chart.register(...registerables);
 
 type AcopioOption = { codigoAcopio: string; acopioNombre: string; selected: boolean };
 type VariedadItem = { variedadId: string; variedad: string; cajas: number; kg: number; porcentaje: number };
-type AcopioKgItem = { acopio: string; kg: number };
+type AcopioKgDetalleItem = { codigo: string; nombre: string; kg: number };
+type AcopioKgItem = { acopio: string; kg: number; detalleTipos?: AcopioKgDetalleItem[] };
 type ConsignatarioItem = { consignatarioId: string; destinoId: string; formato: string; consignatario: string; cajas: number; kg: number; porcentaje: number };
 type ConsignatarioChartItem = { consignatarioId: string; consignatario: string; cajas: number; kg: number; porcentaje: number };
 
@@ -430,6 +431,13 @@ export class ReporteDiarioComponent implements AfterViewInit, OnDestroy {
     const values = items.map(i => i.kg);
     const formatKg = (value: number) =>
       new Intl.NumberFormat('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(value);
+    const tieneDetalleMultiple = items.some(item => (item.detalleTipos ?? []).filter(det => Number(det.kg ?? 0) > 0).length > 1);
+
+    if (tieneDetalleMultiple) {
+      this.renderAcopioStackedChart(canvas, items, labels, values, formatKg);
+      return;
+    }
+
     const barLabelsPlugin = this.createBarValuePlugin(values, formatKg, 'acopioValueLabels');
 
     this.acopioChart = new Chart(canvas, {
@@ -454,6 +462,194 @@ export class ReporteDiarioComponent implements AfterViewInit, OnDestroy {
       },
       plugins: [barLabelsPlugin],
     });
+  }
+
+  private renderAcopioStackedChart(
+    canvas: HTMLCanvasElement,
+    items: AcopioKgItem[],
+    labels: string[],
+    totals: number[],
+    formatKg: (value: number) => string
+  ): void {
+    const tipos = this.getTiposProcesoAcopio(items);
+    const colors = this.generatePalette(Math.max(tipos.length, 1));
+    const barLabelsPlugin = this.createStackedTotalLabelsPlugin(totals, formatKg);
+    const stackedLabelsPlugin = this.createSimpleStackedSegmentLabelsPlugin(items, formatKg);
+
+    this.acopioChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: tipos.map((tipo, index) => ({
+          label: tipo.nombre || tipo.codigo,
+          data: items.map(item => {
+            const detalle = (item.detalleTipos ?? []).find(det => det.codigo === tipo.codigo);
+            return Number(detalle?.kg ?? 0);
+          }),
+          backgroundColor: colors[index % colors.length],
+          borderRadius: 6,
+          stack: 'kgPorAcopio',
+        })),
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx: any) => `${ctx.dataset.label}: ${formatKg(Number(ctx.raw ?? 0))} kg`,
+              footer: (ctx: any) => {
+                const index = ctx?.[0]?.dataIndex;
+                const total = Number(totals[index] ?? 0);
+                return `Total: ${formatKg(total)} kg`;
+              },
+            },
+          },
+        },
+        scales: {
+          x: { stacked: true },
+          y: { stacked: true, beginAtZero: true, title: { display: true, text: 'KG' } },
+        },
+      },
+      plugins: [barLabelsPlugin, stackedLabelsPlugin],
+    });
+  }
+
+  private getTiposProcesoAcopio(items: AcopioKgItem[]): AcopioKgDetalleItem[] {
+    const tipos = new Map<string, AcopioKgDetalleItem>();
+
+    for (const item of items) {
+      for (const detalle of item.detalleTipos ?? []) {
+        const codigo = String(detalle.codigo ?? '').trim();
+        const kg = Number(detalle.kg ?? 0);
+        if (!codigo || kg <= 0 || tipos.has(codigo)) {
+          continue;
+        }
+        tipos.set(codigo, {
+          codigo,
+          nombre: String(detalle.nombre || codigo).trim(),
+          kg: 0,
+        });
+      }
+    }
+
+    return Array.from(tipos.values());
+  }
+
+  private createStackedTotalLabelsPlugin(
+    totals: number[],
+    formatter: (value: number) => string
+  ) {
+    return {
+      id: 'acopioStackedTotalLabels',
+      afterDatasetsDraw: (chart: any) => {
+        const { ctx } = chart;
+
+        ctx.save();
+        ctx.font = '600 12px "Inter", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        totals.forEach((total, dataIndex) => {
+          if (!Number.isFinite(total) || total <= 0) {
+            return;
+          }
+
+          let topBar: any = null;
+          for (let datasetIndex = chart.data.datasets.length - 1; datasetIndex >= 0; datasetIndex--) {
+            const value = Number(chart.data.datasets[datasetIndex]?.data?.[dataIndex] ?? 0);
+            if (value <= 0) {
+              continue;
+            }
+            topBar = chart.getDatasetMeta(datasetIndex)?.data?.[dataIndex];
+            break;
+          }
+
+          if (!topBar) {
+            return;
+          }
+
+          const props = topBar.getProps(['x', 'y'], true);
+          const label = `${formatter(total)} kg`;
+          const metrics = ctx.measureText(label);
+          const paddingX = 10;
+          const paddingY = 4;
+          const labelWidth = metrics.width + paddingX * 2;
+          const labelHeight = 16 + paddingY * 2;
+          const top = Math.max(6, props.y - labelHeight - 6);
+
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+          ctx.strokeStyle = 'rgba(15, 23, 42, 0.15)';
+          ctx.lineWidth = 1;
+          this.drawRoundedRect(ctx, props.x - labelWidth / 2, top, labelWidth, labelHeight, 8);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = '#0f172a';
+          ctx.fillText(label, props.x, top + labelHeight / 2);
+        });
+
+        ctx.restore();
+      },
+    };
+  }
+
+  private createSimpleStackedSegmentLabelsPlugin(
+    items: AcopioKgItem[],
+    formatter: (value: number) => string
+  ) {
+    return {
+      id: 'acopioSimpleStackedSegmentLabels',
+      afterDatasetsDraw: (chart: any) => {
+        const { ctx } = chart;
+        if (chart.data.datasets.length <= 1) {
+          return;
+        }
+
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#ffffff';
+
+        chart.data.datasets.forEach((dataset: any, datasetIndex: number) => {
+          const meta = chart.getDatasetMeta(datasetIndex);
+          meta.data.forEach((bar: any, dataIndex: number) => {
+            const value = Number(dataset.data[dataIndex] ?? 0);
+            const detalleCount = (items[dataIndex]?.detalleTipos ?? []).filter(det => Number(det.kg ?? 0) > 0).length;
+            if (value <= 0 || detalleCount <= 1) {
+              return;
+            }
+
+            const props = bar.getProps(['x', 'y', 'base', 'width'], true);
+            const height = Math.abs(props.base - props.y);
+            const width = Number(props.width ?? 0);
+            if (height < 18 || width < 52) {
+              return;
+            }
+
+            const centerY = props.y + height / 2;
+            const codigo = String(dataset.label ?? '').trim();
+            const kgLabel = `${formatter(value)} kg`;
+
+            ctx.font = '600 11px "Inter", sans-serif';
+            if (height < 38) {
+              ctx.fillText(codigo, props.x, centerY);
+              return;
+            }
+
+            ctx.fillText(codigo, props.x, centerY - 7);
+            ctx.font = '500 10px "Inter", sans-serif';
+            ctx.fillText(kgLabel, props.x, centerY + 8);
+          });
+        });
+
+        ctx.restore();
+      },
+    };
   }
 
   private renderConsignatarioChart(items: ConsignatarioItem[]): void {
