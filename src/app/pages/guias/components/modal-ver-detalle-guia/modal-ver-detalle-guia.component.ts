@@ -84,6 +84,7 @@ export interface GuiaDetalleData {
   fechaCierre?: string | null;
   parihuelas?: number | null;
   observacionesUsuario?: string | null;
+  observacionGuia?: string | null;
   esReposicion?: boolean;
   inspeccionTemperatura?: number | null;
   inspeccionLibreOlores?: boolean | null;

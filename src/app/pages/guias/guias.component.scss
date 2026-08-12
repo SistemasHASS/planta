@@ -428,7 +428,7 @@
 .guia-table {
   table-layout: auto;
   width: 100%;
-  min-width: 1100px;
+  min-width: 1480px;
 }
 
 .guia-table th,
@@ -440,16 +440,17 @@
 }
 
 .col-guia   { min-width: 160px; }
-.col-dest   { min-width: 130px; }
+.col-dest   { min-width: 250px; }
 .col-proc   { min-width: 140px; }
 .col-num    { min-width: 55px; text-align: center; }
 .col-prec   { min-width: 70px; }
 .col-via    { min-width: 55px; text-align: center; }
 .col-fecha  { min-width: 130px; }
+.col-creador { min-width: 150px; }
 .col-sync   { min-width: 115px; }
 .col-estado { min-width: 95px; }
 .col-sunat  { min-width: 110px; }
-.col-acc    { min-width: 170px; }
+.col-acc    { min-width: 135px; }
 
 .guias-pagination {
   display: flex;
@@ -479,37 +480,21 @@
   font-size: 12px;
 }
 
-/* Sticky right columns: Estado + Estado SUNAT + Acciones (desktop only) */
+/* Sticky right column: Acciones (desktop only) */
 @media (min-width: 992px) {
-  .guia-table th.col-estado,
-  .guia-table td.col-estado {
-    position: sticky;
-    right: 280px;
-    background: inherit;
-    z-index: 2;
-  }
-
-  .guia-table th.col-sunat,
-  .guia-table td.col-sunat {
-    position: sticky;
-    right: 170px;
-    background: inherit;
-    z-index: 2;
-  }
-
   .guia-table th.col-acc,
   .guia-table td.col-acc {
     position: sticky;
     right: 0;
-    background: inherit;
+    background: #fff;
     z-index: 2;
   }
 
-  /* Shadow on left edge of sticky columns to show there's more content */
-  .guia-table th.col-estado::before,
-  .guia-table td.col-estado::before,
-  .guia-table th.col-sunat::before,
-  .guia-table td.col-sunat::before,
+  .guia-table tr[style*="background"] td.col-acc {
+    background: inherit;
+  }
+
+  /* Shadow on left edge of sticky column to show there's more content */
   .guia-table th.col-acc::before,
   .guia-table td.col-acc::before {
     content: '';
@@ -522,17 +507,13 @@
     pointer-events: none;
   }
 
-  .guia-table th.col-estado,
-  .guia-table th.col-sunat,
   .guia-table th.col-acc {
     position: sticky;
     background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
     z-index: 3;
   }
 
-  .guia-table th.col-estado { right: 280px; }
-  .guia-table th.col-sunat  { right: 170px; }
-  .guia-table th.col-acc    { right: 0; }
+  .guia-table th.col-acc { right: 0; }
 }
 
 .proc-badge {

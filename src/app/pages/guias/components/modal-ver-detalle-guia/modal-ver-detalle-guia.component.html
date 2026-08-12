@@ -262,6 +262,9 @@
         @if (g.observacionesUsuario) {
         <span class="resumen-obs-item"><i class="bi bi-person"></i><span class="obs-label">Obs. Usuario:</span> {{ g.observacionesUsuario }}</span>
         }
+         @if (g.observacionGuia) {
+        <span class="resumen-obs-item"><i class="bi bi-person"></i><span class="obs-label">Obs. guia:</span> {{ g.observacionGuia }}</span>
+        }
         @if (g.esReposicion) {
         <span class="guia-tag tag-repo"><i class="bi bi-arrow-repeat"></i> Reposición</span>
         }
