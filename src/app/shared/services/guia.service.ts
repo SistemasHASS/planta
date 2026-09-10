@@ -30,6 +30,20 @@ export class GuiaService {
     return this.http.get<any>(`${environment.apiUrl}/guias-remision-manual/listar-guias-remision-manual`, { params, withCredentials: true });
   }
 
+  exportarGuiasRemisionManualExcel(idProyecto: string, estado: string | null = null, fechaDesde: string | null = null, fechaHasta: string | null = null, texto: string | null = null, codigoCultivo: string | null = null): Observable<Blob> {
+    let params = new HttpParams().set('idProyecto', idProyecto);
+    if (estado) params = params.set('estado', estado);
+    if (fechaDesde) params = params.set('fechaDesde', fechaDesde);
+    if (fechaHasta) params = params.set('fechaHasta', fechaHasta);
+    if (texto) params = params.set('texto', texto);
+    if (codigoCultivo) params = params.set('codigoCultivo', codigoCultivo);
+    return this.http.get(`${environment.apiUrl}/guias-remision-manual/exportar-guias-remision-manual-excel`, {
+      params,
+      responseType: 'blob',
+      withCredentials: true,
+    });
+  }
+
   getGuiaRemisionManual(idProyecto: string, codigoGuiaRemision: string): Observable<any> {
     let params = new HttpParams().set('idProyecto', idProyecto).set('codigoGuiaRemision', codigoGuiaRemision);
     return this.http.get<any>(`${environment.apiUrl}/guias-remision-manual/get-guia-remision-manual`, { params, withCredentials: true });

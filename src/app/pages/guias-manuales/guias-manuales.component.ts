@@ -267,7 +267,7 @@ export class GuiasManualesComponent implements OnInit {
       const fechaDesde = this.filtroFechaDesde().trim() || null;
       const fechaHasta = this.filtroFechaHasta().trim() || null;
 
-      const blob = await firstValueFrom(this.guiaService.exportarGuiasRemisionExcel(idProyecto, estado, fechaDesde, fechaHasta, texto, codigoCultivo));
+      const blob = await firstValueFrom(this.guiaService.exportarGuiasRemisionManualExcel(idProyecto, estado, fechaDesde, fechaHasta, texto, codigoCultivo));
       const clone = blob.slice(0, blob.size, blob.type);
       const text = await clone.text();
       let errorPayload: any = null;
@@ -283,7 +283,7 @@ export class GuiasManualesComponent implements OnInit {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `guias-remision-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.download = `guias-remision-manuales-${new Date().toISOString().slice(0, 10)}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
