@@ -1,9 +1,9 @@
-<div class="app-layout">
+<div class="app-layout" [class.sidebar-collapsed]="sidebarCollapsed()">
   <!-- Sidebar Overlay (mobile) -->
   <div class="sidebar-overlay" [class.show]="sidebarOpen()" (click)="closeSidebar()"></div>
 
   <!-- Sidebar -->
-  <aside class="app-sidebar" [class.show]="sidebarOpen()">
+  <aside class="app-sidebar" [class.show]="sidebarOpen()" [class.collapsed]="sidebarCollapsed()">
     <!-- User Header -->
     <div class="sidebar-header">
       <button type="button" class="sidebar-mobile-close" aria-label="Cerrar menú" (click)="closeSidebar()">
@@ -13,6 +13,7 @@
       <div class="sidebar-profile-greeting">Hola</div>
       <div class="sidebar-profile-name" [attr.title]="nombreCompleto()">{{ nombreCompleto() }}</div>
       <div class="sidebar-profile-role">{{ perfilName() }}</div>
+      <div class="sidebar-app-version">v{{ appVersion }}</div>
     </div>
 
     <div class="sidebar-body">
@@ -74,8 +75,14 @@
   <div class="app-main">
     <!-- Topbar -->
     <div class="app-topbar">
-      <button class="topbar-toggle" type="button" aria-label="Toggle Sidebar" (click)="toggleSidebar()">
-        <i class="bi bi-list"></i>
+      <button
+        class="topbar-toggle"
+        type="button"
+        [attr.aria-expanded]="sidebarExpanded()"
+        [attr.aria-label]="sidebarExpanded() ? 'Ocultar menú lateral' : 'Mostrar menú lateral'"
+        [attr.title]="sidebarExpanded() ? 'Ocultar menú lateral' : 'Mostrar menú lateral'"
+        (click)="toggleSidebar()">
+        <i class="bi" [class.bi-layout-sidebar-inset]="sidebarExpanded()" [class.bi-layout-sidebar-inset-reverse]="!sidebarExpanded()"></i>
       </button>
 
       <div class="topbar-breadcrumb">

@@ -192,7 +192,7 @@
                         <button class="btn action-btn action-btn-delete" title="Eliminar grupo" (click)="eliminarGrupo(g._guiasDelGrupo)"><i class="bi bi-trash"></i></button>
                         }
                       }
-                      @if (g.estado === 'CERRADA' && !esAdmin()) {
+                      @if (g.estado === 'CERRADA' && esAdministrador()) {
                         <button class="btn action-btn action-btn-anular" title="Anular grupo" (click)="anularGrupo(g._guiasDelGrupo)"><i class="bi bi-x-octagon"></i> Anular</button>
                       }
                     </div>
@@ -260,7 +260,7 @@
                     @if (g.estado === 'CERRADA' && !g.enviadoBizlinks && !esAdmin()) {
                     <button class="btn action-btn action-btn-send" title="Reenviar a SUNAT" (click)="reenviarGuia(g)"><i class="bi bi-send"></i></button>
                     }
-                    @if (g.estado === 'CERRADA' && !esAdmin()) {
+                    @if (g.estado === 'CERRADA' && esAdministrador()) {
                     <button class="btn action-btn action-btn-anular" title="Anular guía" (click)="anularGuia(g)"><i class="bi bi-x-octagon"></i> Anular</button>
                     }
                   </div>

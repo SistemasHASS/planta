@@ -8,11 +8,14 @@ import { AlertService } from '../shared/services/alert.service';
 import { GlobalErrorService } from '../shared/services/global-error.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { switchMap } from 'rxjs/operators';
-import { from, of } from 'rxjs';
+import { firstValueFrom, from, of } from 'rxjs';
+import { CatalogoService } from '../shared/services/catalogo.service';
 import { CatalogosRepository } from '../shared/dexiedb/repository/catalogos.repository';
 import { Campania } from '../shared/interfaces/catalogo.interface';
 import { Configuracion } from '../shared/interfaces/administracion.interface';
 import { formatDate } from '../shared/utils/datetime.utils';
+import { APP_VERSION } from '../version';
+
 
 interface NavItem {
   label: string;
@@ -35,11 +38,18 @@ export class LayoutComponent {
   private readonly connectivity = inject(ConnectivityService);
   private readonly alertService = inject(AlertService);
   private readonly globalError = inject(GlobalErrorService);
+  private readonly catalogoService = inject(CatalogoService);
   private readonly catalogosRepo = inject(CatalogosRepository);
+  readonly appVersion = APP_VERSION;
 
   readonly currentYear = new Date().getFullYear();
 
   readonly sidebarOpen = signal(false);
+  readonly sidebarCollapsed = signal(false);
+  readonly sidebarExpanded = computed(() => {
+    const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 991.98px)').matches;
+    return isMobile ? this.sidebarOpen() : !this.sidebarCollapsed();
+  });
   readonly perfil = this.auth.perfil;
   readonly perfilName = computed(() => {
     return this.perfil() === 'ADMINISTRADOR' ? 'Administrador' :
@@ -57,6 +67,7 @@ export class LayoutComponent {
 
   readonly savedConfig = signal<Configuracion | null>(null);
   readonly selectedCampania = signal<Campania | null>(null);
+  readonly reporteBhActivo = signal(false);
 
   readonly topbarInfoModalAbierto = signal(false);
   readonly topbarInfoModalTab = signal<'CAMPANIA' | 'ACOPIO' | 'EMPRESA'>('CAMPANIA');
@@ -106,6 +117,8 @@ export class LayoutComponent {
   }
 
   constructor() {
+    void this.cargarAccesoReporteBh();
+
     this.globalError.forbidden$
       .pipe(takeUntilDestroyed())
       .subscribe((message) => {
@@ -134,6 +147,19 @@ export class LayoutComponent {
       .subscribe((camp: Campania | null) => {
         this.selectedCampania.set(camp as any);
       });
+  }
+
+  private async cargarAccesoReporteBh(): Promise<void> {
+    try {
+      const response: any = await firstValueFrom(this.catalogoService.listarParametros());
+      const data = Array.isArray(response) ? response[0]?.data : response?.data;
+      const activo = Array.isArray(data) && data.some((parametro: any) =>
+        String(parametro?.idparametro ?? '').trim().toUpperCase() === 'REPORTE_BH' && parametro?.activo === true
+      );
+      this.reporteBhActivo.set(activo);
+    } catch {
+      this.reporteBhActivo.set(false);
+    }
   }
 
   get online(): boolean {
@@ -240,6 +266,14 @@ export class LayoutComponent {
           // }
         ]
       });
+      if (this.reporteBhActivo()) {
+        sections.push({
+          title: 'REPORTES BH / CAO',
+          items: [
+            { label: 'Reporte Diario', path: '/reportes-dashboard-diario-propio-externo', icon: 'bi-bar-chart-line-fill' },
+          ]
+        });
+      }
     } else if (p === 'LOGISTICA') { //Logistica
       sections.push({
         title: 'Configuraciones',
@@ -356,6 +390,14 @@ export class LayoutComponent {
           }
         ]
       });
+      if (this.reporteBhActivo()) {
+        sections.push({
+          title: 'REPORTES BH / CAO',
+          items: [
+            { label: 'Reporte Diario', path: '/reportes-dashboard-diario-propio-externo', icon: 'bi-bar-chart-line-fill' },
+          ]
+        });
+      }
     } else {
       // sections.push({
       //   title: 'Configuraciones',
@@ -376,7 +418,13 @@ export class LayoutComponent {
   });
 
   toggleSidebar(): void {
-    this.sidebarOpen.update(v => !v);
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 991.98px)').matches) {
+      this.sidebarCollapsed.set(false);
+      this.sidebarOpen.update(value => !value);
+      return;
+    }
+
+    this.sidebarCollapsed.update(value => !value);
   }
 
   closeSidebar(): void {

@@ -1,6 +1,8 @@
 .app-layout {
   height: 100vh;
+  height: 100dvh;
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: stretch;
   background: #f4f6fb;
@@ -32,15 +34,22 @@
   padding: 0;
   position: relative;
   z-index: 1000;
-  transition: transform 0.3s ease;
+  transition: width 0.3s ease, transform 0.3s ease;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
+}
+
+.app-sidebar.collapsed {
+  width: 0;
+  transform: translateX(-100%);
 }
 
 .sidebar-header {
   flex: 0 0 auto;
   position: relative;
   padding: 18px 18px 16px;
+  padding-top: calc(18px + env(safe-area-inset-top));
   background: linear-gradient(180deg, #258b68 0%, #21825f 100%);
   color: #fff;
   text-align: center;
@@ -258,10 +267,6 @@
   overflow: hidden;
 }
 
-:host-context(body.sidebar-collapsed) .app-main {
-  margin-left: 0;
-}
-
 .app-topbar {
   flex: 0 0 auto;
   min-height: var(--topbar-height);
@@ -274,10 +279,18 @@
 }
 
 .topbar-toggle {
-  border: none;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  border: 0;
+  border-radius: 10px;
   background: transparent;
+  color: #334155;
   font-size: 22px;
-  display: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
 .topbar-breadcrumb {
@@ -566,7 +579,8 @@ button.conn-status {
     inset: 0 auto 0 0;
     width: min(78vw, 280px);
     max-width: 280px;
-    height: auto;
+    height: 100vh;
+    height: 100dvh;
     transform: translateX(-100%);
     z-index: 2010;
     box-shadow: 18px 0 34px rgba(15, 23, 42, 0.28);
@@ -578,8 +592,8 @@ button.conn-status {
 
   .sidebar-mobile-close {
     position: absolute;
-    top: 28px;
-    right: 18px;
+    top: calc(28px + env(safe-area-inset-top));
+    right: max(18px, env(safe-area-inset-right));
     width: 34px;
     height: 34px;
     display: inline-flex;
@@ -613,8 +627,8 @@ button.conn-status {
 
   .app-topbar {
     flex-basis: 48px;
-    height: 48px;
-    padding: 0 10px;
+    height: calc(48px + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) 10px 0;
     gap: 8px;
     justify-content: space-between;
   }
@@ -697,7 +711,7 @@ button.conn-status {
   }
 
   .sidebar-header {
-    padding: 16px 14px 14px;
+    padding: calc(16px + env(safe-area-inset-top)) 14px 14px;
   }
 
   .sidebar-profile-image {
@@ -764,8 +778,8 @@ button.conn-status {
 
   .app-topbar {
     flex-basis: 46px;
-    height: 46px;
-    padding: 0 8px;
+    height: calc(46px + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) 8px 0;
   }
 
   .topbar-toggle {

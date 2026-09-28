@@ -44,6 +44,11 @@ const childRoutes: Routes = [
       import('./pages/dashboard/administrador/reporte-diario/reporte-diario.component').then((m) => m.ReporteDiarioComponent),
   },
   {
+    path: 'reportes-dashboard-diario-propio-externo',
+    loadComponent: () =>
+      import('./pages/dashboard/administrador/reporte-diario-propio-externo/reporte-diario-propio-externo.component').then((m) => m.ReporteDiarioPropioExternoComponent),
+  },
+  {
     path: 'reporte-semanal',
     loadComponent: () =>
       import('./pages/dashboard/administrador/reporte-semanal/reporte-semanal.component').then((m) => m.ReporteSemanalComponent),

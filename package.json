@@ -1,10 +1,11 @@
 {
   "name": "palets-front",
-  "version": "0.0.0",
+  "version": "1.0.5",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "prebuild": "node scripts/generate-version.js",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },

@@ -1,0 +1,434 @@
+@if (onlineSignal()) {
+  <div class="report-page" #reportPage>
+    <section class="report-hero">
+      <div class="report-header">
+        <div class="report-heading">
+          <h2>Producción de Empaque BH / CAO</h2>
+          <p class="page-subtitle">Vista consolidada del reporte diario por origen</p>
+        </div>
+
+        <div class="report-toolbar">
+          <div class="toolbar-field">
+            <label for="fechaReporteBh">Fecha</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-calendar3"></i></span>
+              <input
+                id="fechaReporteBh"
+                type="date"
+                class="form-control"
+                [ngModel]="fechaConsulta()"
+                (ngModelChange)="fechaConsulta.set($event)"
+              />
+            </div>
+          </div>
+          <div class="toolbar-field">
+            <label>Acopio</label>
+            <div class="acopio-multiselect" (clickOutside)="closeAcopios()">
+              <button type="button" class="acopio-trigger form-select" (click)="toggleAcopios()">
+                <span>{{ acopiosLabel() }}</span
+                ><i class="bi bi-chevron-down"></i>
+              </button>
+              @if (acopiosOpen()) {
+                <div class="acopio-dropdown">
+                  <div class="acopio-actions">
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-link"
+                      (click)="seleccionarTodosAcopios()"
+                    >
+                      Todos
+                    </button>
+                    <button type="button" class="btn btn-sm btn-link" (click)="limpiarAcopios()">
+                      Ninguno
+                    </button>
+                  </div>
+                  <div class="acopio-list">
+                    @for (item of acopios(); track item.codigoAcopio) {
+                      <label class="acopio-item">
+                        <input
+                          type="checkbox"
+                          [checked]="item.selected"
+                          (change)="toggleAcopio(item)"
+                        />
+                        <span>{{ item.acopioNombre || item.codigoAcopio }}</span>
+                      </label>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+          <div class="toolbar-field">
+            <label>Empresa</label>
+            <div class="acopio-multiselect" (clickOutside)="closeEmpresas()">
+              <button type="button" class="acopio-trigger form-select" (click)="toggleEmpresas()">
+                <span>{{ empresasLabel() }}</span
+                ><i class="bi bi-chevron-down"></i>
+              </button>
+              @if (empresasOpen()) {
+                <div class="acopio-dropdown">
+                  <div class="acopio-actions">
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-link"
+                      (click)="seleccionarTodasEmpresas()"
+                    >
+                      Todas
+                    </button>
+                    <button type="button" class="btn btn-sm btn-link" (click)="limpiarEmpresas()">
+                      Ninguna
+                    </button>
+                  </div>
+                  <div class="acopio-list">
+                    @for (empresa of empresas(); track empresa.codigo) {
+                      <label class="acopio-item">
+                        <input
+                          type="checkbox"
+                          [checked]="empresa.selected"
+                          (change)="toggleEmpresa(empresa)"
+                        />
+                        <span>{{ empresa.nombre }}</span>
+                      </label>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+          <div class="toolbar-action">
+            <button
+              type="button"
+              class="btn btn-primary"
+              (click)="aplicarFiltros()"
+              [disabled]="isLoading()"
+            >
+              <i class="bi bi-funnel"></i> Filtrar
+            </button>
+          </div>
+        </div>
+
+        <div class="report-header-actions">
+          <div class="report-meta">
+            <div class="report-meta-date">
+              <i class="bi bi-calendar3"></i><span>{{ fechaFormateada() }}</span>
+            </div>
+            <div
+              class="report-meta-status"
+              [class.status-success]="hayProcesosAbiertos()"
+              [class.status-warning]="!hayProcesosAbiertos()"
+            >
+              <i
+                class="bi"
+                [class.bi-check-circle-fill]="hayProcesosAbiertos()"
+                [class.bi-exclamation-circle-fill]="!hayProcesosAbiertos()"
+              ></i>
+              <span>{{
+                hayProcesosAbiertos() ? 'Procesos abiertos' : 'Sin procesos abiertos'
+              }}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="btn btn-primary report-refresh-button"
+            (click)="actualizar()"
+            [disabled]="isLoading()"
+          >
+            <i
+              class="bi"
+              [class.bi-arrow-clockwise]="!isLoading()"
+              [class.bi-arrow-repeat]="isLoading()"
+            ></i>
+            Actualizar
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-success report-capture-button"
+            (click)="capturarDashboard()"
+            [disabled]="isLoading()"
+          >
+            <i class="bi bi-camera"></i> Capturar
+          </button>
+        </div>
+      </div>
+    </section>
+
+    @if (errorMensaje()) {
+      <div class="alert alert-danger mb-3">{{ errorMensaje() }}</div>
+    }
+
+    @if (reporteData(); as reporte) {
+      <div class="report-kpis">
+        <div class="report-kpi-card report-kpi-orange">
+          <div class="report-kpi-main">
+            <div class="report-kpi-icon"><i class="bi bi-hourglass-split"></i></div>
+            <div class="report-kpi-info">
+              <span class="report-kpi-label">Pallets en proceso</span
+              ><strong>{{ kpis()?.palletsEnProceso ?? 0 }}</strong>
+            </div>
+          </div>
+          <small>Pendientes de cierre</small>
+        </div>
+        <div class="report-kpi-card report-kpi-blue">
+          <div class="report-kpi-main">
+            <div class="report-kpi-icon"><i class="bi bi-box-seam"></i></div>
+            <div class="report-kpi-info">
+              <span class="report-kpi-label">Pallets completos</span
+              ><strong>{{ kpis()?.palletsCompletos ?? 0 }}</strong>
+            </div>
+          </div>
+          <small>Procesados en el día</small>
+        </div>
+        <div class="report-kpi-card report-kpi-green">
+          <div class="report-kpi-main">
+            <div class="report-kpi-icon"><i class="bi bi-truck"></i></div>
+            <div class="report-kpi-info">
+              <span class="report-kpi-label">Pallets despachados</span
+              ><strong>{{ kpis()?.palletsDespachados ?? 0 }}</strong>
+            </div>
+          </div>
+          <small>Listos para entrega</small>
+        </div>
+        <div class="report-kpi-card report-kpi-purple">
+          <div class="report-kpi-main">
+            <div class="report-kpi-icon"><i class="bi bi-box-arrow-right"></i></div>
+            <div class="report-kpi-info">
+              <span class="report-kpi-label">Cajas despachadas</span
+              ><strong>{{ kpis()?.cajasDespachadas ?? 0 | number }}</strong>
+            </div>
+          </div>
+          <small>Unidades enviadas</small>
+        </div>
+        <div class="report-kpi-card report-kpi-cyan">
+          <div class="report-kpi-main">
+            <div class="report-kpi-icon"><i class="bi bi-boxes"></i></div>
+            <div class="report-kpi-info">
+              <span class="report-kpi-label">Cajas totales</span
+              ><strong>{{ kpis()?.cajasTotales ?? 0 | number }}</strong>
+            </div>
+          </div>
+          <small>Unidades procesadas</small>
+        </div>
+        <div class="report-kpi-card report-kpi-green">
+          <div class="report-kpi-main">
+            <div class="report-kpi-icon"><i class="bi bi-speedometer2"></i></div>
+            <div class="report-kpi-info">
+              <span class="report-kpi-label">KG despachados</span
+              ><strong>{{ kpis()?.kgDespachados ?? 0 | number: '1.2-2' }}</strong>
+            </div>
+          </div>
+          <small>Peso enviado</small>
+        </div>
+        <div class="report-kpi-card report-kpi-red">
+          <div class="report-kpi-main">
+            <div class="report-kpi-icon"><i class="bi bi-bar-chart-fill"></i></div>
+            <div class="report-kpi-info">
+              <span class="report-kpi-label">KG totales</span
+              ><strong>{{ kpis()?.kgTotales ?? 0 | number: '1.2-2' }}</strong>
+            </div>
+          </div>
+          <small>Peso acumulado</small>
+        </div>
+      </div>
+
+      @if (muestraAmbosOrigenes()) {
+        <section class="origin-summary report-card">
+          <div class="report-card-header"><h5>Resumen por origen</h5></div>
+          <div class="origin-summary-grid">
+            @if (muestraBh()) {
+              <div class="origin-summary-item own">
+                <span><i class="bi bi-bar-chart-fill"></i> Producción BH</span>
+                <strong>{{ propio()?.kgTotales ?? 0 | number: '1.2-2' }} kg</strong>
+                <small>Peso producido</small>
+              </div>
+              <div class="origin-summary-item own">
+                <span><i class="bi bi-boxes"></i> Cajas BH</span>
+                <strong>{{ propio()?.cajasTotales ?? 0 | number }}</strong>
+                <small>Unidades procesadas</small>
+              </div>
+            }
+            @if (muestraCao()) {
+              <div class="origin-summary-item external">
+                <span><i class="bi bi-bar-chart-fill"></i> Producción CAO</span>
+                <strong>{{ externo()?.kgTotales ?? 0 | number: '1.2-2' }} kg</strong>
+                <small>Peso producido</small>
+              </div>
+              <div class="origin-summary-item external">
+                <span><i class="bi bi-boxes"></i> Cajas CAO</span>
+                <strong>{{ externo()?.cajasTotales ?? 0 | number }}</strong>
+                <small>Unidades procesadas</small>
+              </div>
+            }
+            @if (sinClasificar(); as pendiente) {
+              <div class="origin-summary-item unknown">
+                <span><i class="bi bi-question-circle"></i> Sin clasificar</span>
+                <strong>{{ pendiente.kgTotales | number: '1.2-2' }} kg</strong>
+                <small>{{ pendiente.cajasTotales | number }} cajas</small>
+              </div>
+            }
+          </div>
+        </section>
+      }
+
+      <div class="report-charts">
+        <div class="report-card chart-card">
+          <div class="report-card-header"><h5>Detalle Producción por Variedad</h5></div>
+          <div class="report-table-wrapper table-scrollable">
+            <table class="report-table variety-comparison-table">
+              <thead>
+                <tr>
+                  <th>Variedad</th>
+                  @if (muestraBh()) {
+                    <th class="text-end bh-column">BH cajas</th>
+                    <th class="text-end bh-column">BH KG</th>
+                  }
+                  @if (muestraCao()) {
+                    <th class="text-end cao-column">CAO cajas</th>
+                    <th class="text-end cao-column">CAO KG</th>
+                  }
+                  @if (muestraAmbosOrigenes()) {
+                    <th class="text-end total-column">Total cajas</th>
+                    <th class="text-end total-column">Total KG</th>
+                  }
+                  <th class="text-end">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of produccionPorVariedadComparada(); track item.key) {
+                  <tr>
+                    <td>{{ item.variedad }}</td>
+                    @if (muestraBh()) {
+                      <td class="text-end bh-cell">{{ item.bhCajas | number }}</td>
+                      <td class="text-end bh-cell">{{ item.bhKg | number: '1.2-2' }}</td>
+                    }
+                    @if (muestraCao()) {
+                      <td class="text-end cao-cell">{{ item.caoCajas | number }}</td>
+                      <td class="text-end cao-cell">{{ item.caoKg | number: '1.2-2' }}</td>
+                    }
+                    @if (muestraAmbosOrigenes()) {
+                      <td class="text-end total-cell">{{ item.totalCajas | number }}</td>
+                      <td class="text-end total-cell">{{ item.totalKg | number: '1.2-2' }}</td>
+                    }
+                    <td class="text-end">
+                      <span class="badge bg-primary">{{ item.porcentaje | number: '1.1-1' }}%</span>
+                    </td>
+                  </tr>
+                }
+                @if (produccionPorVariedadComparada().length === 0) {
+                  <tr>
+                    <td [attr.colspan]="variedadColumnCount()" class="text-center text-muted">
+                      Sin datos
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            <tfoot>
+              <tr class="report-total-row">
+                <td>Total</td>
+                @if (muestraBh()) {
+                  <td class="text-end">{{ propio()?.cajasTotales ?? 0 | number }}</td>
+                  <td class="text-end">{{ propio()?.kgTotales ?? 0 | number: '1.2-2' }} kg</td>
+                }
+                @if (muestraCao()) {
+                  <td class="text-end">{{ externo()?.cajasTotales ?? 0 | number }}</td>
+                  <td class="text-end">{{ externo()?.kgTotales ?? 0 | number: '1.2-2' }} kg</td>
+                }
+                @if (muestraAmbosOrigenes()) {
+                  <td class="text-end">{{ totalCajasVariedad() | number }}</td>
+                  <td class="text-end">{{ totalKgVariedad() | number: '1.2-2' }} kg</td>
+                }
+                <td class="text-end">100.00%</td>
+              </tr>
+            </tfoot>
+            </table>
+          </div>
+        </div>
+        <div class="report-card chart-card">
+          <div class="report-card-header"><h5>KG por Planta de Empaque</h5></div>
+          <div class="chart-wrapper chart-wrapper-tall"><canvas #chartAcopio></canvas></div>
+        </div>
+        <div class="report-card chart-card full-width">
+          <div class="report-card-header"><h5>Avance por Consignatario</h5></div>
+          <div class="chart-row">
+            <div class="chart-wrapper chart-wrapper-pie"><canvas #chartConsignatario></canvas></div>
+            <div class="report-table-wrapper">
+              <table class="report-table consignatario-comparison-table">
+                <thead>
+                  <tr>
+                    <th>Consignatario</th>
+                    <th>Destino</th>
+                    <th>Formato</th>
+                    @if (muestraBh()) {
+                      <th class="text-end bh-column">BH cajas</th>
+                      <th class="text-end bh-column">BH KG</th>
+                    }
+                    @if (muestraCao()) {
+                      <th class="text-end cao-column">CAO cajas</th>
+                      <th class="text-end cao-column">CAO KG</th>
+                    }
+                    @if (muestraAmbosOrigenes()) {
+                      <th class="text-end total-column">Total cajas</th>
+                      <th class="text-end total-column">Total KG</th>
+                    }
+                    <th class="text-end">%</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of avancePorConsignatarioComparado(); track item.key) {
+                    <tr>
+                      <td>{{ item.consignatario }}</td>
+                      <td>{{ item.destinoId }}</td>
+                      <td>{{ item.formato }}</td>
+                      @if (muestraBh()) {
+                        <td class="text-end bh-cell">{{ item.bhCajas | number }}</td>
+                        <td class="text-end bh-cell">{{ item.bhKg | number: '1.2-2' }}</td>
+                      }
+                      @if (muestraCao()) {
+                        <td class="text-end cao-cell">{{ item.caoCajas | number }}</td>
+                        <td class="text-end cao-cell">{{ item.caoKg | number: '1.2-2' }}</td>
+                      }
+                      @if (muestraAmbosOrigenes()) {
+                        <td class="text-end total-cell">{{ item.totalCajas | number }}</td>
+                        <td class="text-end total-cell">{{ item.totalKg | number: '1.2-2' }}</td>
+                      }
+                      <td class="text-end">
+                        <span class="badge bg-success"
+                          >{{ item.porcentaje | number: '1.1-1' }}%</span
+                        >
+                      </td>
+                    </tr>
+                  }
+                  @if (avancePorConsignatarioComparado().length === 0) {
+                    <tr>
+                      <td
+                        [attr.colspan]="consignatarioColumnCount()"
+                        class="text-center text-muted"
+                      >
+                        Sin datos
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    } @else if (isLoading()) {
+      <div class="sp-card report-offline-state">
+        <div class="sp-card-body">
+          <div class="offline-icon"><i class="bi bi-arrow-repeat"></i></div>
+          <h4>Cargando reporte</h4>
+          <p>Obteniendo información de producción.</p>
+        </div>
+      </div>
+    }
+  </div>
+} @else {
+  <div class="sp-card report-offline-state">
+    <div class="sp-card-body">
+      <div class="offline-icon"><i class="bi bi-wifi-off"></i></div>
+      <h4>Sin conexión a internet</h4>
+      <p>El Reporte BH / CAO solo está disponible en modo online.</p>
+    </div>
+  </div>
+}

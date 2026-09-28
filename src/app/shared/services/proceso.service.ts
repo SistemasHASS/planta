@@ -69,6 +69,13 @@ export class ProcesoService {
     });
   }
 
+  obtenerReporteDiarioPropioExterno(fecha: string, acopios: string = '', idCampana: string = '', origenes: string = ''): Observable<any> {
+    return this.http.get<any>(`${this.apiDashboard}/reporte-diario-propio-externo`, {
+      params: { fecha, acopios, idCampana, origenes },
+      withCredentials: true,
+    });
+  }
+
   obtenerFiltrosReporteSemanal(idProyecto: string): Observable<any> {
     const params = new HttpParams().set('idProyecto', idProyecto);
     return this.http.get<any>(`${this.apiUrl}/reporte-semanal-filtros`, {

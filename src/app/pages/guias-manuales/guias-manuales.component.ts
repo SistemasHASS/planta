@@ -56,6 +56,7 @@ export class GuiasManualesComponent implements OnInit {
 
   readonly onlineSignal = computed(() => this.connectivity.isOnline());
   readonly esAdmin = computed(() => this.auth.perfil() === 'ADMINISTRADOR' || this.auth.perfil() === 'MONITOR');
+  readonly esAdministrador = computed(() => this.auth.perfil() === 'ADMINISTRADOR');
   readonly modalNuevaGuiaManualVisible = signal(false);
   readonly guardandoGuiaManual = signal(false);
 

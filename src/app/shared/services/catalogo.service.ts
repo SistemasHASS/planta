@@ -39,6 +39,10 @@ export class CatalogoService {
     return this.http.get<any>(`${this.apiUrl}/get-establecimientos`, { withCredentials: true });
   }
 
+  listarParametros(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/listar-parametros`, { withCredentials: true });
+  }
+
   listarUnidadesMedida(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/unidades-medida`, { withCredentials: true });
   }
