@@ -208,6 +208,13 @@ export class CatalogoService {
     return this.http.get<any>(`${this.apiUrl}/get-campanias`, { withCredentials: true });
   }
 
+  listarCampaniasPorRuc(ruc: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/get-campanias-por-ruc`, {
+      params: { ruc },
+      withCredentials: true,
+    });
+  }
+
   listarCodigosCaja(): Observable<any> {
     return this.http.get<any>(`${this.apiUrlGuias}/listar-codigos-caja`, { withCredentials: true });
   }

@@ -1,0 +1,96 @@
+@if (onlineSignal()) {
+  <div class="report-page" #reportPage>
+    <section class="report-hero">
+      <div class="report-header">
+        <div class="report-heading">
+          <h2>KG de Materia Prima Ingresada</h2>
+          <p class="page-subtitle">Reporte diario de recepción en acopios</p>
+        </div>
+        <div class="report-toolbar">
+          <div class="toolbar-field">
+            <label for="fechaKgAcopio">Fecha</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-calendar3"></i></span>
+              <input id="fechaKgAcopio" type="date" class="form-control" [ngModel]="fechaConsulta()" (ngModelChange)="fechaConsulta.set($event)" />
+            </div>
+          </div>
+          @if (mostrarSelectorEmpresa()) {
+            <div class="toolbar-field">
+              <label>Empresa</label>
+              <app-advanced-select
+                placeholder="— Seleccionar empresa —"
+                idField="ruc"
+                [itemsInput]="empresas()"
+                [labelFields]="['nombre']"
+                [value]="empresaSeleccionada()"
+                (valueChange)="cambiarEmpresa($event?.toString() ?? '')"
+              ></app-advanced-select>
+            </div>
+            <div class="toolbar-field">
+              <label>Campaña</label>
+              <app-advanced-select
+                placeholder="— Seleccionar campaña —"
+                idField="idproyecto"
+                [itemsInput]="campanias()"
+                [labelFields]="['idproyecto', 'descripcion']"
+                [disabled]="campanias().length === 0"
+                [value]="campaniaSeleccionada()"
+                (valueChange)="cambiarCampania($event?.toString() ?? '')"
+              ></app-advanced-select>
+            </div>
+          }
+          <div class="toolbar-field">
+            <label>Acopio</label>
+            <div class="acopio-multiselect" (clickOutside)="closeAcopios()">
+              <button type="button" class="acopio-trigger form-select" (click)="toggleAcopios()"><span>{{ acopiosLabel() }}</span><i class="bi bi-chevron-down"></i></button>
+              @if (acopiosOpen()) {
+                <div class="acopio-dropdown">
+                  <div class="acopio-actions"><button type="button" class="btn btn-sm btn-link" (click)="seleccionarTodosAcopios()">Todos</button><button type="button" class="btn btn-sm btn-link" (click)="limpiarAcopios()">Ninguno</button></div>
+                  <div class="acopio-list">
+                    @for (item of acopios(); track item.codigoAcopio) {
+                      <label class="acopio-item"><input type="checkbox" [checked]="item.selected" (change)="toggleAcopio(item)" /><span>{{ item.acopioNombre || item.codigoAcopio }}</span></label>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+          <div class="toolbar-action"><button type="button" class="btn btn-primary" (click)="aplicarFiltros()" [disabled]="isLoading()"><i class="bi bi-funnel"></i> Filtrar</button></div>
+        </div>
+        <div class="report-header-actions">
+          <div class="report-meta"><div class="report-meta-date"><i class="bi bi-calendar3"></i><span>{{ fechaFormateada() }}</span></div><div class="report-meta-status status-success"><i class="bi bi-check-circle-fill"></i><span>Recepción de materia prima</span></div></div>
+          <button type="button" class="btn btn-primary report-refresh-button" (click)="actualizar()" [disabled]="isLoading()"><i class="bi bi-arrow-clockwise"></i> Actualizar</button>
+          <button type="button" class="btn btn-outline-success report-capture-button" (click)="capturarDashboard()" [disabled]="isLoading()"><i class="bi bi-camera"></i> Capturar</button>
+        </div>
+      </div>
+    </section>
+
+    @if (errorMensaje()) { <div class="alert alert-danger mb-3">{{ errorMensaje() }}</div> }
+
+    @if (reporteData(); as reporte) {
+      <div class="report-kpis">
+        <div class="report-kpi-card report-kpi-blue"><div class="report-kpi-main"><div class="report-kpi-icon"><i class="bi bi-speedometer2"></i></div><div class="report-kpi-info"><span class="report-kpi-label">KG ingresados</span><strong>{{ kpis()?.kgTotales ?? 0 | number: '1.2-2' }}</strong></div></div><small>Peso recibido en acopios</small></div>
+        <div class="report-kpi-card report-kpi-green"><div class="report-kpi-main"><div class="report-kpi-icon"><i class="bi bi-truck"></i></div><div class="report-kpi-info"><span class="report-kpi-label">Envíos registrados</span><strong>{{ kpis()?.enviosTotales ?? 0 | number }}</strong></div></div><small>Ingresos de materia prima</small></div>
+        <div class="report-kpi-card report-kpi-purple"><div class="report-kpi-main"><div class="report-kpi-icon"><i class="bi bi-boxes"></i></div><div class="report-kpi-info"><span class="report-kpi-label">Envases recibidos</span><strong>{{ kpis()?.cantidadEnvases ?? 0 | number }}</strong></div></div><small>Unidades registradas</small></div>
+        <div class="report-kpi-card report-kpi-cyan"><div class="report-kpi-main"><div class="report-kpi-icon"><i class="bi bi-geo-alt-fill"></i></div><div class="report-kpi-info"><span class="report-kpi-label">Acopios activos</span><strong>{{ kpis()?.acopiosTotales ?? 0 | number }}</strong></div></div><small>Plantas con recepción</small></div>
+      </div>
+
+      <div class="report-charts">
+        <div class="report-card chart-card"><div class="report-card-header"><h5>KG por Acopio</h5></div><div class="chart-wrapper chart-wrapper-tall"><canvas #chartAcopio></canvas></div></div>
+        <div class="report-card chart-card"><div class="report-card-header"><h5>Distribución por Clasificación de Envase</h5></div><div class="chart-wrapper chart-wrapper-tall"><canvas #chartClasificacion></canvas></div></div>
+        <div class="report-card chart-card full-width"><div class="report-card-header"><h5>Detalle de KG por Acopio y Clasificación</h5></div><div class="report-table-wrapper table-scrollable"><table class="report-table"><thead><tr><th>Acopio</th><th>Clasificación</th><th class="text-end">Envíos</th><th class="text-end">Envases</th><th class="text-end">KG</th><th class="text-end">%</th></tr></thead><tbody>
+          @for (acopio of reporte.kgPorAcopio; track acopio.acopio) {
+            @for (detalle of (acopio.detalleClasificaciones ?? []); track detalle.clasificacionEnvase) {
+              <tr [class]="acopioRowClass(acopio.acopio)"><td>{{ nombreAcopio(acopio.acopio) }}</td><td><span class="classification-badge" [class]="clasificacionClass(detalle.clasificacionEnvase)">{{ detalle.descripcion }}</span></td><td class="text-end">{{ detalle.envios | number }}</td><td class="text-end">{{ detalle.cantidadEnvases | number }}</td><td class="text-end">{{ detalle.kg | number: '1.2-2' }}</td><td class="text-end"><span class="badge bg-primary">{{ detalle.porcentaje | number: '1.1-1' }}%</span></td></tr>
+            }
+          }
+          @if (kgPorAcopio().length === 0) { <tr><td colspan="6" class="text-center text-muted">Sin datos</td></tr> }
+        </tbody></table></div></div>
+      </div>
+    } @else if (isLoading()) {
+      <div class="sp-card report-offline-state"><div class="sp-card-body"><div class="offline-icon"><i class="bi bi-arrow-repeat"></i></div><h4>Cargando reporte</h4><p>Obteniendo ingresos de materia prima.</p></div></div>
+    }
+  </div>
+} @else {
+  <div class="sp-card report-offline-state"><div class="sp-card-body"><div class="offline-icon"><i class="bi bi-wifi-off"></i></div><h4>Sin conexión a internet</h4><p>Este reporte solo está disponible en modo online.</p></div></div>
+}

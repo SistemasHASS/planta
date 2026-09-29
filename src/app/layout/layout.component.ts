@@ -240,6 +240,7 @@ export class LayoutComponent {
         items: [
           // { label: 'Generar Excel', path: '/excel-export', icon: 'bi-file-earmark-spreadsheet-fill' },
           { label: 'Reporte Diario', path: '/reportes-dashboard-diario', icon: 'bi-bar-chart-line-fill' },
+          { label: 'KG Ingresados Acopio', path: '/reporte-kg-ingresados-acopio', icon: 'bi-box-arrow-in-down' },
           {
             label: 'Reportes Generales',
             path: '#reportes-generales',
@@ -379,6 +380,7 @@ export class LayoutComponent {
         title: 'Reportes',
         items: [
           { label: 'Reporte Diario', path: '/reportes-dashboard-diario', icon: 'bi-bar-chart-line-fill' },
+          { label: 'KG Ingresados Acopio', path: '/reporte-kg-ingresados-acopio', icon: 'bi-box-arrow-in-down' },
           {
             label: 'Reportes Generales',
             path: '#reportes-generales',

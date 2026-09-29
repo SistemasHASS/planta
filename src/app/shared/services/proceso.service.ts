@@ -76,6 +76,27 @@ export class ProcesoService {
     });
   }
 
+  obtenerReporteKgIngresadosAcopio(payload: {
+    ruc: string;
+    fechaDesde: string;
+    fechaHasta?: string;
+    idProyecto: string;
+    codFundo: string;
+    acopios?: string;
+  }): Observable<any> {
+    return this.http.get<any>(`${this.apiDashboard}/reporte-kg-ingresados-acopio`, {
+      params: {
+        ruc: payload.ruc,
+        fechaDesde: payload.fechaDesde,
+        fechaHasta: payload.fechaHasta ?? payload.fechaDesde,
+        idProyecto: payload.idProyecto,
+        codFundo: payload.codFundo,
+        acopios: payload.acopios ?? '',
+      },
+      withCredentials: true,
+    });
+  }
+
   obtenerFiltrosReporteSemanal(idProyecto: string): Observable<any> {
     const params = new HttpParams().set('idProyecto', idProyecto);
     return this.http.get<any>(`${this.apiUrl}/reporte-semanal-filtros`, {
