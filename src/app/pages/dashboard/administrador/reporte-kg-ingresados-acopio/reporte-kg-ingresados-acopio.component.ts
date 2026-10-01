@@ -27,6 +27,13 @@ Chart.register(...registerables);
 
 type AcopioOption = { codigoAcopio: string; acopioNombre: string; selected: boolean };
 type EmpresaReporteOption = { ruc: string; nombre: string; codigo: 'CAO' | 'BH' };
+type KgPorVariedad = {
+  variedad: string;
+  jarraBlancaKgNeto: number;
+  jarraVerdeKgNeto: number;
+  descarteKgNeto: number;
+  kgNetoTotal: number;
+};
 
 interface ReporteData {
   kpis: {
@@ -50,6 +57,7 @@ interface ReporteData {
   kgPorAcopio: any[];
   kgPorClasificacion: any[];
   kgPorFecha: any[];
+  kgPorVariedad: KgPorVariedad[];
 }
 
 @Component({
@@ -98,6 +106,18 @@ export class ReporteKgIngresadosAcopioComponent implements AfterViewInit, OnDest
   readonly kpis = computed(() => this.reporteData()?.kpis);
   readonly kgPorAcopio = computed(() => this.reporteData()?.kgPorAcopio ?? []);
   readonly kgPorClasificacion = computed(() => this.reporteData()?.kgPorClasificacion ?? []);
+  readonly kgPorVariedad = computed(() => this.reporteData()?.kgPorVariedad ?? []);
+  readonly totalesPorVariedad = computed(() => this.kgPorVariedad().reduce((totales, item) => ({
+    jarraBlancaKgNeto: totales.jarraBlancaKgNeto + Number(item.jarraBlancaKgNeto ?? 0),
+    jarraVerdeKgNeto: totales.jarraVerdeKgNeto + Number(item.jarraVerdeKgNeto ?? 0),
+    descarteKgNeto: totales.descarteKgNeto + Number(item.descarteKgNeto ?? 0),
+    kgNetoTotal: totales.kgNetoTotal + Number(item.kgNetoTotal ?? 0),
+  }), {
+    jarraBlancaKgNeto: 0,
+    jarraVerdeKgNeto: 0,
+    descarteKgNeto: 0,
+    kgNetoTotal: 0,
+  }));
   readonly fechaFormateada = computed(() => {
     const parts = this.fechaConsulta().split('-').map(Number);
     return new Intl.DateTimeFormat('es-ES', {

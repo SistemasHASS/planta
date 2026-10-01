@@ -86,7 +86,8 @@
       <div class="report-charts">
         <div class="report-card chart-card"><div class="report-card-header"><h5>KG netos por Acopio</h5></div><div class="chart-wrapper chart-wrapper-tall"><canvas #chartAcopio></canvas></div></div>
         <div class="report-card chart-card"><div class="report-card-header"><h5>Distribución neta por Clasificación de Envase</h5></div><div class="chart-wrapper chart-wrapper-tall"><canvas #chartClasificacion></canvas></div></div>
-        <div class="report-card chart-card full-width"><div class="report-card-header"><h5>Detalle de peso por Acopio y Clasificación</h5></div><div class="report-table-wrapper table-scrollable"><table class="report-table"><thead><tr><th>Acopio</th><th>Clasificación</th><th class="text-end">Envíos</th><th class="text-end">Envases</th><th class="text-end">KG bruto</th><th class="text-end">Destaraje</th><th class="text-end">KG neto</th><th class="text-end">% neto</th></tr></thead><tbody>
+        <div class="report-tables-row">
+          <div class="report-card chart-card report-table-card"><div class="report-card-header"><h5>Detalle de peso por Acopio y Clasificación</h5></div><div class="report-table-wrapper table-scrollable"><table class="report-table"><thead><tr><th>Acopio</th><th>Clasificación</th><th class="text-end">Envíos</th><th class="text-end">Envases</th><th class="text-end">KG bruto</th><th class="text-end">Destaraje</th><th class="text-end">KG neto</th><th class="text-end">% neto</th></tr></thead><tbody>
           @for (acopio of reporte.kgPorAcopio; track acopio.acopio) {
             @for (detalle of (acopio.detalleClasificaciones ?? []); track detalle.clasificacionEnvase) {
               <tr [class]="acopioRowClass(acopio.acopio)"><td>{{ nombreAcopio(acopio.acopio) }}</td><td><span class="classification-badge" [class]="clasificacionClass(detalle.clasificacionEnvase)">{{ detalle.descripcion }}</span></td><td class="text-end">{{ detalle.envios | number }}</td><td class="text-end">{{ detalle.cantidadEnvases | number }}</td><td class="text-end">{{ detalle.kgBruto ?? 0 | number: '1.2-2' }}</td><td class="text-end text-danger">-{{ detalle.taraTotalKg ?? 0 | number: '1.2-2' }}</td><td class="text-end fw-semibold">{{ detalle.kgNeto ?? 0 | number: '1.2-2' }}</td><td class="text-end"><span class="badge bg-primary">{{ detalle.porcentajeNeto ?? 0 | number: '1.1-1' }}%</span></td></tr>
@@ -94,6 +95,13 @@
           }
           @if (kgPorAcopio().length === 0) { <tr><td colspan="8" class="text-center text-muted">Sin datos</td></tr> }
         </tbody></table></div></div>
+          <div class="report-card chart-card report-table-card variedad-card"><div class="report-card-header"><div><h5>KG netos por variedad</h5><p>Recepción clasificada por tipo de jarra</p></div></div><div class="report-table-wrapper table-scrollable"><table class="report-table variedad-table"><thead><tr><th>Variedad</th><th class="text-end col-blanca">Jarra blanca</th><th class="text-end col-verde">Jarra verde</th><th class="text-end col-descarte">Descarte</th><th class="text-end">Total neto</th></tr></thead><tbody>
+          @for (item of kgPorVariedad(); track item.variedad) {
+            <tr><td class="variedad-name">{{ item.variedad }}</td><td class="text-end col-blanca">{{ item.jarraBlancaKgNeto | number: '1.2-2' }}</td><td class="text-end col-verde">{{ item.jarraVerdeKgNeto | number: '1.2-2' }}</td><td class="text-end col-descarte">{{ item.descarteKgNeto | number: '1.2-2' }}</td><td class="text-end variedad-total">{{ item.kgNetoTotal | number: '1.2-2' }}</td></tr>
+          }
+          @if (kgPorVariedad().length === 0) { <tr><td colspan="5" class="text-center text-muted">Sin datos de variedades</td></tr> }
+        </tbody><tfoot><tr><th>Total general</th><th class="text-end col-blanca">{{ totalesPorVariedad().jarraBlancaKgNeto | number: '1.2-2' }}</th><th class="text-end col-verde">{{ totalesPorVariedad().jarraVerdeKgNeto | number: '1.2-2' }}</th><th class="text-end col-descarte">{{ totalesPorVariedad().descarteKgNeto | number: '1.2-2' }}</th><th class="text-end">{{ totalesPorVariedad().kgNetoTotal | number: '1.2-2' }}</th></tr></tfoot></table></div></div>
+        </div>
       </div>
     } @else if (isLoading()) {
       <div class="sp-card report-offline-state"><div class="sp-card-body"><div class="offline-icon"><i class="bi bi-arrow-repeat"></i></div><h4>Cargando reporte</h4><p>Obteniendo ingresos de materia prima.</p></div></div>
