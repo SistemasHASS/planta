@@ -32,10 +32,18 @@ interface ReporteData {
   kpis: {
     sociedad: number;
     kgTotales: number;
+    kgBrutoTotal: number;
+    taraJarrasTotalKg: number;
+    taraJavasTotalKg: number;
+    taraTotalKg: number;
+    kgNetoTotal: number;
     enviosTotales: number;
     detallesTotales: number;
     cantidadEnvases: number;
+    cantidadJarrasCalculada: number;
+    cantidadJavas: number;
     acopiosTotales: number;
+    detallesSinPesoVacio: number;
     fechaDesde: string;
     fechaHasta: string;
   };
@@ -304,7 +312,8 @@ export class ReporteKgIngresadosAcopioComponent implements AfterViewInit, OnDest
         this.reporteData.set(null);
         return;
       }
-      this.reporteData.set(wrapper?.data ?? null);
+      const reporte = wrapper?.data as ReporteData | null;
+      this.reporteData.set(reporte);
       setTimeout(() => this.renderCharts(), 0);
     } catch (error: any) {
       this.errorMensaje.set(error?.error?.mensaje ?? 'Error de conexión al obtener el reporte.');
@@ -355,6 +364,8 @@ export class ReporteKgIngresadosAcopioComponent implements AfterViewInit, OnDest
     const canvas = this.chartAcopioRef()?.nativeElement;
     if (!canvas) return;
     this.acopioChart?.destroy();
+    const fontFamily = "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    const pixelRatio = Math.min(Math.max(window.devicePixelRatio || 1, 2), 3);
 
     const acopioNames = items.map((item) => this.nombreAcopio(item.acopio));
     const labels = acopioNames.map((name) => name.length > 22 ? `${name.slice(0, 21)}…` : name);
@@ -374,20 +385,22 @@ export class ReporteKgIngresadosAcopioComponent implements AfterViewInit, OnDest
         const detalle = (item.detalleClasificaciones ?? []).find(
           (value: any) => String(value.clasificacionEnvase ?? value.descripcion ?? 'SIN').trim() === key,
         );
-        return Number(detalle?.kg ?? 0);
+        return Number(detalle?.kgNeto ?? 0);
       }),
       backgroundColor: this.getClasificacionColor(key, index),
       borderRadius: 4,
       stack: 'kgPorAcopio',
     }));
-    const totals = items.map((item) => Number(item.kg ?? 0));
+    const totals = items.map((item) => Number(item.kgNeto ?? 0));
+    const smallSegmentDetails = totals.map(() => [] as string[]);
 
     const amountLabelsPlugin = {
       id: 'kgAcopioClassificationLabels',
       afterDatasetsDraw: (chart: any) => {
         const { ctx } = chart;
+        smallSegmentDetails.forEach((details) => details.length = 0);
         ctx.save();
-        ctx.font = '600 10px Inter, sans-serif';
+        ctx.font = `600 11px ${fontFamily}`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         chart.data.datasets.forEach((dataset: any, datasetIndex: number) => {
@@ -403,46 +416,14 @@ export class ReporteKgIngresadosAcopioComponent implements AfterViewInit, OnDest
             if (height >= 28) {
               const centerY = (Number(props.y) + Number(props.base)) / 2;
               ctx.fillStyle = '#ffffff';
-              ctx.font = '700 9px Inter, sans-serif';
-              ctx.fillText(classification, props.x, centerY - 6);
-              ctx.font = '600 9px Inter, sans-serif';
-              ctx.fillText(label, props.x, centerY + 7);
+              ctx.font = `700 10px ${fontFamily}`;
+              ctx.fillText(classification, props.x, centerY - 7);
+              ctx.font = `600 10px ${fontFamily}`;
+              ctx.fillText(label, props.x, centerY + 8);
             } else {
-              const barWidth = Number(props.width ?? (bar as any).width ?? 0);
-              const externalLabel = `${classification}: ${label}`;
-              ctx.font = '600 9px Inter, sans-serif';
-              const metrics = ctx.measureText(externalLabel);
-              const labelWidth = metrics.width + 12;
-              const labelHeight = 18;
-              const preferredX = Number(props.x) + barWidth / 2 + 8;
-              const chartRight = Number(chart.chartArea?.right ?? preferredX + labelWidth);
-              const labelX = Math.min(preferredX, chartRight - labelWidth - 2);
-              const preferredY = (Number(props.y) + Number(props.base)) / 2;
-              const chartTop = Number(chart.chartArea?.top ?? 6);
-              const chartBottom = Number(chart.chartArea?.bottom ?? preferredY + labelHeight);
-              const labelY = Math.min(
-                chartBottom - labelHeight - 2,
-                Math.max(chartTop + 2, preferredY + datasetIndex * (labelHeight + 4) - labelHeight / 2),
-              );
-
-              ctx.strokeStyle = 'rgba(15, 23, 42, 0.28)';
-              ctx.lineWidth = 1;
-              ctx.beginPath();
-              ctx.moveTo(Number(props.x) + barWidth / 2, preferredY);
-              ctx.lineTo(labelX, labelY + labelHeight / 2);
-              ctx.stroke();
-
-              ctx.fillStyle = 'rgba(255, 255, 255, 0.98)';
-              ctx.strokeStyle = 'rgba(15, 23, 42, 0.18)';
-              ctx.beginPath();
-              ctx.roundRect(labelX, labelY, labelWidth, labelHeight, 5);
-              ctx.fill();
-              ctx.stroke();
-
-              ctx.fillStyle = '#0f172a';
-              ctx.textAlign = 'left';
-              ctx.fillText(externalLabel, labelX + 6, labelY + labelHeight / 2);
-              ctx.textAlign = 'center';
+              // Los segmentos muy delgados no tienen espacio para texto. Se
+              // agregan al resumen de su barra para mostrarlos sin cruces.
+              smallSegmentDetails[dataIndex].push(`${classification}: ${label}`);
             }
           });
         });
@@ -459,21 +440,31 @@ export class ReporteKgIngresadosAcopioComponent implements AfterViewInit, OnDest
           if (!topBar) return;
 
           const props = topBar.getProps(['x', 'y'], true);
-          const label = `${this.formatKg(total)} kg`;
-          const metrics = ctx.measureText(label);
-          const width = metrics.width + 14;
-          const height = 22;
-          const top = Math.max(6, Number(props.y) - height - 5);
+          const lines = [`Total neto: ${this.formatKg(total)} kg`, ...smallSegmentDetails[dataIndex]];
+          const firstLineHeight = 18;
+          const detailLineHeight = 16;
+          const height = firstLineHeight + Math.max(0, lines.length - 1) * detailLineHeight + 8;
+          ctx.font = `600 11px ${fontFamily}`;
+          const width = Math.max(...lines.map((line) => ctx.measureText(line).width)) + 14;
+          const top = Math.max(Number(chart.chartArea?.top ?? 6) + 2, Number(props.y) - height - 5);
+          const left = Math.max(
+            Number(chart.chartArea?.left ?? 0) + 2,
+            Math.min(Number(props.x) - width / 2, Number(chart.chartArea?.right ?? width) - width - 2),
+          );
           ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
           ctx.strokeStyle = 'rgba(15, 23, 42, 0.18)';
           ctx.lineWidth = 1;
           ctx.beginPath();
-          ctx.roundRect(Number(props.x) - width / 2, top, width, height, 6);
+          ctx.roundRect(left, top, width, height, 6);
           ctx.fill();
           ctx.stroke();
           ctx.fillStyle = '#0f172a';
-          ctx.font = '600 10px Inter, sans-serif';
-          ctx.fillText(label, Number(props.x), top + height / 2);
+          ctx.font = `700 11px ${fontFamily}`;
+          ctx.fillText(lines[0], left + width / 2, top + 13);
+          ctx.font = `600 10px ${fontFamily}`;
+          lines.slice(1).forEach((line, index) => {
+            ctx.fillText(line, left + width / 2, top + firstLineHeight + 7 + index * detailLineHeight);
+          });
         });
 
         ctx.restore();
@@ -486,22 +477,33 @@ export class ReporteKgIngresadosAcopioComponent implements AfterViewInit, OnDest
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        devicePixelRatio: pixelRatio,
         plugins: {
-          legend: { display: true, position: 'bottom' },
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: { font: { family: fontFamily, size: 12 } },
+          },
           tooltip: {
             callbacks: {
               title: (contexts: any[]) => acopioNames[contexts?.[0]?.dataIndex ?? 0] ?? '',
               label: (ctx: any) => `${ctx.dataset.label}: ${this.formatKg(Number(ctx.raw ?? 0))} kg`,
               footer: (contexts: any[]) => {
                 const index = contexts?.[0]?.dataIndex ?? 0;
-                return `Total: ${this.formatKg(totals[index] ?? 0)} kg`;
+                return `Total neto: ${this.formatKg(totals[index] ?? 0)} kg`;
               },
             },
           },
         },
         scales: {
-          x: { stacked: true },
-          y: { stacked: true, beginAtZero: true, title: { display: true, text: 'KG' } },
+          x: { stacked: true, ticks: { font: { family: fontFamily, size: 11 } } },
+          y: {
+            stacked: true,
+            beginAtZero: true,
+            grace: '42%',
+            ticks: { font: { family: fontFamily, size: 11 } },
+            title: { display: true, text: 'KG', font: { family: fontFamily, size: 12, weight: 600 } },
+          },
         },
       },
       plugins: [amountLabelsPlugin],
@@ -512,9 +514,11 @@ export class ReporteKgIngresadosAcopioComponent implements AfterViewInit, OnDest
     const canvas = this.chartClasificacionRef()?.nativeElement;
     if (!canvas) return;
     this.clasificacionChart?.destroy();
+    const fontFamily = "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    const pixelRatio = Math.min(Math.max(window.devicePixelRatio || 1, 2), 3);
 
     const labels = items.map((item) => String(item.descripcion ?? 'Sin clasificación'));
-    const values = items.map((item) => Number(item.kg ?? 0));
+    const values = items.map((item) => Number(item.kgNeto ?? 0));
     const colors = items.map((item, index) => this.getClasificacionColor(item.clasificacionEnvase, index));
     const totalKg = values.reduce((sum, value) => sum + value, 0);
 
@@ -526,7 +530,7 @@ export class ReporteKgIngresadosAcopioComponent implements AfterViewInit, OnDest
         ctx.save();
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.font = '700 11px Inter, sans-serif';
+        ctx.font = `700 12px ${fontFamily}`;
         meta.data.forEach((arc: any, index: number) => {
           const angle = arc.endAngle - arc.startAngle;
           if (angle < 0.18) return;
@@ -535,9 +539,6 @@ export class ReporteKgIngresadosAcopioComponent implements AfterViewInit, OnDest
           const middle = (arc.startAngle + arc.endAngle) / 2;
           const x = arc.x + Math.cos(middle) * radius;
           const y = arc.y + Math.sin(middle) * radius;
-          ctx.lineWidth = 3;
-          ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
-          ctx.strokeText(percentage, x, y);
           ctx.fillStyle = '#ffffff';
           ctx.fillText(percentage, x, y);
         });
@@ -551,10 +552,12 @@ export class ReporteKgIngresadosAcopioComponent implements AfterViewInit, OnDest
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        devicePixelRatio: pixelRatio,
         plugins: {
           legend: {
             position: 'bottom',
             labels: {
+              font: { family: fontFamily, size: 12 },
               generateLabels: (chart: any) => chart.getDatasetMeta(0).data.map((arc: any, index: number) => ({
                 text: `${labels[index]} - ${totalKg > 0 ? ((values[index] * 100) / totalKg).toFixed(1) : '0.0'}% (${this.formatKg(values[index])} kg)`,
                 fillStyle: colors[index % colors.length],

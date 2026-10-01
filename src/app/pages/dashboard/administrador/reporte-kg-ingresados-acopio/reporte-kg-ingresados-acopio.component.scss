@@ -21,7 +21,7 @@
 
 .report-table-wrapper table {
   width: max-content;
-  min-width: 760px;
+  min-width: 1040px;
 }
 
 .acopio-row-even td {
@@ -88,7 +88,7 @@
 .report-toolbar .toolbar-field { min-width: 0; flex: 1 1 0; }
 .report-toolbar .toolbar-action { flex: 0 0 auto; }
 .report-header-actions { grid-area: actions; justify-content: flex-end; flex-wrap: nowrap; gap: 8px; }
-.report-table { min-width: 760px; }
+.report-table { min-width: 1040px; }
 
 @media (max-width: 1100px) and (min-width: 769px) {
   .report-header { grid-template-columns: minmax(175px, .8fr) minmax(0, 2fr); gap: 6px 10px; }

@@ -67,24 +67,32 @@
 
     @if (errorMensaje()) { <div class="alert alert-danger mb-3">{{ errorMensaje() }}</div> }
 
+    @if ((kpis()?.detallesSinPesoVacio ?? 0) > 0) {
+      <div class="alert alert-warning mb-3">
+        Hay {{ kpis()?.detallesSinPesoVacio | number }} detalle(s) cuya clasificación no tiene peso vacío configurado. Su destaraje de jarras se considera en cero.
+      </div>
+    }
+
     @if (reporteData(); as reporte) {
       <div class="report-kpis">
-        <div class="report-kpi-card report-kpi-blue"><div class="report-kpi-main"><div class="report-kpi-icon"><i class="bi bi-speedometer2"></i></div><div class="report-kpi-info"><span class="report-kpi-label">KG ingresados</span><strong>{{ kpis()?.kgTotales ?? 0 | number: '1.2-2' }}</strong></div></div><small>Peso recibido en acopios</small></div>
-        <div class="report-kpi-card report-kpi-green"><div class="report-kpi-main"><div class="report-kpi-icon"><i class="bi bi-truck"></i></div><div class="report-kpi-info"><span class="report-kpi-label">Envíos registrados</span><strong>{{ kpis()?.enviosTotales ?? 0 | number }}</strong></div></div><small>Ingresos de materia prima</small></div>
+        <div class="report-kpi-card report-kpi-blue"><div class="report-kpi-main"><div class="report-kpi-icon"><i class="bi bi-speedometer2"></i></div><div class="report-kpi-info"><span class="report-kpi-label">KG brutos</span><strong>{{ kpis()?.kgBrutoTotal ?? 0 | number: '1.2-2' }}</strong></div></div><small>Peso recibido antes del destaraje</small></div>
+        <div class="report-kpi-card report-kpi-red"><div class="report-kpi-main"><div class="report-kpi-icon"><i class="bi bi-dash-circle"></i></div><div class="report-kpi-info"><span class="report-kpi-label">KG descontados</span><strong>{{ kpis()?.taraTotalKg ?? 0 | number: '1.2-2' }}</strong></div></div><small>Jarras y javas descontadas</small></div>
+        <div class="report-kpi-card report-kpi-green"><div class="report-kpi-main"><div class="report-kpi-icon"><i class="bi bi-check2-circle"></i></div><div class="report-kpi-info"><span class="report-kpi-label">KG netos</span><strong>{{ kpis()?.kgNetoTotal ?? 0 | number: '1.2-2' }}</strong></div></div><small>Peso resultante del destaraje</small></div>
+        <div class="report-kpi-card report-kpi-cyan"><div class="report-kpi-main"><div class="report-kpi-icon"><i class="bi bi-truck"></i></div><div class="report-kpi-info"><span class="report-kpi-label">Envíos registrados</span><strong>{{ kpis()?.enviosTotales ?? 0 | number }}</strong></div></div><small>Ingresos de materia prima</small></div>
         <div class="report-kpi-card report-kpi-purple"><div class="report-kpi-main"><div class="report-kpi-icon"><i class="bi bi-boxes"></i></div><div class="report-kpi-info"><span class="report-kpi-label">Envases recibidos</span><strong>{{ kpis()?.cantidadEnvases ?? 0 | number }}</strong></div></div><small>Unidades registradas</small></div>
-        <div class="report-kpi-card report-kpi-cyan"><div class="report-kpi-main"><div class="report-kpi-icon"><i class="bi bi-geo-alt-fill"></i></div><div class="report-kpi-info"><span class="report-kpi-label">Acopios activos</span><strong>{{ kpis()?.acopiosTotales ?? 0 | number }}</strong></div></div><small>Plantas con recepción</small></div>
+        <div class="report-kpi-card report-kpi-orange"><div class="report-kpi-main"><div class="report-kpi-icon"><i class="bi bi-geo-alt-fill"></i></div><div class="report-kpi-info"><span class="report-kpi-label">Acopios activos</span><strong>{{ kpis()?.acopiosTotales ?? 0 | number }}</strong></div></div><small>Plantas con recepción</small></div>
       </div>
 
       <div class="report-charts">
-        <div class="report-card chart-card"><div class="report-card-header"><h5>KG por Acopio</h5></div><div class="chart-wrapper chart-wrapper-tall"><canvas #chartAcopio></canvas></div></div>
-        <div class="report-card chart-card"><div class="report-card-header"><h5>Distribución por Clasificación de Envase</h5></div><div class="chart-wrapper chart-wrapper-tall"><canvas #chartClasificacion></canvas></div></div>
-        <div class="report-card chart-card full-width"><div class="report-card-header"><h5>Detalle de KG por Acopio y Clasificación</h5></div><div class="report-table-wrapper table-scrollable"><table class="report-table"><thead><tr><th>Acopio</th><th>Clasificación</th><th class="text-end">Envíos</th><th class="text-end">Envases</th><th class="text-end">KG</th><th class="text-end">%</th></tr></thead><tbody>
+        <div class="report-card chart-card"><div class="report-card-header"><h5>KG netos por Acopio</h5></div><div class="chart-wrapper chart-wrapper-tall"><canvas #chartAcopio></canvas></div></div>
+        <div class="report-card chart-card"><div class="report-card-header"><h5>Distribución neta por Clasificación de Envase</h5></div><div class="chart-wrapper chart-wrapper-tall"><canvas #chartClasificacion></canvas></div></div>
+        <div class="report-card chart-card full-width"><div class="report-card-header"><h5>Detalle de peso por Acopio y Clasificación</h5></div><div class="report-table-wrapper table-scrollable"><table class="report-table"><thead><tr><th>Acopio</th><th>Clasificación</th><th class="text-end">Envíos</th><th class="text-end">Envases</th><th class="text-end">KG bruto</th><th class="text-end">Destaraje</th><th class="text-end">KG neto</th><th class="text-end">% neto</th></tr></thead><tbody>
           @for (acopio of reporte.kgPorAcopio; track acopio.acopio) {
             @for (detalle of (acopio.detalleClasificaciones ?? []); track detalle.clasificacionEnvase) {
-              <tr [class]="acopioRowClass(acopio.acopio)"><td>{{ nombreAcopio(acopio.acopio) }}</td><td><span class="classification-badge" [class]="clasificacionClass(detalle.clasificacionEnvase)">{{ detalle.descripcion }}</span></td><td class="text-end">{{ detalle.envios | number }}</td><td class="text-end">{{ detalle.cantidadEnvases | number }}</td><td class="text-end">{{ detalle.kg | number: '1.2-2' }}</td><td class="text-end"><span class="badge bg-primary">{{ detalle.porcentaje | number: '1.1-1' }}%</span></td></tr>
+              <tr [class]="acopioRowClass(acopio.acopio)"><td>{{ nombreAcopio(acopio.acopio) }}</td><td><span class="classification-badge" [class]="clasificacionClass(detalle.clasificacionEnvase)">{{ detalle.descripcion }}</span></td><td class="text-end">{{ detalle.envios | number }}</td><td class="text-end">{{ detalle.cantidadEnvases | number }}</td><td class="text-end">{{ detalle.kgBruto ?? 0 | number: '1.2-2' }}</td><td class="text-end text-danger">-{{ detalle.taraTotalKg ?? 0 | number: '1.2-2' }}</td><td class="text-end fw-semibold">{{ detalle.kgNeto ?? 0 | number: '1.2-2' }}</td><td class="text-end"><span class="badge bg-primary">{{ detalle.porcentajeNeto ?? 0 | number: '1.1-1' }}%</span></td></tr>
             }
           }
-          @if (kgPorAcopio().length === 0) { <tr><td colspan="6" class="text-center text-muted">Sin datos</td></tr> }
+          @if (kgPorAcopio().length === 0) { <tr><td colspan="8" class="text-center text-muted">Sin datos</td></tr> }
         </tbody></table></div></div>
       </div>
     } @else if (isLoading()) {
