@@ -1,4 +1,8 @@
 /**
+ * PLANTILLA (se versiona). Copiar este archivo como environment.ts y ajustar la URL de la API.
+ * environment.ts NO se sube a git (esta en .gitignore).
+ */
+/**
  * Configuracion de DESARROLLO (ng serve). En produccion (ng build) Angular usa
  * environment.prod.ts en su lugar (ver fileReplacements en angular.json).
  * No guardar claves ni secretos aqui: todo lo de este archivo termina visible en el navegador.
