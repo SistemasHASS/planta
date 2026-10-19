@@ -89,7 +89,6 @@ const NAV_SECTIONS: NavSection[] = [
     title: 'Administración',
     defaultOpen: true,
     items: [
-      { label: 'Campañas', path: '/admin/campanias', icon: 'calendar-range', adminOnly: true },
       { label: 'Acopio Configuración', path: '/admin/acopio_configuracion', icon: 'building', adminOnly: true },
       { label: 'Gestión de Usuarios', path: '/admin/usuarios', icon: 'users', adminOnly: true },
       { label: 'Gestión de Destinatarios', path: '/admin/destinatarios', icon: 'map-pin', adminOnly: true },

@@ -1,25 +1,30 @@
-<div class="modal modal-open" role="dialog" aria-modal="true">
-  <div class="modal-box w-full max-w-4xl p-0">
+<div class="modal modal-open modal-bottom sm:modal-middle" role="dialog" aria-modal="true" [attr.aria-label]="modoEdicion ? 'Editar guía de remisión manual' : 'Nueva guía de remisión manual'">
+  <div class="modal-box flex w-full !max-h-[92dvh] flex-col gap-0 overflow-hidden !rounded-b-none !rounded-t-[28px] p-0 sm:!max-h-[90dvh] sm:!max-w-4xl sm:!rounded-[20px]">
+
     <!-- Cabecera -->
-    <div class="flex items-center justify-between gap-2 border-b border-app-border2 px-4 py-3 sm:px-6">
-      <h3 class="flex items-center gap-2 text-lg font-extrabold text-app-heading">
-        <svg lucideTruck class="size-5 text-primary"></svg>
-        {{ modoEdicion ? 'Editar guía de remisión manual' : 'Nueva guía de remisión manual' }}
-      </h3>
-      <button type="button" class="btn btn-sm btn-circle btn-ghost" aria-label="Cerrar" (click)="onCancelar()"><svg lucideX class="size-4"></svg></button>
+    <div class="relative flex shrink-0 items-center gap-3 border-b border-app-border2 bg-app-surface px-5 pb-3 pt-5 sm:py-3.5">
+      <span class="absolute left-1/2 top-2 h-1 w-9 -translate-x-1/2 rounded-full bg-slate-400/50 sm:hidden" aria-hidden="true"></span>
+      <span class="grid size-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm"><svg lucideTruck class="size-5"></svg></span>
+      <div class="min-w-0 flex-1">
+        <p class="text-[11px] font-bold uppercase leading-none tracking-widest text-emerald-700 dark:text-emerald-300">Guías manuales</p>
+        <h3 class="mt-1 truncate text-[17px] font-extrabold leading-tight tracking-tight text-app-heading">{{ modoEdicion ? 'Editar guía de remisión manual' : 'Nueva guía de remisión manual' }}</h3>
+      </div>
+      <button type="button" class="grid size-8 shrink-0 place-items-center rounded-full bg-slate-500/15 text-app-text2 transition hover:bg-slate-500/25 active:scale-95" aria-label="Cerrar" (click)="onCancelar()"><svg lucideX class="size-4"></svg></button>
     </div>
 
-    <div class="max-h-[70dvh] space-y-5 overflow-y-auto px-4 py-4 sm:px-6">
+    <!-- Contenido -->
+    <div class="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-app-surface2 px-4 pb-6 pt-4 sm:px-6">
+
       <!-- Datos del traslado -->
-      <section class="space-y-3">
-        <h4 class="text-xs font-bold uppercase tracking-wide text-app-muted">Datos del traslado</h4>
-        <div class="grid gap-3 sm:grid-cols-2">
+      <section class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm sm:p-5">
+        <h4 class="mb-3.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-sky-700 dark:text-sky-300"><span class="grid size-6 place-items-center rounded-lg bg-sky-500/15"><svg lucideRoute class="size-3.5"></svg></span> Datos del traslado</h4>
+        <div class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
           <app-search-select label="Motivo de traslado" [required]="true" placeholder="— Seleccionar —" [options]="optMotivos()" [value]="form().motivoTraslado" [disabled]="modoEdicion" [invalid]="isInvalid('motivoTraslado')" (selected)="elegido('motivoTraslado', $event)" />
 
           @if (esMotivoOtros()) {
-            <label class="form-control">
-              <span class="mb-1 text-sm font-semibold text-app-text">Descripción del motivo de traslado <span class="text-error">*</span></span>
-              <input type="text" class="input input-bordered w-full" [class.input-error]="isInvalidDescripcionMotivoTraslado()" [ngModel]="form().descripcionMotivoTraslado" (ngModelChange)="updateField('descripcionMotivoTraslado', $event)" />
+            <label class="block">
+              <span class="campo-label"><span class="req">*</span> Descripción del motivo de traslado</span>
+              <input type="text" class="campo-input" [class.is-invalid]="isInvalidDescripcionMotivoTraslado()" [ngModel]="form().descripcionMotivoTraslado" (ngModelChange)="updateField('descripcionMotivoTraslado', $event)" />
             </label>
           }
 
@@ -28,23 +33,23 @@
             <app-search-select [label]="locacionTrasladoLabel()" [required]="true" [placeholder]="form().tipoLocacionId ? 'Seleccione...' : 'Seleccione tipo de locación primero'" [options]="optLocaciones()" [value]="form().codigoLocacion" [disabled]="!form().tipoLocacionId" (selected)="elegido('codigoLocacion', $event)" />
           }
 
-          <label class="form-control">
-            <span class="mb-1 text-sm font-semibold text-app-text">Fecha de entrega de bienes <span class="text-error">*</span></span>
-            <input type="date" class="input input-bordered w-full" [class.input-error]="isInvalid('fechaEntregaBienes')" [ngModel]="form().fechaEntregaBienes" (ngModelChange)="updateField('fechaEntregaBienes', $event)" />
+          <label class="block">
+            <span class="campo-label"><span class="req">*</span> Fecha de entrega de bienes</span>
+            <input type="date" class="campo-input" [class.is-invalid]="isInvalid('fechaEntregaBienes')" [ngModel]="form().fechaEntregaBienes" (ngModelChange)="updateField('fechaEntregaBienes', $event)" />
           </label>
 
           @if (esTrasladoEntreEstablecimientos()) {
             <app-search-select label="Establecimiento de partida" [required]="true" placeholder="Seleccione establecimiento..." [options]="optEstablecimientosPartida()" [value]="form().idEstablecimientoPartida" [invalid]="isInvalidEstablecimientoPartida()" (selected)="elegido('establecimientoPartidaId', $event)" />
           }
 
-          <label class="form-control">
-            <span class="mb-1 text-sm font-semibold text-app-text">Punto de partida <span class="text-error">*</span></span>
-            <input type="text" class="input input-bordered w-full" [class.input-error]="isInvalid('puntoPartida')" [ngModel]="form().puntoPartida" (ngModelChange)="updateField('puntoPartida', $event)" placeholder="Punto de partida" [readOnly]="esTrasladoEntreEstablecimientos()" />
+          <label class="block">
+            <span class="campo-label"><span class="req">*</span> Punto de partida</span>
+            <input type="text" class="campo-input" [class.is-invalid]="isInvalid('puntoPartida')" [ngModel]="form().puntoPartida" (ngModelChange)="updateField('puntoPartida', $event)" placeholder="Punto de partida" [readOnly]="esTrasladoEntreEstablecimientos()" />
           </label>
 
           <div class="sm:col-span-2">
-            <span class="mb-1 block text-sm font-semibold text-app-text">Ubigeo de partida <span class="text-error">*</span></span>
-            <div class="grid gap-2 sm:grid-cols-3" [class.rounded-lg]="isInvalidUbigeoPartida()" [class.ring-1]="isInvalidUbigeoPartida()" [class.ring-error]="isInvalidUbigeoPartida()">
+            <span class="campo-label"><span class="req">*</span> Ubigeo de partida</span>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3" [class.rounded-xl]="isInvalidUbigeoPartida()" [class.ring-1]="isInvalidUbigeoPartida()" [class.ring-error]="isInvalidUbigeoPartida()">
               <app-search-select placeholder="Departamento" [options]="optDepartamentos()" [value]="form().departamentoPartida" [disabled]="esTrasladoEntreEstablecimientos()" (selected)="elegido('departamentoPartida', $event)" />
               <app-search-select placeholder="Provincia" [options]="optProvinciasPartida()" [value]="form().provinciaPartida" [disabled]="esTrasladoEntreEstablecimientos()" (selected)="elegido('provinciaPartida', $event)" />
               <app-search-select placeholder="Distrito" [options]="optDistritosPartida()" [value]="form().distritoPartida" [disabled]="esTrasladoEntreEstablecimientos()" (selected)="elegido('distritoPartida', $event)" />
@@ -54,23 +59,23 @@
       </section>
 
       <!-- Destino -->
-      <section class="space-y-3">
-        <h4 class="text-xs font-bold uppercase tracking-wide text-app-muted">Destino</h4>
-        <div class="grid gap-3 sm:grid-cols-2">
+      <section class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm sm:p-5">
+        <h4 class="mb-3.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-violet-700 dark:text-violet-300"><span class="grid size-6 place-items-center rounded-lg bg-violet-500/15"><svg lucideMapPin class="size-3.5"></svg></span> Destino</h4>
+        <div class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
           @if (esTrasladoEntreEstablecimientos()) {
             <app-search-select label="Establecimiento de destino" [required]="true" placeholder="Seleccione establecimiento..." [options]="optEstablecimientosDestino()" [value]="establecimientoDestinoId()" [invalid]="isInvalidEstablecimientoDestino()" (selected)="elegido('establecimientoDestinoId', $event)" />
           } @else {
             <app-search-select label="Destinatario" [required]="true" placeholder="Seleccione..." [options]="optDestinatarios()" [value]="form().destinatarioId" [invalid]="isInvalid('destinatarioId')" (selected)="elegido('destinatarioId', $event)" />
           }
 
-          <label class="form-control">
-            <span class="mb-1 text-sm font-semibold text-app-text">Punto de llegada <span class="text-error">*</span></span>
-            <input type="text" class="input input-bordered w-full" [class.input-error]="isInvalid('puntoLlegada')" [ngModel]="form().puntoLlegada" (ngModelChange)="updateField('puntoLlegada', $event)" placeholder="Punto de llegada" [readOnly]="esTrasladoEntreEstablecimientos()" />
+          <label class="block">
+            <span class="campo-label"><span class="req">*</span> Punto de llegada</span>
+            <input type="text" class="campo-input" [class.is-invalid]="isInvalid('puntoLlegada')" [ngModel]="form().puntoLlegada" (ngModelChange)="updateField('puntoLlegada', $event)" placeholder="Punto de llegada" [readOnly]="esTrasladoEntreEstablecimientos()" />
           </label>
 
           <div class="sm:col-span-2">
-            <span class="mb-1 block text-sm font-semibold text-app-text">Ubigeo de llegada <span class="text-error">*</span></span>
-            <div class="grid gap-2 sm:grid-cols-3" [class.rounded-lg]="isInvalidUbigeoLlegada()" [class.ring-1]="isInvalidUbigeoLlegada()" [class.ring-error]="isInvalidUbigeoLlegada()">
+            <span class="campo-label"><span class="req">*</span> Ubigeo de llegada</span>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3" [class.rounded-xl]="isInvalidUbigeoLlegada()" [class.ring-1]="isInvalidUbigeoLlegada()" [class.ring-error]="isInvalidUbigeoLlegada()">
               <app-search-select placeholder="Departamento" [options]="optDepartamentos()" [value]="form().departamentoLlegada" [disabled]="esTrasladoEntreEstablecimientos()" (selected)="elegido('departamentoLlegada', $event)" />
               <app-search-select placeholder="Provincia" [options]="optProvinciasLlegada()" [value]="form().provinciaLlegada" [disabled]="esTrasladoEntreEstablecimientos()" (selected)="elegido('provinciaLlegada', $event)" />
               <app-search-select placeholder="Distrito" [options]="optDistritosLlegada()" [value]="form().distritoLlegada" [disabled]="esTrasladoEntreEstablecimientos()" (selected)="elegido('distritoLlegada', $event)" />
@@ -80,9 +85,9 @@
       </section>
 
       <!-- Transporte -->
-      <section class="space-y-3">
-        <h4 class="flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-app-muted"><svg lucideTruck class="size-4"></svg> Transporte</h4>
-        <div class="grid gap-3 sm:grid-cols-2">
+      <section class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm sm:p-5">
+        <h4 class="mb-3.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300"><span class="grid size-6 place-items-center rounded-lg bg-emerald-500/15"><svg lucideTruck class="size-3.5"></svg></span> Transporte</h4>
+        <div class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
           <app-search-select label="Transporte" [required]="true" placeholder="Seleccione..." [options]="optTransportistas()" [value]="form().transportistaId" [invalid]="isInvalid('transportistaId')" (selected)="elegido('transportistaId', $event)" />
           <app-search-select label="Conductor" [required]="true" placeholder="Seleccione..." [options]="optConductores()" [value]="form().conductorId" [invalid]="isInvalid('conductorId')" (selected)="elegido('conductorId', $event)" />
           <app-search-select label="Vehículo" [required]="true" placeholder="Seleccione..." [options]="optVehiculos()" [value]="form().vehiculoId" [invalid]="isInvalid('vehiculoId')" (selected)="elegido('vehiculoId', $event)" />
@@ -90,68 +95,87 @@
       </section>
 
       <!-- Control -->
-      <section class="space-y-3">
-        <h4 class="text-xs font-bold uppercase tracking-wide text-app-muted">Control</h4>
-        <div class="grid gap-3 sm:grid-cols-2">
-          <label class="form-control">
-            <span class="mb-1 text-sm font-semibold text-app-text">Precinto <span class="text-error">*</span></span>
-            <input type="text" class="input input-bordered w-full" [class.input-error]="isInvalid('precinto')" [ngModel]="form().precinto" (ngModelChange)="updateField('precinto', $event)" placeholder="Ej: 017373" />
+      <section class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm sm:p-5">
+        <h4 class="mb-3.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-amber-700 dark:text-amber-300"><span class="grid size-6 place-items-center rounded-lg bg-amber-500/15"><svg lucideClipboardCheck class="size-3.5"></svg></span> Control</h4>
+        <div class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
+          <label class="block">
+            <span class="campo-label"><span class="req">*</span> Precinto</span>
+            <input type="text" class="campo-input" [class.is-invalid]="isInvalid('precinto')" [ngModel]="form().precinto" (ngModelChange)="updateField('precinto', $event)" placeholder="Ej: 017373" />
           </label>
-          <label class="form-control">
-            <span class="mb-1 text-sm font-semibold text-app-text">Observaciones <small class="text-app-subtle">(máx. 1000)</small></span>
-            <input type="text" class="input input-bordered w-full" maxlength="1000" placeholder="Opcional" [ngModel]="form().observacionesUsuario" (ngModelChange)="updateField('observacionesUsuario', $event)" />
+          <label class="block">
+            <span class="campo-label">Observaciones <small class="font-normal text-app-subtle">(máx. 1000)</small></span>
+            <input type="text" class="campo-input" maxlength="1000" placeholder="Opcional" [ngModel]="form().observacionesUsuario" (ngModelChange)="updateField('observacionesUsuario', $event)" />
           </label>
         </div>
       </section>
 
       <!-- Ítems -->
-      <section class="space-y-3">
-        <div class="flex items-center justify-between gap-2">
-          <h4 class="text-xs font-bold uppercase tracking-wide text-app-muted">Ítems de la guía</h4>
-          <button type="button" class="btn btn-success btn-sm" (click)="agregarDetalle()"><svg lucidePlus class="size-4"></svg> Agregar ítem</button>
+      <section class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm sm:p-5">
+        <div class="mb-3.5 flex items-center justify-between gap-2">
+          <h4 class="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-rose-700 dark:text-rose-300"><span class="grid size-6 place-items-center rounded-lg bg-rose-500/15"><svg lucidePackage class="size-3.5"></svg></span> Ítems de la guía <span class="badge badge-sm border-0 bg-rose-500/15 font-bold text-rose-700 dark:text-rose-300">{{ detalleActivos().length }}</span></h4>
+          <button type="button" class="btn h-10 min-h-10 gap-1.5 rounded-full border-0 bg-emerald-500/15 px-4 text-sm font-bold normal-case text-emerald-700 transition hover:bg-emerald-500/25 active:scale-[0.98] dark:text-emerald-300" (click)="agregarDetalle()"><svg lucidePlus class="size-4"></svg> Agregar ítem</button>
         </div>
 
         @if (detalleActivos().length === 0 && detalleSubmitAttempted()) {
-          <div role="alert" class="alert alert-warning py-2 text-sm"><svg lucideTriangleAlert class="size-4"></svg> Debe agregar al menos un ítem.</div>
+          <div role="alert" class="alert alert-warning mb-3 py-2 text-sm"><svg lucideTriangleAlert class="size-4"></svg> Debe agregar al menos un ítem.</div>
         }
 
-        <div class="space-y-2">
-          @for (item of detalleActivos(); track item) {
-            <div class="rounded-xl border border-app-border2 bg-app-surface2 p-3">
-              <div class="mb-2 flex items-center justify-between">
-                <span class="text-sm font-bold text-app-text">Ítem {{ $index + 1 }} <span class="ml-1 text-xs font-normal text-app-subtle">cód. {{ item.codigo }}</span></span>
-                <button type="button" class="btn btn-xs btn-square btn-outline btn-error" title="Eliminar ítem" aria-label="Eliminar ítem" (click)="eliminarDetalle(item)"><svg lucideTrash2 class="size-3.5"></svg></button>
-              </div>
-              <div class="grid gap-2 sm:grid-cols-[1fr_12rem_7rem_8rem]">
-                <label class="form-control sm:col-span-4">
-                  <span class="mb-1 text-xs font-semibold text-app-text2">Descripción <span class="text-error">*</span></span>
-                  <input type="text" class="input input-bordered w-full" [class.input-error]="isInvalidDetalle(item, 'descripcion')" [ngModel]="item.descripcion" (ngModelChange)="actualizarDetalle(item, 'descripcion', $event)" placeholder="Descripción del ítem" />
-                </label>
-                <app-search-select label="Unidad de medida" [required]="true" placeholder="Seleccione..." [options]="optUnidadesMedida()" [value]="item.codigoUnidadMedida" (selected)="actualizarDetalle(item, 'codigoUnidadMedida', $event.value)" />
-                <label class="form-control">
-                  <span class="mb-1 text-xs font-semibold text-app-text2">Cantidad <span class="text-error">*</span></span>
-                  <input type="number" inputmode="decimal" min="0" step="0.01" class="input input-bordered w-full" [class.input-error]="isInvalidDetalle(item, 'cantidad')" [ngModel]="item.cantidad" (ngModelChange)="actualizarDetalle(item, 'cantidad', $event)" placeholder="0" />
-                </label>
-                <label class="form-control">
-                  <span class="mb-1 text-xs font-semibold text-app-text2">Peso estimado (kg) <span class="text-error">*</span></span>
-                  <input type="number" inputmode="decimal" min="0" step="0.01" class="input input-bordered w-full" [class.input-error]="isInvalidDetalle(item, 'pesoEstimado')" [ngModel]="item.pesoEstimado" (ngModelChange)="actualizarDetalle(item, 'pesoEstimado', $event)" placeholder="0.00" />
-                </label>
-              </div>
-            </div>
-          }
-        </div>
+        @if (detalleActivos().length === 0 && !detalleSubmitAttempted()) {
+          <p class="rounded-xl border border-dashed border-app-border2 px-4 py-6 text-center text-sm text-app-muted">Aún no hay ítems. Usa «Agregar ítem» para escribir el primero.</p>
+        }
+
+        @if (detalleActivos().length > 0) {
+          <div class="tabla-items overflow-x-auto rounded-xl border border-app-border2">
+            <table class="w-full min-w-[640px] border-collapse text-sm">
+              <thead>
+                <tr class="bg-app-surface2 text-left text-[11px] font-bold uppercase tracking-wider text-app-subtle">
+                  <th class="w-10 px-3 py-2.5 text-center">#</th>
+                  <th class="px-2 py-2.5"><span class="text-error">*</span> Descripción</th>
+                  <th class="w-[190px] px-2 py-2.5"><span class="text-error">*</span> Unidad</th>
+                  <th class="w-[110px] px-2 py-2.5"><span class="text-error">*</span> Cantidad</th>
+                  <th class="w-[120px] px-2 py-2.5"><span class="text-error">*</span> Peso (kg)</th>
+                  <th class="w-12 px-2 py-2.5"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of detalleActivos(); track $index) {
+                  <tr class="border-t border-app-border2 align-middle">
+                    <td class="px-3 py-2 text-center text-xs font-bold text-app-subtle" [title]="'Código ' + item.codigo">{{ $index + 1 }}</td>
+                    <td class="px-2 py-2">
+                      <input type="text" class="campo-input" aria-label="Descripción" [class.is-invalid]="isInvalidDetalle(item, 'descripcion')" [ngModel]="item.descripcion" (ngModelChange)="actualizarDetalle(item, 'descripcion', $event)" placeholder="Descripción del ítem" />
+                    </td>
+                    <td class="px-2 py-2">
+                      <app-search-select label="" placeholder="Seleccione..." [options]="optUnidadesMedida()" [value]="item.codigoUnidadMedida" (selected)="actualizarDetalle(item, 'codigoUnidadMedida', $event.value)" />
+                    </td>
+                    <td class="px-2 py-2">
+                      <input type="number" inputmode="decimal" min="1" step="0.01" class="campo-input" aria-label="Cantidad" [class.is-invalid]="isInvalidDetalle(item, 'cantidad')" [ngModel]="item.cantidad" (ngModelChange)="actualizarDetalle(item, 'cantidad', $event)" (keydown)="bloquearTeclaNumero($event)" placeholder="1" />
+                      @if (errorDetalle(item, 'cantidad'); as msg) { <small class="mt-1 block text-[11px] font-semibold leading-tight text-error">{{ msg }}</small> }
+                    </td>
+                    <td class="px-2 py-2">
+                      <input type="number" inputmode="decimal" min="1" step="0.01" class="campo-input" aria-label="Peso estimado en kg" [class.is-invalid]="isInvalidDetalle(item, 'pesoEstimado')" [ngModel]="item.pesoEstimado" (ngModelChange)="actualizarDetalle(item, 'pesoEstimado', $event)" (keydown)="bloquearTeclaNumero($event)" placeholder="1.00" />
+                      @if (errorDetalle(item, 'pesoEstimado'); as msg) { <small class="mt-1 block text-[11px] font-semibold leading-tight text-error">{{ msg }}</small> }
+                    </td>
+                    <td class="px-2 py-2 text-center">
+                      <button type="button" class="grid size-9 place-items-center rounded-full text-error transition hover:bg-error/10 active:scale-95" title="Eliminar ítem" aria-label="Eliminar ítem" (click)="eliminarDetalle(item)"><svg lucideTrash2 class="size-4"></svg></button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
       </section>
     </div>
 
     <!-- Pie -->
-    <div class="flex flex-col-reverse gap-2 border-t border-app-border2 px-4 py-3 sm:flex-row sm:justify-end sm:px-6">
-      <button type="button" class="btn btn-ghost" [disabled]="guardando" (click)="onCancelar()">Cancelar</button>
-      <button type="button" class="btn btn-primary" [disabled]="guardando" (click)="onSubmit()">
+    <div class="flex shrink-0 flex-col-reverse gap-2 border-t border-app-border2 bg-app-surface px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6">
+      <button type="button" class="btn btn-ghost h-11 min-h-11 rounded-full px-6 normal-case text-app-text2 sm:h-10 sm:min-h-10" [disabled]="guardando" (click)="onCancelar()">Cancelar</button>
+      <button type="button" class="btn btn-primary h-11 min-h-11 rounded-full px-6 normal-case shadow-sm sm:h-10 sm:min-h-10" [disabled]="guardando" (click)="onSubmit()">
         @if (guardando) { <svg lucideLoader class="size-4 animate-spin"></svg> Guardando... }
         @else if (modoEdicion) { <svg lucideCheck class="size-4"></svg> Guardar cambios }
         @else { <svg lucidePlus class="size-4"></svg> Crear guía }
       </button>
     </div>
   </div>
-  <div class="modal-backdrop bg-black/40" (click)="onCancelar()"></div>
+  <div class="modal-backdrop" (click)="onCancelar()"></div>
 </div>

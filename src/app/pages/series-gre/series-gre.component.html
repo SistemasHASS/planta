@@ -64,7 +64,7 @@
                   </td>
                   <td>
                     <div class="flex items-center justify-end gap-1">
-                      <button type="button" class="btn btn-xs btn-square" [class.btn-error]="!s.eliminado" [class.btn-success]="s.eliminado" [title]="s.eliminado ? 'Activar' : 'Desactivar'" [attr.aria-label]="s.eliminado ? 'Activar' : 'Desactivar'" (click)="cambiarEstado(s)"><svg lucidePower class="size-3.5"></svg></button>
+                      <button type="button" class="btn btn-xs btn-square btn-accion" [class.btn-accion--danger]="!s.eliminado" [class.btn-accion--ok]="s.eliminado" [title]="s.eliminado ? 'Activar' : 'Desactivar'" [attr.aria-label]="s.eliminado ? 'Activar' : 'Desactivar'" (click)="cambiarEstado(s)"><svg lucidePower class="size-3.5"></svg></button>
                     </div>
                   </td>
                 </tr>

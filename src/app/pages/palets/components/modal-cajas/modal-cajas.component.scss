@@ -112,3 +112,22 @@
     font-size: 14px;
   }
 }
+
+/* Campo numerico sin flechas y con marca de error. */
+.campo-num[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.campo-num[type='number']::-webkit-outer-spin-button,
+.campo-num[type='number']::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.campo-num.is-invalid,
+.campo-num.is-invalid:hover,
+.campo-num.is-invalid:focus-visible {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}

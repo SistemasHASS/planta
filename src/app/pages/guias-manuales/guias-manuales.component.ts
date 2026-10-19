@@ -157,10 +157,6 @@ export class GuiasManualesComponent implements OnInit {
     return formatDateTime(value) || '—';
   }
 
-  sincronizadoLabel(sincroniza: string | undefined): string {
-    return sincroniza === 'no_sincronizado' ? 'No sincronizado' : 'Sincronizado';
-  }
-
   /** Celular o tablet: un toque sobre la fila abre el detalle de la guía. */
   alTocarFila(guia: GuiaRemision): void {
     if (esDispositivoMovil()) void this.abrirModalVerDetalle(guia);
@@ -169,10 +165,6 @@ export class GuiasManualesComponent implements OnInit {
   /** Computador: doble clic sobre la fila abre el detalle de la guía. */
   alHacerDobleClicFila(guia: GuiaRemision): void {
     if (!esDispositivoMovil()) void this.abrirModalVerDetalle(guia);
-  }
-
-  sincronizadoClass(sincroniza: string | undefined): string {
-    return sincroniza === 'no_sincronizado' ? 'badge badge-soft badge-error' : 'badge badge-soft badge-success';
   }
 
   // ───────── Listado ─────────
@@ -424,26 +416,47 @@ export class GuiasManualesComponent implements OnInit {
     }
   }
 
+  /** Elimina una guía en borrador. Pide dos confirmaciones porque la acción no se puede deshacer. */
   async eliminarGuia(g: GuiaRemision): Promise<void> {
-    const msg = [
-      '¿Está seguro de eliminar esta guía manual?',
-      '',
-      `Guía: ${g.codigoGuiaRemision ?? ''}`,
-      `Cantidad: ${(g as any).cantidad ?? 0}   Peso: ${g.pesoTotal ?? 0} kg`,
-      `Precinto: ${g.precinto ?? '—'}   Estado: ${g.estado ?? '—'}`,
-      '',
-      'Esta acción no se puede deshacer.',
+    if (!this.exigirInternet()) return;
+
+    const resumen = [
+      `Guía: ${g.codigoGuiaRemision ?? '—'}`,
+      `Destinatario: ${g.nombreDestinatario ?? '—'}`,
+      `Cantidad: ${(g as any).cantidad ?? 0} und · Peso: ${g.pesoTotal ?? 0} kg`,
+      `Precinto: ${g.precinto ?? '—'} · Estado: ${g.estado ?? '—'}`,
     ].join('\n');
 
-    const confirmado = await this.alertService.showConfirm('Confirmar eliminación', msg, 'warning');
-    if (!confirmado) return;
+    const primera = await this.confirmModal.confirm({
+      title: '¿Eliminar esta guía manual?',
+      eyebrow: 'Guía en borrador',
+      message: 'Se eliminará la guía junto con todos sus ítems.',
+      detail: resumen,
+      confirmText: 'Sí, continuar',
+      cancelText: 'Cancelar',
+      tone: 'warning',
+    });
+    if (!primera) return;
+    await this.pausaEntreConfirmaciones();
+
+    const segunda = await this.confirmModal.confirm({
+      title: 'Confirmación final',
+      eyebrow: 'Acción irreversible',
+      message: 'Una vez eliminada, la guía no se podrá recuperar.',
+      detail: resumen,
+      confirmText: 'Sí, eliminar guía',
+      cancelText: 'No, volver',
+      tone: 'danger',
+    });
+    if (!segunda) return;
 
     const datos = this.datosDeGuia(g);
     if (!datos) return;
 
-    this.loading.show('Procesando...');
+    this.loading.show('Eliminando guía...');
     try {
       const resp: any = await this.api.eliminar(datos.idProyecto, datos.codigoGuiaRemision);
+      await this.loading.hideAfterMinimum();
       if (resp?.error) {
         this.alertService.showAlert('Error', resp?.mensaje ?? 'Error al eliminar la guía manual.', 'error');
         return;
@@ -452,10 +465,22 @@ export class GuiasManualesComponent implements OnInit {
       await this.onBuscarGuias();
     } catch (error: any) {
       console.error('Error eliminando guía:', error);
+      await this.loading.hideAfterMinimum();
       this.alertService.showAlert('Error', error?.error?.message ?? 'Error al eliminar la guía.', 'error');
-    } finally {
-      this.loading.hide();
     }
+  }
+
+  /** Pausa corta con loading entre dos confirmaciones: evita que un doble clic acepte las dos sin leer la segunda. */
+  private async pausaEntreConfirmaciones(mensaje = 'Preparando confirmación final...'): Promise<void> {
+    this.loading.show(mensaje);
+    await this.loading.hideAfterMinimum(800);
+  }
+
+  /** Sin internet no se puede operar con las guías manuales: todo se pide y se guarda en el servidor. */
+  private exigirInternet(): boolean {
+    if (this.connectivity.isOnline()) return true;
+    this.alertService.showAlert('Sin conexión', 'Se necesita internet para trabajar con las guías manuales.', 'warning');
+    return false;
   }
 
   /** Proyecto y codigo de la guia; avisa si falta alguno. */

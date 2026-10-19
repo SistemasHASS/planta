@@ -248,6 +248,7 @@
                     <table class="table table-sm table-zebra w-max min-w-full whitespace-nowrap [&_thead_th]:text-[11px] [&_thead_th]:font-bold [&_thead_th]:uppercase [&_thead_th]:tracking-wide [&_thead_th]:text-app-text2 [&_tbody_td]:py-2.5">
                       <thead>
                         <tr>
+                          <th class="text-center">Tipo</th>
                           <th class="text-center">Tipo proc.</th>
                           <th class="text-center">Consig.</th>
                           <th class="text-center">Destino</th>
@@ -261,13 +262,17 @@
                           <th class="text-center">Transp.</th>
                           <th class="text-center">Cant.</th>
                           <th class="text-center">Peso</th>
-                          <th class="text-center">Tipo</th>
                           @if (ps.estado === 'ABIERTO' && !esAdmin()) { <th class="col-fija-der">Acciones</th> }
                         </tr>
                       </thead>
                       <tbody>
                         @for (c of composiciones(); track c.idDPalet) {
-                          <tr [class.bg-amber-50]="c.esReposicion" [class.bg-sky-50]="c.esEnsayo && !c.esReposicion">
+                          <tr class="dark:!bg-transparent" [class.bg-amber-50]="c.esReposicion" [class.bg-sky-50]="c.esEnsayo && !c.esReposicion">
+                            <td>
+                              @if (c.esReposicion) { <span class="badge badge-sm badge-warning">REPO</span> }
+                              @else if (c.esEnsayo) { <span class="badge badge-sm badge-info">ENSAYO</span> }
+                              @else { <span class="badge badge-sm badge-success">PROD</span> }
+                            </td>
                             <td><span class="badge badge-sm border-0 bg-indigo-100 dark:bg-indigo-500/15 font-semibold text-indigo-700 dark:text-indigo-300">{{ c.tipoProcesoEmpacadoNombre ?? (c.tipoProcesoEmpacadoId ? 'FP' : '-') }}</span></td>
                             <td>{{ c.consignatarioNombre }}</td>
                             <td>{{ c.destinoNombre }}</td>
@@ -281,16 +286,11 @@
                             <td>{{ c.transporteNombre ?? c.transporteId }}</td>
                             <td class="font-bold text-app-heading">{{ c.cantidadCajas }}</td>
                             <td class="font-semibold text-app-heading">{{ formatPeso(c.pesoTotal) }} kg</td>
-                            <td>
-                              @if (c.esReposicion) { <span class="badge badge-sm badge-warning">REPO</span> }
-                              @else if (c.esEnsayo) { <span class="badge badge-sm badge-info">ENSAYO</span> }
-                              @else { <span class="badge badge-sm badge-success">PROD</span> }
-                            </td>
                             @if (ps.estado === 'ABIERTO' && !esAdmin()) {
                               <td class="col-fija-der">
                                 <div class="flex gap-1">
-                                  <button type="button" class="btn btn-outline btn-primary btn-xs" title="Editar" (click)="abrirModalEditarCajas(c)"><svg lucidePencil class="size-3.5"></svg></button>
-                                  <button type="button" class="btn btn-outline btn-error btn-xs" title="Eliminar" (click)="eliminarComposicion(c)"><svg lucideTrash2 class="size-3.5"></svg></button>
+                                  <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--warn" title="Editar" (click)="abrirModalEditarCajas(c)"><svg lucidePencil class="size-3.5"></svg></button>
+                                  <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--danger" title="Eliminar" (click)="eliminarComposicion(c)"><svg lucideTrash2 class="size-3.5"></svg></button>
                                 </div>
                               </td>
                             }

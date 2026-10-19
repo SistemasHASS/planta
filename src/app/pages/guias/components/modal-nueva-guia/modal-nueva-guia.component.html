@@ -1,45 +1,50 @@
-<div class="modal modal-open" role="dialog" aria-modal="true">
-  <div class="modal-box w-full max-w-4xl p-0">
+<div class="modal modal-open modal-bottom sm:modal-middle" role="dialog" aria-modal="true" [attr.aria-label]="modoEdicion ? 'Editar guía de remisión' : 'Nueva guía de remisión'">
+  <div class="modal-box flex w-full !max-h-[92dvh] flex-col gap-0 overflow-clip !rounded-b-none !rounded-t-[28px] p-0 sm:!max-h-[90dvh] sm:!max-w-4xl sm:!rounded-[20px]">
+
     <!-- Cabecera -->
-    <div class="flex items-center justify-between gap-2 border-b border-app-border2 px-4 py-3 sm:px-6">
-      <h3 class="flex items-center gap-2 text-lg font-extrabold text-app-heading">
-        <svg lucideTruck class="size-5 text-primary"></svg>
-        {{ modoEdicion ? 'Editar guía de remisión' : 'Nueva guía de remisión' }}
-      </h3>
-      <button type="button" class="btn btn-sm btn-circle btn-ghost" aria-label="Cerrar" (click)="onCerrar()"><svg lucideX class="size-4"></svg></button>
+    <div class="relative flex shrink-0 items-center gap-3 border-b border-app-border2 bg-app-surface px-5 pb-3 pt-5 sm:py-3.5">
+      <span class="absolute left-1/2 top-2 h-1 w-9 -translate-x-1/2 rounded-full bg-slate-400/50 sm:hidden" aria-hidden="true"></span>
+      <span class="grid size-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm"><svg lucideTruck class="size-5"></svg></span>
+      <div class="min-w-0 flex-1">
+        <p class="text-[11px] font-bold uppercase leading-none tracking-widest text-emerald-700 dark:text-emerald-300">Guías de remisión</p>
+        <h3 class="mt-1 truncate text-[17px] font-extrabold leading-tight tracking-tight text-app-heading">{{ modoEdicion ? 'Editar guía de remisión' : 'Nueva guía de remisión' }}</h3>
+      </div>
+      <button type="button" class="grid size-8 shrink-0 place-items-center rounded-full bg-slate-500/15 text-app-text2 transition hover:bg-slate-500/25 active:scale-95" aria-label="Cerrar" (click)="onCerrar()"><svg lucideX class="size-4"></svg></button>
     </div>
 
-    <div class="max-h-[70dvh] space-y-5 overflow-y-auto px-4 py-4 sm:px-6">
+    <!-- Contenido -->
+    <div class="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-app-surface2 px-4 pb-6 pt-4 sm:px-6">
+
       <!-- Datos del traslado -->
-      <section class="space-y-3">
-        <h4 class="text-xs font-bold uppercase tracking-wide text-app-muted">Datos del traslado</h4>
-        <div class="grid gap-3 sm:grid-cols-2">
+      <section class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm sm:p-5">
+        <h4 class="mb-3.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-sky-700 dark:text-sky-300"><span class="grid size-6 place-items-center rounded-lg bg-sky-500/15"><svg lucideRoute class="size-3.5"></svg></span> Datos del traslado</h4>
+        <div class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
           <app-search-select label="Motivo de traslado" [required]="true" placeholder="— Seleccionar —" [options]="optMotivos()" [value]="form().motivoTraslado" [disabled]="modoEdicion" [invalid]="isInvalid('motivoTraslado')" (selected)="elegido('motivoTraslado', $event)" />
 
           @if (esMotivoOtros()) {
-            <label class="form-control">
-              <span class="mb-1 text-sm font-semibold text-app-text">Descripción del motivo de traslado <span class="text-error">*</span></span>
-              <input type="text" class="input input-bordered w-full" [class.input-error]="isInvalidDescripcionMotivoTraslado()" [ngModel]="form().descripcionMotivoTraslado" (ngModelChange)="updateField('descripcionMotivoTraslado', $event)" placeholder="Ej: Servicio de frío" />
+            <label class="block">
+              <span class="campo-label"><span class="req">*</span> Descripción del motivo de traslado</span>
+              <input type="text" class="campo-input" [class.is-invalid]="isInvalidDescripcionMotivoTraslado()" [ngModel]="form().descripcionMotivoTraslado" (ngModelChange)="updateField('descripcionMotivoTraslado', $event)" placeholder="Ej: Servicio de frío" />
             </label>
           }
 
-          <label class="form-control">
-            <span class="mb-1 text-sm font-semibold text-app-text">Fecha de entrega de bienes <span class="text-error">*</span></span>
-            <input type="date" class="input input-bordered w-full" [class.input-error]="isInvalid('fechaEntregaBienes')" [ngModel]="form().fechaEntregaBienes" (ngModelChange)="updateField('fechaEntregaBienes', $event)" />
+          <label class="block">
+            <span class="campo-label"><span class="req">*</span> Fecha de entrega de bienes</span>
+            <input type="date" class="campo-input" [class.is-invalid]="isInvalid('fechaEntregaBienes')" [ngModel]="form().fechaEntregaBienes" (ngModelChange)="updateField('fechaEntregaBienes', $event)" />
           </label>
 
           @if (esTrasladoEntreEstablecimientos()) {
             <app-search-select label="Establecimiento de partida" [required]="true" placeholder="Seleccione establecimiento..." [options]="optEstablecimientosPartida()" [value]="form().idEstablecimientoPartida" [invalid]="isInvalidEstablecimientoPartida()" (selected)="elegido('establecimientoPartidaId', $event)" />
           }
 
-          <label class="form-control">
-            <span class="mb-1 text-sm font-semibold text-app-text">Punto de partida <span class="text-error">*</span></span>
-            <input type="text" class="input input-bordered w-full" [class.input-error]="isInvalid('puntoPartida')" [ngModel]="form().puntoPartida" (ngModelChange)="updateField('puntoPartida', $event)" placeholder="Punto de partida" [readOnly]="esTrasladoEntreEstablecimientos()" />
+          <label class="block">
+            <span class="campo-label"><span class="req">*</span> Punto de partida</span>
+            <input type="text" class="campo-input" [class.is-invalid]="isInvalid('puntoPartida')" [ngModel]="form().puntoPartida" (ngModelChange)="updateField('puntoPartida', $event)" placeholder="Punto de partida" [readOnly]="esTrasladoEntreEstablecimientos()" />
           </label>
 
           <div class="sm:col-span-2">
-            <span class="mb-1 block text-sm font-semibold text-app-text">Ubigeo de partida <span class="text-error">*</span></span>
-            <div class="grid gap-2 sm:grid-cols-3" [class.rounded-lg]="isInvalidUbigeoPartida()" [class.ring-1]="isInvalidUbigeoPartida()" [class.ring-error]="isInvalidUbigeoPartida()">
+            <span class="campo-label"><span class="req">*</span> Ubigeo de partida</span>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3" [class.rounded-xl]="isInvalidUbigeoPartida()" [class.ring-1]="isInvalidUbigeoPartida()" [class.ring-error]="isInvalidUbigeoPartida()">
               <app-search-select placeholder="Departamento" [options]="optDepartamentos()" [value]="form().departamentoPartida" [disabled]="esTrasladoEntreEstablecimientos()" (selected)="elegido('departamentoPartida', $event)" />
               <app-search-select placeholder="Provincia" [options]="optProvinciasPartida()" [value]="form().provinciaPartida" [disabled]="esTrasladoEntreEstablecimientos()" (selected)="elegido('provinciaPartida', $event)" />
               <app-search-select placeholder="Distrito" [options]="optDistritosPartida()" [value]="form().distritoPartida" [disabled]="esTrasladoEntreEstablecimientos()" (selected)="elegido('distritoPartida', $event)" />
@@ -49,23 +54,23 @@
       </section>
 
       <!-- Destino -->
-      <section class="space-y-3">
-        <h4 class="text-xs font-bold uppercase tracking-wide text-app-muted">Destino</h4>
-        <div class="grid gap-3 sm:grid-cols-2">
+      <section class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm sm:p-5">
+        <h4 class="mb-3.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-violet-700 dark:text-violet-300"><span class="grid size-6 place-items-center rounded-lg bg-violet-500/15"><svg lucideMapPin class="size-3.5"></svg></span> Destino</h4>
+        <div class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
           @if (esTrasladoEntreEstablecimientos()) {
             <app-search-select label="Establecimiento de destino" [required]="true" placeholder="Seleccione establecimiento..." [options]="optEstablecimientosDestino()" [value]="establecimientoDestinoId()" [invalid]="isInvalidEstablecimientoDestino()" (selected)="elegido('establecimientoDestinoId', $event)" />
           } @else {
             <app-search-select label="Destinatario" [required]="true" placeholder="Seleccione..." [options]="optDestinatarios()" [value]="form().destinatarioId" [invalid]="isInvalid('destinatarioId')" (selected)="elegido('destinatarioId', $event)" />
           }
 
-          <label class="form-control">
-            <span class="mb-1 text-sm font-semibold text-app-text">Punto de llegada <span class="text-error">*</span></span>
-            <input type="text" class="input input-bordered w-full" [class.input-error]="isInvalid('puntoLlegada')" [ngModel]="form().puntoLlegada" (ngModelChange)="updateField('puntoLlegada', $event)" placeholder="Punto de llegada" [readOnly]="esTrasladoEntreEstablecimientos()" />
+          <label class="block">
+            <span class="campo-label"><span class="req">*</span> Punto de llegada</span>
+            <input type="text" class="campo-input" [class.is-invalid]="isInvalid('puntoLlegada')" [ngModel]="form().puntoLlegada" (ngModelChange)="updateField('puntoLlegada', $event)" placeholder="Punto de llegada" [readOnly]="esTrasladoEntreEstablecimientos()" />
           </label>
 
           <div class="sm:col-span-2">
-            <span class="mb-1 block text-sm font-semibold text-app-text">Ubigeo de llegada <span class="text-error">*</span></span>
-            <div class="grid gap-2 sm:grid-cols-3" [class.rounded-lg]="isInvalidUbigeoLlegada()" [class.ring-1]="isInvalidUbigeoLlegada()" [class.ring-error]="isInvalidUbigeoLlegada()">
+            <span class="campo-label"><span class="req">*</span> Ubigeo de llegada</span>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3" [class.rounded-xl]="isInvalidUbigeoLlegada()" [class.ring-1]="isInvalidUbigeoLlegada()" [class.ring-error]="isInvalidUbigeoLlegada()">
               <app-search-select placeholder="Departamento" [options]="optDepartamentos()" [value]="form().departamentoLlegada" [disabled]="esTrasladoEntreEstablecimientos()" (selected)="elegido('departamentoLlegada', $event)" />
               <app-search-select placeholder="Provincia" [options]="optProvinciasLlegada()" [value]="form().provinciaLlegada" [disabled]="esTrasladoEntreEstablecimientos()" (selected)="elegido('provinciaLlegada', $event)" />
               <app-search-select placeholder="Distrito" [options]="optDistritosLlegada()" [value]="form().distritoLlegada" [disabled]="esTrasladoEntreEstablecimientos()" (selected)="elegido('distritoLlegada', $event)" />
@@ -75,50 +80,63 @@
       </section>
 
       <!-- Proceso y palets -->
-      <section class="space-y-3">
-        <h4 class="flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-app-muted"><svg lucidePackage class="size-4"></svg> Proceso y palets</h4>
+      <section class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm sm:p-5">
+        <h4 class="mb-3.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-rose-700 dark:text-rose-300"><span class="grid size-6 place-items-center rounded-lg bg-rose-500/15"><svg lucidePackage class="size-3.5"></svg></span> Proceso y palets</h4>
         <app-search-select label="Proceso" [required]="true" placeholder="Seleccione un proceso..." [options]="optProcesos()" [value]="form().procesoId" [invalid]="isInvalid('procesoId')" (selected)="elegido('procesoId', $event)" />
 
-        <div>
-          <div class="mb-1 flex items-center justify-between gap-2">
-            <span class="text-sm font-semibold text-app-text">
-              Palets cerrados <span class="text-error">*</span>
-              @if (tienePalets()) { <span class="badge badge-sm badge-ghost ml-1">{{ nroPaletsSeleccionados() }} de {{ palets().length }}</span> }
+        <div class="mt-4">
+          <div class="mb-1.5 flex min-h-9 items-center justify-between gap-2">
+            <span class="campo-label !mb-0"><span class="req">*</span> Palets cerrados
+              @if (tienePalets()) { <span class="badge badge-sm ml-1 border-0 bg-rose-500/15 font-bold text-rose-700 dark:text-rose-300">{{ nroPaletsSeleccionados() }} de {{ palets().length }}</span> }
             </span>
             @if (tienePalets()) {
-              <button type="button" class="btn btn-ghost btn-xs" (click)="todosSeleccionados() ? deseleccionarTodos() : seleccionarTodos()">
+              <button type="button" class="btn h-9 min-h-9 gap-1.5 rounded-full border-0 bg-emerald-500/15 px-3.5 text-xs font-bold normal-case text-emerald-700 transition hover:bg-emerald-500/25 active:scale-[0.98] dark:text-emerald-300" (click)="todosSeleccionados() ? deseleccionarTodos() : seleccionarTodos()">
                 @if (todosSeleccionados()) { <svg lucideSquareCheck class="size-4"></svg> Deseleccionar todos } @else { <svg lucideSquare class="size-4"></svg> Seleccionar todos }
               </button>
             }
           </div>
-          <div class="max-h-52 min-h-28 overflow-y-auto rounded-xl border bg-app-surface2 p-2" [class.border-error]="isInvalidPalets()" [class.border-app-border2]="!isInvalidPalets()">
-            @if (!tienePalets()) {
-              <div class="grid place-items-center gap-1 py-6 text-xs text-app-muted">
-                <svg lucidePackage class="size-5 opacity-50"></svg>
-                Seleccione un proceso para ver palets
-              </div>
-            } @else {
-              <div class="space-y-1.5">
-                @for (p of palets(); track p.idPalet) {
-                  <label class="flex cursor-pointer items-center gap-2 rounded-lg border bg-app-surface px-3 py-2 text-sm" [class.border-emerald-400]="paletsSeleccionados().has(p.idPalet)" [class.bg-tint-emerald]="paletsSeleccionados().has(p.idPalet)" [class.border-app-border2]="!paletsSeleccionados().has(p.idPalet)">
-                    <input type="checkbox" class="checkbox checkbox-sm checkbox-success" [checked]="paletsSeleccionados().has(p.idPalet)" (change)="togglePaletSeleccionado(p.idPalet)" />
-                    <span class="min-w-14 font-bold text-primary">#{{ p.numeroPalet ?? p.idPalet }}</span>
-                    <span class="whitespace-nowrap text-xs text-app-muted">{{ p.cantidadCajas || 0 }} caj</span>
-                    <span class="whitespace-nowrap text-xs text-app-muted">{{ (p.pesoTotal || 0).toFixed(2) }} kg</span>
-                    <span class="badge badge-sm badge-soft ml-auto" [class.badge-success]="p.estado === 'CERRADO_COMPLETO'" [class.badge-warning]="p.estado !== 'CERRADO_COMPLETO'">{{ p.estado === 'CERRADO_COMPLETO' ? 'Completo' : 'Saldo' }}</span>
-                  </label>
-                }
-              </div>
-            }
-          </div>
-          @if (isInvalidPalets()) { <small class="text-error">Debe seleccionar al menos un palet.</small> }
+
+          @if (!tienePalets()) {
+            <div class="grid place-items-center gap-1 rounded-xl border border-dashed px-4 py-7 text-center text-sm text-app-muted" [class.border-error]="isInvalidPalets()" [class.border-app-border2]="!isInvalidPalets()">
+              <svg lucidePackage class="size-5 opacity-50"></svg>
+              Seleccione un proceso para ver sus palets
+            </div>
+          } @else {
+            <div class="max-h-60 overflow-auto overscroll-contain rounded-xl border" [class.border-error]="isInvalidPalets()" [class.border-app-border2]="!isInvalidPalets()">
+              <table class="w-full min-w-[420px] border-collapse text-sm">
+                <thead class="sticky top-0 z-[1]">
+                  <tr class="bg-app-surface2 text-left text-[11px] font-bold uppercase tracking-wider text-app-subtle">
+                    <th class="w-12 px-3 py-2.5"></th>
+                    <th class="px-2 py-2.5">Palet</th>
+                    <th class="px-2 py-2.5 text-right">Cajas</th>
+                    <th class="px-2 py-2.5 text-right">Peso (kg)</th>
+                    <th class="px-3 py-2.5 text-center">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (p of palets(); track p.idPalet) {
+                    <tr class="cursor-pointer border-t border-app-border2 transition" [class.bg-tint-emerald]="paletsSeleccionados().has(p.idPalet)" [class.hover:bg-app-surface2]="!paletsSeleccionados().has(p.idPalet)" (click)="togglePaletSeleccionado(p.idPalet)">
+                      <td class="px-3 py-2.5">
+                        <input type="checkbox" class="checkbox checkbox-sm checkbox-success" [attr.aria-label]="'Seleccionar palet ' + (p.numeroPalet ?? p.idPalet)" [checked]="paletsSeleccionados().has(p.idPalet)" (click)="$event.stopPropagation()" (change)="togglePaletSeleccionado(p.idPalet)" />
+                      </td>
+                      <td class="whitespace-nowrap px-2 py-2.5 font-bold text-primary">#{{ p.numeroPalet ?? p.idPalet }}</td>
+                      <td class="whitespace-nowrap px-2 py-2.5 text-right tabular-nums text-app-text2">{{ p.cantidadCajas || 0 }}</td>
+                      <td class="whitespace-nowrap px-2 py-2.5 text-right tabular-nums text-app-text2">{{ (p.pesoTotal || 0).toFixed(2) }}</td>
+                      <td class="px-3 py-2.5 text-center"><span class="badge badge-sm badge-soft whitespace-nowrap" [class.badge-success]="p.estado === 'CERRADO_COMPLETO'" [class.badge-warning]="p.estado !== 'CERRADO_COMPLETO'">{{ p.estado === 'CERRADO_COMPLETO' ? 'Completo' : 'Saldo' }}</span></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+          @if (isInvalidPalets()) { <small class="mt-1.5 block text-xs text-error">Debe seleccionar al menos un palet.</small> }
         </div>
       </section>
 
       <!-- Transporte -->
-      <section class="space-y-3">
-        <h4 class="flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-app-muted"><svg lucideTruck class="size-4"></svg> Transporte</h4>
-        <div class="grid gap-3 sm:grid-cols-2">
+      <section class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm sm:p-5">
+        <h4 class="mb-3.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300"><span class="grid size-6 place-items-center rounded-lg bg-emerald-500/15"><svg lucideTruck class="size-3.5"></svg></span> Transporte</h4>
+        <div class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
           <app-search-select label="Transporte" [required]="true" placeholder="Seleccione..." [options]="optTransportistas()" [value]="form().transportistaId" [invalid]="isInvalid('transportistaId')" (selected)="elegido('transportistaId', $event)" />
           <app-search-select label="Conductor" [required]="true" placeholder="Seleccione..." [options]="optConductores()" [value]="form().conductorId" [invalid]="isInvalid('conductorId')" (selected)="elegido('conductorId', $event)" />
           <app-search-select label="Vehículo" [required]="true" placeholder="Seleccione..." [options]="optVehiculos()" [value]="form().vehiculoId" [invalid]="isInvalid('vehiculoId')" (selected)="elegido('vehiculoId', $event)" />
@@ -126,65 +144,69 @@
       </section>
 
       <!-- Control -->
-      <section class="space-y-3">
-        <h4 class="text-xs font-bold uppercase tracking-wide text-app-muted">Control</h4>
-        <div class="grid gap-3 sm:grid-cols-3">
-          <label class="form-control">
-            <span class="mb-1 text-sm font-semibold text-app-text">Precinto <span class="text-error">*</span></span>
-            <input type="text" class="input input-bordered w-full" [class.input-error]="isInvalid('precinto')" [ngModel]="form().precinto" (ngModelChange)="updateField('precinto', $event)" placeholder="Ej: 017373" />
+      <section class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm sm:p-5">
+        <h4 class="mb-3.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-amber-700 dark:text-amber-300"><span class="grid size-6 place-items-center rounded-lg bg-amber-500/15"><svg lucideClipboardCheck class="size-3.5"></svg></span> Control</h4>
+        <div class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
+          <label class="block">
+            <span class="campo-label"><span class="req">*</span> Precinto</span>
+            <input type="text" class="campo-input" [class.is-invalid]="isInvalid('precinto')" [ngModel]="form().precinto" (ngModelChange)="updateField('precinto', $event)" placeholder="Ej: 017373" />
           </label>
-          <label class="form-control">
-            <span class="mb-1 text-sm font-semibold text-app-text">Parihuelas <span class="text-error">*</span></span>
-            <input type="number" inputmode="numeric" min="1" max="99" class="input input-bordered w-full" [class.input-error]="isInvalidParihuelas()" [ngModel]="form().parihuelas" (ngModelChange)="updateField('parihuelas', $event)"
+          <label class="block">
+            <span class="campo-label"><span class="req">*</span> Parihuelas</span>
+            <input type="number" inputmode="numeric" min="1" max="99" class="campo-input" [class.is-invalid]="isInvalidParihuelas()" [ngModel]="form().parihuelas" (ngModelChange)="updateField('parihuelas', $event)"
                    (keydown)="$event.key === 'e' || $event.key === 'E' || $event.key === '-' || $event.key === '+' || $event.key === '.' ? $event.preventDefault() : null" />
-            @if (isInvalidParihuelas()) { <small class="text-error">Ingrese un número entre 1 y 99.</small> }
+            @if (isInvalidParihuelas()) { <small class="mt-1 block text-xs text-error">Ingrese un número entre 1 y 99.</small> }
           </label>
-          <label class="form-control sm:col-span-3">
-            <span class="mb-1 text-sm font-semibold text-app-text">Observaciones <small class="text-app-subtle">(máx. 1000)</small></span>
-            <input type="text" class="input input-bordered w-full" maxlength="1000" placeholder="Opcional" [ngModel]="form().observacionesUsuario" (ngModelChange)="updateField('observacionesUsuario', $event)" />
+          <label class="block sm:col-span-2">
+            <span class="campo-label">Observaciones <small class="font-normal text-app-subtle">(máx. 1000)</small></span>
+            <input type="text" class="campo-input" maxlength="1000" placeholder="Opcional" [ngModel]="form().observacionesUsuario" (ngModelChange)="updateField('observacionesUsuario', $event)" />
           </label>
         </div>
       </section>
 
       <!-- Parámetros de inspección (solo al editar) -->
       @if (modoEdicion) {
-        <section class="space-y-3">
-          <h4 class="flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-app-muted"><svg lucideClipboardCheck class="size-4"></svg> Parámetros de inspección</h4>
-          <div class="grid gap-3 sm:grid-cols-2">
-            <label class="form-control">
-              <span class="mb-1 text-sm font-semibold text-app-text">Temperatura (°C)</span>
-              <input type="number" inputmode="decimal" step="0.1" class="input input-bordered w-full" [ngModel]="form().inspeccionTemperatura" (ngModelChange)="updateField('inspeccionTemperatura', $event)" placeholder="Ej: 18.4"
+        <section class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm sm:p-5">
+          <h4 class="mb-3.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-teal-700 dark:text-teal-300"><span class="grid size-6 place-items-center rounded-lg bg-teal-500/15"><svg lucideClipboardCheck class="size-3.5"></svg></span> Parámetros de inspección</h4>
+          <div class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
+            <label class="block">
+              <span class="campo-label">Temperatura (°C)</span>
+              <input type="number" inputmode="decimal" step="0.1" class="campo-input" [ngModel]="form().inspeccionTemperatura" (ngModelChange)="updateField('inspeccionTemperatura', $event)" placeholder="Ej: 18.4"
                      (keydown)="$event.key === 'e' || $event.key === 'E' || $event.key === '+' ? $event.preventDefault() : null" />
             </label>
-            <label class="form-control">
-              <span class="mb-1 text-sm font-semibold text-app-text">N° de viaje</span>
-              <input type="number" inputmode="numeric" min="1" class="input input-bordered w-full" [ngModel]="form().numeroViaje" (ngModelChange)="updateField('numeroViaje', $event)" placeholder="Ej: 1, 2, 3..."
+            <label class="block">
+              <span class="campo-label">N° de viaje</span>
+              <input type="number" inputmode="numeric" min="1" class="campo-input" [ngModel]="form().numeroViaje" (ngModelChange)="updateField('numeroViaje', $event)" placeholder="Ej: 1, 2, 3..."
                      (keydown)="$event.key === 'e' || $event.key === 'E' || $event.key === '-' || $event.key === '+' || $event.key === '.' ? $event.preventDefault() : null" />
             </label>
           </div>
-          <div class="space-y-2">
+
+          <div class="mt-4 divide-y divide-app-border2 overflow-hidden rounded-xl border border-app-border2">
             @for (p of preguntasInspeccion; track p.campo) {
-              <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-app-surface2 px-3 py-2">
+              <div class="flex flex-wrap items-center justify-between gap-2 bg-app-surface2 px-3.5 py-2.5">
                 <span class="text-sm text-app-text">{{ p.texto }}</span>
-                <div class="flex gap-4">
-                  <label class="flex cursor-pointer items-center gap-1.5 text-sm font-semibold">
-                    <input type="radio" class="radio radio-sm radio-success" [name]="p.campo + 'Edit'" [checked]="valorInspeccion(p.campo) === 'si'" (change)="updateField(p.campo, 'si')" /> Sí
+                <div class="flex gap-2">
+                  <label class="relative cursor-pointer">
+                    <input type="radio" class="peer absolute inset-0 size-full cursor-pointer opacity-0" [name]="p.campo + 'Edit'" [checked]="valorInspeccion(p.campo) === 'si'" (change)="updateField(p.campo, 'si')" />
+                    <span class="grid h-9 min-w-14 place-items-center rounded-full border border-app-border2 bg-app-surface px-4 text-sm font-semibold text-app-text2 transition peer-checked:border-emerald-500 peer-checked:bg-emerald-500 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-500/40">Sí</span>
                   </label>
-                  <label class="flex cursor-pointer items-center gap-1.5 text-sm font-semibold">
-                    <input type="radio" class="radio radio-sm radio-error" [name]="p.campo + 'Edit'" [checked]="valorInspeccion(p.campo) === 'no'" (change)="updateField(p.campo, 'no')" /> No
+                  <label class="relative cursor-pointer">
+                    <input type="radio" class="peer absolute inset-0 size-full cursor-pointer opacity-0" [name]="p.campo + 'Edit'" [checked]="valorInspeccion(p.campo) === 'no'" (change)="updateField(p.campo, 'no')" />
+                    <span class="grid h-9 min-w-14 place-items-center rounded-full border border-app-border2 bg-app-surface px-4 text-sm font-semibold text-app-text2 transition peer-checked:border-red-500 peer-checked:bg-red-500 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-red-500/40">No</span>
                   </label>
                 </div>
               </div>
             }
           </div>
-          <div class="grid gap-3 sm:grid-cols-2">
-            <label class="form-control">
-              <span class="mb-1 text-sm font-semibold text-app-text">Observaciones de inspección</span>
-              <textarea class="textarea textarea-bordered w-full" rows="3" placeholder="Obligatorio si alguna inspección es No" [ngModel]="form().inspeccionObservaciones" (ngModelChange)="updateField('inspeccionObservaciones', $event)"></textarea>
+
+          <div class="mt-4 grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
+            <label class="block">
+              <span class="campo-label">Observaciones de inspección</span>
+              <textarea class="campo-input" rows="3" placeholder="Obligatorio si alguna inspección es No" [ngModel]="form().inspeccionObservaciones" (ngModelChange)="updateField('inspeccionObservaciones', $event)"></textarea>
             </label>
-            <label class="form-control">
-              <span class="mb-1 text-sm font-semibold text-app-text">Medida correctiva</span>
-              <textarea class="textarea textarea-bordered w-full" rows="3" placeholder="Obligatorio si alguna inspección es No" [ngModel]="form().inspeccionMedidaCorrectiva" (ngModelChange)="updateField('inspeccionMedidaCorrectiva', $event)"></textarea>
+            <label class="block">
+              <span class="campo-label">Medida correctiva</span>
+              <textarea class="campo-input" rows="3" placeholder="Obligatorio si alguna inspección es No" [ngModel]="form().inspeccionMedidaCorrectiva" (ngModelChange)="updateField('inspeccionMedidaCorrectiva', $event)"></textarea>
             </label>
           </div>
         </section>
@@ -192,9 +214,9 @@
     </div>
 
     <!-- Pie -->
-    <div class="flex flex-col-reverse gap-2 border-t border-app-border2 px-4 py-3 sm:flex-row sm:justify-end sm:px-6">
-      <button type="button" class="btn btn-ghost" [disabled]="creando()" (click)="onCerrar()">Cancelar</button>
-      <button type="button" class="btn btn-primary" [disabled]="creando() || (modoEdicion && !hasChanges())" (click)="onCrear()">
+    <div class="flex shrink-0 flex-col-reverse gap-2 border-t border-app-border2 bg-app-surface px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6">
+      <button type="button" class="btn btn-ghost h-11 min-h-11 rounded-full px-6 normal-case text-app-text2 sm:h-10 sm:min-h-10" [disabled]="creando()" (click)="onCerrar()">Cancelar</button>
+      <button type="button" class="btn btn-primary h-11 min-h-11 rounded-full px-6 normal-case shadow-sm sm:h-10 sm:min-h-10" [disabled]="creando() || (modoEdicion && !hasChanges())" (click)="onCrear()">
         @if (creando()) { <svg lucideLoader class="size-4 animate-spin"></svg> Continuando... }
         @else if (modoEdicion) { <svg lucideCheck class="size-4"></svg> Guardar cambios }
         @else { <svg lucideFilePlus class="size-4"></svg> Crear guía }

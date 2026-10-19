@@ -18,14 +18,14 @@
           <h2 class="text-sm font-bold uppercase tracking-wide text-app-text2">Guías generadas</h2>
           <span class="badge badge-soft badge-success">{{ guiasAgrupadas().length }} {{ guiasAgrupadas().length === 1 ? 'registro' : 'registros' }}</span>
         </div>
-        <div class="flex flex-wrap items-center gap-2">
-          @if (tieneGuiasNoSincronizadas) {
-            <button type="button" class="btn btn-warning btn-sm" (click)="onSincronizar()"><svg lucideCloudUpload class="size-4"></svg> Sincronizar</button>
-          }
+        <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           @if (esAdmin()) {
             <button type="button" class="btn btn-success btn-sm" (click)="exportarExcel()"><svg lucideFileSpreadsheet class="size-4"></svg> Exportar Excel</button>
           } @else {
-            <button type="button" class="btn btn-primary btn-sm" (click)="abrirModalNuevaGuia()"><svg lucidePlus class="size-4"></svg> Nueva guía</button>
+            <button type="button" class="btn h-11 min-h-11 w-full gap-2.5 rounded-xl border-0 bg-gradient-to-r from-emerald-500 to-emerald-600 pl-2 pr-5 text-[15px] font-bold normal-case text-white shadow-md shadow-emerald-600/25 transition hover:-translate-y-0.5 hover:from-emerald-400 hover:to-emerald-600 hover:shadow-lg active:translate-y-0 active:scale-[0.98] sm:w-auto" (click)="abrirModalNuevaGuia()">
+              <span class="grid size-7 place-items-center rounded-lg bg-white/20"><svg lucidePlus class="size-[18px]" stroke-width="2.5"></svg></span>
+              Nueva guía
+            </button>
           }
         </div>
       </div>
@@ -68,89 +68,101 @@
             <thead>
               <tr class="text-[11px] font-bold uppercase tracking-wide">
                 <th class="text-center">Guía</th>
-                <th class="min-w-[17rem] text-center">Destinatario</th>
+                <th class="min-w-[13rem] text-center">Destinatario</th>
+                <th class="text-center">Estado</th>
+                <th class="text-center">SUNAT</th>
                 <th class="text-center">Proceso</th>
                 <th class="text-center">Carga</th>
                 <th class="text-center">Precinto / Viaje</th>
                 <th class="text-center">Fecha</th>
-                <th class="text-center">Estado</th>
-                <th class="text-center">SUNAT</th>
-                <th class="text-center">Sync</th>
                 <th class="acciones-fija text-right">Acciones</th>
               </tr>
             </thead>
             <tbody>
               @for (g of paginacion.paged(); track g.transactionId_uuid + (g._esGrupo ? '_grupo' : g.codigoGuiaRemision)) {
                 @if (g._esGrupo) {
-                  <!-- Resumen del grupo (varias guías emitidas juntas) -->
-                  <tr class="border-t-2 border-tint-emerald-border bg-tint-emerald">
+                  <!-- Grupo (varias guías emitidas juntas): UNA fila; cada columna apila una línea por guía, alineadas entre sí -->
+                  <tr class="border-t-2 border-tint-emerald-border bg-tint-emerald [&>td]:align-top [&>td:first-child]:border-l-4 [&>td:first-child]:border-emerald-600">
                     <td>
-                      <span class="badge badge-success gap-1"><svg lucideLayers class="size-3.5"></svg> MÚLTIPLE</span>
-                      <span class="ml-1 text-xs text-app-muted">{{ g._guiasDelGrupo.length }} guías</span>
+                      <div class="flex h-9 items-center">
+                        <span class="badge badge-success gap-1"><svg lucideLayers class="size-3.5"></svg> MÚLTIPLE</span>
+                        <span class="ml-2 text-xs text-app-muted">{{ g._guiasDelGrupo.length }} guías</span>
+                      </div>
+                      @for (sg of g._guiasDelGrupo; track sg.codigoGuiaRemision; let first = $first) {
+                        <div class="-mx-3 flex h-9 cursor-pointer items-center px-3 transition-colors" [class.border-t]="!first" [class.border-tint-emerald-border]="!first" [class.opacity-50]="sg.estado === 'ANULADO'" title="Doble clic (o un toque en celular) para ver el detalle" (click)="alTocarFila(sg)" (dblclick)="alHacerDobleClicFila(sg)" (mouseenter)="hoverSubGuia.set(sg.codigoGuiaRemision)" (mouseleave)="hoverSubGuia.set(null)" [class.bg-emerald-500/15]="hoverSubGuia() === sg.codigoGuiaRemision">
+                          <div class="flex items-center gap-2">
+                            <span class="inline-block h-5 w-1 rounded" [class.bg-amber-500]="sg.esReposicion" [class.bg-sky-500]="!sg.esReposicion && sg.esEnsayo" [class.bg-emerald-600]="!sg.esReposicion && !sg.esEnsayo"></span>
+                            @if (sg.numero) { <span class="whitespace-nowrap font-semibold text-app-heading">{{ sg.serie }} N° {{ sg.numero }}</span> } @else { <span class="italic text-app-subtle">(borrador)</span> }
+                            @if (sg.esReposicion) { <span class="badge badge-sm badge-warning h-5 shrink-0 gap-1 whitespace-nowrap px-2 text-[10px] font-bold leading-none"><svg lucideRefreshCw class="size-3"></svg> REPO</span> }
+                            @if (sg.esEnsayo) { <span class="badge badge-sm badge-info h-5 shrink-0 gap-1 whitespace-nowrap px-2 text-[10px] font-bold leading-none"><svg lucideFlaskConical class="size-3"></svg> ENSAYO</span> }
+                          </div>
+                        </div>
+                      }
                     </td>
-                    <td class="min-w-[17rem]">
+                    <td class="min-w-[13rem] text-center !align-middle">
                       <div class="font-semibold text-app-heading">{{ g.nombreDestinatario || g.documentoDestinatario || '—' }}</div>
                       @if (g.nombreDestinatario) { <div class="text-xs text-app-muted">{{ g.documentoDestinatario }}</div> }
                     </td>
-                    <td><span class="whitespace-nowrap rounded-md bg-app-surface px-2 py-1 text-xs font-medium text-app-text2 ring-1 ring-app-border2">{{ g.nombreProceso || g.codigoProceso }}</span></td>
-                    <td class="whitespace-nowrap text-xs tabular-nums text-app-text2">
-                      <strong class="text-app-heading">{{ g.cantidadPalets }}</strong> palets · <strong class="text-app-heading">{{ g.totalCajas }}</strong> cajas · <strong class="text-app-heading">{{ g.pesoTotal }}</strong> kg
+                    <td class="whitespace-nowrap">
+                      <div class="h-9"></div>
+                      @for (sg of g._guiasDelGrupo; track sg.codigoGuiaRemision; let first = $first) {
+                        <div class="-mx-3 flex h-9 cursor-pointer items-center px-3 transition-colors" [class.border-t]="!first" [class.border-tint-emerald-border]="!first" [class.opacity-50]="sg.estado === 'ANULADO'" title="Doble clic (o un toque en celular) para ver el detalle" (click)="alTocarFila(sg)" (dblclick)="alHacerDobleClicFila(sg)" (mouseenter)="hoverSubGuia.set(sg.codigoGuiaRemision)" (mouseleave)="hoverSubGuia.set(null)" [class.bg-emerald-500/15]="hoverSubGuia() === sg.codigoGuiaRemision"><span [class]="estadoGuiaClass(sg.estado)" class="whitespace-nowrap">{{ sg.estado }}</span></div>
+                      }
                     </td>
-                    <td class="text-xs">
+                    <td class="whitespace-nowrap">
+                      <div class="h-9"></div>
+                      @for (sg of g._guiasDelGrupo; track sg.codigoGuiaRemision; let first = $first) {
+                        <div class="-mx-3 flex h-9 cursor-pointer items-center px-3 transition-colors" [class.border-t]="!first" [class.border-tint-emerald-border]="!first" [class.opacity-50]="sg.estado === 'ANULADO'" title="Doble clic (o un toque en celular) para ver el detalle" (click)="alTocarFila(sg)" (dblclick)="alHacerDobleClicFila(sg)" (mouseenter)="hoverSubGuia.set(sg.codigoGuiaRemision)" (mouseleave)="hoverSubGuia.set(null)" [class.bg-emerald-500/15]="hoverSubGuia() === sg.codigoGuiaRemision"><span [class]="estadoSunatClass(sg.estadoSunat)" class="whitespace-nowrap">{{ estadoSunatLabel(sg.estadoSunat) }}</span></div>
+                      }
+                    </td>
+                    <td class="text-center !align-middle"><span class="whitespace-nowrap rounded-md bg-app-surface px-2 py-1 text-xs font-medium text-app-text2 ring-1 ring-app-border2">{{ g.nombreProceso || g.codigoProceso }}</span></td>
+                    <td class="whitespace-nowrap text-xs tabular-nums text-app-text2">
+                      <div class="h-9"></div>
+                      @for (sg of g._guiasDelGrupo; track sg.codigoGuiaRemision; let first = $first) {
+                        <div class="-mx-3 flex h-9 cursor-pointer items-center px-3 transition-colors" [class.border-t]="!first" [class.border-tint-emerald-border]="!first" [class.opacity-50]="sg.estado === 'ANULADO'" title="Doble clic (o un toque en celular) para ver el detalle" (click)="alTocarFila(sg)" (dblclick)="alHacerDobleClicFila(sg)" (mouseenter)="hoverSubGuia.set(sg.codigoGuiaRemision)" (mouseleave)="hoverSubGuia.set(null)" [class.bg-emerald-500/15]="hoverSubGuia() === sg.codigoGuiaRemision"><strong class="text-app-heading">{{ sg.cantidadPalets }}</strong>&nbsp;palets · <strong class="text-app-heading">{{ sg.totalCajas }}</strong>&nbsp;cajas · <strong class="text-app-heading">{{ sg.pesoTotal }}</strong>&nbsp;kg</div>
+                      }
+                    </td>
+                    <td class="text-center text-xs !align-middle">
                       <div>{{ g.precinto || '—' }}</div>
                       @if (g.numeroViaje) { <div class="text-app-muted">Viaje {{ g.numeroViaje }}</div> }
                     </td>
-                    <td class="whitespace-nowrap text-xs">
+                    <td class="w-24 text-center text-xs !align-middle">
                       <div>@if (g.fechaEmision) { {{ fmtDateTime(g.fechaEmision) }} } @else if (g.fechaCreacionWeb) { <span class="text-app-muted">{{ fmtDateTime(g.fechaCreacionWeb) }}</span> } @else { — }</div>
                       @if (esAdmin() && g.usuarioCre) { <div class="text-app-muted">{{ g.usuarioCre }}</div> }
                     </td>
-                    <td><span [class]="estadoGuiaClass(g.estado)">{{ g.estado }}</span></td>
-                    <td class="text-app-subtle">—</td>
-                    <td><span [class]="sincronizadoClass(g.sincroniza)">{{ sincronizadoLabel(g.sincroniza) }}</span></td>
                     <td class="acciones-fija acciones-fija-grupo" (click)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()">
-                      <div class="flex items-center justify-end gap-1">
+                      <div class="flex items-stretch justify-end gap-2">
+                        <!-- Acciones del grupo: centradas verticalmente, abarcan las guías de al lado -->
+                        @if ((g.estado === 'ABIERTA' && !esAdmin()) || (g.estado === 'CERRADA' && esAdministrador() && g.codigoEstadoSunat === 'AC_03')) {
+                        <div class="flex items-center border-r border-tint-emerald-border pr-2">
+                          <div class="flex items-center gap-1">
                         @if (g.estado === 'ABIERTA' && !esAdmin()) {
-                          <button type="button" class="btn btn-xs btn-success" title="Cerrar y numerar grupo" (click)="cerrarGrupo(g._guiasDelGrupo)"><svg lucideCircleCheck class="size-3.5"></svg></button>
-                          <button type="button" class="btn btn-xs btn-error" title="Eliminar grupo" (click)="eliminarGrupo(g._guiasDelGrupo)"><svg lucideTrash2 class="size-3.5"></svg></button>
+                          <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--ok" title="Cerrar y numerar grupo" (click)="cerrarGrupo(g._guiasDelGrupo)"><svg lucideCircleCheck class="size-3.5"></svg></button>
+                          <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--danger" title="Eliminar grupo" (click)="eliminarGrupo(g._guiasDelGrupo)"><svg lucideTrash2 class="size-3.5"></svg></button>
                         }
                         @if (g.estado === 'CERRADA' && esAdministrador() && g.codigoEstadoSunat === 'AC_03') {
-                          <button type="button" class="btn btn-xs btn-error" title="Anular grupo" (click)="anularGrupo(g._guiasDelGrupo)"><svg lucideOctagonX class="size-3.5"></svg> Anular</button>
+                          <button type="button" class="btn btn-xs btn-accion btn-accion--danger btn-accion--txt" title="Anular grupo" (click)="anularGrupo(g._guiasDelGrupo)"><svg lucideOctagonX class="size-3.5"></svg> Anular</button>
                         }
+                      </div>
+                        </div>
+                        }
+                        <div>
+                          <div class="h-9"></div>
+                          @for (sg of g._guiasDelGrupo; track sg.codigoGuiaRemision; let first = $first) {
+                        <div class="-mr-3 flex h-9 items-center justify-end gap-1 pl-2 pr-3 transition-colors" [class.border-t]="!first" [class.border-tint-emerald-border]="!first" (mouseenter)="hoverSubGuia.set(sg.codigoGuiaRemision)" (mouseleave)="hoverSubGuia.set(null)" [class.bg-emerald-500/15]="hoverSubGuia() === sg.codigoGuiaRemision">
+                          @if (esAceptadaSunat(sg.estadoSunat)) {
+                            <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--danger" title="Ver PDF SUNAT" aria-label="Ver PDF SUNAT" (click)="abrirPdfModal(sg.pdfFileUrl)"><svg lucideFileText class="size-3.5"></svg></button>
+                          }
+                          <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--info" title="Ver detalle" aria-label="Ver detalle" (click)="abrirModalVerDetalle(sg)"><svg lucideEye class="size-3.5"></svg></button>
+                          @if (sg.estado?.toUpperCase() !== 'ANULADO' && sg.estadoSunat && sg.estadoSunat !== 'No Enviado' && !esAdmin()) {
+                            <button type="button" class="btn btn-xs btn-square btn-accion" title="Consultar estado SUNAT" aria-label="Consultar estado SUNAT" (click)="consultarEstadoSunat(sg)"><svg lucideRefreshCw class="size-3.5"></svg></button>
+                          }
+                        </div>
+                      }
+                        </div>
                       </div>
                     </td>
                   </tr>
-
-                  <!-- Una fila por cada guía del grupo (doble clic = ver detalle) -->
-                  @for (sg of g._guiasDelGrupo; track sg.codigoGuiaRemision) {
-                    <tr class="cursor-pointer bg-tint-emerald hover:bg-tint-emerald" [class.opacity-50]="sg.estado === 'ANULADO'" title="Doble clic (o un toque en celular) para ver el detalle" (click)="alTocarFila(sg)" (dblclick)="alHacerDobleClicFila(sg)">
-                      <td colspan="3">
-                        <div class="flex items-center gap-2 pl-4">
-                          <span class="inline-block h-5 w-1 rounded" [class.bg-amber-500]="sg.esReposicion" [class.bg-sky-500]="!sg.esReposicion && sg.esEnsayo" [class.bg-emerald-600]="!sg.esReposicion && !sg.esEnsayo"></span>
-                          @if (sg.numero) { <span class="whitespace-nowrap font-semibold text-app-heading">{{ sg.serie }} N° {{ sg.numero }}</span> } @else { <span class="italic text-app-subtle">(borrador)</span> }
-                          @if (sg.esReposicion) { <span class="badge badge-xs badge-warning gap-1"><svg lucideRefreshCw class="size-3"></svg> REPO</span> }
-                          @if (sg.esEnsayo) { <span class="badge badge-xs badge-info gap-1"><svg lucideFlaskConical class="size-3"></svg> ENSAYO</span> }
-                        </div>
-                      </td>
-                      <td class="whitespace-nowrap text-xs tabular-nums text-app-text2">
-                        <strong class="text-app-heading">{{ sg.cantidadPalets }}</strong> palets · <strong class="text-app-heading">{{ sg.totalCajas }}</strong> cajas · <strong class="text-app-heading">{{ sg.pesoTotal }}</strong> kg
-                      </td>
-                      <td colspan="2"></td>
-                      <td><span [class]="estadoGuiaClass(sg.estado)">{{ sg.estado }}</span></td>
-                      <td><span [class]="estadoSunatClass(sg.estadoSunat)">{{ estadoSunatLabel(sg.estadoSunat) }}</span></td>
-                      <td></td>
-                      <td class="acciones-fija acciones-fija-hijo" (click)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()">
-                        <div class="flex items-center justify-end gap-1">
-                          @if (esAceptadaSunat(sg.estadoSunat)) {
-                            <button type="button" class="btn btn-xs btn-square btn-outline btn-error" title="Ver PDF SUNAT" aria-label="Ver PDF SUNAT" (click)="abrirPdfModal(sg.pdfFileUrl)"><svg lucideFileText class="size-3.5"></svg></button>
-                          }
-                          <button type="button" class="btn btn-xs btn-square btn-outline btn-info" title="Ver detalle" aria-label="Ver detalle" (click)="abrirModalVerDetalle(sg)"><svg lucideEye class="size-3.5"></svg></button>
-                          @if (sg.estado?.toUpperCase() !== 'ANULADO' && sg.estadoSunat && sg.estadoSunat !== 'No Enviado' && !esAdmin()) {
-                            <button type="button" class="btn btn-xs btn-square btn-outline" title="Consultar estado SUNAT" aria-label="Consultar estado SUNAT" (click)="consultarEstadoSunat(sg)"><svg lucideRefreshCw class="size-3.5"></svg></button>
-                          }
-                        </div>
-                      </td>
-                    </tr>
-                  }
                 } @else {
                   <!-- Guía individual (doble clic = ver detalle) -->
                   <tr class="cursor-pointer border-t border-app-border hover:bg-app-surface2" [class.opacity-50]="g.estado === 'ANULADO'" title="Doble clic (o un toque en celular) para ver el detalle" (click)="alTocarFila(g)" (dblclick)="alHacerDobleClicFila(g)">
@@ -158,14 +170,16 @@
                       <div class="flex items-center gap-2">
                         <span class="inline-block h-5 w-1 rounded" [class.bg-amber-500]="g.esReposicion" [class.bg-sky-500]="!g.esReposicion && g.esEnsayo" [class.bg-app-border2]="!g.esReposicion && !g.esEnsayo"></span>
                         @if (g.numero) { <span class="whitespace-nowrap font-semibold text-app-heading">{{ g.serie }} N° {{ g.numero }}</span> } @else { <span class="italic text-app-subtle">(borrador)</span> }
-                        @if (g.esReposicion) { <span class="badge badge-xs badge-warning gap-1"><svg lucideRefreshCw class="size-3"></svg> REPO</span> }
-                        @if (g.esEnsayo) { <span class="badge badge-xs badge-info gap-1"><svg lucideFlaskConical class="size-3"></svg> ENSAYO</span> }
+                        @if (g.esReposicion) { <span class="badge badge-sm badge-warning h-5 shrink-0 gap-1 whitespace-nowrap px-2 text-[10px] font-bold leading-none"><svg lucideRefreshCw class="size-3"></svg> REPO</span> }
+                        @if (g.esEnsayo) { <span class="badge badge-sm badge-info h-5 shrink-0 gap-1 whitespace-nowrap px-2 text-[10px] font-bold leading-none"><svg lucideFlaskConical class="size-3"></svg> ENSAYO</span> }
                       </div>
                     </td>
-                    <td class="min-w-[17rem]">
+                    <td class="min-w-[13rem]">
                       <div class="font-semibold text-app-heading">{{ g.nombreDestinatario || g.documentoDestinatario || '—' }}</div>
                       @if (g.nombreDestinatario) { <div class="text-xs text-app-muted">{{ g.documentoDestinatario }}</div> }
                     </td>
+                    <td class="whitespace-nowrap"><span [class]="estadoGuiaClass(g.estado)" class="whitespace-nowrap">{{ g.estado }}</span></td>
+                    <td class="whitespace-nowrap"><span [class]="estadoSunatClass(g.estadoSunat)" class="whitespace-nowrap">{{ estadoSunatLabel(g.estadoSunat) }}</span></td>
                     <td><span class="whitespace-nowrap rounded-md bg-app-surface3 px-2 py-1 text-xs font-medium text-app-text2">{{ g.nombreProceso || g.codigoProceso }}</span></td>
                     <td class="whitespace-nowrap text-xs tabular-nums text-app-text2">
                       <strong class="text-app-heading">{{ g.cantidadPalets }}</strong> palets · <strong class="text-app-heading">{{ g.totalCajas }}</strong> cajas · <strong class="text-app-heading">{{ g.pesoTotal }}</strong> kg
@@ -178,25 +192,22 @@
                       <div>@if (g.fechaEmision) { {{ fmtDateTime(g.fechaEmision) }} } @else if (g.fechaCreacionWeb) { <span class="text-app-muted">{{ fmtDateTime(g.fechaCreacionWeb) }}</span> } @else { — }</div>
                       @if (esAdmin() && g.usuarioCre) { <div class="text-app-muted">{{ g.usuarioCre }}</div> }
                     </td>
-                    <td><span [class]="estadoGuiaClass(g.estado)">{{ g.estado }}</span></td>
-                    <td><span [class]="estadoSunatClass(g.estadoSunat)">{{ estadoSunatLabel(g.estadoSunat) }}</span></td>
-                    <td><span [class]="sincronizadoClass(g.sincroniza)">{{ sincronizadoLabel(g.sincroniza) }}</span></td>
                     <td class="acciones-fija" (click)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()">
                       <div class="flex items-center justify-end gap-1">
                         @if (esAceptadaSunat(g.estadoSunat)) {
-                          <button type="button" class="btn btn-xs btn-square btn-outline btn-error" title="Ver PDF SUNAT" aria-label="Ver PDF SUNAT" (click)="abrirPdfModal(g.pdfFileUrl)"><svg lucideFileText class="size-3.5"></svg></button>
+                          <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--danger" title="Ver PDF SUNAT" aria-label="Ver PDF SUNAT" (click)="abrirPdfModal(g.pdfFileUrl)"><svg lucideFileText class="size-3.5"></svg></button>
                         }
-                        <button type="button" class="btn btn-xs btn-square btn-outline btn-info" title="Ver detalle" aria-label="Ver detalle" (click)="abrirModalVerDetalle(g)"><svg lucideEye class="size-3.5"></svg></button>
+                        <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--info" title="Ver detalle" aria-label="Ver detalle" (click)="abrirModalVerDetalle(g)"><svg lucideEye class="size-3.5"></svg></button>
                         @if (g.estado?.toUpperCase() !== 'ANULADO' && g.estadoSunat && g.estadoSunat !== 'No Enviado' && !esAdmin()) {
-                          <button type="button" class="btn btn-xs btn-square btn-outline" title="Consultar estado SUNAT" aria-label="Consultar estado SUNAT" (click)="consultarEstadoSunat(g)"><svg lucideRefreshCw class="size-3.5"></svg></button>
+                          <button type="button" class="btn btn-xs btn-square btn-accion" title="Consultar estado SUNAT" aria-label="Consultar estado SUNAT" (click)="consultarEstadoSunat(g)"><svg lucideRefreshCw class="size-3.5"></svg></button>
                         }
                         @if (g.estado === 'ABIERTA' && !esAdmin()) {
-                          <button type="button" class="btn btn-xs btn-square btn-warning" title="Editar" aria-label="Editar" (click)="editarGuia(g)"><svg lucidePencil class="size-3.5"></svg></button>
-                          <button type="button" class="btn btn-xs btn-square btn-success" title="Cerrar y numerar" aria-label="Cerrar y numerar" (click)="cerrarGuia(g)"><svg lucideCircleCheck class="size-3.5"></svg></button>
-                          <button type="button" class="btn btn-xs btn-square btn-error" title="Eliminar" aria-label="Eliminar" (click)="eliminarGuia(g)"><svg lucideTrash2 class="size-3.5"></svg></button>
+                          <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--warn" title="Editar" aria-label="Editar" (click)="editarGuia(g)"><svg lucidePencil class="size-3.5"></svg></button>
+                          <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--ok" title="Cerrar y numerar" aria-label="Cerrar y numerar" (click)="cerrarGuia(g)"><svg lucideCircleCheck class="size-3.5"></svg></button>
+                          <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--danger" title="Eliminar" aria-label="Eliminar" (click)="eliminarGuia(g)"><svg lucideTrash2 class="size-3.5"></svg></button>
                         }
                         @if (g.estado === 'CERRADA' && esAdministrador() && g.codigoEstadoSunat === 'AC_03') {
-                          <button type="button" class="btn btn-xs btn-error" title="Anular guía" (click)="anularGuia(g)"><svg lucideOctagonX class="size-3.5"></svg> Anular</button>
+                          <button type="button" class="btn btn-xs btn-accion btn-accion--danger btn-accion--txt" title="Anular guía" (click)="anularGuia(g)"><svg lucideOctagonX class="size-3.5"></svg> Anular</button>
                         }
                       </div>
                     </td>

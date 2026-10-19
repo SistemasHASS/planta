@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LucideCheck, LucideLoader, LucidePlus, LucideTrash2, LucideTriangleAlert, LucideTruck, LucideX } from '@lucide/angular';
+import { LucideCheck, LucideClipboardCheck, LucideLoader, LucideMapPin, LucidePackage, LucidePlus, LucideRoute, LucideTrash2, LucideTriangleAlert, LucideTruck, LucideX } from '@lucide/angular';
 import { SearchSelectComponent } from '../../../../shared/components/search-select/search-select.component';
 import { UbigeoDepartamento, UbigeoDistrito, UbigeoProvincia } from '../../../../shared/interfaces/catalogo.interface';
 import { CatalogosApiService } from '../../../../shared/services/catalogos-api.service';
@@ -15,8 +15,9 @@ import { newUuid } from '../../../../shared/utils/uuid';
  */
 @Component({
   selector: 'app-modal-nueva-guia-manual',
-  imports: [FormsModule, SearchSelectComponent, LucideCheck, LucideLoader, LucidePlus, LucideTrash2, LucideTriangleAlert, LucideTruck, LucideX],
+  imports: [FormsModule, SearchSelectComponent, LucideCheck, LucideClipboardCheck, LucideLoader, LucideMapPin, LucidePackage, LucidePlus, LucideRoute, LucideTrash2, LucideTriangleAlert, LucideTruck, LucideX],
   templateUrl: './modal-nueva-guia-manual.component.html',
+  styleUrl: './modal-nueva-guia-manual.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
@@ -179,8 +180,8 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
       String(d.codigo ?? '').trim() &&
       String(d.descripcion ?? '').trim() &&
       String(d.codigoUnidadMedida ?? '').trim() &&
-      d.cantidad !== null && d.cantidad !== undefined && d.cantidad !== '' && Number(d.cantidad) > 0 &&
-      d.pesoEstimado !== null && d.pesoEstimado !== undefined && d.pesoEstimado !== '' && Number(d.pesoEstimado) > 0
+      this.numeroDetalleValido(d.cantidad) &&
+      this.numeroDetalleValido(d.pesoEstimado)
     );
   });
 
@@ -527,8 +528,8 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
 
     this.detalle.update(list => {
       const nuevo = [...list];
-      if (field === 'cantidad') {
-        nuevo[index] = { ...nuevo[index], [field]: value === '' ? '' : Number(value) };
+      if (field === 'cantidad' || field === 'pesoEstimado') {
+        nuevo[index] = { ...nuevo[index], [field]: value === '' || value === null || value === undefined ? '' : Number(value) };
       } else {
         nuevo[index] = { ...nuevo[index], [field]: value };
       }
@@ -537,12 +538,34 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
   }
 
   isInvalidDetalle(item: any, field: string): boolean {
-    if (!this.detalleSubmitAttempted()) return false;
     const value = (item as any)[field];
-    if (field === 'cantidad') {
-      return value === null || value === undefined || value === '' || Number(value) <= 0;
+    if (field === 'cantidad' || field === 'pesoEstimado') {
+      const vacio = value === null || value === undefined || value === '';
+      // Con un valor escrito se marca al instante; los vacios se marcan al intentar guardar.
+      return vacio ? this.detalleSubmitAttempted() : !this.numeroDetalleValido(value);
     }
+    if (!this.detalleSubmitAttempted()) return false;
     return value === null || value === undefined || String(value).trim() === '';
+  }
+
+  /** Cantidad y peso: numero finito, minimo 1. */
+  private numeroDetalleValido(value: any): boolean {
+    if (value === null || value === undefined || value === '') return false;
+    const n = Number(value);
+    return Number.isFinite(n) && n >= 1;
+  }
+
+  /** Mensaje bajo el campo numerico del detalle ('' si esta bien). */
+  errorDetalle(item: any, field: 'cantidad' | 'pesoEstimado'): string {
+    const value = (item as any)[field];
+    const vacio = value === null || value === undefined || value === '';
+    if (vacio) return this.detalleSubmitAttempted() ? 'Ingrese un número válido (mínimo 1).' : '';
+    return this.numeroDetalleValido(value) ? '' : 'El valor mínimo es 1.';
+  }
+
+  /** En los campos numericos no se permite e, E, + ni -. */
+  bloquearTeclaNumero(ev: KeyboardEvent): void {
+    if (['e', 'E', '+', '-'].includes(ev.key)) ev.preventDefault();
   }
 
   /** Un buscador (app-search-select) eligio una opcion. */

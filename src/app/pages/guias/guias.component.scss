@@ -23,4 +23,5 @@
   .acciones-fija-grupo { background-color: var(--tint-emerald-bg); }
   .acciones-fija-hijo { background-color: var(--app-surface-2); }
   tr:hover > .acciones-fija:not(th) { background-color: var(--app-surface-2); }
+  tr:hover > .acciones-fija-grupo:not(th) { background-color: var(--tint-emerald-bg); }
 }

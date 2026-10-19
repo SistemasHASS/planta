@@ -134,7 +134,8 @@
 
           <label class="block">
             <span class="campo-label">* Cantidad de Cajas</span>
-            <input type="number" inputmode="numeric" min="1" class="campo-num" placeholder="0" [ngModel]="formCajas().cantidadCajas || null" (ngModelChange)="cambio('cantidadCajas', +$event)" />
+            <input type="number" inputmode="numeric" min="1" step="1" class="campo-num" [class.is-invalid]="errorCantidad()" placeholder="0" [ngModel]="formCajas().cantidadCajas || null" (ngModelChange)="cambioCantidad($event)" (keydown)="bloquearTeclaCantidad($event)" />
+            @if (errorCantidad()) { <small class="mt-1 block text-[11px] font-semibold leading-tight text-error">{{ errorCantidad() }}</small> }
           </label>
           </div>
         </div>

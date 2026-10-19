@@ -27,11 +27,6 @@ export const routes: Routes = [
     children: [
       { path: "", redirectTo: "parametros", pathMatch: "full" },
       {
-        path: "inicio",
-        loadComponent: () =>
-          import("./pages/inicio/inicio.component").then((m) => m.InicioComponent),
-      },
-      {
         path: "palets",
         canActivate: [roleGuard(ROLES.logistica, ROLES.admin)],
         loadComponent: () =>
@@ -62,12 +57,6 @@ export const routes: Routes = [
           import("./pages/parametros/parametros.component").then((m) => m.ParametrosComponent),
       },
       // Administrador (ADPLA): pantallas pendientes de portar; por ahora muestran el aviso de que se están migrando.
-      {
-        path: "admin/campanias",
-        canActivate: [roleGuard(ROLES.admin)],
-        data: { titulo: "Campañas" },
-        loadComponent: () => import("./pages/proximamente/proximamente.component").then((m) => m.ProximamenteComponent),
-      },
       {
         path: "admin/acopio_configuracion",
         canActivate: [roleGuard(ROLES.admin)],

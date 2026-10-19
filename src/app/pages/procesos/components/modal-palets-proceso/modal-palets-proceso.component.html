@@ -1,0 +1,235 @@
+<div class="modal modal-open modal-bottom sm:modal-middle" role="dialog" aria-modal="true">
+  <div class="modal-box flex w-full !max-h-full !max-w-7xl flex-col gap-0 overflow-hidden p-0 sm:!max-h-[92vh]">
+
+    <!-- Cabecera -->
+    <div class="flex items-center justify-between gap-3 border-b border-app-border2 px-4 py-2 sm:px-5">
+      <div class="flex min-w-0 items-center gap-3">
+        <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md"><svg lucidePackage class="size-5"></svg></span>
+        <div class="min-w-0">
+          <h3 class="truncate text-base font-extrabold leading-tight text-app-heading sm:text-lg">Palets del proceso</h3>
+          <p class="truncate text-xs text-app-muted">
+            @if (proceso().turno === 'DIA') { ☀️ } @else { 🌙 }
+            Turno {{ proceso().turno }} · {{ proceso().acopioNombre || proceso().codigoAcopio }} · {{ proceso().fechaProceso }}
+          </p>
+        </div>
+      </div>
+      <button type="button" class="btn btn-circle btn-ghost size-10 min-h-10 sm:size-8 sm:min-h-8" aria-label="Cerrar" (click)="closed.emit()"><svg lucideX class="size-4"></svg></button>
+    </div>
+
+    <div class="min-h-0 flex-1 overflow-auto bg-app-surface2 p-3 sm:p-4">
+      @if (cargando()) {
+        <p class="p-8 text-center text-sm text-app-muted">Cargando palets...</p>
+      } @else {
+        <div class="grid min-w-0 gap-4 lg:grid-cols-3">
+          <!-- Lista de palets -->
+          <div class="min-w-0 space-y-4 lg:col-span-1">
+            <!-- En proceso / cerrados -->
+            <div class="overflow-hidden rounded-2xl border border-sky-200 dark:border-sky-500/35 bg-app-surface shadow-sm">
+              <button type="button" class="flex w-full items-center justify-between gap-2 bg-gradient-to-r from-sky-100/80 via-sky-50 to-white px-4 py-3 text-left dark:from-sky-500/15 dark:via-transparent dark:to-transparent" (click)="toggleSeccionActivos()">
+                <h2 class="flex items-center gap-2.5 text-sm font-extrabold text-sky-900 dark:text-sky-300">
+                  <span class="grid size-7 place-items-center rounded-lg bg-sky-500 text-white shadow-sm"><svg lucideLayers class="size-4"></svg></span> En proceso / cerrados
+                  <span class="badge badge-sm border-0 bg-sky-500 font-bold text-white">{{ paletsActivos().length }}</span>
+                </h2>
+                @if (seccionActivosAbierta()) { <svg lucideChevronUp class="size-4 text-sky-700 dark:text-sky-300"></svg> } @else { <svg lucideChevronDown class="size-4 text-sky-700 dark:text-sky-300"></svg> }
+              </button>
+              @if (seccionActivosAbierta()) {
+                <div class="max-h-[26rem] space-y-2.5 overflow-auto p-3">
+                  @for (p of paletsActivos(); track paletKey(p)) {
+                    <button type="button" class="block w-full rounded-xl border border-l-[5px] border-app-border2 bg-gradient-to-br p-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]"
+                      [class]="paletEstilo(p.estado, esSeleccionado(p))"
+                      (click)="verDetalle(p)">
+                      <div class="flex flex-wrap items-start justify-between gap-2">
+                        <span class="font-extrabold text-app-heading">Palet #{{ p.numeroPalet == 0 ? p.id : p.numeroPalet }}</span>
+                        <span class="flex flex-wrap justify-end gap-1">
+                          <span class="badge badge-sm font-semibold tracking-wide" [class]="getEstadoBadgeClass(p.estado)">{{ getEstadoLabel(p.estado) }}</span>
+                          @if (p.numeroViaje) { <span class="badge badge-sm badge-soft badge-info">Viaje #{{ p.numeroViaje }}</span> }
+                        </span>
+                      </div>
+                      <p class="mt-1.5 text-sm"><strong>Cajas:</strong> {{ p.cantidadCajas }}{{ p.limiteCajasPorPalet ? ' / ' + p.limiteCajasPorPalet : '' }}</p>
+                      @if (p.limiteCajasPorPalet) {
+                        <progress class="progress progress-success mt-2 h-2.5 w-full" [value]="p.porcentajeAvance" max="100"></progress>
+                        <small class="text-app-muted">{{ p.porcentajeAvance }}% lleno</small>
+                      } @else {
+                        <small class="text-app-subtle">Sin límite definido</small>
+                      }
+                      @if (esSeleccionado(p)) {
+                        <div class="mt-3 flex">
+                          <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300"><svg lucideCircleCheck class="size-3"></svg> Seleccionado</span>
+                        </div>
+                      }
+                    </button>
+                  } @empty {
+                    <p class="py-3 text-center text-xs text-app-muted">Sin palets activos.</p>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Despachados -->
+            <div class="overflow-hidden rounded-2xl border border-tint-emerald-border bg-app-surface shadow-sm">
+              <button type="button" class="flex w-full items-center justify-between gap-2 bg-gradient-to-r from-emerald-100/80 via-emerald-50 to-white px-4 py-3 text-left dark:from-emerald-500/15 dark:via-transparent dark:to-transparent" (click)="toggleSeccionDespachados()">
+                <h2 class="flex items-center gap-2.5 text-sm font-extrabold text-emerald-900 dark:text-emerald-300">
+                  <span class="grid size-7 place-items-center rounded-lg bg-emerald-500 text-white shadow-sm"><svg lucideTruck class="size-4"></svg></span> Despachados
+                  <span class="badge badge-sm border-0 bg-emerald-500 font-bold text-white">{{ paletsDespachados().length }}</span>
+                </h2>
+                @if (seccionDespachadosAbierta()) { <svg lucideChevronUp class="size-4 text-emerald-700 dark:text-emerald-300"></svg> } @else { <svg lucideChevronDown class="size-4 text-emerald-700 dark:text-emerald-300"></svg> }
+              </button>
+              @if (seccionDespachadosAbierta()) {
+                <div class="max-h-72 space-y-2.5 overflow-auto p-3">
+                  @for (p of paletsDespachados(); track paletKey(p)) {
+                    <button type="button" class="block w-full rounded-xl border border-l-[5px] border-app-border2 bg-gradient-to-br p-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]"
+                      [class]="paletEstilo('DESPACHADO', esSeleccionado(p))"
+                      (click)="verDetalle(p)">
+                      <div class="flex items-start justify-between gap-2">
+                        <span class="font-bold text-app-heading">Palet #{{ p.numeroPalet == 0 ? p.id : p.numeroPalet }}</span>
+                        <span class="flex gap-1">
+                          <span class="badge badge-sm badge-neutral font-semibold tracking-wide">DESPACHADO</span>
+                          @if (p.numeroViaje) { <span class="badge badge-sm badge-soft badge-info">Viaje #{{ p.numeroViaje }}</span> }
+                        </span>
+                      </div>
+                      <p class="mt-1 text-sm"><strong>Cajas:</strong> {{ p.cantidadCajas }}</p>
+                      @if (esSeleccionado(p)) {
+                        <div class="mt-3 flex">
+                          <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300"><svg lucideCircleCheck class="size-3"></svg> Seleccionado</span>
+                        </div>
+                      }
+                    </button>
+                  } @empty {
+                    <p class="py-3 text-center text-xs text-app-muted">Sin despachos aún.</p>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Detalle del palet -->
+          <div class="min-w-0 lg:col-span-2">
+            <div class="overflow-hidden rounded-2xl border border-app-border2 bg-app-surface shadow-md">
+              <div class="flex items-center gap-2.5 border-b border-app-border2 bg-gradient-to-r from-emerald-50 via-app-surface2 to-white px-4 py-3 text-sm font-extrabold text-app-heading dark:from-emerald-500/15 dark:via-transparent dark:to-transparent">
+                <span class="grid size-7 place-items-center rounded-lg bg-emerald-500 text-white shadow-sm"><svg lucideBox class="size-4"></svg></span> Detalle del palet
+              </div>
+              <div class="p-4 sm:p-5">
+              @if (paletSeleccionado(); as ps) {
+                <div class="mb-5 flex items-center gap-3">
+                  <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md"><svg lucidePackage class="size-6"></svg></span>
+                  <div class="min-w-0 space-y-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <h2 class="text-xl font-extrabold text-app-heading">Palet #{{ ps.numeroPalet == 0 ? ps.id : ps.numeroPalet }}</h2>
+                      <span class="badge font-semibold tracking-wide" [class]="getEstadoBadgeClass(ps.estado)">{{ getEstadoLabel(ps.estado) }}</span>
+                      @if (ps.numeroViaje) { <span class="badge badge-soft badge-info font-semibold">Viaje #{{ ps.numeroViaje }}</span> }
+                    </div>
+                    <p class="text-sm text-app-muted">
+                      <strong class="text-app-text">Acopio:</strong> {{ ps.acopioNombre || proceso().acopioNombre || ps.codigoAcopio }} ({{ ps.codigoAcopio }}) · <strong class="text-app-text">Turno:</strong> {{ proceso().turno }}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="mb-5 grid gap-3 sm:grid-cols-2">
+                  <div class="rounded-2xl border border-sky-100 dark:border-sky-500/35 bg-gradient-to-br from-sky-50 to-white p-4 shadow-sm dark:from-sky-500/15 dark:via-transparent dark:to-transparent">
+                    <div class="flex items-center gap-3">
+                      <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-sky-500 to-sky-600 text-white shadow"><svg lucideBox class="size-5"></svg></span>
+                      <div>
+                        <p class="text-xs font-bold uppercase tracking-wide text-sky-700 dark:text-sky-300">Total de cajas</p>
+                        <p class="text-2xl font-extrabold leading-tight text-app-heading">{{ ps.cantidadCajas }}{{ ps.limiteCajasPorPalet ? ' / ' + ps.limiteCajasPorPalet : '' }}</p>
+                      </div>
+                    </div>
+                    @if (ps.limiteCajasPorPalet) {
+                      <progress class="progress progress-success mt-3 h-2.5 w-full" [value]="ps.porcentajeAvance" max="100"></progress>
+                      <small class="font-medium text-app-muted">{{ ps.porcentajeAvance }}% lleno</small>
+                    }
+                  </div>
+                  <div class="rounded-2xl border border-emerald-100 dark:border-emerald-500/35 bg-gradient-to-br from-emerald-50 to-white p-4 shadow-sm dark:from-emerald-500/15 dark:via-transparent dark:to-transparent">
+                    <div class="flex items-center gap-3">
+                      <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow"><svg lucideWeight class="size-5"></svg></span>
+                      <div>
+                        <p class="text-xs font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Peso total</p>
+                        <p class="text-2xl font-extrabold leading-tight text-app-heading">{{ formatPeso(ps.pesoTotal) }} kg</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Composición -->
+                <div class="overflow-hidden rounded-2xl border border-app-border2 shadow-sm">
+                  <button type="button" class="flex w-full items-center justify-between gap-2 bg-gradient-to-r from-slate-100 via-app-surface2 to-white px-4 py-3 text-left dark:from-slate-500/15 dark:via-transparent dark:to-transparent" (click)="toggleSeccionComposicion()">
+                    <span class="flex items-center gap-2.5 text-sm font-extrabold uppercase tracking-wide text-app-text"><span class="grid size-7 place-items-center rounded-lg bg-slate-700 text-white shadow-sm"><svg lucideLayers class="size-4"></svg></span> Composición del palet <span class="badge badge-sm border-0 bg-slate-700 font-bold text-white">{{ composiciones().length }}</span></span>
+                    @if (seccionComposicionAbierta()) { <svg lucideChevronUp class="size-4"></svg> } @else { <svg lucideChevronDown class="size-4"></svg> }
+                  </button>
+                  @if (seccionComposicionAbierta()) {
+                    @if (composiciones().length > 0) {
+                      <div class="tabla-scroll max-w-full">
+                        <table class="table table-sm table-zebra w-max min-w-full whitespace-nowrap [&_thead_th]:text-[11px] [&_thead_th]:font-bold [&_thead_th]:uppercase [&_thead_th]:tracking-wide [&_thead_th]:text-app-text2 [&_tbody_td]:py-2.5">
+                          <thead>
+                            <tr>
+                              <th class="text-center">Tipo</th>
+                              <th class="text-center">Tipo proc.</th>
+                              <th class="text-center">Consig.</th>
+                              <th class="text-center">Destino</th>
+                              <th class="text-center">Pres.</th>
+                              <th class="text-center">Formato</th>
+                              <th class="text-center">Variedad</th>
+                              <th class="text-center">Peso/caja</th>
+                              <th class="text-center">TE guía</th>
+                              <th class="text-center">Rancho</th>
+                              <th class="text-center">LDP</th>
+                              <th class="text-center">Transp.</th>
+                              <th class="text-center">Cant.</th>
+                              <th class="text-center">Peso</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (c of composiciones(); track c.idDPalet) {
+                              <tr class="dark:!bg-transparent" [class.bg-amber-50]="c.esReposicion" [class.bg-sky-50]="c.esEnsayo && !c.esReposicion">
+                                <td>
+                                  @if (c.esReposicion) { <span class="badge badge-sm badge-warning">REPO</span> }
+                                  @else if (c.esEnsayo) { <span class="badge badge-sm badge-info">ENSAYO</span> }
+                                  @else { <span class="badge badge-sm badge-success">PROD</span> }
+                                </td>
+                                <td><span class="badge badge-sm border-0 bg-indigo-100 dark:bg-indigo-500/15 font-semibold text-indigo-700 dark:text-indigo-300">{{ c.tipoProcesoEmpacadoNombre ?? (c.tipoProcesoEmpacadoId ? 'FP' : '-') }}</span></td>
+                                <td>{{ c.consignatarioNombre }}</td>
+                                <td>{{ c.destinoNombre }}</td>
+                                <td>{{ c.presentacionNombre ?? '-' }}</td>
+                                <td>{{ c.formatoNombre }}</td>
+                                <td>{{ c.variedadNombre }}</td>
+                                <td>{{ formatPeso(c.pesoPorCaja) }} kg</td>
+                                <td>{{ c.tipoEmpaqueGuiaNombre ?? '-' }}</td>
+                                <td>{{ c.codigoRanchoNombre ?? c.codigoRanchoId }}</td>
+                                <td>{{ c.lugarProduccionNombre ?? c.lugarProduccionId }}</td>
+                                <td>{{ c.transporteNombre ?? c.transporteId }}</td>
+                                <td class="font-bold text-app-heading">{{ c.cantidadCajas }}</td>
+                                <td class="font-semibold text-app-heading">{{ formatPeso(c.pesoTotal) }} kg</td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    } @else {
+                      <div class="flex flex-col items-center gap-2 p-8 text-center"><span class="grid size-12 place-items-center rounded-2xl bg-app-surface3 text-app-subtle"><svg lucideLayers class="size-6"></svg></span><p class="text-sm text-app-muted">Este palet no tiene cajas registradas.</p></div>
+                    }
+                  }
+                </div>
+                @if (ps.observaciones || ps.medidaCorrectiva) {
+                  <div class="mt-3 rounded-xl border border-app-border2">
+                    <button type="button" class="flex w-full items-center justify-between gap-2 p-3 text-left" (click)="toggleSeccionObservaciones()">
+                      <span class="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-app-text2"><svg lucideCircleAlert class="size-4 text-amber-500"></svg> Observaciones y medida correctiva</span>
+                      @if (seccionObservacionesAbierta()) { <svg lucideChevronUp class="size-4"></svg> } @else { <svg lucideChevronDown class="size-4"></svg> }
+                    </button>
+                    @if (seccionObservacionesAbierta()) {
+                      <div class="grid gap-3 p-3 pt-0 sm:grid-cols-2">
+                        <div><h3 class="text-xs font-bold uppercase text-rose-600 dark:text-rose-300">Observación</h3><p class="text-sm">{{ ps.observaciones || '—' }}</p></div>
+                        <div><h3 class="text-xs font-bold uppercase text-emerald-700 dark:text-emerald-300">Medida correctiva</h3><p class="text-sm">{{ ps.medidaCorrectiva || '—' }}</p></div>
+                      </div>
+                    }
+                  </div>
+                }
+              } @else {
+                <div class="flex flex-col items-center gap-2 p-10 text-center"><span class="grid size-14 place-items-center rounded-2xl bg-emerald-50 dark:bg-emerald-500/15 text-emerald-400"><svg lucidePackage class="size-7"></svg></span><p class="text-sm text-app-muted">Selecciona un palet para ver su detalle.</p></div>
+              }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>

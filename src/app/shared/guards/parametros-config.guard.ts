@@ -10,8 +10,7 @@ const normalizar = (valor: unknown): string => String(valor ?? '').trim().toUppe
 /**
  * Ninguna pantalla se abre hasta que el usuario haya guardado sus Parametros (fundo, cultivo y campaña), como en la
  * aplicacion anterior. Parametros siempre se puede abrir; si falta la configuracion se vuelve ahi con un aviso.
- * Solo se exige a los roles que pueden abrir Parametros (logistica, admin y monitor).
- * Guias manuales (GMPLA) queda fuera mientras su pantalla de Parametros siga migrandose.
+ * Solo se exige a los roles que pueden abrir Parametros (logistica, admin, monitor y guias manuales).
  */
 export const parametrosConfigChildGuard: CanActivateChildFn = async (_route, state) => {
   const ruta = state.url.split(/[?#]/)[0];
@@ -24,9 +23,8 @@ export const parametrosConfigChildGuard: CanActivateChildFn = async (_route, sta
 
   const session = await auth.getSession();
   const rol = normalizar(session?.user.idRol ?? session?.user.rol);
-  if (rol === ROLES.guiasManuales) return true;
   // Quien no puede abrir Parámetros (por su rol) no puede configurarlos: no se le exige, o se quedaría en un ciclo de redirecciones.
-  if (![ROLES.logistica, ROLES.admin, ROLES.monitor].includes(rol as never)) return true;
+  if (![ROLES.logistica, ROLES.admin, ROLES.monitor, ROLES.guiasManuales].includes(rol as never)) return true;
 
   const documento = String(session?.user.documentoIdentidad ?? '').trim();
   let configurado = false;

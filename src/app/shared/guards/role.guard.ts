@@ -24,10 +24,13 @@ export const ROLE_LABELS: Record<string, string> = {
 
 const normalizeRole = (value: unknown): string => String(value ?? '').trim().toUpperCase();
 
+/** Roles que pueden abrir Parametros: es la pantalla a la que se vuelve cuando una ruta no está permitida. */
+const ROLES_CON_PARAMETROS: string[] = [ROLES.logistica, ROLES.admin, ROLES.monitor, ROLES.guiasManuales];
+
 /**
  * Guard por rol para una ruta puntual:
  *   { path: 'admin', canActivate: [roleGuard(ROLES.admin)], ... }
- * Si el usuario no tiene el rol, vuelve a /inicio.
+ * Si el usuario no tiene el rol, vuelve a /parametros (o a /login si su rol tampoco puede abrir Parametros).
  */
 export const roleGuard = (...allowed: string[]): CanActivateFn => async () => {
   const auth = inject(AuthService);
@@ -35,7 +38,8 @@ export const roleGuard = (...allowed: string[]): CanActivateFn => async () => {
   const session = await auth.getSession();
   const role = normalizeRole(session?.user.idRol ?? session?.user.rol);
 
-  return allowed.map(normalizeRole).includes(role) ? true : router.parseUrl('/inicio');
+  if (allowed.map(normalizeRole).includes(role)) return true;
+  return router.parseUrl(ROLES_CON_PARAMETROS.includes(role) ? '/parametros' : '/login');
 };
 
 /**

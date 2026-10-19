@@ -123,11 +123,12 @@
   --app-muted: oklch(var(--bc) / 0.68);
   --app-subtle: oklch(var(--bc) / 0.5);
 
-  --nav-hover-bg: rgba(53, 179, 131, 0.16);
-  --nav-soft-bg: rgba(53, 179, 131, 0.1);
-  --nav-active-bg: rgba(53, 179, 131, 0.2);
+  /* Menu lateral: fondos opacos (mezcla del verde con la superficie), sin transparencias. */
+  --nav-hover-bg: color-mix(in srgb, #35b383 12%, oklch(var(--b1)));
+  --nav-soft-bg: color-mix(in srgb, #35b383 8%, oklch(var(--b1)));
+  --nav-active-bg: color-mix(in srgb, #35b383 18%, oklch(var(--b1)));
   --nav-accent-text: #86e0bb;
-  --nav-line: rgba(53, 179, 131, 0.3);
+  --nav-line: color-mix(in srgb, #35b383 35%, oklch(var(--b1)));
   --nav-title-hover: #a7d8c3;
 
   /* Cabecera del menu lateral: verde bosque profundo, mas sobrio que el verde del tema claro */
@@ -137,12 +138,13 @@
   --nav-ver-bg: rgba(255, 255, 255, 0.07);
   --nav-ver-border: rgba(255, 255, 255, 0.28);
 
-  --chip-icon-bg: rgba(255, 255, 255, 0.12);
-  --chip-green-bg: rgba(34, 197, 94, 0.16);   --chip-green-border: rgba(34, 197, 94, 0.4);   --chip-green-text: #86efac;
-  --chip-red-bg: rgba(239, 68, 68, 0.16);     --chip-red-border: rgba(239, 68, 68, 0.4);     --chip-red-text: #fca5a5;
-  --chip-indigo-bg: rgba(99, 102, 241, 0.18); --chip-indigo-border: rgba(129, 140, 248, 0.4); --chip-indigo-text: #c7d2fe;
-  --chip-violet-bg: rgba(139, 92, 246, 0.18); --chip-violet-border: rgba(167, 139, 250, 0.4); --chip-violet-text: #ddd6fe;
-  --chip-cyan-bg: rgba(6, 182, 212, 0.16);    --chip-cyan-border: rgba(34, 211, 238, 0.4);    --chip-cyan-text: #a5f3fc;
+  /* Chips de la barra superior: un color solido y vivo por chip, con texto blanco (sin transparencias). */
+  --chip-icon-bg: rgba(255, 255, 255, 0.16);
+  --chip-indigo-bg: #4a4fa8; --chip-indigo-border: #5f64bd; --chip-indigo-text: #f5f6ff;
+  --chip-violet-bg: #6b4aa8; --chip-violet-border: #8061bd; --chip-violet-text: #f8f5ff;
+  --chip-cyan-bg: #2b7184;   --chip-cyan-border: #3c869a;   --chip-cyan-text: #f0fbff;
+  --chip-green-bg: #2d7a55;  --chip-green-border: #3d9068;  --chip-green-text: #f0fdf6;
+  --chip-red-bg: #a8454d;    --chip-red-border: #bd5760;    --chip-red-text: #fff5f5;
 
   --warn-bg: rgba(245, 158, 11, 0.12);
   --warn-border: rgba(245, 158, 11, 0.35);

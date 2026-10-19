@@ -142,7 +142,7 @@ export class ParametrosComponent implements OnInit {
       return;
     }
     const rol = texto(this.usuario()?.idRol).toUpperCase();
-    const trae = rol === ROLES.logistica || rol === ROLES.admin || rol === ROLES.monitor;
+    const trae = rol === ROLES.logistica || rol === ROLES.admin || rol === ROLES.monitor || rol === ROLES.guiasManuales;
     if (!trae) {
       // Roles aún en migración: por ahora solo se sincronizan los acopios.
       this.loading.show('Descargando acopios...');
@@ -155,7 +155,7 @@ export class ParametrosComponent implements OnInit {
 
     this.loading.show('Descargando catalogos...');
     try {
-      // Logística, Administrador y Monitor: las pantallas son en línea. Solo se guardan los acopios y los maestros que usan los reportes online.
+      // Logística, Administrador, Monitor y Guías manuales: las pantallas son en línea. Solo se guardan los acopios y los maestros que usan los reportes online.
       const faltaron = await this.catalogosSync.sincronizarMaestrosAdministrador(cfg);
       await this.loading.hideAfterMinimum();
       if (faltaron.length > 0) this.feedback.warning(`Se sincronizó, pero estos catálogos fallaron: ${faltaron.join(', ')}.`, 'Sincronización parcial');

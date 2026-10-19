@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideBoxes, LucideCircleCheck, LucideCirclePlus, LucideLayers, LucidePencilLine, LucideX } from '@lucide/angular';
 import { SearchSelectComponent, SearchSelectOption } from '../../../../shared/components/search-select/search-select.component';
@@ -124,5 +124,20 @@ export class ModalCajasComponent {
 
   cambio(campo: string, valor: unknown): void {
     this.campoChange.emit({ campo, valor });
+  }
+
+  /** Cantidad de cajas: entero, minimo 1. Con un valor menor se avisa debajo del campo. */
+  readonly errorCantidad = signal('');
+
+  cambioCantidad(valor: unknown): void {
+    const vacio = valor === null || valor === undefined || valor === '';
+    const n = Number(valor);
+    this.errorCantidad.set(!vacio && (!Number.isFinite(n) || n < 1) ? 'El valor mínimo es 1.' : '');
+    this.cambio('cantidadCajas', vacio ? 0 : n);
+  }
+
+  /** En la cantidad no se permite e, E, +, -, ni decimales. */
+  bloquearTeclaCantidad(ev: KeyboardEvent): void {
+    if (['e', 'E', '+', '-', '.', ','].includes(ev.key)) ev.preventDefault();
   }
 }

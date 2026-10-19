@@ -10,6 +10,7 @@ import {
   LucidePencil,
   LucidePlay,
   LucideRefreshCcw,
+  LucideEye,
   LucideRotateCcw,
   LucideSettings,
   LucideSun,
@@ -17,6 +18,8 @@ import {
 } from '@lucide/angular';
 import { SearchSelectComponent, SearchSelectOption } from '../../shared/components/search-select/search-select.component';
 import { EditarPersonalModalComponent } from './components/editar-personal-modal/editar-personal-modal.component';
+import { esDispositivoMovil } from '../../shared/utils/archivo';
+import { ModalPaletsProcesoComponent } from './components/modal-palets-proceso/modal-palets-proceso.component';
 import { PersonalListaModalComponent } from './components/personal-lista-modal/personal-lista-modal.component';
 import { MAX_LOGISTICOS, MAX_SUPERVISORES, SelectorPersonalComponent } from './components/selector-personal/selector-personal.component';
 import { PaginatorComponent } from '../../shared/components/paginator/paginator.component';
@@ -72,6 +75,8 @@ const nuevoVacio = (): NuevoProceso => ({ fechaProceso: nowPeruDate(), turno: ''
     SelectorPersonalComponent,
     EditarPersonalModalComponent,
     PersonalListaModalComponent,
+    ModalPaletsProcesoComponent,
+    LucideEye,
     RouterLink,
     PaginatorComponent,
     LucideBox,
@@ -150,6 +155,18 @@ export class ProcesosComponent implements OnInit {
   readonly logPorProceso = signal<Record<string, PersonalLogistico[]>>({});
 
   readonly editando = signal<Proceso | null>(null);
+  /** Proceso del historial cuyos palets se muestran (solo lectura) al hacer doble clic en su fila. */
+  readonly procesoPalets = signal<Proceso | null>(null);
+  /** Celular o tablet: un toque sobre la fila abre los palets del proceso. */
+  alTocarFila(p: Proceso): void {
+    if (esDispositivoMovil()) this.procesoPalets.set(p);
+  }
+
+  /** Computador: doble clic sobre la fila abre los palets del proceso. */
+  alHacerDobleClicFila(p: Proceso): void {
+    if (!esDispositivoMovil()) this.procesoPalets.set(p);
+  }
+
   readonly personalModal = signal<{ titulo: string; filas: { nombreCompleto: string; dni: string }[] } | null>(null);
 
   readonly rol = computed(() => texto(this.usuario()?.idRol).toUpperCase());

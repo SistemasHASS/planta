@@ -439,43 +439,49 @@
   }
 }
 
-/* ===== Tema oscuro: pagina activa con tinte verde suave (en vez del verde solido con brillo) ===== */
+/* ===== Tema oscuro: pagina activa con el mismo verde de la cabecera (logo y nombre), texto e icono blancos ===== */
 :host-context([data-theme='dark']) {
   .sidebar-body::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.18);
   }
 
   .sidebar-link:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: color-mix(in srgb, #ffffff 7%, oklch(var(--b1)));
     color: #fff;
   }
 
   .sidebar-link.active,
-  .sidebar-link.router-link-active {
-    background: rgba(52, 211, 153, 0.16);
-    color: #7ee8bd;
+  .sidebar-link.router-link-active,
+  .sidebar-submenu .sidebar-link.active,
+  .sidebar-submenu .sidebar-link.router-link-active {
+    background: linear-gradient(180deg, #1c5f4a 0%, #134436 100%);
+    color: #fff;
     font-weight: 650;
-    box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.38);
+    box-shadow: none;
   }
 
   .sidebar-submenu .sidebar-link:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: color-mix(in srgb, #ffffff 7%, oklch(var(--b1)));
     color: #fff;
-  }
-
-  .sidebar-submenu .sidebar-link.active,
-  .sidebar-submenu .sidebar-link.router-link-active {
-    background: rgba(52, 211, 153, 0.16);
-    color: #7ee8bd;
-    box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.38);
   }
 
   .sidebar-submenu .sidebar-link.active .submenu-dot,
   .sidebar-submenu .sidebar-link.router-link-active .submenu-dot {
-    background: #34d399;
+    background: #fff;
   }
 
   .submenu-dot {
+    box-shadow: none;
+  }
+
+  /* Cerrar sesion: rojo solido y firme (el coral claro se veia como boton deshabilitado). */
+  .sidebar-logout {
+    background: #c43c3c;
+    color: #fff;
+  }
+
+  .sidebar-logout:hover:not(:disabled) {
+    background: #d24848;
     box-shadow: none;
   }
 }

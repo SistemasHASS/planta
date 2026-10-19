@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LucideArrowLeft, LucideClipboardCheck, LucideFilePlus, LucideFlag, LucideLoader, LucideX } from '@lucide/angular';
+import { LucideArrowLeft, LucideClipboardCheck, LucideFilePlus, LucideFlag, LucideLoader, LucideRoute, LucideTriangleAlert, LucideX } from '@lucide/angular';
 import { portalToBody } from '../../../../shared/utils/portal';
 
 export type SiNo = 'si' | 'no';
@@ -25,8 +25,9 @@ type ClavePregunta = 'libreOlores' | 'libreInsectos' | 'libreMaterias' | 'unidad
  */
 @Component({
   selector: 'app-modal-inspeccion',
-  imports: [FormsModule, LucideArrowLeft, LucideClipboardCheck, LucideFilePlus, LucideFlag, LucideLoader, LucideX],
+  imports: [FormsModule, LucideArrowLeft, LucideClipboardCheck, LucideFilePlus, LucideFlag, LucideLoader, LucideRoute, LucideTriangleAlert, LucideX],
   templateUrl: './modal-inspeccion.component.html',
+  styleUrl: './modal-inspeccion.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ModalInspeccionComponent {
@@ -110,6 +111,24 @@ export class ModalInspeccionComponent {
 
   invalidTemperatura(): boolean {
     return this.submitAttempted() && this.temperaturaNum() === null;
+  }
+
+  /** Mensaje bajo N° de viaje: con un valor menor a 1 al instante; "Requerido" solo al intentar guardar. */
+  mensajeViaje(): string {
+    const crudo = this.numeroViaje() as unknown;
+    const escrito = crudo !== '' && crudo !== null && crudo !== undefined;
+    if (escrito && !(Number(crudo) >= 1)) return 'El valor mínimo es 1.';
+    return this.invalidNumeroViaje() ? 'Requerido' : '';
+  }
+
+  /** Temperatura: se permiten decimales y negativos, pero no e, E ni +. */
+  bloquearTeclaTemperatura(ev: KeyboardEvent): void {
+    if (['e', 'E', '+'].includes(ev.key)) ev.preventDefault();
+  }
+
+  /** N° de viaje: entero positivo; no se permite e, E, +, -, ni decimales. */
+  bloquearTeclaViaje(ev: KeyboardEvent): void {
+    if (['e', 'E', '+', '-', '.', ','].includes(ev.key)) ev.preventDefault();
   }
 
   invalidNumeroViaje(): boolean {

@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { FormsModule } from '@angular/forms';
 import {
   LucideCircleCheck,
-  LucideCloudUpload,
   LucideEye,
   LucideFileSpreadsheet,
   LucideFileText,
@@ -21,8 +20,6 @@ import {
 import { SearchSelectComponent, SearchSelectOption } from '../../shared/components/search-select/search-select.component';
 import { PaginatorComponent } from '../../shared/components/paginator/paginator.component';
 import { CatalogosRepository } from '../../shared/dexiedb/repository/catalogos.repository';
-import { GuiasRemisionRepository } from '../../shared/dexiedb/repository/guias-remision.repository';
-import { ProcesoRepository } from '../../shared/dexiedb/repository/proceso.repository';
 import { ROLES } from '../../shared/guards/role.guard';
 import { Configuracion } from '../../shared/interfaces/administracion.interface';
 import { Usuario } from '../../shared/interfaces/auth.interface';
@@ -53,7 +50,7 @@ const texto = (v: unknown): string => String(v ?? '').trim();
 /**
  * Guias de remision: listar, crear (con inspeccion), editar, emitir ante SUNAT, consultar estado, anular, eliminar y exportar a Excel.
  * La logica es la de la aplicacion anterior; solo cambian la forma de llamar a la API (api/guias), las alertas y la pantalla.
- * La pantalla solo funciona con internet (igual que antes); la lectura/guardado en Dexie vive en GuiaRemisionService.
+ * La pantalla solo funciona con internet: todo se pide y se guarda en el servidor (solo la configuración sale de Dexie).
  */
 @Component({
   selector: 'app-guias',
@@ -67,7 +64,6 @@ const texto = (v: unknown): string => String(v ?? '').trim();
     ModalInspeccionComponent,
     ModalVerDetalleGuiaComponent,
     LucideCircleCheck,
-    LucideCloudUpload,
     LucideEye,
     LucideFileSpreadsheet,
     LucideFileText,
@@ -96,8 +92,6 @@ export class GuiasComponent implements OnInit {
   private readonly connectivity = inject(ConnectivityService);
   private readonly auth = inject(AuthService);
   private readonly catalogosRepo = inject(CatalogosRepository);
-  private readonly guiasRemisionRepo = inject(GuiasRemisionRepository);
-  private readonly procesoRepo = inject(ProcesoRepository);
   private readonly loading = inject(LoadingService);
 
   readonly estadoSunatClass = estadoSunatClass;
@@ -115,10 +109,6 @@ export class GuiasComponent implements OnInit {
   /** Administrador y monitor solo consultan (Excel y, el administrador, anular); logistica crea y opera. */
   readonly esAdmin = computed(() => [ROLES.admin, ROLES.monitor].some((r) => r === texto(this.usuario()?.idRol).toUpperCase()));
   readonly esAdministrador = computed(() => texto(this.usuario()?.idRol).toUpperCase() === ROLES.admin);
-
-  get tieneGuiasNoSincronizadas(): boolean {
-    return this.guias().some((g: any) => g?.sincroniza === 'no_sincronizado');
-  }
 
   procesos = signal<Proceso[]>([]);
   guias = signal<GuiaRemision[]>([]);
@@ -160,6 +150,8 @@ export class GuiasComponent implements OnInit {
   isLoading = signal(false);
   modalNuevaGuiaAbierto = signal(false);
   modoEdicionGuia = signal(false);
+  /** Guía del grupo bajo el cursor: se resalta su línea en todas las columnas. */
+  hoverSubGuia = signal<string | null>(null);
   guiaParaEditar = signal<any>(null);
   modalInspeccionAbierto = signal(false);
   modalVerDetalleAbierto = signal(false);
@@ -174,7 +166,6 @@ export class GuiasComponent implements OnInit {
   readonly conductores = signal<Conductor[]>([]);
   readonly vehiculos = signal<Vehiculo[]>([]);
   readonly destinatarios = signal<any[]>([]);
-  readonly procesosCatalogo = signal<any[]>([]);
   readonly motivosTraslado = signal<any[]>([]);
   readonly establecimientoEmisor = signal<any | null>(null);
   readonly establecimientos = signal<any[]>([]);
@@ -299,7 +290,7 @@ export class GuiasComponent implements OnInit {
         fechaHasta: this.filtroFechaHasta().trim() || null,
         codigoCultivo,
       });
-      this.loading.hide();
+      await this.loading.hideAfterMinimum();
       const nombre = `guias-remision-${new Date().toISOString().slice(0, 10)}.xlsx`;
 
       if (esDispositivoMovil()) {
@@ -315,7 +306,7 @@ export class GuiasComponent implements OnInit {
       }
     } catch (error: any) {
       console.error('Error exportando Excel:', error);
-      this.loading.hide();
+      await this.loading.hideAfterMinimum();
       // Con responseType blob, el cuerpo del error llega como Blob: se lee para mostrar el mensaje del servidor.
       const mensaje = await this.mensajeDeError(error, 'Error al exportar el Excel.');
       this.alertService.showAlert('Información', mensaje, 'warning');
@@ -341,14 +332,6 @@ export class GuiasComponent implements OnInit {
 
   fmtDateTime(value: unknown): string {
     return formatDateTime(value) || '—';
-  }
-
-  sincronizadoLabel(sincroniza: string | undefined): string {
-    return sincroniza === 'no_sincronizado' ? 'No sincronizado' : 'Sincronizado';
-  }
-
-  sincronizadoClass(sincroniza: string | undefined): string {
-    return sincroniza === 'no_sincronizado' ? 'badge badge-soft badge-error' : 'badge badge-soft badge-success';
   }
 
   /** Dirección del PDF que se está viendo (null = ventana cerrada). */
@@ -386,6 +369,7 @@ export class GuiasComponent implements OnInit {
   }
 
   async editarGuia(g: GuiaRemision): Promise<void> {
+    if (!this.exigirInternet()) return;
     const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
     const codigoGuiaRemision = String(g?.codigoGuiaRemision ?? '').trim();
     if (!idProyecto || !codigoGuiaRemision) {
@@ -396,8 +380,8 @@ export class GuiasComponent implements OnInit {
     try {
       const detalleData: any = await this.guiaRemision.getGuiaRemisionDetalle(idProyecto, codigoGuiaRemision);
       
-      if (!detalleData) {
-        this.alertService.showAlert('Error', this.online ? 'Error al obtener detalle.' : 'No se encontró la guía en almacenamiento local.', 'error');
+      if (!detalleData || detalleData?.error) {
+        this.alertService.showAlert('Error', detalleData?.mensaje ?? 'Error al obtener el detalle de la guía.', 'error');
         return;
       }
 
@@ -409,7 +393,7 @@ export class GuiasComponent implements OnInit {
       await this.cargarEstablecimientoEmisor();
       await this.cargarEstablecimientos();
 
-      const [procesosResp] = await Promise.all([this.guiaRemision.cargarProcesosParaGuia(codigoGuiaRemision)]);
+      const [procesosResp] = await Promise.all([this.cargarProcesosParaGuia()]);
       if (!procesosResp || procesosResp.length === 0) {
         this.alertService.showAlert('Error', 'No se encontraron procesos.', 'error');
         return;
@@ -437,21 +421,20 @@ export class GuiasComponent implements OnInit {
           return pId === codigoProceso;
         });
 
-        // Si el proceso no está en la lista (API lo excluyó porque todos sus palets están en esta guía),
-        // lo buscamos en Dexie y lo agregamos manualmente
+        // Si el proceso no está en la lista (el servidor lo excluyó porque todos sus palets están en esta guía),
+        // se arma con los datos de la propia guía ("fecha - turno") y se agrega manualmente.
         if (procesoIdx < 0) {
-          const allProcesos = await this.procesoRepo.procesosRepo.getAll();
-          const procesoInfo = (allProcesos ?? []).find((p: any) => String(p?.idProceso ?? '').trim() === codigoProceso);
           const nombreProceso = String(detalleData?.nombreProceso ?? '').trim();
+          const [fechaProceso = '', turno = ''] = nombreProceso.split(' - ').map((x) => x.trim());
+          const codigoAcopioGuia = String(detalleData?.codigoAcopio ?? detalleData?.detalle?.[0]?.codigoAcopio ?? '').trim();
 
           const procesoEntry: any = {
-            ...(procesoInfo || {}),
             idProceso: codigoProceso,
             id: codigoProceso,
             codigoProceso,
-            codigoAcopio: procesoInfo?.codigoAcopio ?? '',
-            turno: procesoInfo?.turno ?? '',
-            fechaProceso: procesoInfo?.fechaProceso ?? '',
+            codigoAcopio: codigoAcopioGuia,
+            turno,
+            fechaProceso,
             nombreProceso,
             paletsCerradosDisponibles: 0,
             palets: [],
@@ -466,7 +449,7 @@ export class GuiasComponent implements OnInit {
         if (procesoIdx >= 0) {
           const proceso = procesosData[procesoIdx];
           const detalleCajas = Array.isArray(detalleData?.detalle) ? detalleData.detalle : [];
-          const resultado = await this.guiaRemision.obtenerPaletsParaEdicion(idProyecto, codigoProceso, codigoGuiaRemision, detalleCajas);
+          const resultado = await this.guiaRemision.obtenerPaletsParaEdicion(codigoProceso, detalleCajas, Array.isArray(proceso.palets) ? proceso.palets : []);
           proceso.palets = (resultado?.palets ?? []).map((p: any) => ({
             ...p,
             idPalet: String(p?.idPalet ?? '').trim(),
@@ -567,7 +550,7 @@ export class GuiasComponent implements OnInit {
     this.loading.show('Procesando...');
     try {
       const resp: any = await this.api.emitir(idProyecto, codigoGuiaRemision);
-      this.loading.hide();
+      await this.loading.hideAfterMinimum();
       if (resp?.error) {
         this.alertService.showAlertAcept('Error', resp?.mensaje ?? 'Error al emitir la guía.', 'error');
         return;
@@ -575,7 +558,7 @@ export class GuiasComponent implements OnInit {
       await this.onBuscarGuias({ mostrarCarga: false });
       this.alertService.showAlert('Éxito', 'Guía emitida y numerada correctamente.', 'success');
     } catch (error: any) {
-      this.loading.hide();
+      await this.loading.hideAfterMinimum();
       console.error('Error emitiendo guía:', error);
       this.alertService.showAlert('Error', error?.error?.message ?? 'Error al emitir la guía.', 'error');
     }
@@ -592,7 +575,7 @@ export class GuiasComponent implements OnInit {
     this.loading.show('Procesando...');
     try {
       const resp = await this.guiaRemision.consultarEstadoSunat(idProyecto, codigoGuiaRemision);
-      this.loading.hide();
+      await this.loading.hideAfterMinimum();
       if (resp?.error) {
         this.alertService.showAlertAcept('Error', resp?.mensaje ?? 'Error al consultar el estado SUNAT.', 'error');
         return;
@@ -601,7 +584,7 @@ export class GuiasComponent implements OnInit {
       await this.onBuscarGuias({ mostrarCarga: false });
       this.alertService.showAlertAcept('Estado SUNAT', mensaje, 'success');
     } catch (error: any) {
-      this.loading.hide();
+      await this.loading.hideAfterMinimum();
       console.error('Error consultando estado SUNAT:', error);
       this.alertService.showAlert('Error', error?.error?.message ?? 'Error al consultar el estado SUNAT.', 'error');
     }
@@ -644,7 +627,7 @@ export class GuiasComponent implements OnInit {
     this.loading.show('Procesando...');
     try {
       const resp: any = await this.api.anular(idProyecto, codigoGuiaRemision, codigoAcopio);
-      this.loading.hide();
+      await this.loading.hideAfterMinimum();
       if (resp?.error) {
         this.alertService.showAlert('Error', resp?.mensaje ?? 'Error al anular la guía.', 'error');
         return;
@@ -652,27 +635,47 @@ export class GuiasComponent implements OnInit {
       this.alertService.showAlertAcept('Éxito', 'Guía anulada correctamente.', 'success');
       await this.onBuscarGuias();
     } catch (error: any) {
-      this.loading.hide();
+      await this.loading.hideAfterMinimum();
       console.error('Error anulando guía:', error);
       this.alertService.showAlert('Error', error?.error?.message ?? 'Error al anular la guía.', 'error');
     }
   }
 
+  /** Elimina una guía en borrador. Pide dos confirmaciones porque la acción no se puede deshacer. */
   async eliminarGuia(g: GuiaRemision): Promise<void> {
-    const palets = (g.detallePalets ?? []).map((p: any) => p.codigoPalet).join(', ');
-    const msg = [
-      '¿Está seguro de eliminar esta guía?',
-      '',
-      `Guía: ${g.serie ?? ''}-${g.numero ?? ''}`,
-      `Palets: ${g.cantidadPalets ?? 0}   Cajas: ${g.totalCajas ?? 0}   Peso: ${g.pesoTotal ?? 0} kg`,
-      `Precinto: ${g.precinto ?? '—'}   Viaje: ${g.numeroViaje ?? '—'}`,
-      palets ? `Id palets: ${palets}` : '',
-      '',
-      'Esta acción no se puede deshacer.',
-    ].filter((l, i, a) => l !== '' || (i > 0 && a[i - 1] !== '')).join('\n');
+    if (!this.exigirInternet()) return;
 
-    const confirmado = await this.alertService.showConfirm('Confirmar eliminación', msg, 'warning');
-    if (!confirmado) return;
+    const palets = (g.detallePalets ?? []).map((p: any) => p.codigoPalet).join(', ');
+    const resumen = [
+      `Guía: ${g.numero ? `${g.serie ?? ''}-${g.numero}` : '(borrador)'}`,
+      `Destinatario: ${(g as any).nombreDestinatario || g.documentoDestinatario || '—'}`,
+      `Palets: ${g.cantidadPalets ?? 0} · Cajas: ${g.totalCajas ?? 0} · Peso: ${g.pesoTotal ?? 0} kg`,
+      `Precinto: ${g.precinto ?? '—'} · Viaje: ${g.numeroViaje ?? '—'}`,
+      palets ? `Id palets: ${palets}` : '',
+    ].filter(Boolean).join('\n');
+
+    const primera = await this.confirmModal.confirm({
+      title: '¿Eliminar esta guía?',
+      eyebrow: 'Guía en borrador',
+      message: 'Se eliminará la guía y sus palets quedarán libres para otra guía.',
+      detail: resumen,
+      confirmText: 'Sí, continuar',
+      cancelText: 'Cancelar',
+      tone: 'warning',
+    });
+    if (!primera) return;
+    await this.pausaEntreConfirmaciones();
+
+    const segunda = await this.confirmModal.confirm({
+      title: 'Confirmación final',
+      eyebrow: 'Acción irreversible',
+      message: 'Una vez eliminada, la guía no se podrá recuperar.',
+      detail: resumen,
+      confirmText: 'Sí, eliminar guía',
+      cancelText: 'No, volver',
+      tone: 'danger',
+    });
+    if (!segunda) return;
 
     const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
     const codigoGuiaRemision = String(g?.codigoGuiaRemision ?? '').trim();
@@ -681,9 +684,10 @@ export class GuiasComponent implements OnInit {
       return;
     }
 
-    this.loading.show('Procesando...');
+    this.loading.show('Eliminando guía...');
     try {
       const resp: any = await this.api.eliminar(idProyecto, codigoGuiaRemision);
+      await this.loading.hideAfterMinimum();
       if (resp?.error) {
         this.alertService.showAlert('Error', resp?.mensaje ?? 'Error al eliminar la guía.', 'error');
         return;
@@ -692,9 +696,8 @@ export class GuiasComponent implements OnInit {
       await this.onBuscarGuias();
     } catch (error: any) {
       console.error('Error eliminando guía:', error);
+      await this.loading.hideAfterMinimum();
       this.alertService.showAlert('Error', error?.error?.message ?? 'Error al eliminar la guía.', 'error');
-    } finally {
-      this.loading.hide();
     }
   }
 
@@ -720,7 +723,7 @@ export class GuiasComponent implements OnInit {
     this.loading.show('Procesando...');
     try {
       const resp: any = await this.api.emitir(idProyecto, codigo);
-      this.loading.hide();
+      await this.loading.hideAfterMinimum();
       if (resp?.error) {
         this.alertService.showAlertAcept('Error', resp?.mensaje ?? 'Error al emitir las guías.', 'error');
         return;
@@ -728,34 +731,60 @@ export class GuiasComponent implements OnInit {
       this.alertService.showAlertAcept('Éxito', resp?.mensaje ?? 'Guías emitidas correctamente.', 'success');
       await this.onBuscarGuias();
     } catch (error: any) {
-      this.loading.hide();
+      await this.loading.hideAfterMinimum();
       console.error('Error emitiendo grupo:', error);
       this.alertService.showAlertAcept('Error', error?.error?.message ?? 'Error al emitir las guías del grupo.', 'error');
     }
   }
 
+  /** Elimina un grupo de guías en borrador (varias emitidas juntas). Pide dos confirmaciones. */
   async eliminarGrupo(guias: GuiaRemision[]): Promise<void> {
-    const confirmado = await this.alertService.showConfirm(
-      'Confirmar eliminación múltiple',
-      `¿Está seguro de eliminar <strong>${guias.length}</strong> guías agrupadas?`,
-      'warning'
-    );
-    if (!confirmado) return;
+    if (!this.exigirInternet()) return;
+
+    const primeraGuia = guias[0];
+    const resumen = [
+      `Guías del grupo: ${guias.length}`,
+      `Destinatario: ${(primeraGuia as any)?.nombreDestinatario || primeraGuia?.documentoDestinatario || '—'}`,
+      `Palets: ${guias.reduce((t, x) => t + Number(x.cantidadPalets ?? 0), 0)} · Cajas: ${guias.reduce((t, x) => t + Number(x.totalCajas ?? 0), 0)}`,
+    ].join('\n');
+
+    const primera = await this.confirmModal.confirm({
+      title: '¿Eliminar el grupo de guías?',
+      eyebrow: 'Guías en borrador',
+      message: `Se eliminarán las ${guias.length} guías agrupadas y sus palets quedarán libres para otras guías.`,
+      detail: resumen,
+      confirmText: 'Sí, continuar',
+      cancelText: 'Cancelar',
+      tone: 'warning',
+    });
+    if (!primera) return;
+    await this.pausaEntreConfirmaciones();
+
+    const segunda = await this.confirmModal.confirm({
+      title: 'Confirmación final',
+      eyebrow: 'Acción irreversible',
+      message: `Una vez eliminadas, las ${guias.length} guías no se podrán recuperar.`,
+      detail: resumen,
+      confirmText: 'Sí, eliminar guías',
+      cancelText: 'No, volver',
+      tone: 'danger',
+    });
+    if (!segunda) return;
+
     const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
     if (!idProyecto) {
       this.alertService.showAlert('Error', 'No se pudo obtener el proyecto.', 'error');
       return;
     }
-    const primeraGuia = guias[0];
     const codigo = String(primeraGuia?.codigoGuiaRemision ?? '').trim();
     if (!codigo) {
       this.alertService.showAlert('Error', 'No se pudo obtener el código de guía.', 'error');
       return;
     }
-    this.loading.show('Procesando...');
+    this.loading.show('Eliminando guías...');
     try {
       const resp: any = await this.api.eliminar(idProyecto, codigo);
-      this.loading.hide();
+      await this.loading.hideAfterMinimum();
       if (resp?.error) {
         this.alertService.showAlertAcept('Error', resp?.mensaje ?? 'Error al eliminar las guías.', 'error');
         return;
@@ -763,8 +792,8 @@ export class GuiasComponent implements OnInit {
       this.alertService.showAlertAcept('Éxito', resp?.mensaje ?? 'Guías eliminadas correctamente.', 'success');
       await this.onBuscarGuias();
     } catch (error: any) {
-      this.loading.hide();
       console.error('Error eliminando grupo:', error);
+      await this.loading.hideAfterMinimum();
       this.alertService.showAlertAcept('Error', error?.error?.message ?? 'Error al eliminar las guías del grupo.', 'error');
     }
   }
@@ -791,7 +820,7 @@ export class GuiasComponent implements OnInit {
     this.loading.show('Procesando...');
     try {
       const resp: any = await this.api.anular(idProyecto, codigo, codigoAcopio);
-      this.loading.hide();
+      await this.loading.hideAfterMinimum();
       if (resp?.error) {
         this.alertService.showAlertAcept('Error', resp?.mensaje ?? 'Error al anular las guías.', 'error');
         return;
@@ -799,14 +828,28 @@ export class GuiasComponent implements OnInit {
       this.alertService.showAlertAcept('Éxito', resp?.mensaje ?? 'Guías anuladas correctamente.', 'success');
       await this.onBuscarGuias();
     } catch (error: any) {
-      this.loading.hide();
+      await this.loading.hideAfterMinimum();
       console.error('Error anulando grupo:', error);
       this.alertService.showAlertAcept('Error', error?.error?.message ?? 'Error al anular las guías del grupo.', 'error');
     }
   }
 
+  /** Pausa corta con loading entre dos confirmaciones: evita que un doble clic acepte las dos sin leer la segunda. */
+  private async pausaEntreConfirmaciones(mensaje = 'Preparando confirmación final...'): Promise<void> {
+    this.loading.show(mensaje);
+    await this.loading.hideAfterMinimum(800);
+  }
+
+  /** Sin internet no se puede operar con las guías: todo se pide y se guarda en el servidor. */
+  private exigirInternet(): boolean {
+    if (this.online) return true;
+    this.alertService.showAlert('Sin conexión', 'Se necesita internet para trabajar con las guías.', 'warning');
+    return false;
+  }
+
   async cargarProcesosParaGuia(): Promise<any> {
-    return this.guiaRemision.cargarProcesosParaGuia();
+    const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
+    return this.guiaRemision.cargarProcesosParaGuia(idProyecto);
   }
 
   async cargarTransportistas(): Promise<void> {
@@ -825,17 +868,6 @@ export class GuiasComponent implements OnInit {
     this.destinatarios.set((await this.catalogosGuia.destinatarios()) ?? []);
   }
 
-  async cargarProcesosCatalogo(): Promise<void> {
-    const idProyecto = texto(this.savedConfig()?.idProyecto);
-    const codigoCultivo = texto(this.savedConfig()?.codigoCultivo);
-    if (!codigoCultivo || !idProyecto) return;
-    this.procesosCatalogo.set((await this.catalogosGuia.procesos(codigoCultivo, idProyecto)) ?? []);
-  }
-
-  /** Baja los codigos de caja a Dexie (los usa el detalle de una guia sin internet). */
-  async cargarCodigosCajaCatalogo(): Promise<void> {
-    await this.catalogosGuia.codigosCaja();
-  }
 
   async cargarMotivosTraslado(): Promise<void> {
     const lista = await this.catalogosGuia.motivosTraslado();
@@ -900,6 +932,7 @@ export class GuiasComponent implements OnInit {
   }
 
   async abrirModalNuevaGuia(): Promise<void> {
+    if (!this.exigirInternet()) return;
     this.loading.show('Procesando...');
     this.isLoadingModalProcesos.set(true);
     try {
@@ -918,11 +951,13 @@ export class GuiasComponent implements OnInit {
       ]);
 
       if (!resp || resp.length === 0) {
+        await this.loading.hideAfterMinimum();
         this.alertService.showAlert('Error', 'No se encontraron procesos.', 'error');
         return;
       }
       const first = resp[0];
       if (first?.error) {
+        await this.loading.hideAfterMinimum();
         this.alertService.showAlert('Error', first?.mensaje ?? 'Error al obtener procesos', 'error');
         return;
       }
@@ -935,16 +970,21 @@ export class GuiasComponent implements OnInit {
         };
       });
       if (data.length === 0) {
+        await this.loading.hideAfterMinimum();
         this.alertService.showAlert('Información', 'No hay procesos abiertos con palets cerrados disponibles.', 'warning');
         return;
       }
       this.procesos.set(data);
+      // El loading se cierra justo antes de abrir el formulario para que no quede un hueco entre uno y otro.
+      await this.loading.hideAfterMinimum();
       this.modalNuevaGuiaAbierto.set(true);
-      this.loading.hide();
     } catch (err: any) {
       console.error('Error cargando procesos guía:', err);
+      await this.loading.hideAfterMinimum();
       this.alertService.showAlert('Error', err?.error?.message ?? 'Error al cargar procesos', 'error');
     } finally {
+      // Red de seguridad: pase lo que pase, el loading no se queda abierto.
+      this.loading.hide();
       this.isLoadingModalProcesos.set(false);
     }
   }
@@ -1181,36 +1221,7 @@ export class GuiasComponent implements OnInit {
       guias: [guiaPayload],
     };
 
-    if (!this.online) {
-      // Offline: guardar en Dexie como no sincronizado
-      const codigoGuiaOffline = `OFF_${transactionId}`;
-      const guiaDexie = {
-        ...guiaPayload,
-        codigoGuiaRemision: codigoGuiaOffline,
-        idProyecto,
-        sincroniza: 'no_sincronizado',
-        fechaCreacion: toLocalISOString(),
-        bd: 0,
-      };
-      await this.guiasRemisionRepo.guiasRepo.saveByCodigoGuiaRemision(guiaDexie);
-
-      for (const p of paletsDetalle) {
-        await this.guiasRemisionRepo.paletsRepo.saveByCodigoGuiaRemision({
-          codigoGuiaRemision: codigoGuiaOffline,
-          transactionId_uuid: transactionId,
-          codigoPalet: String(p.idPalet ?? p.codigoPalet ?? p.id ?? '').trim(),
-          codigoItem: String(p.codigoItem ?? '').trim(),
-          cantidadCajas: Number(p.cantidadCajas ?? 0),
-          fechaCreacion: toLocalISOString(),
-          bd: 0,
-        });
-      }
-
-      this.modalInspeccionAbierto.set(false);
-      this.pendingGuiaPayload.set(null);
-      await this.cargarProcesosParaGuia();
-      await this.onBuscarGuias({ mostrarCarga: false });
-      this.alertService.showAlert('Éxito', 'Guía guardada localmente (sin sincronizar).', 'success');
+    if (!this.exigirInternet()) {
       this.guardandoGuia.set(false);
       return;
     }
@@ -1219,7 +1230,7 @@ export class GuiasComponent implements OnInit {
       this.loading.show('Procesando...');
       const rawResp: any = await this.api.sincronizar(syncPayload.idProyecto, syncPayload.guias);
       const { error, mensaje } = this.normalizeBackendResp(rawResp);
-      this.loading.hide();
+      await this.loading.hideAfterMinimum();
 
       if (error) {
         this.alertService.showAlertAcept('Error', mensaje || 'Error al sincronizar guía.', 'error');
@@ -1233,7 +1244,7 @@ export class GuiasComponent implements OnInit {
       this.alertService.showAlert('Éxito', mensaje || 'Guía sincronizada correctamente.', 'success');
     } catch (error: any) {
       console.error('Error sincronizando guía:', error);
-      this.loading.hide();
+      await this.loading.hideAfterMinimum();
       this.alertService.showAlertAcept('Error', error?.error?.message ?? 'Error al sincronizar guía.', 'error');
       this.guardandoGuia.set(false);
     } finally {
@@ -1254,39 +1265,5 @@ export class GuiasComponent implements OnInit {
     if (this.guardandoGuia()) return;
     this.modalInspeccionAbierto.set(false);
     this.modalNuevaGuiaAbierto.set(true);
-  }
-
-  async onSincronizar(): Promise<void> {
-    const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
-    if (!idProyecto) {
-      this.alertService.showAlert('Error', 'No se encontró el proyecto.', 'error');
-      return;
-    }
-    if (!this.online) {
-      this.alertService.showAlert('Error', 'No hay conexión a internet.', 'error');
-      return;
-    }
-
-    const confirmado = await this.alertService.showConfirm(
-      'Sincronizar guías',
-      'Se enviarán las guías pendientes al servidor. ¿Continuar?',
-      'question'
-    );
-    if (!confirmado) return;
-
-    this.loading.show('Procesando...');
-    try {
-      const resultado = await this.guiaRemision.sincronizarGuiasOffline(idProyecto);
-      this.loading.hide();
-      if (resultado.success) {
-        this.alertService.showAlert('Éxito', resultado.mensaje, 'success');
-        await this.onBuscarGuias();
-      } else {
-        this.alertService.showAlert('Error', resultado.mensaje, 'error');
-      }
-    } catch (error: any) {
-      this.loading.hide();
-      this.alertService.showAlert('Error', error?.message ?? 'Error al sincronizar guías.', 'error');
-    }
   }
 }

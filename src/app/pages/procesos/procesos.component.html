@@ -184,7 +184,7 @@
           </thead>
           <tbody>
             @for (p of paginacion.paged(); track trackProceso(p)) {
-              <tr [class.opacity-60]="p.estado === 'CERRADO'">
+              <tr class="fila-interactiva cursor-pointer transition-colors duration-150 hover:bg-emerald-50 dark:hover:bg-emerald-500/10" title="Doble clic (o un toque en celular) para ver los palets" [class.opacity-60]="p.estado === 'CERRADO'" (click)="alTocarFila(p)" (dblclick)="alHacerDobleClicFila(p)">
                 @if (!esLogistica()) { <td class="font-bold">{{ esAdmin() ? nombreAcopio(p.codigoAcopio) : p.codigoAcopio }}</td> }
                 <td><span class="badge badge-soft gap-1" [class.badge-warning]="esDia(p)" [class.badge-primary]="!esDia(p)">@if (esDia(p)) { <svg lucideSun class="size-3.5"></svg> } @else { <svg lucideMoon class="size-3.5"></svg> }{{ p.turno }}</span></td>
                 <td class="font-semibold">{{ fechaCorta(p.fechaProceso) }}</td>
@@ -193,23 +193,24 @@
                 <td>{{ fechaHora(p.fechaApertura) }}</td>
                 <td>{{ fechaHora(p.fechaCierre) }}</td>
                 <td>{{ p.idUsuarioApertura || '—' }}</td>
-                <td>
+                <td (click)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()">
                   @let sup = nombres(supPorProceso()[p.idProceso]);
                   {{ sup.texto }}
                   @if (sup.hayMas) { <button type="button" class="link link-primary text-xs" (click)="verPersonal('SUP', p)">… mostrar más</button> }
                 </td>
-                <td>
+                <td (click)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()">
                   @let log = nombres(logPorProceso()[p.idProceso]);
                   {{ log.texto }}
                   @if (log.hayMas) { <button type="button" class="link link-primary text-xs" (click)="verPersonal('LOG', p)">… mostrar más</button> }
                 </td>
-                <td class="whitespace-nowrap text-right">
+                <td class="whitespace-nowrap text-right" (click)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()">
+                  <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--info mr-1" title="Ver palets" (click)="procesoPalets.set(p)"><svg lucideEye class="size-3.5"></svg></button>
                   @if (p.estado === 'CERRADO' && puedeReabrir()) {
-                    <button type="button" class="btn btn-outline btn-warning btn-xs" title="Reabrir proceso" (click)="reabrirProceso(p)"><svg lucideRotateCcw class="size-3.5"></svg></button>
+                    <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--warn" title="Reabrir proceso" (click)="reabrirProceso(p)"><svg lucideRotateCcw class="size-3.5"></svg></button>
                   }
                   @if (p.estado === 'ABIERTO' && esAdmin()) {
-                    <button type="button" class="btn btn-outline btn-primary btn-xs mr-1" title="Editar personal" (click)="editarProceso(p)"><svg lucidePencil class="size-3.5"></svg></button>
-                    <button type="button" class="btn btn-outline btn-error btn-xs" title="Cerrar proceso" (click)="cerrarProceso(p)"><svg lucideCircleStop class="size-3.5"></svg></button>
+                    <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--warn mr-1" title="Editar personal" (click)="editarProceso(p)"><svg lucidePencil class="size-3.5"></svg></button>
+                    <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--danger" title="Cerrar proceso" (click)="cerrarProceso(p)"><svg lucideCircleStop class="size-3.5"></svg></button>
                   }
                 </td>
               </tr>
@@ -237,6 +238,9 @@
 }
 
 <!-- Ventana: lista completa de supervisores o logística -->
+@if (procesoPalets(); as procPalets) {
+  <app-modal-palets-proceso [proceso]="procPalets" (closed)="procesoPalets.set(null)" />
+}
 @if (personalModal(); as lista) {
   <app-personal-lista-modal [titulo]="lista.titulo" [filas]="lista.filas" (closed)="personalModal.set(null)" />
 }

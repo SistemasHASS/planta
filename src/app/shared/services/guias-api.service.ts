@@ -70,8 +70,8 @@ export class GuiasApiService {
   }
 
   /** Procesos abiertos con palets cerrados que aun no estan en una guia activa. */
-  procesos(): Promise<SobreSp<Fila[]>> {
-    return this.post('procesos', {});
+  procesos(idProyecto: string): Promise<SobreSp<Fila[]>> {
+    return this.post('procesos', { idProyecto });
   }
 
   /** Los filtros vacios no se envian (el SP los toma como "sin filtro"). */

@@ -108,3 +108,32 @@ button, a, label, select, summary, [role='button'], [role='switch'] {
 @media (max-width: 640px) {
   input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']), select, textarea { font-size: 16px; }
 }
+
+/* Botones de accion de las tablas (ver, consultar, editar, cerrar, eliminar): estandar de la app.
+   Cuadrado redondeado con relleno solido de color y el icono encima (oscuro sobre colores claros, blanco sobre el rojo). */
+.btn.btn-accion {
+  --accion-bg: #94a3b8;
+  --accion-fg: #0f172a;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: var(--accion-bg);
+  color: var(--accion-fg);
+  box-shadow: none;
+  transition: filter 150ms ease, transform 150ms ease;
+}
+.btn.btn-accion:hover {
+  background: var(--accion-bg);
+  color: var(--accion-fg);
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+.btn.btn-accion:active { transform: scale(0.95); filter: brightness(0.96); }
+.btn.btn-accion--danger { --accion-bg: #f0566a; --accion-fg: #ffffff; }
+.btn.btn-accion--info { --accion-bg: #38bdf8; --accion-fg: #06283d; }
+.btn.btn-accion--warn { --accion-bg: #fbbf24; --accion-fg: #3b2a00; }
+.btn.btn-accion--ok { --accion-bg: #34d399; --accion-fg: #053b2a; }
+.btn.btn-accion--txt { width: auto; padding: 0 12px; gap: 6px; font-weight: 600; }

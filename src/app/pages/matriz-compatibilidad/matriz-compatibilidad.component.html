@@ -106,8 +106,8 @@
                   </td>
                   <td (click)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()">
                     <div class="flex items-center justify-end gap-1">
-                      <button type="button" class="btn btn-xs btn-square btn-warning" title="Editar" aria-label="Editar" (click)="editar(m)"><svg lucidePencil class="size-3.5"></svg></button>
-                      <button type="button" class="btn btn-xs btn-square" [class.btn-error]="m.activo" [class.btn-success]="!m.activo" [title]="m.activo ? 'Desactivar' : 'Activar'" [attr.aria-label]="m.activo ? 'Desactivar' : 'Activar'" (click)="cambiarEstado(m)"><svg lucidePower class="size-3.5"></svg></button>
+                      <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--warn" title="Editar" aria-label="Editar" (click)="editar(m)"><svg lucidePencil class="size-3.5"></svg></button>
+                      <button type="button" class="btn btn-xs btn-square btn-accion" [class.btn-accion--danger]="m.activo" [class.btn-accion--ok]="!m.activo" [title]="m.activo ? 'Desactivar' : 'Activar'" [attr.aria-label]="m.activo ? 'Desactivar' : 'Activar'" (click)="cambiarEstado(m)"><svg lucidePower class="size-3.5"></svg></button>
                     </div>
                   </td>
                 </tr>

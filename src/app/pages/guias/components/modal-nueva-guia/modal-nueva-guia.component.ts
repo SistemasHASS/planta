@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LucideCheck, LucideClipboardCheck, LucideFilePlus, LucideLoader, LucidePackage, LucideSquare, LucideSquareCheck, LucideTruck, LucideX } from '@lucide/angular';
+import { LucideCheck, LucideClipboardCheck, LucideFilePlus, LucideLoader, LucideMapPin, LucidePackage, LucideRoute, LucideSquare, LucideSquareCheck, LucideTruck, LucideX } from '@lucide/angular';
 import { SearchSelectComponent } from '../../../../shared/components/search-select/search-select.component';
 import { UbigeoDepartamento, UbigeoDistrito, UbigeoProvincia } from '../../../../shared/interfaces/catalogo.interface';
 import { Palet } from '../../../../shared/interfaces/palet.interface';
@@ -17,8 +17,9 @@ import { newUuid } from '../../../../shared/utils/uuid';
  */
 @Component({
   selector: 'app-modal-nueva-guia',
-  imports: [FormsModule, SearchSelectComponent, LucideCheck, LucideClipboardCheck, LucideFilePlus, LucideLoader, LucidePackage, LucideSquare, LucideSquareCheck, LucideTruck, LucideX],
+  imports: [FormsModule, SearchSelectComponent, LucideCheck, LucideClipboardCheck, LucideFilePlus, LucideLoader, LucideMapPin, LucidePackage, LucideRoute, LucideSquare, LucideSquareCheck, LucideTruck, LucideX],
   templateUrl: './modal-nueva-guia.component.html',
+  styleUrl: './modal-nueva-guia.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ModalNuevaGuiaComponent implements OnChanges {
@@ -733,6 +734,7 @@ export class ModalNuevaGuiaComponent implements OnChanges {
     if (this.creando()) return;
 
     this.submitAttempted.set(true);
+    console.log(this.isFormValid())
     if (!this.isFormValid()) return;
     const paletsIds = Array.from(this.paletsSeleccionados());
     const paletsData = this.palets().filter(p => paletsIds.includes(String(p.idPalet ?? '').trim()));
