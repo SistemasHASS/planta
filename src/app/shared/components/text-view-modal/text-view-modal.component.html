@@ -1,0 +1,39 @@
+@if (modal.state().visible) {
+  <div
+    class="modal modal-open text-view-modal"
+    role="dialog"
+    aria-modal="true"
+    (click)="modal.close()"
+  >
+    <div class="modal-box text-view-box" (click)="$event.stopPropagation()">
+      <button
+        type="button"
+        class="close-button"
+        aria-label="Cerrar"
+        (click)="modal.close()"
+      >
+        <svg lucideX></svg>
+      </button>
+
+      <div class="modal-head">
+        <div class="icon-shell" aria-hidden="true">
+          <svg lucideFileText></svg>
+        </div>
+        <div>
+          <span>Detalle completo</span>
+          <h2>{{ modal.state().title }}</h2>
+        </div>
+      </div>
+
+      <div class="text-content">
+        {{ modal.state().text }}
+      </div>
+
+      <div class="modal-action">
+        <button type="button" class="btn action-button" (click)="modal.close()">
+          Entendido
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,95 @@
+<div class="modal modal-open" role="dialog" aria-modal="true">
+  <div class="modal-box flex w-full !max-h-full !max-w-3xl flex-col gap-0 overflow-hidden p-0">
+
+    <!-- Cabecera -->
+    <div class="flex items-center justify-between gap-3 border-b border-app-border2 px-4 py-1.5 sm:px-5">
+      <div class="flex min-w-0 items-center gap-3">
+        <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md">
+          <svg lucideMapPin class="size-5"></svg>
+        </span>
+        <div class="min-w-0">
+          <span class="text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">{{ esNuevo() ? 'Configurar destinatario' : 'Editar destinatario' }}</span>
+          <h3 class="truncate text-base font-extrabold leading-tight text-app-heading sm:text-lg">{{ destinatario().nombre }}</h3>
+        </div>
+      </div>
+      <button type="button" class="btn btn-circle btn-ghost size-10 min-h-10 sm:size-8 sm:min-h-8" aria-label="Cerrar" (click)="closed.emit()"><svg lucideX class="size-4"></svg></button>
+    </div>
+
+    <!-- Cuerpo (con scroll) -->
+    <div class="min-h-0 flex-1 space-y-3 overflow-y-auto bg-app-surface2 px-3 pb-3 pt-2 sm:px-5 sm:pb-5 sm:pt-2.5">
+
+      <!-- Franja del cliente -->
+      <section class="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-app-border2 bg-app-surface3 px-4 py-2.5 text-sm">
+        <span class="text-app-muted">Doc. fiscal <strong class="ml-1 text-app-heading">{{ destinatario().documentoFiscal }}</strong></span>
+        @if (destinatario().documento && destinatario().documento !== destinatario().documentoFiscal) {
+          <span class="text-app-muted">Documento <strong class="ml-1 text-app-heading">{{ destinatario().documento }}</strong></span>
+        }
+        @if (hayCambios() && !esNuevo()) { <span class="badge badge-soft badge-warning">Cambios sin guardar</span> }
+      </section>
+
+      <!-- Domicilio fiscal -->
+      <section class="rounded-2xl border border-tint-sky-border bg-tint-sky px-4 py-3">
+        <h4 class="mb-2 text-xs font-bold uppercase tracking-wide text-sky-800 dark:text-sky-300">Domicilio fiscal</h4>
+        <div class="grid gap-3 sm:grid-cols-3">
+          <label class="block sm:col-span-3">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Dirección</span>
+            <input type="text" class="h-[42px] w-full rounded-[9px] border border-app-border2 bg-app-surface px-3 text-[16px] outline-none placeholder:text-app-subtle focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/25 sm:text-[14px]" placeholder="Dirección fiscal completa" [ngModel]="domicilioFiscal()" (ngModelChange)="domicilioFiscal.set($event)" />
+          </label>
+          <div class="min-w-0">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Departamento</span>
+            <app-search-select placeholder="— Seleccionar —" [options]="optDepartamentos()" [value]="fiscal().departamento" (selected)="elegirDepartamento('fiscal', $event.value)" />
+          </div>
+          <div class="min-w-0">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Provincia</span>
+            <app-search-select placeholder="— Seleccionar —" [options]="optProvinciasFiscal()" [value]="fiscal().provincia" (selected)="elegirProvincia('fiscal', $event.value)" />
+          </div>
+          <div class="min-w-0">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Distrito</span>
+            <app-search-select placeholder="— Seleccionar —" [options]="optDistritosFiscal()" [value]="fiscal().distrito" (selected)="elegirDistrito('fiscal', $event.value)" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Punto de llegada -->
+      <section class="rounded-2xl border border-tint-emerald-border bg-tint-emerald px-4 py-3">
+        <h4 class="mb-2 text-xs font-bold uppercase tracking-wide text-emerald-800 dark:text-emerald-300">Punto de llegada <span class="text-rose-600 dark:text-rose-300">*</span></h4>
+        <div class="grid gap-3 sm:grid-cols-3">
+          <label class="block sm:col-span-3">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Dirección</span>
+            <input type="text" class="h-[42px] w-full rounded-[9px] border bg-app-surface px-3 text-[16px] outline-none placeholder:text-app-subtle focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/25 sm:text-[14px]" [class.border-app-border2]="!intento() || puntoLlegada().trim()" [class.border-rose-400]="intento() && !puntoLlegada().trim()" placeholder="Dirección de destino para las guías" [ngModel]="puntoLlegada()" (ngModelChange)="puntoLlegada.set($event)" />
+            @if (intento() && !puntoLlegada().trim()) { <span class="mt-1 block text-xs text-rose-600 dark:text-rose-300">Requerido</span> }
+          </label>
+          <div class="min-w-0">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Departamento</span>
+            <app-search-select placeholder="— Seleccionar —" [options]="optDepartamentos()" [value]="llegada().departamento" (selected)="elegirDepartamento('llegada', $event.value)" />
+          </div>
+          <div class="min-w-0">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Provincia</span>
+            <app-search-select placeholder="— Seleccionar —" [options]="optProvinciasLlegada()" [value]="llegada().provincia" (selected)="elegirProvincia('llegada', $event.value)" />
+          </div>
+          <div class="min-w-0">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Distrito <span class="text-rose-600 dark:text-rose-300">*</span></span>
+            <app-search-select placeholder="— Seleccionar —" [options]="optDistritosLlegada()" [value]="llegada().distrito" (selected)="elegirDistrito('llegada', $event.value)" />
+            @if (intento() && !llegada().distrito) { <span class="mt-1 block text-xs text-rose-600 dark:text-rose-300">Requerido</span> }
+          </div>
+        </div>
+      </section>
+
+      <!-- Estado -->
+      <section class="rounded-2xl border border-violet-200 bg-violet-50/50 dark:border-violet-500/30 dark:bg-violet-500/10 px-4 py-3">
+        <label class="flex cursor-pointer items-center gap-3">
+          <input type="checkbox" class="checkbox checkbox-success checkbox-sm" [checked]="activo()" (change)="activo.set($any($event.target).checked)" />
+          <span class="text-sm font-semibold text-app-heading">Destinatario activo</span>
+          <span class="text-xs text-app-muted">(solo los activos aparecen al crear una guía)</span>
+        </label>
+      </section>
+    </div>
+
+    <!-- Pie -->
+    <div class="flex justify-end gap-2 border-t border-app-border2 bg-app-surface px-4 py-2.5 sm:px-5">
+      <button type="button" class="btn btn-sm btn-ghost" (click)="closed.emit()">Cancelar</button>
+      <button type="button" class="btn btn-sm btn-primary" [disabled]="!hayCambios() || cargando()" (click)="guardar()"><svg lucideSave class="size-4"></svg> {{ esNuevo() ? 'Guardar' : 'Guardar cambios' }}</button>
+    </div>
+  </div>
+  <div class="modal-backdrop bg-black/40" (click)="closed.emit()"></div>
+</div>

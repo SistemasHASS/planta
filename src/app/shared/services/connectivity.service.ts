@@ -1,76 +1,117 @@
-import { Injectable, signal } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { computed, Injectable, signal } from '@angular/core';
 import { environment } from '../../../environments/environment';
+
+const HEALTH_CHECK_INTERVAL_MS = 30_000;
+const HEALTH_CHECK_TIMEOUT_MS = 3_000;
+const OFFLINE_COOLDOWN_MS = 15_000;
 
 @Injectable({ providedIn: 'root' })
 export class ConnectivityService {
-
-  readonly isOnline = signal<boolean>(navigator.onLine);
-
-  private readonly onlineStatus = new BehaviorSubject<boolean>(navigator.onLine);
-  public readonly isOnline$ = this.onlineStatus.asObservable();
-
-  private readonly intervalMs = 60_000;
-  private readonly timeoutMs = 3_000;
-  private readonly healthUrl = `${environment.apiUrl}/health`;
-
-  /** Timestamp hasta el cual se bloquean peticiones tras un fallo de red (circuit breaker). */
+  private readonly browserOnline = signal(typeof navigator === 'undefined' ? true : navigator.onLine);
+  private readonly apiAvailable = signal(true);
+  private readonly healthUrl = `${environment.apiBaseUrl}/health`;
   private cooldownUntil = 0;
+  private checkPromise: Promise<boolean> | null = null;
+
+  readonly online = computed(() => this.browserOnline() && this.apiAvailable());
+  readonly serverAvailable = computed(() => this.apiAvailable());
+  readonly hasInternet = computed(() => this.browserOnline());
+  readonly label = computed(() => this.online() ? 'Conectado' : 'Sin conexion');
 
   constructor() {
-    window.addEventListener('online', () => {
-      this.cooldownUntil = 0;
-      void this.checkConnection();
-    });
-    window.addEventListener('offline', () => this.setStatus(false));
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', () => {
+        this.browserOnline.set(true);
+        this.clearCooldown();
+        void this.checkConnection();
+      });
 
-    void this.checkConnection();
-    setInterval(() => void this.checkConnection(), this.intervalMs);
+      window.addEventListener('offline', () => {
+        this.browserOnline.set(false);
+        this.apiAvailable.set(false);
+        this.triggerCooldown();
+      });
+
+      void this.checkConnection();
+      window.setInterval(() => void this.checkConnection(), HEALTH_CHECK_INTERVAL_MS);
+    }
   }
 
   get isInCooldown(): boolean {
     return Date.now() < this.cooldownUntil;
   }
 
-  triggerCooldown(durationMs = 30_000): void {
+  isOnline(): boolean {
+    return this.online();
+  }
+
+  triggerCooldown(durationMs = OFFLINE_COOLDOWN_MS): void {
     this.cooldownUntil = Date.now() + durationMs;
   }
 
-  get currentStatus(): boolean {
-    return this.isOnline();
+  clearCooldown(): void {
+    this.cooldownUntil = 0;
+  }
+
+  forceOffline(): void {
+    this.apiAvailable.set(false);
+    this.triggerCooldown();
   }
 
   forceStatus(next: boolean): void {
-    this.setStatus(next);
+    this.apiAvailable.set(next);
+    if (next) {
+      this.browserOnline.set(typeof navigator === 'undefined' ? true : navigator.onLine);
+      this.clearCooldown();
+    }
   }
 
-  private setStatus(next: boolean): void {
-    if (this.isOnline() === next) return;
-    this.isOnline.set(next);
-    this.onlineStatus.next(next);
-  }
-
-  async checkConnection(): Promise<void> {
-    if (!navigator.onLine) {
-      this.setStatus(false);
-      return;
+  async checkConnection(): Promise<boolean> {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      this.browserOnline.set(false);
+      this.apiAvailable.set(false);
+      return false;
     }
 
+    this.browserOnline.set(true);
+
+    if (this.checkPromise) {
+      return this.checkPromise;
+    }
+
+    this.checkPromise = this.resolveConnection();
+    const result = await this.checkPromise;
+    this.checkPromise = null;
+    return result;
+  }
+
+  private async resolveConnection(): Promise<boolean> {
+    const ok = await this.pingBackend();
+    this.apiAvailable.set(ok);
+
+    if (ok) {
+      this.clearCooldown();
+    }
+
+    return this.online();
+  }
+
+  private async pingBackend(): Promise<boolean> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+    const timeoutId = window.setTimeout(() => controller.abort(), HEALTH_CHECK_TIMEOUT_MS);
 
     try {
-      const res = await fetch(this.healthUrl, {
+      const response = await fetch(this.healthUrl, {
         method: 'GET',
         cache: 'no-store',
-        signal: controller.signal,
+        signal: controller.signal
       });
 
-      this.setStatus(res.ok);
+      return response.ok;
     } catch {
-      this.setStatus(false);
+      return false;
     } finally {
-      clearTimeout(timeoutId);
+      window.clearTimeout(timeoutId);
     }
   }
 }

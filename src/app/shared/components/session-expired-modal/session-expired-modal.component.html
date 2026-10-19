@@ -1,0 +1,26 @@
+@if (sessionExpired.state().visible) {
+  <div class="modal modal-open session-expired-modal" role="alertdialog" aria-modal="true" aria-labelledby="session-expired-title">
+    <div class="modal-box session-expired-box">
+      <div class="session-loader" aria-hidden="true">
+        <span class="session-loader-ring"></span>
+        <svg lucideTimerReset></svg>
+      </div>
+
+      <div class="session-expired-copy">
+        <p class="eyebrow">TU ACCESO FINALIZO</p>
+        <h2 id="session-expired-title">Tu sesión ha expirado</h2>
+        <p>Para proteger tu cuenta, vuelve a iniciar sesión. Tus datos locales se mantienen en este dispositivo.</p>
+      </div>
+
+      <div class="redirect-status" aria-live="assertive">
+        <span>Redirigiendo al inicio de sesión</span>
+        <strong>{{ sessionExpired.state().secondsRemaining }} s</strong>
+      </div>
+
+      <button type="button" class="login-button" (click)="goToLogin()">
+        <svg lucideLogIn></svg>
+        Ir al login ahora
+      </button>
+    </div>
+  </div>
+}

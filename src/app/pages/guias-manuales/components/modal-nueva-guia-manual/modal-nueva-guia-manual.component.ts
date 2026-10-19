@@ -1,35 +1,51 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, OnInit, Output, signal, computed, SimpleChanges, effect, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { LucideCheck, LucideLoader, LucidePlus, LucideTrash2, LucideTriangleAlert, LucideTruck, LucideX } from '@lucide/angular';
+import { SearchSelectComponent } from '../../../../shared/components/search-select/search-select.component';
 import { UbigeoDepartamento, UbigeoDistrito, UbigeoProvincia } from '../../../../shared/interfaces/catalogo.interface';
-import { AuthService } from '../../../../shared/services/auth.service';
-import { CatalogoService } from '../../../../shared/services/catalogo.service';
-import { AdvancedSelectComponent } from '../../../../shared/components/advanced-select/advanced-select.component';
-import { firstValueFrom } from 'rxjs';
-import { formatDate, toLocalISOString } from '../../../../shared/utils/datetime.utils';
+import { CatalogosApiService } from '../../../../shared/services/catalogos-api.service';
+import { formatDate, nowPeruDate, toLocalISOString } from '../../../../shared/utils/date-time.util';
+import { opcionesDe } from '../../../../shared/utils/opciones-select';
+import { portalToBody } from '../../../../shared/utils/portal';
+import { newUuid } from '../../../../shared/utils/uuid';
 
+/**
+ * Formulario de una guia de remision manual (crear o editar): traslado, destino, transporte, control y los items escritos a mano.
+ * Solo arma y valida el formulario; la pantalla Guias Manuales envia los datos al servidor.
+ */
 @Component({
   selector: 'app-modal-nueva-guia-manual',
-  standalone: true,
-  imports: [CommonModule, FormsModule, AdvancedSelectComponent],
+  imports: [FormsModule, SearchSelectComponent, LucideCheck, LucideLoader, LucidePlus, LucideTrash2, LucideTriangleAlert, LucideTruck, LucideX],
   templateUrl: './modal-nueva-guia-manual.component.html',
-  styleUrl: './modal-nueva-guia-manual.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
-  @Input() transportistas: any[] = [];
-  @Input() conductores: any[] = [];
-  @Input() vehiculos: any[] = [];
-  @Input() destinatarios: any[] = [];
-  @Input() motivosTraslado: any[] = [];
+  // Las listas llegan como @Input y se guardan en signals para que las opciones de los buscadores se recalculen solo al cambiar.
+  private readonly listaTransportistas = signal<any[]>([]);
+  private readonly listaConductores = signal<any[]>([]);
+  private readonly listaVehiculos = signal<any[]>([]);
+  private readonly listaDestinatarios = signal<any[]>([]);
+  private readonly listaMotivos = signal<any[]>([]);
+  private readonly listaEstablecimientos = signal<any[]>([]);
+
+  @Input() set transportistas(v: any[]) { this.listaTransportistas.set(v ?? []); }
+  get transportistas(): any[] { return this.listaTransportistas(); }
+  @Input() set conductores(v: any[]) { this.listaConductores.set(v ?? []); }
+  get conductores(): any[] { return this.listaConductores(); }
+  @Input() set vehiculos(v: any[]) { this.listaVehiculos.set(v ?? []); }
+  get vehiculos(): any[] { return this.listaVehiculos(); }
+  @Input() set destinatarios(v: any[]) { this.listaDestinatarios.set(v ?? []); }
+  get destinatarios(): any[] { return this.listaDestinatarios(); }
+  @Input() set motivosTraslado(v: any[]) { this.listaMotivos.set(v ?? []); }
+  get motivosTraslado(): any[] { return this.listaMotivos(); }
   @Input() establecimientoEmisor: any = null;
-  @Input() establecimientos: any[] = [];
+  @Input() set establecimientos(v: any[]) { this.listaEstablecimientos.set(v ?? []); }
+  get establecimientos(): any[] { return this.listaEstablecimientos(); }
   @Input() modoEdicion = false;
   @Input() guiaEditando: any = null;
   @Input() guardando = false;
 
-  private readonly auth = inject(AuthService);
-  private readonly catalogoService = inject(CatalogoService);
+  private readonly catalogosApi = inject(CatalogosApiService);
 
   readonly departamentos = signal<UbigeoDepartamento[]>([]);
   readonly provinciasPartida = signal<UbigeoProvincia[]>([]);
@@ -38,7 +54,7 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
   readonly distritosLlegada = signal<UbigeoDistrito[]>([]);
 
   readonly destinatariosActivos = computed(() => {
-    const list = this.destinatarios ?? [];
+    const list = this.listaDestinatarios();
     return list.filter((d: any) => {
       const a = d?.activo;
       return a === true || a === 1 || (typeof a === 'string' && (a === '1' || a.toLowerCase() === 'true'));
@@ -67,7 +83,33 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
     ];
   });
 
-  @Output() cerrar = new EventEmitter<void>();
+  // Opciones de los buscadores
+  readonly optMotivos = computed(() => opcionesDe(this.listaMotivos(), 'codigo', ['codigo', 'descripcion']));
+  readonly optDestinatarios = computed(() => opcionesDe(this.destinatariosActivos(), 'id', ['nombre', 'documentoFiscal']));
+  readonly optTransportistas = computed(() => opcionesDe(this.listaTransportistas(), 'id', ['razonSocial']));
+  readonly optConductores = computed(() => opcionesDe(this.listaConductores(), 'id', ['documentoIdentidad', 'apellidos', 'nombres']));
+  readonly optVehiculos = computed(() => opcionesDe(this.listaVehiculos(), 'id', ['placaPrincipal', 'marca']));
+  readonly optDepartamentos = computed(() => opcionesDe(this.departamentos(), 'codigoDepartamento', ['nombreDepartamento']));
+  readonly optProvinciasPartida = computed(() => opcionesDe(this.provinciasPartida(), 'codigoProvincia', ['nombreProvincia']));
+  readonly optDistritosPartida = computed(() => opcionesDe(this.distritosPartida(), 'codigoUbigeo', ['nombreDistrito']));
+  readonly optProvinciasLlegada = computed(() => opcionesDe(this.provinciasLlegada(), 'codigoProvincia', ['nombreProvincia']));
+  readonly optDistritosLlegada = computed(() => opcionesDe(this.distritosLlegada(), 'codigoUbigeo', ['nombreDistrito']));
+  readonly optTiposLocacion = computed(() => opcionesDe(this.tiposLocacion(), 'idTipoLocacion', ['descripcion']));
+  readonly optLocaciones = computed(() => opcionesDe(this.locacionesTraslado(), 'codigo', ['codigo', 'nombre', 'codigoUbigeo']));
+  readonly optUnidadesMedida = computed(() => opcionesDe(this.unidadesMedidaActivas(), 'codigo', ['codigo', 'descripcion']));
+  readonly optEstablecimientosPartida = computed(() =>
+    opcionesDe(this.listaEstablecimientos().filter((e: any) => String(e?.idEstablecimiento ?? '').trim()), 'idEstablecimiento', ['idEstablecimiento', 'descripcion', 'direccion']),
+  );
+  readonly optEstablecimientosDestino = computed(() => {
+    const origen = String(this.form().idEstablecimientoPartida ?? '').trim();
+    const filas = this.listaEstablecimientos().filter((e: any) => {
+      const id = String(e?.idEstablecimiento ?? '').trim();
+      return id && id !== origen;
+    });
+    return opcionesDe(filas, 'idEstablecimiento', ['idEstablecimiento', 'descripcion', 'direccion']);
+  });
+
+@Output() cerrar = new EventEmitter<void>();
   @Output() crear = new EventEmitter<any>();
   @Output() editar = new EventEmitter<any>();
 
@@ -95,7 +137,7 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
     descripcionMotivoTraslado: 'SERVICIO DE FRÍO',
     tipoLocacionId: '',
     codigoLocacion: '',
-    fechaEntregaBienes: formatDate(new Date()) ?? '',
+    fechaEntregaBienes: nowPeruDate(),
     precinto: '',
     parihuelas: 0,
     observacionesUsuario: '',
@@ -175,6 +217,7 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
   });
 
   constructor() {
+    portalToBody();
     effect(() => {
       const f = this.form();
       const depPartida = String(f.departamentoPartida ?? '').trim();
@@ -208,7 +251,7 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
       } else {
         this.distritosLlegada.set([]);
       }
-    }, { allowSignalWrites: true });
+    });
   }
 
   ngOnInit(): void {
@@ -252,7 +295,7 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
         descripcionMotivoTraslado: g.descripcionMotivoTraslado ?? 'SERVICIO DE FRÍO',
         tipoLocacionId: String(g.tipoLocacionId ?? ''),
         codigoLocacion: String(g.codigoLocacion ?? ''),
-        fechaEntregaBienes: g.fechaEntregaBienes ? formatDate(g.fechaEntregaBienes) ?? '' : formatDate(new Date()) ?? '',
+        fechaEntregaBienes: g.fechaEntregaBienes ? formatDate(g.fechaEntregaBienes) ?? '' : nowPeruDate(),
         precinto: g.precinto ?? '',
         parihuelas: g.parihuelas ?? 0,
         observacionesUsuario: g.observacionesUsuario ?? '',
@@ -304,7 +347,7 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
 
   async loadUnidadesMedida(): Promise<void> {
     try {
-      const resp: any = await firstValueFrom(this.catalogoService.listarUnidadesMedida());
+      const resp: any = await this.catalogosApi.unidadesMedida();
       this.unidadesMedida.set(resp?.data ?? []);
     } catch (e) {
       console.error('Error cargando unidades de medida', e);
@@ -314,7 +357,7 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
 
   async loadTiposLocacion(): Promise<void> {
     try {
-      const resp: any = await firstValueFrom(this.catalogoService.listarTiposLocacion());
+      const resp: any = await this.catalogosApi.tiposLocacion();
       this.tiposLocacion.set(resp?.data ?? []);
     } catch (e) {
       console.error('Error cargando tipos de locación', e);
@@ -325,8 +368,8 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
   async loadLocacionesTraslado(tipoLocacionId: string): Promise<void> {
     try {
       const resp: any = tipoLocacionId === '2'
-        ? await firstValueFrom(this.catalogoService.listarAeroPuertos())
-        : await firstValueFrom(this.catalogoService.listarPuertos());
+        ? await this.catalogosApi.aeropuertos()
+        : await this.catalogosApi.puertos();
       this.locacionesTraslado.set(resp?.data ?? []);
     } catch (e) {
       console.error('Error cargando locaciones de traslado', e);
@@ -437,21 +480,10 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
 
   private getOrCreateTransactionId(): string {
     if (!this.transactionIdCreacion) {
-      this.transactionIdCreacion = this.generateUUID();
+      this.transactionIdCreacion = newUuid();
     }
 
     return this.transactionIdCreacion;
-  }
-
-  private generateUUID(): string {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-      return crypto.randomUUID();
-    }
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-      const r = (Math.random() * 16) | 0;
-      const v = c === 'x' ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
   }
 
   agregarDetalle(): void {
@@ -511,6 +543,11 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
       return value === null || value === undefined || value === '' || Number(value) <= 0;
     }
     return value === null || value === undefined || String(value).trim() === '';
+  }
+
+  /** Un buscador (app-search-select) eligio una opcion. */
+  elegido(campo: string, opcion: { value: string }): void {
+    this.updateField(campo, opcion.value);
   }
 
   updateField(field: string, value: any): void {
@@ -704,7 +741,7 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
 
   async loadDepartamentos(): Promise<void> {
     try {
-      const resp: any = await firstValueFrom(this.catalogoService.listarDepartamentos());
+      const resp: any = await this.catalogosApi.departamentos();
       this.departamentos.set(resp?.data ?? []);
     } catch (e) {
       console.error('Error cargando departamentos', e);
@@ -713,7 +750,7 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
 
   async loadProvinciasPartida(codigoDepartamento: string): Promise<void> {
     try {
-      const resp: any = await firstValueFrom(this.catalogoService.listarProvincias(codigoDepartamento));
+      const resp: any = await this.catalogosApi.provincias(codigoDepartamento);
       this.provinciasPartida.set(resp?.data ?? []);
     } catch (e) {
       console.error('Error cargando provincias partida', e);
@@ -722,7 +759,7 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
 
   async loadDistritosPartida(codigoDepartamento: string, codigoProvincia: string): Promise<void> {
     try {
-      const resp: any = await firstValueFrom(this.catalogoService.listarDistritos(codigoDepartamento, codigoProvincia));
+      const resp: any = await this.catalogosApi.distritos(codigoDepartamento, codigoProvincia);
       this.distritosPartida.set(resp?.data ?? []);
     } catch (e) {
       console.error('Error cargando distritos partida', e);
@@ -731,7 +768,7 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
 
   async loadProvinciasLlegada(codigoDepartamento: string): Promise<void> {
     try {
-      const resp: any = await firstValueFrom(this.catalogoService.listarProvincias(codigoDepartamento));
+      const resp: any = await this.catalogosApi.provincias(codigoDepartamento);
       this.provinciasLlegada.set(resp?.data ?? []);
     } catch (e) {
       console.error('Error cargando provincias llegada', e);
@@ -740,7 +777,7 @@ export class ModalNuevaGuiaManualComponent implements OnChanges, OnInit {
 
   async loadDistritosLlegada(codigoDepartamento: string, codigoProvincia: string): Promise<void> {
     try {
-      const resp: any = await firstValueFrom(this.catalogoService.listarDistritos(codigoDepartamento, codigoProvincia));
+      const resp: any = await this.catalogosApi.distritos(codigoDepartamento, codigoProvincia);
       this.distritosLlegada.set(resp?.data ?? []);
     } catch (e) {
       console.error('Error cargando distritos llegada', e);

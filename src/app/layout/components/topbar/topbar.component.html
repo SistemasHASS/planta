@@ -1,0 +1,101 @@
+<header class="app-topbar">
+  <div class="topbar-left">
+    <button
+      class="topbar-toggle"
+      type="button"
+      [attr.aria-label]="sidebarOpen ? 'Ocultar menú' : 'Mostrar menú'"
+      [attr.aria-expanded]="sidebarOpen"
+      [attr.title]="sidebarOpen ? 'Ocultar menú' : 'Mostrar menú'"
+      (click)="menuToggle.emit()"
+    >
+      <svg lucideMenu class="topbar-icon"></svg>
+    </button>
+
+    <div class="topbar-breadcrumb">
+      <a routerLink="/parametros" aria-label="Inicio"><svg lucideHome class="breadcrumb-icon"></svg></a>
+      <span class="separator">/</span>
+      <span class="current">Sistema de Empaque Planta</span>
+    </div>
+  </div>
+
+  <div class="topbar-right">
+    @if (fruta()) {
+      <button type="button" class="topbar-chip topbar-campania" aria-label="Campaña activa" (click)="modal.set('CAMPANIA')">
+        <span class="chip-icon"><svg lucideTag class="chip-svg"></svg></span>
+        <span class="chip-label">Campaña</span>
+        <span class="chip-value chip-full">{{ fruta() }}</span>
+        <span class="chip-value chip-short">{{ frutaCorta() }}</span>
+      </button>
+    }
+
+    @if (empresa()) {
+      <button type="button" class="topbar-chip topbar-company" aria-label="Razón social" (click)="modal.set('EMPRESA')">
+        <span class="chip-icon"><svg lucideBuilding2 class="chip-svg"></svg></span>
+        <span class="chip-label">Empresa</span>
+        <span class="chip-value chip-full">{{ empresa() }}</span>
+        <span class="chip-value chip-short">{{ empresaCorta() }}</span>
+      </button>
+    }
+
+    @if (tieneAcopio()) {
+      <button type="button" class="topbar-chip topbar-acopio" aria-label="Acopio asignado" (click)="modal.set('ACOPIO')">
+        <span class="chip-icon"><svg lucideMapPin class="chip-svg"></svg></span>
+        <span class="chip-label">Acopio</span>
+        <span class="chip-value chip-full">{{ acopio() }}</span>
+        <span class="chip-value chip-short">{{ acopioCorto() }}</span>
+      </button>
+    }
+
+    <button type="button" class="topbar-chip" [class.online]="connectivity.online()" [class.offline]="!connectivity.online()">
+      <span class="chip-icon">
+        @if (connectivity.online()) {
+          <svg lucideWifi class="chip-svg"></svg>
+        } @else {
+          <svg lucideWifiOff class="chip-svg"></svg>
+        }
+      </span>
+      <span class="chip-value">{{ connectivity.label() }}</span>
+    </button>
+
+    <button type="button" class="topbar-toggle" [attr.aria-label]="tema.esOscuro() ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'" [attr.title]="tema.esOscuro() ? 'Tema claro' : 'Tema oscuro'" (click)="tema.alternar()">
+      @if (tema.esOscuro()) {
+        <svg lucideSun class="topbar-icon"></svg>
+      } @else {
+        <svg lucideMoon class="topbar-icon"></svg>
+      }
+    </button>
+  </div>
+</header>
+
+@if (modal(); as pestana) {
+  <div class="modal modal-open" role="dialog" aria-modal="true">
+    <div class="modal-box max-w-md">
+      <h3 class="mb-3 text-lg font-bold">
+        @switch (pestana) {
+          @case ('CAMPANIA') { Campaña }
+          @case ('ACOPIO') { Acopio }
+          @default { Empresa }
+        }
+      </h3>
+      <div class="space-y-2 text-sm">
+        @switch (pestana) {
+          @case ('CAMPANIA') {
+            <p><strong>Fruta:</strong> {{ fruta() || '—' }}</p>
+            <p><strong>Proyecto:</strong> {{ campania()?.idproyecto || '—' }}</p>
+            <p><strong>Periodo:</strong> {{ periodo() }}</p>
+          }
+          @case ('ACOPIO') {
+            <p><strong>Nombre:</strong> {{ usuario()?.acopioNombre || '—' }}</p>
+            <p><strong>Serie:</strong> {{ usuario()?.serieGuia || '—' }}</p>
+          }
+          @default {
+            <p><strong>Razón social:</strong> {{ empresa() || '—' }}</p>
+            <p><strong>RUC:</strong> {{ usuario()?.ruc || '—' }}</p>
+          }
+        }
+      </div>
+      <div class="modal-action"><button type="button" class="btn" (click)="modal.set(null)"><svg lucideX class="size-4"></svg> Cerrar</button></div>
+    </div>
+    <div class="modal-backdrop" (click)="modal.set(null)"></div>
+  </div>
+}

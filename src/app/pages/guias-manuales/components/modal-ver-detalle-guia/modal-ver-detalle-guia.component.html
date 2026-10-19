@@ -1,275 +1,129 @@
-<div class="modal-backdrop-detalle" (click)="onCerrar()"></div>
-<div class="modal-content-detalle">
-  <div class="modal-header-detalle">
-    <div class="header-left">
-      <i class="bi bi-file-text"></i>
-      <div>
-        <h5 class="modal-title-detalle">Guía de Remisión</h5>
-        <!-- <span class="modal-subtitle" *ngIf="guia()?.codigoGuiaRemision">{{ guia()?.codigoGuiaRemision }}</span> -->
-      </div>
-    </div>
-    <button type="button" class="btn-close btn-close-white" (click)="onCerrar()"></button>
-  </div>
+<div class="modal modal-open" role="dialog" aria-modal="true">
+  <div class="modal-box flex w-full !max-h-full !max-w-6xl flex-col gap-0 overflow-hidden p-0">
 
-  <div class="modal-body-detalle">
-    @if (guia(); as g) {
-
-    <!-- INFO BAR: estado, serie/numero, fecha, proceso -->
-    <div class="guia-info-bar">
-      <div class="info-item info-estado">
-        @if (g.estado === 'ABIERTA') {
-          <span class="badge-estado badge-abierta"><i class="bi bi-circle-fill" style="font-size:6px;"></i> {{ g.estado }}</span>
-        } @else if (g.estado === 'ANULADO') {
-          <span class="badge-estado badge-anulada"><i class="bi bi-x-circle" style="font-size:8px;"></i> {{ g.estado }}</span>
-        } @else {
-          <span class="badge-estado badge-cerrada"><i class="bi bi-check-circle" style="font-size:8px;"></i> {{ g.estado }}</span>
-        }
-      </div>
-      <div class="info-sep"></div>
-      <div class="info-item">
-        <i class="bi bi-globe"></i>
-        <span class="info-label">SUNAT:</span>
-        <span class="info-val">
-          @if (g.estadoSunat) {
-            <span class="badge-sunat" [class]="estadoSunatClass(g.estadoSunat)">{{ estadoSunatLabel(g.estadoSunat) }}</span>
-          } @else {
-            <span class="text-muted">—</span>
-          }
+    <!-- Cabecera -->
+    <div class="flex items-center justify-between gap-3 border-b border-app-border2 px-4 py-1.5 sm:px-5">
+      <div class="flex min-w-0 items-center gap-3">
+        <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md">
+          <svg lucideFileText class="size-5"></svg>
         </span>
+        <div class="min-w-0">
+          <span class="text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Guía de remisión manual</span>
+          <h3 class="truncate text-base font-extrabold leading-tight text-app-heading sm:text-lg">
+            @if (guiaDetalle()?.['numero']) { {{ guiaDetalle()?.['serie'] }} N° {{ guiaDetalle()?.['numero'] }} } @else { <span class="italic text-app-subtle">(borrador)</span> }
+          </h3>
+        </div>
       </div>
-      <div class="info-sep"></div>
-      <div class="info-item">
-        <i class="bi bi-receipt"></i>
-        <span class="info-label">Serie:</span>
-        <span class="info-val info-mono">{{ g.serie || '—' }}</span>
-        <span class="info-label" style="margin-left:4px;">N°:</span>
-        <span class="info-val info-mono">{{ g.numero || '—' }}</span>
-      </div>
-      <div class="info-sep"></div>
-       <div class="info-item">
-        <i class="bi bi-calendar-event"></i>
-        <span class="info-label">Fecha Creación:</span>
-        <span class="info-val">{{ fechaCreacionFmt() }}</span>
-      </div>
-      <div class="info-sep"></div>
-      <div class="info-item">
-        <i class="bi bi-calendar-event"></i>
-        <span class="info-label">Fecha Emisión:</span>
-        <span class="info-val">{{ fechaEmisionFmt() }}</span>
-      </div>
-      <div class="info-sep"></div>
-      <div class="info-item">
-        @if (g.nombreProceso && (g.nombreProceso.includes('NOCHE') || g.nombreProceso.includes('noche'))) {
-          <i class="bi bi-moon-stars-fill" style="color:#818cf8;"></i>
-        } @else if (g.nombreProceso && (g.nombreProceso.includes('DIA') || g.nombreProceso.includes('dia'))) {
-          <i class="bi bi-sun-fill" style="color:#f59e0b;"></i>
-        } @else {
-          <i class="bi bi-gear" style="color:#94a3b8;"></i>
-        }
-        <span class="info-label">Proceso:</span>
-        <span class="info-val">{{ g.nombreProceso || g.codigoProceso || '—' }}</span>
-      </div>
+      <button type="button" class="btn btn-circle btn-ghost size-10 min-h-10 sm:size-8 sm:min-h-8" aria-label="Cerrar" (click)="cerrar.emit()"><svg lucideX class="size-4"></svg></button>
     </div>
 
-    <!-- SECCION DESTINATARIO / TRASLADO -->
-    <div class="guia-section">
-      <div class="section-header-line">
-        <i class="bi bi-geo-alt"></i>
-        <span>Traslado</span>
-        <div class="line"></div>
-      </div>
-      <div class="guia-row">
-        <div class="guia-col">
-          @if (esTrasladoEntreEstablecimientos()) {
-          <div class="guia-row-item">
-            <span class="label">Remitente / Destinatario</span>
-            <span class="value value-strong">{{ g.razonSocialRemitente || g.documentoDestinatario || '—' }}</span>
-          </div>
-          <div class="guia-row-item">
-            <span class="label">Establecimiento Partida</span>
-            <span class="value value-strong">
-              {{ g.idEstablecimientoPartida || '—' }}
-              @if (g.descripcionEstablecimientoPartida) {
-                - {{ g.descripcionEstablecimientoPartida }}
-              }
-            </span>
-          </div>
-          } @else {
-          <div class="guia-row-item">
-            <span class="label">Destinatario</span>
-            <span class="value value-strong">{{ g.nombreDestinatario || g.documentoDestinatario || '—' }}</span>
-          </div>
+    <!-- Cuerpo (con scroll) -->
+    <div class="modal-detalle-cuerpo min-h-0 flex-1 space-y-3 overflow-y-auto break-words bg-app-surface2 px-3 pb-3 pt-2 sm:px-5 sm:pb-5 sm:pt-2.5">
+      @if (guiaDetalle(); as g) {
+
+        <!-- Franja de datos principales -->
+        <section class="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-app-border2 bg-app-surface3 px-4 py-2.5 text-sm">
+          <span [class]="estadoGuiaClass(g['estado'])">{{ g['estado'] }}</span>
+          @if (g['estadoSunat']) {
+            <span [class]="estadoSunatClass(g['estadoSunat'])">SUNAT: {{ estadoSunatLabel(g['estadoSunat']) }}</span>
           }
-          <div class="guia-row-item">
-            <span class="label">Punto Partida</span>
-            <span class="value">{{ g.puntoPartida || '—' }}</span>
-          </div>
-          <div class="guia-row-item">
-            <span class="label">Ubigeo Partida</span>
-            <span class="value">{{ g.ubigeoPartida || '—' }}</span>
-          </div>
-          <div class="guia-row-item">
-            <span class="label">Motivo Traslado</span>
-            <span class="value">{{ motivoTrasladoLabel(g) }}</span>
-          </div>
-          @if (esMotivoOtros() && g.descripcionMotivoTraslado) {
-          <div class="guia-row-item">
-            <span class="label">Descripción Motivo Traslado</span>
-            <span class="value">{{g.descripcionMotivoTraslado}}</span>
-          </div>
-          }
-          <div class="guia-row-item">
-            <span class="label">Fecha Entrega Bienes</span>
-            <span class="value">{{ g.fechaEntregaBienes | date: 'yyyy-MM-dd' }}</span>
-          </div>
-        </div>
-        <div class="guia-col">
-          <div class="guia-row-item">
-            <span class="label">{{ esTrasladoEntreEstablecimientos() ? 'RUC empresa' : 'Ruc' }}</span>
-            <span class="value value-strong">{{ g.documentoDestinatario || '—' }}</span>
-          </div>
-          @if (esTrasladoEntreEstablecimientos()) {
-          <div class="guia-row-item">
-            <span class="label">Establecimiento Llegada</span>
-            <span class="value value-strong">
-              {{ g.idEstablecimientoLlegada || '—' }}
-              @if (g.descripcionEstablecimientoLlegada) {
-                - {{ g.descripcionEstablecimientoLlegada }}
-              }
-            </span>
-          </div>
-          }
-          <div class="guia-row-item">
-            <span class="label">Punto Llegada</span>
-            <span class="value">{{ g.puntoLlegada || '—' }}</span>
-          </div>
-          <div class="guia-row-item">
-            <span class="label">Ubigeo Llegada</span>
-            <span class="value">{{ g.ubigeoLlegada || '—' }}</span>
-          </div>
-          @if (esTrasladoEntreEstablecimientos()) {
-          <div class="guia-row-item">
-            <span class="label">Código SUNAT Llegada</span>
-            <span class="value">{{ g.codigoEstablecimientoSunatLlegada || '—' }}</span>
-          </div>
-          }
-        </div>
-      </div>
-    </div>
+          <span class="text-app-muted">Creación <strong class="ml-1 text-app-heading">{{ fechaCreacion() }}</strong></span>
+          <span class="text-app-muted">Emisión <strong class="ml-1 text-app-heading">{{ fechaEmision() }}</strong></span>
+        </section>
 
-    <!-- SECCION TRANSPORTE -->
-    <div class="guia-section">
-      <div class="section-header-line">
-        <i class="bi bi-truck"></i>
-        <span>Transporte</span>
-        <div class="line"></div>
-      </div>
-      <div class="guia-row guia-row-2">
-        <div class="guia-col">
-          <div class="guia-row-item">
-            <span class="label">Transportista</span>
-            <span class="value value-strong">{{ g.razonSocialTransportista || (g.idTransportista ?? '—') }}</span>
-          </div>
-          <div class="guia-row-item">
-            <span class="label">Conductor</span>
-            <span class="value value-strong">{{ g.nombreCompletoConductor || (g.idConductor ?? '—') }}</span>
-          </div>
-        </div>
-        <div class="guia-col">
-          <div class="guia-row-item">
-            <span class="label">Vehículo</span>
-            <span class="value value-strong">{{ g.placaPrincipalVehiculo || (g.idVehiculo ?? '—') }}</span>
-          </div>
-          <div class="guia-row-item">
-            <span class="label">Precinto</span>
-            <span class="value">{{ g.precinto || '—' }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- SECCION RESUMEN: Carga + Observaciones -->
-    <div class="guia-section guia-section-resumen">
-      <div class="section-header-line">
-        <i class="bi bi-clipboard-data"></i>
-        <span>Resumen</span>
-        <div class="line"></div>
-      </div>
-
-      <!-- Carga badges -->
-      <div class="resumen-carga">
-        <div class="resumen-badge">
-          <i class="bi bi-layers"></i>
-          <span class="resumen-val">{{ g.cantidad ?? 0 }}</span>
-          <span class="resumen-lbl">Cantidad</span>
-        </div>
-        <div class="resumen-sep"></div>
-        <div class="resumen-badge">
-          <i class="bi bi-speedometer2"></i>
-          <span class="resumen-val">{{ g.pesoTotal ?? 0 }}<small>kg</small></span>
-          <span class="resumen-lbl">Peso</span>
-        </div>
-      </div>
-
-      <!-- Observaciones inline -->
-      @if (g.observacionesUsuario) {
-      <div class="resumen-observaciones">
-        <span class="resumen-obs-item"><i class="bi bi-person"></i><span class="obs-label">Obs. Usuario:</span> {{ g.observacionesUsuario }}</span>
-      </div>
-      }
-    </div>
-
-    <!-- DETALLE -->
-    <div class="guia-section guia-section-palets">
-      <div class="section-header-line">
-        <i class="bi bi-list-check"></i>
-        <span>Detalle</span>
-        <div class="line"></div>
-      </div>
-      @if (tieneDetalle()) {
-      <div class="table-responsive-detalle">
-        <table class="detalle-table">
-          <thead>
-            <tr>
-              <th>Código</th>
-              <th>Descripción</th>
-              <th>Unidad Medida</th>
-              <th class="text-center">Cantidad</th>
-              <th class="text-center">Peso Estimado (kg)</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (d of detallePalets(); track d.id) {
-            <tr>
-              <td>{{ d.codigoItem || '—' }}</td>
-              <td>{{ d.descripcion || '—' }}</td>
-              <td>{{ d.unidadMedida || '—' }}</td>
-              <td class="text-center"><strong>{{ d.cantidad }}</strong></td>
-              <td class="text-center"><strong>{{ d.pesoEstimado || 0 }}</strong></td>
-            </tr>
+        <!-- Traslado -->
+        <section class="rounded-2xl border border-tint-emerald-border bg-tint-emerald px-4 py-3">
+          <h4 class="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-emerald-800 dark:text-emerald-300"><svg lucideMapPin class="size-4 text-emerald-600 dark:text-emerald-300"></svg> Traslado</h4>
+          <dl class="grid grid-cols-1 gap-x-8 gap-y-2.5 text-sm sm:grid-cols-2">
+            @if (esTrasladoEntreEstablecimientos()) {
+              <div><dt class="text-[11px] font-semibold uppercase text-app-subtle">Remitente / Destinatario</dt><dd class="font-semibold text-app-heading">{{ g['razonSocialRemitente'] || g['documentoDestinatario'] || '—' }}</dd></div>
+            } @else {
+              <div><dt class="text-[11px] font-semibold uppercase text-app-subtle">Destinatario</dt><dd class="font-semibold text-app-heading">{{ g['nombreDestinatario'] || g['documentoDestinatario'] || '—' }}</dd></div>
             }
-          </tbody>
-        </table>
-      </div>
-      } @else {
-      <div class="empty-detalle">
-        <i class="bi bi-inbox"></i>
-        <span>No hay detalle para esta guía</span>
-      </div>
+            <div><dt class="text-[11px] font-semibold uppercase text-app-subtle">{{ esTrasladoEntreEstablecimientos() ? 'RUC empresa' : 'RUC' }}</dt><dd class="font-semibold text-app-heading">{{ g['documentoDestinatario'] || '—' }}</dd></div>
+
+            <div>
+              <dt class="text-[11px] font-semibold uppercase text-app-subtle">Punto de partida</dt>
+              <dd class="text-app-heading">
+                @if (esTrasladoEntreEstablecimientos()) { <span class="font-semibold">{{ g['idEstablecimientoPartida'] || '—' }}@if (g['descripcionEstablecimientoPartida']) { - {{ g['descripcionEstablecimientoPartida'] }} }</span><br /> }
+                {{ g['puntoPartida'] || '—' }} <span class="text-xs text-app-muted">· Ubigeo {{ g['ubigeoPartida'] || '—' }}</span>
+              </dd>
+            </div>
+            <div>
+              <dt class="text-[11px] font-semibold uppercase text-app-subtle">Punto de llegada</dt>
+              <dd class="text-app-heading">
+                @if (esTrasladoEntreEstablecimientos()) { <span class="font-semibold">{{ g['idEstablecimientoLlegada'] || '—' }}@if (g['descripcionEstablecimientoLlegada']) { - {{ g['descripcionEstablecimientoLlegada'] }} }</span><br /> }
+                {{ g['puntoLlegada'] || '—' }} <span class="text-xs text-app-muted">· Ubigeo {{ g['ubigeoLlegada'] || '—' }}</span>
+                @if (esTrasladoEntreEstablecimientos() && g['codigoEstablecimientoSunatLlegada']) { <span class="text-xs text-app-muted"> · Código SUNAT {{ g['codigoEstablecimientoSunatLlegada'] }}</span> }
+              </dd>
+            </div>
+
+            <div><dt class="text-[11px] font-semibold uppercase text-app-subtle">Motivo de traslado</dt><dd class="text-app-heading">{{ motivoTrasladoLabel(g) }}@if (esMotivoOtros() && g['descripcionMotivoTraslado']) { <span class="text-app-muted"> · {{ g['descripcionMotivoTraslado'] }}</span> }</dd></div>
+            <div><dt class="text-[11px] font-semibold uppercase text-app-subtle">Fecha entrega de bienes</dt><dd class="text-app-heading">{{ g['fechaEntregaBienes'] ? ('' + g['fechaEntregaBienes']).substring(0, 10) : '—' }}</dd></div>
+          </dl>
+        </section>
+
+        <!-- Transporte -->
+        <section class="rounded-2xl border border-tint-sky-border bg-tint-sky px-4 py-3">
+          <h4 class="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-sky-800 dark:text-sky-300"><svg lucideTruck class="size-4 text-sky-600 dark:text-sky-300"></svg> Transporte</h4>
+          <dl class="grid grid-cols-2 gap-x-8 gap-y-2.5 text-sm lg:grid-cols-4">
+            <div><dt class="text-[11px] font-semibold uppercase text-app-subtle">Transportista</dt><dd class="font-semibold text-app-heading">{{ g['razonSocialTransportista'] || (g['idTransportista'] ?? '—') }}</dd></div>
+            <div><dt class="text-[11px] font-semibold uppercase text-app-subtle">Vehículo</dt><dd class="font-semibold text-app-heading">{{ g['placaPrincipalVehiculo'] || (g['idVehiculo'] ?? '—') }}</dd></div>
+            <div><dt class="text-[11px] font-semibold uppercase text-app-subtle">Conductor</dt><dd class="font-semibold text-app-heading">{{ g['nombreCompletoConductor'] || (g['idConductor'] ?? '—') }}</dd></div>
+            <div><dt class="text-[11px] font-semibold uppercase text-app-subtle">Precinto</dt><dd class="text-app-heading">{{ g['precinto'] || '—' }}</dd></div>
+          </dl>
+        </section>
+
+        <!-- Resumen -->
+        <section class="rounded-2xl border border-violet-200 bg-violet-50/50 dark:border-violet-500/30 dark:bg-violet-500/10 dark:border-violet-500/30 dark:bg-violet-500/10 px-4 py-3">
+          <h4 class="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-violet-800 dark:text-violet-300"><svg lucideClipboardList class="size-4 text-violet-600 dark:text-violet-300"></svg> Resumen</h4>
+          <div class="flex flex-wrap items-baseline gap-x-6 gap-y-1">
+            <span><span class="text-lg font-extrabold tabular-nums text-emerald-700 dark:text-emerald-300">{{ g['cantidad'] ?? 0 }}</span> <span class="text-[11px] font-semibold uppercase tracking-wide text-app-muted">Cantidad</span></span>
+            <span><span class="text-lg font-extrabold tabular-nums text-emerald-700 dark:text-emerald-300">{{ g['pesoTotal'] ?? 0 }}</span><span class="text-xs text-app-muted">kg</span> <span class="text-[11px] font-semibold uppercase tracking-wide text-app-muted">Peso</span></span>
+          </div>
+          @if (g['observacionesUsuario']) {
+            <div class="mt-2.5 border-t border-dashed border-app-border2 pt-2.5 text-xs text-app-text2">
+              <p><strong>Obs. usuario:</strong> {{ g['observacionesUsuario'] }}</p>
+            </div>
+          }
+        </section>
+
+        <!-- Detalle de ítems -->
+        <section class="overflow-hidden rounded-2xl border border-tint-amber-border bg-tint-amber">
+          <h4 class="flex items-center gap-2 px-4 pt-3 text-xs font-bold uppercase tracking-wide text-amber-800 dark:text-amber-300"><svg lucidePackage class="size-4 text-amber-600 dark:text-amber-300"></svg> Detalle</h4>
+          @if (detalle().length > 0) {
+            <div class="tabla-scroll tabla-scroll-modal mt-2 border-t border-tint-amber-border bg-app-surface">
+              <table class="table table-xs [&_td]:py-1.5">
+                <thead>
+                  <tr class="text-[11px] font-bold uppercase tracking-wide text-app-text2"><th>Código</th><th>Descripción</th><th>Unidad de medida</th><th class="text-right">Cantidad</th><th class="text-right">Peso estimado (kg)</th></tr>
+                </thead>
+                <tbody>
+                  @for (d of detalle(); track d['id'] ?? $index) {
+                    <tr class="hover:bg-app-surface2">
+                      <td class="whitespace-nowrap font-medium">{{ d['codigoItem'] || '—' }}</td>
+                      <td>{{ d['descripcion'] || '—' }}</td>
+                      <td class="whitespace-nowrap">{{ d['unidadMedida'] || '—' }}</td>
+                      <td class="whitespace-nowrap text-right tabular-nums"><strong>{{ d['cantidad'] }}</strong></td>
+                      <td class="whitespace-nowrap text-right tabular-nums"><strong>{{ d['pesoEstimado'] || 0 }}</strong></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="m-3 flex flex-col items-center gap-1 rounded-xl bg-app-surface p-4 text-sm text-app-muted">
+              <svg lucideInbox class="size-6"></svg>
+              No hay detalle para esta guía
+            </div>
+          }
+        </section>
       }
     </div>
 
-    } @else {
-    <div class="loading-detalle">
-      <div class="spinner-border text-primary"></div>
-      <span>Cargando detalle...</span>
+    <!-- Pie -->
+    <div class="flex justify-end border-t border-app-border2 bg-app-surface px-4 py-2.5 sm:px-5">
+      <button type="button" class="btn btn-sm" (click)="cerrar.emit()"><svg lucideX class="size-4"></svg> Cerrar</button>
     </div>
-    }
   </div>
-
-  <div class="modal-footer-detalle">
-    <button type="button" class="btn btn-outline-secondary" (click)="onCerrar()">
-      <i class="bi bi-x-lg"></i> Cerrar
-    </button>
-  </div>
+  <div class="modal-backdrop bg-black/40" (click)="cerrar.emit()"></div>
 </div>

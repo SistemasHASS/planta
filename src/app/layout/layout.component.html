@@ -1,197 +1,21 @@
-<div class="app-layout" [class.sidebar-collapsed]="sidebarCollapsed()">
-  <!-- Sidebar Overlay (mobile) -->
-  <div class="sidebar-overlay" [class.show]="sidebarOpen()" (click)="closeSidebar()"></div>
+<div class="app-layout">
+  <app-sidebar [open]="sidebarOpen()" (closed)="closeSidebar()" />
 
-  <!-- Sidebar -->
-  <aside class="app-sidebar" [class.show]="sidebarOpen()" [class.collapsed]="sidebarCollapsed()">
-    <!-- User Header -->
-    <div class="sidebar-header">
-      <button type="button" class="sidebar-mobile-close" aria-label="Cerrar menú" (click)="closeSidebar()">
-        <i class="bi bi-x-lg"></i>
-      </button>
-      <img class="sidebar-profile-image" src="images/favicon.svg" alt="Perfil" />
-      <div class="sidebar-profile-greeting">Hola</div>
-      <div class="sidebar-profile-name" [attr.title]="nombreCompleto()">{{ nombreCompleto() }}</div>
-      <div class="sidebar-profile-role">{{ perfilName() }}</div>
-      <div class="sidebar-app-version">v{{ appVersion }}</div>
-    </div>
-
-    <div class="sidebar-body">
-      <!-- Navigation -->
-      <nav class="sidebar-nav">
-        @for (section of navSections(); track $index) {
-          <div class="sidebar-section">
-            @if (section.title) {
-              <div class="sidebar-section-title">{{ section.title }}</div>
-            }
-            @for (item of section.items; track item.path) {
-              @if (item.submenu) {
-                <!-- Item with submenu -->
-                <a [href]="item.path"
-                   class="sidebar-link sidebar-submenu-toggle"
-                   [class.active]="submenuOpen() === item.path"
-                   (click)="toggleSubmenu(item.path); $event.preventDefault()">
-                  <i class="bi" [class]="item.icon"></i>
-                  <span>{{ item.label }}</span>
-                </a>
-                <div class="sidebar-submenu" [class.show]="submenuOpen() === item.path">
-                  @for (subitem of item.submenu; track subitem.path) {
-                    <a [routerLink]="subitem.path"
-                       routerLinkActive="active"
-                       class="sidebar-link"
-                       (click)="closeSidebar()">
-                      <i class="bi" [class]="subitem.icon"></i>
-                      <span>{{ subitem.label }}</span>
-                    </a>
-                  }
-                </div>
-              } @else {
-                <!-- Regular item -->
-                <a [routerLink]="item.path"
-                   routerLinkActive="active"
-                   [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' }"
-                   class="sidebar-link"
-                   (click)="closeSidebar()">
-                  <i class="bi" [class]="item.icon"></i>
-                  <span>{{ item.label }}</span>
-                </a>
-              }
-            }
-          </div>
-        }
-      </nav>
-    </div>
-
-    <!-- Footer -->
-    <div class="sidebar-footer">
-      <button type="button" class="sidebar-logout" (click)="logout()">
-        <i class="bi bi-box-arrow-right"></i>
-        Cerrar sesión
-      </button>
-    </div>
-  </aside>
-
-  <!-- Main Content -->
   <div class="app-main">
-    <!-- Topbar -->
-    <div class="app-topbar">
-      <button
-        class="topbar-toggle"
-        type="button"
-        [attr.aria-expanded]="sidebarExpanded()"
-        [attr.aria-label]="sidebarExpanded() ? 'Ocultar menú lateral' : 'Mostrar menú lateral'"
-        [attr.title]="sidebarExpanded() ? 'Ocultar menú lateral' : 'Mostrar menú lateral'"
-        (click)="toggleSidebar()">
-        <i class="bi" [class.bi-layout-sidebar-inset]="sidebarExpanded()" [class.bi-layout-sidebar-inset-reverse]="!sidebarExpanded()"></i>
-      </button>
+    <app-topbar [sidebarOpen]="sidebarOpen()" (menuToggle)="toggleSidebar()" />
 
-      <div class="topbar-breadcrumb">
-        <a routerLink="/dashboard"><i class="bi bi-house-door"></i></a>
-        <span class="separator"><i class="bi bi-chevron-right"></i></span>
-        <span class="current">Sistema de Empaque Planta</span>
-      </div>
-
-      <div class="topbar-right">
-        @if (campaniaFrutaLabel()) {
-          <button type="button" class="conn-status campania-chip" aria-label="Campaña activa" (click)="abrirTopbarModal('CAMPANIA')">
-            <span class="conn-status-icon topbar-info-btn" aria-hidden="true">
-              <i class="bi bi-tag-fill"></i>
-            </span>
-            <span class="conn-status-text d-none d-lg-inline">Campaña</span>
-            <span class="campania-chip-value d-none d-lg-inline">{{ campaniaFrutaLabel() }}</span>
-            <span class="campania-chip-value d-inline d-lg-none">{{ getCampaniaResumen() }}</span>
-          </button>
-        }
-
-        @if (razonSocialLabel()) {
-          <button type="button" class="conn-status topbar-empresa" aria-label="Razón social" (click)="abrirTopbarModal('EMPRESA')">
-            <span class="conn-status-icon topbar-info-btn" aria-hidden="true">
-              <i class="bi bi-building"></i>
-            </span>
-            <span class="conn-status-text d-none d-lg-inline">Empresa</span>
-            <span class="topbar-empresa-value d-none d-lg-inline">{{ razonSocialLabel() }}</span>
-            <span class="topbar-empresa-value d-inline d-lg-none">{{ getRazonSocialResumen() }}</span>
-          </button>
-        }
-
-        @if (usuario()?.codigoAcopio !== '0') {
-          <button type="button" class="conn-status topbar-acopio" aria-label="Acopio asignado" (click)="abrirTopbarModal('ACOPIO')">
-            <span class="conn-status-icon topbar-info-btn" aria-hidden="true">
-              <i class="bi bi-geo-alt-fill"></i>
-            </span>
-            <span class="conn-status-text d-none d-lg-inline">Acopio</span>
-            <span class="topbar-acopio-value d-none d-lg-inline">{{ usuario()?.acopioNombre }} - {{ usuario()?.serieGuia }}</span>
-            <span class="topbar-acopio-value d-inline d-lg-none">{{ getAcopioResumen() }}</span>
-          </button>
-        }
-
-        <button type="button"
-                class="conn-status"
-                [class.conn-status-online]="online"
-                [class.conn-status-offline]="!online"
-                [attr.title]="online ? 'Conectado' : 'Sin conexión'">
-          <span class="conn-status-icon">
-            <i class="bi" [class.bi-wifi]="online" [class.bi-wifi-off]="!online"></i>
-          </span>
-          <span class="conn-status-text d-none d-lg-inline">
-            {{ online ? 'Conectado' : 'Sin conexión' }}
-          </span>
-        </button>
-
-      </div>
-    </div>
-
-    @if (topbarInfoModalAbierto()) {
-      <div class="modal-backdrop-custom" (click)="cerrarTopbarModal()"></div>
-      <div class="modal-custom" role="dialog" aria-modal="true">
-        <div class="modal-header-custom">
-          <h5>
-            @if (topbarInfoModalTab() === 'CAMPANIA') {
-              <i class="bi bi-tag-fill"></i> Campaña
-            } @else if (topbarInfoModalTab() === 'ACOPIO') {
-              <i class="bi bi-geo-alt-fill"></i> Acopio
-            } @else {
-              <i class="bi bi-building"></i> Empresa
-            }
-          </h5>
-          <button type="button" class="btn-close btn-close-white" (click)="cerrarTopbarModal()" aria-label="Close"></button>
-        </div>
-        <div class="modal-body-custom">
-          <div class="sp-card" style="margin-bottom:0">
-            <div class="sp-card-body">
-              @if (topbarInfoModalTab() === 'CAMPANIA') {
-                <div class="mb-2"><strong>Fruta:</strong> {{ campaniaFrutaLabel() || '—' }}</div>
-                <div class="mb-2"><strong>Proyecto:</strong> {{ selectedCampania()?.idproyecto || savedConfig()?.idProyecto || '—' }}</div>
-                <div><strong>Periodo:</strong> {{ fmtDate(selectedCampania()?.fecha_inicio) }} — {{ fmtDate(selectedCampania()?.fecha_fin) }}</div>
-              } @else if (topbarInfoModalTab() === 'ACOPIO') {
-                <div class="mb-2"><strong>Nombre:</strong> {{ usuario()?.acopioNombre || '—' }}</div>
-                <div><strong>Serie:</strong> {{ usuario()?.serieGuia || '—' }}</div>
-              } @else {
-                <div class="mb-2"><strong>Razón social:</strong> {{ razonSocialLabel() || '—' }}</div>
-                <div><strong>RUC:</strong> {{ usuario()?.ruc || '—' }}</div>
-              }
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer-custom">
-          <button type="button" class="btn btn-sp-outline" (click)="cerrarTopbarModal()">Cerrar</button>
-        </div>
-      </div>
-    }
-
-    <!-- Page Content -->
-    <div class="app-content">
-      @if (perfil() === 'COORDINACION') {
-        <div class="readonly-banner">
-          <i class="bi bi-eye-fill"></i> Modo solo lectura — Coordinación
+    <main class="app-content">
+      @if (offlineBlocked()) {
+        <div class="offline-notice" role="alert">
+          <svg lucideWifiOff class="offline-icon"></svg>
+          <h2>Sin conexion</h2>
+          <p>Esta pagina solo esta permitida de manera online.</p>
+          <span>Conectate a internet para usarla.</span>
         </div>
       }
-      <router-outlet />
-    </div>
+      <div class="page-slot" [class.is-hidden]="offlineBlocked()"><router-outlet /></div>
+    </main>
 
-    <!-- Footer -->
-    <footer class="app-footer">
-      &copy; {{ currentYear }} Sistema de Empaque Planta — Hass Perú
-    </footer>
+    <footer class="app-footer">&copy; {{ currentYear }} Sistema de Empaque Planta - Hass Perú S.A.</footer>
   </div>
 </div>

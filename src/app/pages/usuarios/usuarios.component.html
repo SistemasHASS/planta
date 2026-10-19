@@ -1,66 +1,114 @@
-<div class="page-title-area">
-  <h2><i class="bi bi-people-fill" style="color:var(--color-primary)"></i> Gestión de Usuarios</h2>
-  <p class="page-subtitle">Administración de cuentas de acceso al sistema</p>
-</div>
-
-<div class="sp-card catalogos-card">
-  <div class="sp-card-body" style="padding:16px">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-      <div style="min-width:260px;flex:1">
-        <input
-          class="form-control"
-          id="usuariosSearch"
-          name="usuariosSearchFilter"
-          type="search"
-          autocomplete="off"
-          autocapitalize="off"
-          autocorrect="off"
-          spellcheck="false"
-          placeholder="Buscar usuario, nombre, perfil..."
-          [ngModel]="searchTerm()"
-          (ngModelChange)="onSearchChange($event)"
-        />
-      </div>
-
-      <button type="button" class="btn btn-success" (click)="onSincronizar()">
-        <i class="bi bi-arrow-repeat"></i> Sincronizar
-      </button>
-
-      <div class="d-flex align-items-center gap-2 flex-wrap" style="justify-content:flex-end">
-        <a type="button" class="btn btn-sm btn-sp-outline" (click)="toggleMostrarTodos()">
-          <i class="bi" [class.bi-eye-slash]="mostrarTodos()" [class.bi-eye]="!mostrarTodos()"></i>
-          {{ mostrarTodos() ? 'Solo activos' : 'Ver todos' }}
-        </a>
-
-        <!-- <button type="button" class="btn-sp-primary" (click)="abrirNuevo()">
-          <i class="bi bi-plus-lg"></i> Nuevo Usuario
-        </button> -->
-      </div>
+<section class="w-full space-y-4 p-4 sm:p-6">
+  <header class="flex items-center gap-3">
+    <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md">
+      <svg lucideUsers class="size-6"></svg>
+    </span>
+    <div class="min-w-0">
+      <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Administración</span>
+      <h1 class="text-xl font-extrabold leading-tight text-app-heading sm:text-2xl">Gestión de usuarios</h1>
+      <p class="text-sm text-app-muted">Acopio y serie de guía asignados a cada usuario.</p>
     </div>
-  </div>
+  </header>
 
-  <div class="sp-card-body" style="padding:0">
-    @if (isLoading()) {
-      <div class="text-center py-4">
-        <span class="spinner-border text-primary"></span>
-        <p class="mt-2" style="color:var(--color-text-muted);font-size:13px">Cargando usuarios...</p>
+  @if (online()) {
+    <div class="rounded-2xl border border-app-border2 bg-app-surface shadow-sm">
+      <!-- Título, contador y acciones -->
+      <div class="flex flex-wrap items-center justify-between gap-3 px-4 pt-4">
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 class="text-sm font-bold uppercase tracking-wide text-app-text2">Usuarios</h2>
+          <span class="badge badge-soft badge-success">{{ usuariosFiltrados().length }} {{ usuariosFiltrados().length === 1 ? 'registro' : 'registros' }}</span>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" (click)="cargarUsuarios()"><svg lucideRefreshCcw class="size-4"></svg> Actualizar</button>
       </div>
-    } @else {
-      <app-usuarios-tabla
-        [items]="filteredItems()"
-        (editar)="abrirEditar($event)"
-        (toggleActivo)="onToggleActivo($event)"
-        (eliminar)="onEliminar($event)"
-      />
-    }
-  </div>
-</div>
 
-@if (modalAbierto()) {
-  <app-usuarios-modal
-    [modo]="modalModo()"
-    [value]="modalValue()"
-    (cerrar)="cerrarModal()"
-    (guardar)="guardarModal($event)"
-  />
+      <!-- Filtros -->
+      <div class="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_13rem_13rem] lg:items-end">
+        <label class="block min-w-0">
+          <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Buscar</span>
+          <span class="flex h-[42px] items-center gap-2 rounded-[9px] border border-app-border2 bg-app-surface px-3 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100 dark:focus-within:ring-emerald-500/25">
+            <svg lucideSearch class="size-4 shrink-0 text-app-subtle"></svg>
+            <input type="text" class="min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-app-subtle sm:text-[14px]" placeholder="Usuario, nombre, perfil o acopio" aria-label="Buscar" [ngModel]="filtroTexto()" (ngModelChange)="filtroTexto.set($event)" />
+            @if (filtroTexto()) {
+              <button type="button" class="grid size-5 shrink-0 place-items-center rounded-full text-app-subtle hover:bg-app-surface3 hover:text-app-text2" aria-label="Borrar texto" (click)="filtroTexto.set('')"><svg lucideX class="size-3.5"></svg></button>
+            }
+          </span>
+        </label>
+        <div class="min-w-0">
+          <app-search-multi-select label="Perfil" placeholder="Todos los perfiles" [showSelectAll]="true" sortOrder="none" [options]="perfilOpciones()" [values]="perfilesElegidos()" (valuesChange)="perfilesElegidos.set($event); paginacion.page.set(1)" />
+        </div>
+        <div class="min-w-0">
+          <app-search-multi-select label="Acopio" placeholder="Todos los acopios" [showSelectAll]="true" sortOrder="none" [options]="acopioOpciones()" [values]="acopiosElegidos()" (valuesChange)="acopiosElegidos.set($event); paginacion.page.set(1)" />
+        </div>
+      </div>
+
+      @if (usuariosFiltrados().length > 0) {
+        <div class="tabla-scroll border-t border-app-border2">
+          <table class="table table-sm table-pin-rows [&_td]:align-middle [&_td]:py-3 [&_thead_th]:!py-3 [&_thead_th]:!text-app-text2 [&_thead_th]:!shadow-[inset_0_-2px_0_var(--tint-emerald-border)]">
+            <thead>
+              <tr class="text-[11px] font-bold uppercase tracking-wide">
+                <th>Usuario</th>
+                <th>Nombre</th>
+                <th>Perfil</th>
+                <th>Acopio</th>
+                <th>Serie guía</th>
+                <th>Estado</th>
+                <th class="text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (u of paginacion.paged(); track u.id + u.idRol) {
+                <!-- Doble clic (o un toque en celular) = editar -->
+                <tr class="cursor-pointer border-t border-app-border hover:bg-app-surface2" title="Doble clic (o un toque en celular) para editar" (click)="alTocarFila(u)" (dblclick)="alHacerDobleClicFila(u)">
+                  <td class="whitespace-nowrap font-semibold text-app-heading">{{ u.usuario }}</td>
+                  <td class="min-w-[14rem] text-app-heading">{{ u.nombre }}</td>
+                  <td>
+                    <span class="badge badge-soft gap-1 whitespace-nowrap font-semibold" [class]="clasePerfil(u.idRol)">
+                      @switch (u.idRol.toUpperCase()) {
+                        @case ('ADPLA') { <svg lucideShieldCheck class="size-3.5"></svg> }
+                        @case ('LOPLA') { <svg lucidePackage class="size-3.5"></svg> }
+                        @case ('MOPLA') { <svg lucideMonitor class="size-3.5"></svg> }
+                        @case ('GMPLA') { <svg lucideSquarePen class="size-3.5"></svg> }
+                        @case ('COPLA') { <svg lucideEye class="size-3.5"></svg> }
+                        @case ('OPPLA') { <svg lucideChartColumn class="size-3.5"></svg> }
+                        @default { <svg lucideCircleHelp class="size-3.5"></svg> }
+                      }
+                      {{ nombrePerfil(u.idRol) }}
+                    </span>
+                  </td>
+                  <td class="min-w-[12rem]">
+                    @if (u.codigoAcopio) { <span class="text-app-heading">{{ u.acopioNombre || u.codigoAcopio }}</span> } @else { <span class="text-xs text-app-subtle">Sin acopio</span> }
+                  </td>
+                  <td>
+                    @if (u.serieGuia) { <span class="badge badge-soft badge-neutral font-mono">{{ u.serieGuia }}</span> } @else { <span class="text-xs text-app-subtle">Sin serie</span> }
+                  </td>
+                  <td><span class="badge badge-soft badge-success">Activo</span></td>
+                  <td (click)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()">
+                    <div class="flex items-center justify-end gap-1">
+                      <button type="button" class="btn btn-xs btn-square btn-warning" title="Editar" aria-label="Editar" (click)="editar(u)"><svg lucidePencil class="size-3.5"></svg></button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <app-paginator [total]="usuariosFiltrados().length" [(page)]="paginacion.page" [(pageSize)]="paginacion.pageSize" />
+      } @else {
+        <div class="grid place-items-center gap-2 border-t border-app-border2 p-10 text-center text-app-muted">
+          <svg lucideInbox class="size-10 opacity-40"></svg>
+          <p>No se encontraron usuarios</p>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="grid place-items-center gap-2 rounded-2xl border border-app-border2 bg-app-surface p-12 text-center shadow-sm">
+      <svg lucideWifiOff class="size-12 text-amber-500"></svg>
+      <p class="text-base font-bold text-app-text2">Sin conexión a internet</p>
+      <p class="max-w-md text-sm text-app-muted">La gestión de usuarios solo está disponible en modo online. Conéctate a internet para continuar.</p>
+    </div>
+  }
+</section>
+
+@if (editando(); as u) {
+  <app-modal-editar-usuario [usuario]="u" [idProyecto]="cfg()?.idProyecto ?? ''" (saved)="alGuardar($event)" (closed)="editando.set(null)" />
 }

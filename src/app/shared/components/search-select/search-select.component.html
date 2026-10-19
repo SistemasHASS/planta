@@ -1,0 +1,107 @@
+<div
+  class="field-shell"
+  [class.is-disabled]="disabled"
+  [class.is-open]="opened()"
+  [class.is-drop-up]="dropUp"
+  [class.is-invalid]="invalid"
+>
+  <label class="field-label">
+    @if (required) {
+      <span>*</span>
+    }
+    {{ label }}
+  </label>
+
+  <div class="select-anchor">
+    <button
+      type="button"
+      class="select-control"
+      [class.is-open]="opened()"
+      [class.has-value]="current()"
+      [class.is-invalid]="invalid"
+      [disabled]="disabled"
+      [attr.aria-expanded]="opened()"
+      aria-haspopup="listbox"
+      (click)="toggle()"
+      (keydown)="onKeydown($event)"
+    >
+      <span class="select-value">{{ displayLabel() }}</span>
+      <span class="select-actions">
+        @if (current() && !disabled) {
+          <button
+            type="button"
+            class="clear-selection"
+            aria-label="Limpiar selección"
+            title="Limpiar selección"
+            (click)="clear($event)"
+          >
+            <svg lucideX></svg>
+          </button>
+        }
+        <svg lucideChevronDown class="select-chevron"></svg>
+      </span>
+    </button>
+
+    @if (opened() && !disabled) {
+      <div
+        #panel
+        class="select-panel"
+        (click)="$event.stopPropagation()"
+        (keydown)="onKeydown($event)"
+      >
+        <div class="search-box">
+          <svg lucideSearch class="search-icon"></svg>
+          <input
+            #searchInput
+            type="text"
+            class="search-input"
+            placeholder="Buscar..."
+            [ngModel]="search()"
+            (ngModelChange)="updateSearch($event)"
+            autocomplete="off"
+          />
+        </div>
+
+        <div #optionList class="option-list" role="listbox">
+          @for (
+            option of filteredOptions();
+            track option.value;
+            let index = $index
+          ) {
+            <button
+              #optionItem
+              type="button"
+              class="option-item"
+              role="option"
+              [class.selected]="isSelected(option)"
+              [class.active]="isActive(index)"
+              [class.tone-done]="option.tone === 'done'"
+              [attr.aria-selected]="isSelected(option)"
+              (mouseenter)="activeIndex.set(index)"
+              (click)="choose(option)"
+            >
+              <span class="option-text">
+                @if (option.tone === 'pending') {
+                  <i class="option-dot" aria-hidden="true"></i>
+                }
+                <span class="option-label">{{ option.label }}</span>
+              </span>
+              @if (option.badge) {
+                <small class="option-sub" [style.color]="option.badgeColor ?? null">{{ option.badge }}</small>
+              }
+              @if (isSelected(option)) {
+                <svg lucideCheck class="check-icon"></svg>
+              }
+            </button>
+          } @empty {
+            <div class="empty-state">Sin resultados</div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (hint) {
+    <p class="field-hint">{{ hint }}</p>
+  }
+</div>

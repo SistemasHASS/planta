@@ -1,501 +1,267 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
-
-import { AlertService } from '../../shared/services/alert.service';
-import { ConnectivityService } from '../../shared/services/connectivity.service';
-import { AdministracionService } from '../../shared/services/administracion.service';
-import { AdministracionRepository } from '../../shared/dexiedb/repository/administracion.repository';
+import { LucideChevronDown, LucideListFilter, LucideGauge, LucideInbox, LucidePencil, LucidePlus, LucidePower, LucideRefreshCcw, LucideSearch, LucideWifiOff, LucideX } from '@lucide/angular';
+import { PaginatorComponent } from '../../shared/components/paginator/paginator.component';
+import { SearchMultiSelectComponent } from '../../shared/components/search-multi-select/search-multi-select.component';
+import { SearchSelectComponent, SearchSelectOption } from '../../shared/components/search-select/search-select.component';
 import { CatalogosRepository } from '../../shared/dexiedb/repository/catalogos.repository';
-
-import { Configuracion, ReglaSobrePeso } from '../../shared/interfaces/administracion.interface';
-import { Consignatario, Destino, Formato, Transporte } from '../../shared/interfaces/catalogo.interface';
-
-import { SobrepesoTablaComponent } from './components/tabla/sobrepeso-tabla.component';
-import { SobrepesoModalComponent } from './components/modal/sobrepeso-modal.component';
+import { Configuracion } from '../../shared/interfaces/administracion.interface';
+import { Usuario } from '../../shared/interfaces/auth.interface';
+import { AdministracionApiService } from '../../shared/services/administracion-api.service';
+import { AlertaService } from '../../shared/services/alerta.service';
 import { AuthService } from '../../shared/services/auth.service';
+import { ConfirmModalService } from '../../shared/services/confirm-modal.service';
+import { ConnectivityService } from '../../shared/services/connectivity.service';
+import { FeedbackModalService } from '../../shared/services/feedback-modal.service';
+import { LoadingService } from '../../shared/services/loading.service';
+import { esDispositivoMovil } from '../../shared/utils/archivo';
+import { opcionesDe } from '../../shared/utils/opciones-select';
+import { crearFiltrosColumna } from '../../shared/utils/filtros-columna';
+import { crearPaginacion } from '../../shared/utils/paginacion';
+import { ModalReglaSobrepesoComponent } from './components/modal-regla-sobrepeso/modal-regla-sobrepeso.component';
+import { ReglaSobrepeso, reglaAJson } from './sobrepeso.interface';
 
-export type EstadoFiltro = 'activos' | 'inactivos' | 'todos';
+type Fila = Record<string, any>;
 
-type ReglaSobrePesoRow = ReglaSobrePeso & {
-  _pk?: any;
-  consignatarioNombre?: string;
-  formatoNombre?: string;
-  destinoNombre?: string;
-  transporteNombre?: string;
+const texto = (valor: unknown): string => String(valor ?? '').trim();
+
+/** El servidor puede mandar bit como true/false, 1/0 o texto. */
+const esVerdadero = (valor: unknown): boolean => {
+  if (typeof valor === 'string') return ['1', 'true', 'si', 'sí'].includes(valor.trim().toLowerCase());
+  return valor === true || valor === 1;
 };
 
+/** Deja la fecha como aaaa-mm-dd (el servidor la manda con hora). */
+const soloFecha = (valor: unknown): string => texto(valor).slice(0, 10);
+
+type FiltroEstado = '' | 'activos' | 'inactivos';
+
+/**
+ * Reglas de sobrepeso (solo administrador, solo en línea): porcentaje de sobrepeso por consignatario, formato,
+ * destino y transporte de la campaña elegida. Las reglas se leen y se guardan en el servidor; del equipo solo se
+ * leen la campaña elegida y los nombres de los catálogos (consignatarios, destinos y transportes); el nombre del formato ya viene en la lista de reglas.
+ */
 @Component({
   selector: 'app-sobrepeso',
-  standalone: true,
-  imports: [CommonModule, FormsModule, SobrepesoTablaComponent, SobrepesoModalComponent],
+  imports: [FormsModule, PaginatorComponent, SearchSelectComponent, SearchMultiSelectComponent, LucideListFilter, LucideChevronDown, ModalReglaSobrepesoComponent, LucideGauge, LucideInbox, LucidePencil, LucidePlus, LucidePower, LucideRefreshCcw, LucideSearch, LucideWifiOff, LucideX],
   templateUrl: './sobrepeso.component.html',
-  styleUrl: './sobrepeso.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SobrepesoComponent implements OnInit {
-  private readonly alertService = inject(AlertService);
-  private readonly administracionService = inject(AdministracionService);
-  private readonly administracionRepository = inject(AdministracionRepository);
-  private readonly catalogosRepository = inject(CatalogosRepository);
-  private readonly connectivity = inject(ConnectivityService);
   private readonly auth = inject(AuthService);
-  readonly usuario = this.auth.usuario;
-  readonly savedConfig = signal<Configuracion | null>(null);
-  
+  private readonly catalogos = inject(CatalogosRepository);
+  private readonly administracionApi = inject(AdministracionApiService);
+  private readonly connectivity = inject(ConnectivityService);
+  private readonly loading = inject(LoadingService);
+  private readonly feedback = inject(FeedbackModalService);
+  private readonly alertService = inject(AlertaService);
+  private readonly confirmModal = inject(ConfirmModalService);
 
-  readonly isLoading = signal(false);
-  readonly searchTerm = signal('');
-  readonly estadoFiltro = signal<EstadoFiltro>('todos');
+  readonly online = computed(() => this.connectivity.online());
+  readonly usuario = signal<Usuario | null>(null);
+  /** Campaña elegida en Parámetros. */
+  readonly cfg = signal<Configuracion | null>(null);
 
-  readonly modalAbierto = signal(false);
-  readonly modalModo = signal<'nuevo' | 'editado'>('nuevo');
-  readonly modalValue = signal<ReglaSobrePesoRow | null>(null);
+  readonly reglas = signal<ReglaSobrepeso[]>([]);
+  readonly filtroTexto = signal('');
+  readonly filtroEstado = signal<FiltroEstado>('');
 
-  readonly items = signal<ReglaSobrePesoRow[]>([]);
+  /** Listas de los catálogos del equipo (para los nombres y para los buscadores del modal). */
+  readonly optConsignatarios = signal<SearchSelectOption[]>([]);
+  readonly optDestinos = signal<SearchSelectOption[]>([]);
+  readonly optTransportes = signal<SearchSelectOption[]>([]);
 
-  readonly consignatarios = signal<Consignatario[]>([]);
-  readonly formatos = signal<Formato[]>([]);
-  readonly destinos = signal<Destino[]>([]);
-  readonly transportes = signal<Transporte[]>([]);
+  /** Ventana abierta: null = cerrada; { regla: null } = nueva; { regla } = editar. */
+  readonly modal = signal<{ regla: ReglaSobrepeso | null } | null>(null);
 
-  get online(): boolean {
-    return this.connectivity.isOnline();
-  }
+  readonly estadoOpciones: SearchSelectOption[] = [
+    { value: '', label: 'Todos los estados' },
+    { value: 'activos', label: 'Activos' },
+    { value: 'inactivos', label: 'Inactivos' },
+  ];
 
-  readonly totalRegistros = computed(() => this.filteredItems().length);
+  /** Filtros por columna desplegados o recogidos (empiezan recogidos). */
+  readonly panelFiltros = signal(false);
+  readonly cantidadFiltros = computed(() => Object.values(this.columnas.elegidos()).filter((v) => v.length > 0).length);
 
-  readonly lookup = computed(() => {
-    const consignatarios = new Map<string, Consignatario>();
-    const formatos = new Map<number, Formato>();
-    const destinos = new Map<string, Destino>();
-    const transportes = new Map<string, Transporte>();
+  /** Filtros múltiples por columna (solo sobre lo listado). */
+  readonly columnas = crearFiltrosColumna<ReglaSobrepeso>(() => this.reglas(), [
+    { clave: 'consignatario', etiqueta: 'Consignatario', placeholder: 'Todos los consignatarios', valor: (r) => r.consignatarioNombre },
+    { clave: 'formato', etiqueta: 'Formato', placeholder: 'Todos los formatos', valor: (r) => r.formatoNombre },
+    { clave: 'destino', etiqueta: 'Destino', placeholder: 'Todos los destinos', valor: (r) => r.destinoNombre },
+    { clave: 'transporte', etiqueta: 'Transporte', placeholder: 'Todos los transportes', valor: (r) => r.transporteNombre },
+    { clave: 'porcentaje', etiqueta: 'Porcentaje', placeholder: 'Todos los porcentajes', valor: (r) => this.porcentajeTexto(r.porcentaje) },
+  ]);
 
-    for (const c of this.consignatarios()) consignatarios.set(String(c.documento ?? '').trim(), c);
-    for (const f of this.formatos()) formatos.set(Number(f.id), f);
-    for (const d of this.destinos()) destinos.set(String(d.id ?? '').trim(), d);
-    for (const t of this.transportes()) transportes.set(String((t as any)?.id ?? '').trim(), t);
-
-    return { consignatarios, formatos, destinos, transportes };
+  /** Reglas que cumplen el estado elegido y lo escrito (nombres, porcentaje, descripción). */
+  readonly reglasFiltradas = computed(() => {
+    const buscado = this.filtroTexto().trim().toLowerCase();
+    const estado = this.filtroEstado();
+    return this.reglas().filter((r) => {
+      if (estado === 'activos' && !r.activo) return false;
+      if (estado === 'inactivos' && r.activo) return false;
+      if (!this.columnas.pasa(r)) return false;
+      if (!buscado) return true;
+      return [r.consignatarioNombre, r.documentoConsignatario, r.formatoNombre, r.destinoNombre, r.transporteNombre, this.porcentajeTexto(r.porcentaje), r.descripcion].some((valor) =>
+        texto(valor).toLowerCase().includes(buscado),
+      );
+    });
   });
-
-  readonly filteredItems = computed(() => {
-    const term = (this.searchTerm() ?? '').trim().toLowerCase();
-    const filtro = this.estadoFiltro();
-
-    let base = this.items();
-    if (filtro === 'activos') base = base.filter(i => !!i?.activo);
-    if (filtro === 'inactivos') base = base.filter(i => !i?.activo);
-
-    if (!term) return [...base].sort((a, b) => Number(b?.id ?? 0) - Number(a?.id ?? 0));
-
-    return base
-      .filter(i => {
-        const parts = [
-          i.id,
-          i.consignatarioNombre,
-          i.formatoNombre,
-          i.destinoNombre,
-          i.transporteNombre,
-          i.porcentaje,
-          i.descripcion,
-          i.vigenciaDesde,
-          i.vigenciaHasta,
-          i.activo ? 'activo' : 'inactivo',
-          i.fechaCreacion,
-        ]
-          .map(v => String(v ?? ''))
-          .join(' ')
-          .toLowerCase();
-        return parts.includes(term);
-      })
-      .sort((a, b) => Number(b?.id ?? 0) - Number(a?.id ?? 0));
-  });
+  readonly paginacion = crearPaginacion(() => this.reglasFiltradas(), 25);
 
   async ngOnInit(): Promise<void> {
-    await this.cargarConfiguracionGuardada();
+    const session = await this.auth.getSession();
+    this.usuario.set(session?.user ?? null);
+    const nro = texto(this.usuario()?.documentoIdentidad);
+    this.cfg.set(nro ? ((await this.catalogos.configuracionRepo.getByField('nrodocumento', nro)) ?? null) : null);
     await this.cargarCatalogos();
-    await this.listarReglas();
+    await this.cargarReglas();
   }
 
-  private async cargarConfiguracionGuardada(): Promise<void> {
-        const nro = this.getNroDocumentoFromUsuario();
-        const cfg = await this.catalogosRepository.configuracionRepo.getByField('nrodocumento', nro);
-        this.savedConfig.set(cfg ?? null);
-  }
-
-  private getNroDocumentoFromUsuario(): string {
-      const u: any = this.usuario();
-      const v = u?.nrodocumento ?? u?.documentoidentidad ?? u?.documentoIdentidad ?? u?.documento ?? '';
-      return String(v ?? '').trim();
-  }
-
-  onSearchChange(v: string): void {
-    this.searchTerm.set(v);
-  }
-
-  setEstadoFiltro(v: EstadoFiltro): void {
-    this.estadoFiltro.set(v);
-  }
-
-  abrirNuevo(): void {
-    this.modalModo.set('nuevo');
-    this.modalValue.set(null);
-    this.modalAbierto.set(true);
-  }
-
-  abrirEditar(item: ReglaSobrePesoRow): void {
-    this.modalModo.set('editado');
-    this.modalValue.set(item);
-    this.modalAbierto.set(true);
-  }
-
-  cerrarModal(): void {
-    this.modalAbierto.set(false);
-  }
-
-  private isEmpty(v: any): boolean {
-    return v === null || v === undefined || (typeof v === 'string' && v.trim() === '');
-  }
-
+  /** Lee del equipo los catálogos ya guardados (consignatarios, destinos y transportes) para mostrar nombres y elegir en el modal. */
   private async cargarCatalogos(): Promise<void> {
-    const [consignatarios, formatos, destinos, transportes] = await Promise.all([
-      this.catalogosRepository.consignatariosRepo.getAll(),
-      this.catalogosRepository.formatosRepo.getAll(),
-      this.catalogosRepository.destinosRepo.getAll(),
-      this.catalogosRepository.transportesRepo.getAll(),
+    const [consignatarios, destinos, transportes] = await Promise.all([
+      this.catalogos.consignatariosRepo.getAll(),
+      this.catalogos.destinosRepo.getAll(),
+      this.catalogos.transportesRepo.getAll(),
     ]);
-
-    this.consignatarios.set(consignatarios ?? []);
-    this.formatos.set(formatos ?? []);
-    this.destinos.set(destinos ?? []);
-    this.transportes.set(transportes ?? []);
+    this.optConsignatarios.set(opcionesDe(consignatarios as Fila[], 'documento', ['documento', 'nombre']));
+    this.optDestinos.set(opcionesDe(destinos as Fila[], 'id', ['pais']));
+    this.optTransportes.set(opcionesDe(transportes as Fila[], 'id', ['transporte']));
   }
 
-  private enrichRow(row: any): ReglaSobrePesoRow {
-    const lk = this.lookup();
-    const consignatario = lk.consignatarios.get(String(row?.documentoConsignatario ?? '').trim());
-    const formato = lk.formatos.get(Number(row?.formatoId));
-    const destino = lk.destinos.get(String(row?.destinoId ?? '').trim());
-    const transporte = lk.transportes.get(String(row?.transporteId ?? '').trim());
-
-    return {
-      ...(row as any),
-      consignatarioNombre: consignatario ? `${consignatario.nombre}` : '—',
-      formatoNombre: formato ? `${formato.descripcion ?? formato.descripcion ?? ''}`.trim() : '—',
-      destinoNombre: destino ? `${destino.pais}` : '—',
-      transporteNombre: transporte ? `${transporte.transporte}` : '—',
-    };
+  private nombreDe(opciones: SearchSelectOption[], valor: string): string {
+    return opciones.find((o) => o.value === valor)?.label ?? '—';
   }
 
-  private async listarReglasRepository(): Promise<boolean> {
-    const cfg = this.savedConfig();
-    const idProyecto = String(cfg?.idProyecto ?? '').trim();
-    const codigoCultivo = String(cfg?.codigoCultivo ?? '').trim();
+  porcentajeTexto(p: number): string {
+    return Number.isFinite(Number(p)) ? `${(Number(p) * 100).toFixed(2)}%` : '—';
+  }
 
-    const info: any = await this.administracionRepository.reglasSobrePesoRepository.getAll();
-    const filtered = idProyecto && codigoCultivo
-      ? (info ?? []).filter((r:any) => String((r as any)?.idProyecto ?? '').trim() === idProyecto && String((r as any)?.codigoCultivo ?? '').trim() === codigoCultivo)
-      : (info ?? []);
+  /** dd/mm/aaaa a partir de aaaa-mm-dd. */
+  private fechaCorta(f: string): string {
+    const [a, m, d] = f.split('-');
+    return a && m && d ? `${d}/${m}/${a}` : '';
+  }
 
-    if (!filtered?.length) {
-      this.items.set([]);
-      return false;
+  vigenciaTexto(r: ReglaSobrepeso): string {
+    return `${this.fechaCorta(r.vigenciaDesde) || '—'} – ${this.fechaCorta(r.vigenciaHasta) || '∞'}`;
+  }
+
+  /** Pide al servidor las reglas de la campaña y las muestra (no guarda nada en el equipo). */
+  async cargarReglas(): Promise<void> {
+    const idProyecto = texto(this.cfg()?.idProyecto);
+    const codigoCultivo = texto(this.cfg()?.codigoCultivo);
+    if (!idProyecto || !codigoCultivo) {
+      this.reglas.set([]);
+      return;
     }
-    this.items.set(filtered.map((r:any) => this.enrichRow(r)));
-    return true;
-  }
-
-  private async apiListarReglas(): Promise<void> {
-    const resp: any = await firstValueFrom(this.administracionService.listarReglasSobrePeso({idProyecto:this.savedConfig()?.idProyecto,codigoCultivo:this.savedConfig()?.codigoCultivo}));
-    if (resp[0]?.error) {
-      this.alertService.showAlert('Error', resp?.mensaje ?? 'Error al listar reglas de sobrepeso', 'error');
+    if (!this.online()) {
+      this.reglas.set([]);
+      this.feedback.error('Error de conexión: necesitas internet para ver las reglas.', 'Sin conexión');
       return;
     }
 
-    const list = Array.isArray(resp[0]?.data) ? resp[0].data : [];
-    const cfg = this.savedConfig();
-    const idProyectoCfg = String(cfg?.idProyecto ?? '').trim();
-    const idCultivoCfg = String(cfg?.codigoCultivo ?? '').trim();
-
-    const normalized = list.map((r: any) => ({
-      ...r,
-      idProyecto: String(r?.idProyecto ?? idProyectoCfg ?? '').trim(),
-      codigoCultivo: String(r?.codigoCultivo ?? idCultivoCfg ?? '').trim(),
-      documentoConsignatario: String(r?.documentoConsignatario ?? r?.documento_consignatario ?? r?.consignatarioDocumento ?? r?.consignatarioId ?? '').trim(),
-      formatoId: r?.formatoId === null || r?.formatoId === undefined ? null : Number(r?.formatoId),
-      destinoId: String(r?.destinoId ?? '').trim(),
-      transporteId: String(r?.transporteId ?? '').trim(),
-      porcentaje: r?.porcentaje === null || r?.porcentaje === undefined ? null : Number(r?.porcentaje),
-      vigenciaDesde: String(r?.vigenciaDesde ?? '').trim(),
-      vigenciaHasta: String(r?.vigenciaHasta ?? '').trim(),
-      descripcion: r?.descripcion ?? '',
-      activo: r?.activo === false ? false : true,
-      bd: 1,
-      modo: r?.modo ?? 'editado',
-    }));
-    await this.administracionRepository.reglasSobrePesoRepository.clear();
-    await this.administracionRepository.reglasSobrePesoRepository.bulkSave(normalized);
-    await this.listarReglasRepository();
-  }
-
-  async listarReglas(): Promise<void> {
-    this.isLoading.set(true);
+    this.loading.show('Cargando reglas...');
     try {
-      const exists = await this.listarReglasRepository();
-      if (!exists && this.online) {
-        await this.apiListarReglas();
+      const sobre = await this.administracionApi.reglasSobrepeso(idProyecto, codigoCultivo);
+      if (sobre?.error) {
+        this.reglas.set([]);
+        this.feedback.error(sobre.mensaje || 'No se pudieron obtener las reglas de sobrepeso.');
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      this.alertService.showAlert('Error', 'Error al listar reglas de sobrepeso', 'error');
+      const filas = Array.isArray(sobre?.data) ? sobre.data : [];
+      this.reglas.set(
+        filas.map((fila) => {
+          const documentoConsignatario = texto(fila['documentoConsignatario']);
+          const formatoId = texto(fila['formatoId']);
+          const destinoId = texto(fila['destinoId']);
+          const transporteId = texto(fila['transporteId']);
+          return {
+            id: Number(fila['id'] ?? 0),
+            documentoConsignatario,
+            formatoId,
+            destinoId,
+            transporteId,
+            porcentaje: Number(fila['porcentaje'] ?? 0),
+            vigenciaDesde: soloFecha(fila['vigenciaDesde']),
+            vigenciaHasta: soloFecha(fila['vigenciaHasta']),
+            descripcion: texto(fila['descripcion']),
+            activo: esVerdadero(fila['activo']),
+            consignatarioNombre: this.nombreDe(this.optConsignatarios(), documentoConsignatario),
+            formatoNombre: texto(fila['formato']) || '—',
+            destinoNombre: this.nombreDe(this.optDestinos(), destinoId),
+            transporteNombre: this.nombreDe(this.optTransportes(), transporteId),
+          };
+        }),
+      );
+      this.paginacion.page.set(1);
+    } catch {
+      this.reglas.set([]);
+      this.feedback.error('Error de conexión: no se pudieron obtener las reglas.', 'Sin conexión');
     } finally {
-      this.isLoading.set(false);
+      await this.loading.hideAfterMinimum();
     }
   }
 
-  private nextId(): number {
-    const arr = this.items();
-    if (!arr.length) return 1;
-    return Math.max(...arr.map(x => Number(x?.id ?? 0))) + 1;
+  nueva(): void {
+    this.modal.set({ regla: null });
   }
 
-  async guardarModal(ev: any): Promise<void> {
-    try {
-      this.alertService.mostrarModalCarga();
-      const modo = ev?.modo ?? this.modalModo();
-      const payload = (ev?.payload ?? ev ?? {}) as Partial<ReglaSobrePeso>;
-      const pk = ev?._pk;
+  editar(r: ReglaSobrepeso): void {
+    this.modal.set({ regla: r });
+  }
 
-      const cfg = this.savedConfig();
-      const idProyectoCfg = String(cfg?.idProyecto ?? '').trim();
-      const idCultivoCfg = String(cfg?.codigoCultivo ?? '').trim();
-      if (!idProyectoCfg || !idCultivoCfg) {
-        this.alertService.showAlert('Advertencia', 'Primero configure Proyecto/Cultivo en Parámetros.', 'warning');
-        return;
-      }
+  /** Celular o tablet: un toque sobre la fila abre la edición. */
+  alTocarFila(r: ReglaSobrepeso): void {
+    if (esDispositivoMovil()) this.editar(r);
+  }
 
-      if (
-        this.isEmpty(payload?.documentoConsignatario) ||
-        this.isEmpty(payload?.formatoId) ||
-        this.isEmpty(payload?.destinoId) ||
-        this.isEmpty(payload?.transporteId) ||
-        payload?.porcentaje === null || payload?.porcentaje === undefined
-      ) {
-        this.alertService.showAlert('Advertencia', 'Complete los campos obligatorios (*)', 'warning');
-        return;
-      }
+  /** Computador: doble clic sobre la fila abre la edición. */
+  alHacerDobleClicFila(r: ReglaSobrepeso): void {
+    if (!esDispositivoMovil()) this.editar(r);
+  }
 
-      const now = new Date().toISOString();
-      const record: any = {
-        ...(payload as any),
-        idProyecto: idProyectoCfg,
-        codigoCultivo: idCultivoCfg,
-        id: modo === 'nuevo' ? this.nextId() : Number(payload?.id),
-        bd: 0,
-        activo: payload?.activo === false ? false : true,
-        fechaCreacion: modo === 'nuevo' ? '' : (payload as any)?.fechaCreacion ?? '',
-        fechaModificacion: now,
-        modo: modo === 'nuevo' ? 'nuevo' : (payload as any)?.modo ?? 'editado',
-        descripcion: (payload as any)?.descripcion ?? '',
-        vigenciaDesde: (payload as any)?.vigenciaDesde ?? '',
-        vigenciaHasta: (payload as any)?.vigenciaHasta ?? '',
-      };
+  /** El modal ya guardó: se cierra, se avisa y se vuelve a pedir la lista al servidor. */
+  async alGuardar(mensaje: string): Promise<void> {
+    this.modal.set(null);
+    this.alertService.showAlert('Éxito', mensaje, 'success');
+    await this.cargarReglas();
+  }
 
-      if (modo === 'editado') {
-        record._pk = pk ?? (this.modalValue() as any)?._pk;
-      }
-
-      const normalized = this.enrichRow(record);
-
-      if (this.online) {
-        const payloads: any[] = [structuredClone(normalized)];
-        payloads.map((it: any) => {
-          delete it.bd;
-          delete it._pk;
-          delete it.consignatarioNombre;
-          delete it.formatoNombre;
-          delete it.destinoNombre;
-          delete it.transporteNombre;
-          delete it.fechaCreacion;
-        });
-
-        const resp: any = await firstValueFrom(this.administracionService.sincronizarReglasSobrePeso(payloads));
-        if (resp?.error) {
-          this.alertService.showAlert('Error', resp?.mensaje ?? 'No se pudo guardar la regla', 'error');
-          return;
-        }
-
-        await this.administracionRepository.reglasSobrePesoRepository.clear();
-        await this.apiListarReglas();
-        this.alertService.cerrarModalCarga();
-        this.modalAbierto.set(false);
-        this.alertService.showAlert('Éxito', modo === 'editado' ? 'Regla actualizada' : 'Regla creada', 'success');
-        return;
-      }
-
-      await this.administracionRepository.reglasSobrePesoRepository.save(normalized as any);
-      await this.listarReglasRepository();
-      this.alertService.cerrarModalCarga();
-      this.modalAbierto.set(false);
-      this.alertService.showAlert('Éxito', modo === 'editado' ? 'Regla actualizada' : 'Regla creada', 'success');
-    } catch (err) {
-      console.error(err);
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Error', 'No se pudo guardar la regla', 'error');
+  /** Activa o desactiva la regla (pide confirmación y lo envía de frente al servidor). */
+  async cambiarEstado(r: ReglaSobrepeso): Promise<void> {
+    if (!this.online()) {
+      this.feedback.warning('Necesitas internet para cambiar el estado.', 'Sin conexión');
+      return;
     }
-  }
 
-  async onDesactivar(item: ReglaSobrePesoRow): Promise<void> {
+    const activar = !r.activo;
+    const confirmado = await this.confirmModal.confirm({
+      title: activar ? 'Activar regla' : 'Desactivar regla',
+      eyebrow: 'Estado de la regla',
+      message: activar ? 'La regla volverá a aplicarse en las guías.' : 'La regla dejará de aplicarse en las guías.',
+      detail: `${r.consignatarioNombre} · ${r.destinoNombre} · ${this.porcentajeTexto(r.porcentaje)}`,
+      confirmText: activar ? 'Activar' : 'Desactivar',
+      cancelText: 'Cancelar',
+      tone: activar ? 'success' : 'danger',
+    });
+    if (!confirmado) return;
+
+    this.loading.show(activar ? 'Activando regla...' : 'Desactivando regla...');
     try {
-      this.alertService.mostrarModalCarga();
-      const pk = (item as any)?._pk;
-      if (pk === null || pk === undefined) {
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Error', 'No se encontró el registro.', 'error');
+      const json = reglaAJson({ ...r, activo: activar }, 'editado', texto(this.cfg()?.idProyecto), texto(this.cfg()?.codigoCultivo));
+      const respuesta = await this.administracionApi.sincronizarReglasSobrepeso(json);
+      this.loading.hide();
+      if (respuesta?.error) {
+        this.feedback.error(respuesta.mensaje || 'No se pudo cambiar el estado.');
         return;
       }
-
-      const existe: any = await this.administracionRepository.reglasSobrePesoRepository.getByKey(pk);
-      if (!existe) {
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Error', 'No se encontró el registro.', 'error');
-        return;
-      }
-
-      if (this.online) {
-        const payloads: any[] = [structuredClone(item)];
-        payloads.map((it: any) => {
-          delete it.bd;
-          delete it._pk;
-          delete it.consignatarioNombre;
-          delete it.formatoNombre;
-          delete it.destinoNombre;
-          delete it.transporteNombre;
-          delete it.fechaCreacion;
-          it.activo = !it.activo;
-        });
-
-        const resp: any = await firstValueFrom(this.administracionService.sincronizarReglasSobrePeso(payloads));
-        if (resp?.error) {
-          this.alertService.showAlert('Error', resp?.mensaje ?? 'No se pudo actualizar el estado', 'error');
-          return;
-        }
-
-        await this.administracionRepository.reglasSobrePesoRepository.clear();
-        await this.apiListarReglas();
-        this.alertService.showAlert('Éxito', resp?.mensaje ?? 'Estado actualizado', 'success');
-        return;
-      }
-
-      await this.administracionRepository.reglasSobrePesoRepository.update(pk, {
-        activo: !existe.activo,
-        bd: 0,
-        fechaModificacion: new Date().toISOString(),
-      } as any);
-      await this.listarReglasRepository();
-      this.alertService.cerrarModalCarga();
-    } catch (err) {
-      console.error(err);
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlertAcept('Error', 'No se pudo actualizar el estado.', 'error');
-    }
-  }
-
-  async onEliminar(item: ReglaSobrePesoRow): Promise<void> {
-    try {
-      const bd0 = Number((item as any)?.bd ?? 0) === 0;
-      const fc = (item as any)?.fechaCreacion;
-      const noFecha = fc === null || fc === undefined || (typeof fc === 'string' && fc.trim() === '');
-
-      if (!bd0 || !noFecha) {
-        this.alertService.showAlertAcept(
-          'No disponible',
-          'Solo se puede eliminar cuando el registro no está sincronizado y aún no tiene fecha de creación.',
-          'warning',
-        );
-        return;
-      }
-
-      const confirmar = await this.alertService.showConfirm(
-        'Confirmar eliminación',
-        '¿Desea eliminar esta regla? Esta acción solo aplica para registros no sincronizados.',
-        'warning',
-      );
-      if (!confirmar) return;
-
-      this.alertService.mostrarModalCarga();
-      const pk = (item as any)?._pk;
-      if (pk === null || pk === undefined) {
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Error', 'No se encontró el registro.', 'error');
-        return;
-      }
-
-      await this.administracionRepository.reglasSobrePesoRepository.delete(pk);
-      await this.listarReglasRepository();
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Éxito', 'Regla eliminada', 'success');
-    } catch (err) {
-      console.error(err);
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlertAcept('Error', 'No se pudo eliminar la regla.', 'error');
-    }
-  }
-
-  async onSincronizar(): Promise<void> {
-    try {
-      if (!this.online) {
-        this.alertService.showAlert('Error', 'No tiene conexión a internet', 'error');
-        return;
-      }
-
-      const confirmar = await this.alertService.showConfirm(
-        'Confirmar sincronización',
-        'Se subirán a BD los registros pendientes. ¿Desea continuar?',
-        'question',
-      );
-
-      if (!confirmar) return;
-
-      this.alertService.mostrarModalCarga();
-      const dataSend: any[] = await this.administracionRepository.reglasSobrePesoRepository.getAllNoSincronizado();
-
-      if (!dataSend.length) {
-        await this.administracionRepository.reglasSobrePesoRepository.clear();
-        await this.apiListarReglas();
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Éxito', 'No hay registros pendientes de sincronización', 'success');
-        return;
-      }
-
-      const payloads = structuredClone(dataSend);
-      payloads.map((it: any) => {
-        delete it.bd;
-        delete it._pk;
-        delete it.consignatarioNombre;
-        delete it.formatoNombre;
-        delete it.destinoNombre;
-        delete it.transporteNombre;
-        delete it.fechaModificacion;
-      });
-
-      const resp: any = await firstValueFrom(this.administracionService.sincronizarReglasSobrePeso(payloads));
-      if (resp?.error) {
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Error', resp?.mensaje ?? 'Error en sincronización', 'error');
-        return;
-      }
-
-      await this.administracionRepository.reglasSobrePesoRepository.clear();
-      await this.apiListarReglas();
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Éxito', resp?.mensaje ?? 'Sincronización completa', 'success');
-    } catch (err) {
-      console.error(err);
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Error', 'Error en sincronización', 'error');
+      this.alertService.showAlert('Éxito', activar ? 'Regla activada' : 'Regla desactivada', 'success');
+      await this.cargarReglas();
+    } catch {
+      this.loading.hide();
+      this.feedback.error('Ocurrió un error inesperado al cambiar el estado.');
     }
   }
 }

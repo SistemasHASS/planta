@@ -1,0 +1,41 @@
+<div class="modal modal-open" role="dialog" aria-modal="true">
+  <div class="modal-box flex w-full !max-h-full !max-w-lg flex-col gap-0 overflow-hidden p-0">
+
+    <!-- Cabecera -->
+    <div class="flex items-center justify-between gap-3 border-b border-app-border2 px-4 py-1.5 sm:px-5">
+      <div class="flex min-w-0 items-center gap-3">
+        <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md">
+          <svg lucideUsers class="size-5"></svg>
+        </span>
+        <h3 class="truncate text-base font-extrabold leading-tight text-app-heading sm:text-lg">{{ titulo() }}</h3>
+      </div>
+      <button type="button" class="btn btn-circle btn-ghost size-10 min-h-10 sm:size-8 sm:min-h-8" aria-label="Cerrar" (click)="closed.emit()"><svg lucideX class="size-4"></svg></button>
+    </div>
+
+    <!-- Lista -->
+    <div class="min-h-0 flex-1 overflow-auto bg-app-surface2 p-3 sm:p-4">
+      <div class="overflow-x-auto rounded-2xl border border-app-border2 bg-app-surface">
+        <table class="table table-sm [&_td]:py-2">
+          <thead>
+            <tr class="text-[11px] font-bold uppercase tracking-wide text-app-text2"><th>#</th><th>Nombre</th><th>DNI</th></tr>
+          </thead>
+          <tbody>
+            @for (fila of filas(); track $index) {
+              <tr class="hover:bg-app-surface2">
+                <td class="text-app-muted">{{ $index + 1 }}</td>
+                <td class="font-medium text-app-heading">{{ fila.nombreCompleto }}</td>
+                <td class="whitespace-nowrap text-app-text2">{{ fila.dni || '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pie -->
+    <div class="flex justify-end border-t border-app-border2 bg-app-surface px-4 py-2.5 sm:px-5">
+      <button type="button" class="btn btn-sm" (click)="closed.emit()"><svg lucideX class="size-4"></svg> Cerrar</button>
+    </div>
+  </div>
+  <div class="modal-backdrop bg-black/40" (click)="closed.emit()"></div>
+</div>

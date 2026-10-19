@@ -1,0 +1,346 @@
+.field-shell {
+  position: relative;
+  width: 100%;
+}
+
+.field-shell.is-open {
+  z-index: 60;
+}
+
+.field-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 6px;
+  color: var(--field-label);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.field-label span {
+  color: #ef4444;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.select-anchor {
+  position: relative;
+  width: 100%;
+}
+
+.select-control {
+  min-height: 42px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--field-border);
+  border-radius: 9px;
+  background: var(--field-bg);
+  padding: 0 12px 0 14px;
+  color: var(--field-placeholder-text);
+  cursor: pointer;
+  outline: 0;
+  transition:
+    border-color 170ms ease,
+    box-shadow 170ms ease,
+    background 170ms ease,
+    transform 170ms ease;
+}
+
+.select-control:hover,
+.select-control:focus-visible,
+.select-control.is-open {
+  border-color: #35a77b;
+  box-shadow: 0 0 0 3px rgba(53, 167, 123, 0.14);
+}
+
+.select-control.is-open {
+  transform: translateY(-1px);
+}
+
+.select-control.is-invalid {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.select-control.is-invalid:focus-visible,
+.select-control.is-invalid:hover,
+.select-control.is-invalid.is-open {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.14);
+}
+
+.select-control.has-value {
+  color: var(--field-text);
+}
+
+.select-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.select-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.clear-selection {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--field-empty);
+  cursor: pointer;
+}
+
+.clear-selection:hover,
+.clear-selection:focus-visible {
+  background: var(--field-clear-hover-bg);
+  color: var(--field-clear-hover-text);
+  outline: none;
+}
+
+.clear-selection svg {
+  width: 14px;
+  height: 14px;
+}
+
+.select-chevron {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  color: var(--field-icon);
+  transition:
+    transform 170ms ease,
+    color 170ms ease;
+}
+
+.select-control.is-open .select-chevron {
+  color: #218461;
+  transform: rotate(180deg);
+}
+
+.field-hint {
+  margin: 7px 0 0;
+  color: var(--field-hint);
+  font-size: 12px;
+}
+
+.select-panel {
+  /* Fijo: asi no lo recorta ningun contenedor con scroll u overflow (ej. un modal). La posicion la calcula el componente. */
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  overflow: hidden;
+  border: 1px solid rgba(53, 167, 123, 0.28);
+  border-radius: 8px;
+  background: var(--field-panel-bg);
+  box-shadow:
+    0 18px 45px rgba(15, 23, 42, 0.14),
+    0 0 0 1px rgba(53, 167, 123, 0.06);
+  transform-origin: top center;
+  animation: panel-in 150ms ease-out;
+}
+
+.field-shell.is-drop-up .select-panel {
+  transform-origin: bottom center;
+}
+
+.field-shell.is-drop-up .select-panel {
+  animation-name: panel-in-up;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px;
+  border: 1px solid var(--field-search-border);
+  border-radius: 7px;
+  background: var(--field-search-bg);
+  padding: 0 10px;
+  transition:
+    border-color 170ms ease,
+    box-shadow 170ms ease,
+    background 170ms ease;
+}
+
+.search-box:focus-within {
+  border-color: #35a77b;
+  background: var(--field-bg);
+  box-shadow: 0 0 0 3px rgba(53, 167, 123, 0.12);
+}
+
+.search-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--field-search-icon);
+}
+
+.search-input {
+  min-width: 0;
+  width: 100%;
+  height: 36px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--field-search-text);
+  font-size: 13px;
+}
+
+.search-input::placeholder {
+  color: var(--field-search-placeholder);
+}
+
+.option-list {
+  max-height: 190px;
+  overflow: auto;
+  padding: 4px 6px 8px;
+}
+
+.option-item {
+  width: 100%;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  padding: 8px 10px;
+  color: var(--field-option-text);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+
+.option-item:hover,
+.option-item.active {
+  background: var(--field-option-hover-bg);
+  color: var(--field-option-hover-text);
+}
+
+.option-item.selected {
+  background: var(--field-option-selected-bg);
+  color: var(--field-option-selected-text);
+  font-weight: 700;
+}
+
+.option-item:active {
+  transform: scale(0.99);
+}
+
+.check-icon {
+  width: 15px;
+  height: 15px;
+  color: #20966e;
+}
+
+
+:host-context(.is-editing) .select-control:hover,
+:host-context(.is-editing) .select-control:focus-visible,
+:host-context(.is-editing) .select-control.is-open {
+  border-color: #d98a1f;
+  box-shadow: 0 0 0 3px rgba(217, 137, 31, 0.12);
+}
+
+:host-context(.is-editing) .select-control.is-open .select-chevron,
+:host-context(.is-editing) .check-icon {
+  color: #9a5a12;
+}
+
+:host-context(.is-editing) .select-panel {
+  border-color: rgba(217, 137, 31, 0.24);
+  box-shadow:
+    0 18px 45px rgba(15, 23, 42, 0.14),
+    0 0 0 1px rgba(217, 137, 31, 0.06);
+}
+
+:host-context(.is-editing) .search-box {
+  background: var(--field-edit-search-bg);
+  border-color: var(--field-edit-search-border);
+}
+
+:host-context(.is-editing) .search-box:focus-within {
+  border-color: #d98a1f;
+  box-shadow: 0 0 0 3px rgba(217, 137, 31, 0.12);
+}
+
+:host-context(.is-editing) .option-item:hover,
+:host-context(.is-editing) .option-item.active {
+  background: var(--field-edit-hover-bg);
+  color: var(--field-edit-hover-text);
+}
+
+:host-context(.is-editing) .option-item.selected {
+  background: var(--field-edit-selected-bg);
+  color: var(--field-edit-hover-text);
+}
+
+.empty-state {
+  padding: 16px 10px;
+  color: var(--field-empty);
+  font-size: 13px;
+  text-align: center;
+}
+
+.is-disabled .select-control,
+.select-control:disabled {
+  background: var(--field-disabled-bg);
+  color: var(--field-disabled-text);
+  cursor: not-allowed;
+}
+
+@keyframes panel-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Opcion con estado (ej. cosechador): pendiente = punto verde; ya hecho = fondo rosado y una linea pequena debajo del nombre. */
+.option-item:has(.option-sub) { flex-wrap: wrap; row-gap: 0; align-content: center; }
+.option-text { display: inline-flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 100%; }
+.option-label { min-width: 0; overflow-wrap: anywhere; }
+.option-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #22c55e; }
+.option-sub { flex: 1 1 100%; color: var(--field-done-sub); font-size: 11px; font-weight: 700; line-height: 1.3; }
+.option-item.tone-done:not(.selected) { background: var(--field-done-bg); color: var(--field-done-text); }
+.option-item.tone-done:not(.selected):hover, .option-item.tone-done.active:not(.selected) { background: var(--field-done-hover-bg); color: var(--field-done-text); }
+.option-item.selected .option-sub { color: var(--field-option-selected-text); }

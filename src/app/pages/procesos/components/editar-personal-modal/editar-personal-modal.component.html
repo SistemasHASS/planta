@@ -1,0 +1,47 @@
+<div class="modal modal-open" role="dialog" aria-modal="true">
+  <div class="modal-box flex w-full !max-h-full !max-w-4xl flex-col gap-0 overflow-hidden p-0">
+
+    <!-- Cabecera -->
+    <div class="flex items-center justify-between gap-3 border-b border-app-border2 px-4 py-1.5 sm:px-5">
+      <div class="flex min-w-0 items-center gap-3">
+        <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md">
+          <svg lucideUsers class="size-5"></svg>
+        </span>
+        <div class="min-w-0">
+          <span class="text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Proceso abierto</span>
+          <h3 class="truncate text-base font-extrabold leading-tight text-app-heading sm:text-lg">Editar personal del proceso</h3>
+        </div>
+      </div>
+      <button type="button" class="btn btn-circle btn-ghost size-10 min-h-10 sm:size-8 sm:min-h-8" aria-label="Cerrar" (click)="closed.emit()"><svg lucideX class="size-4"></svg></button>
+    </div>
+
+    <!-- Cuerpo (con scroll) -->
+    <div class="min-h-0 flex-1 space-y-3 overflow-y-auto bg-app-surface2 px-3 pb-3 pt-2 sm:px-5 sm:pb-5 sm:pt-2.5">
+
+      <!-- Franja del proceso -->
+      <section class="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-app-border2 bg-app-surface3 px-4 py-2.5 text-sm">
+        <span class="flex items-center gap-1.5 text-app-muted"><svg lucideCalendar class="size-4"></svg> Fecha <strong class="text-app-heading">{{ fechaMostrada() }}</strong></span>
+        <span class="flex items-center gap-1.5 text-app-muted">
+          @if (esDia()) { <svg lucideSun class="size-4 text-amber-500"></svg> } @else { <svg lucideMoon class="size-4 text-indigo-500"></svg> }
+          Turno <strong class="text-app-heading">{{ proceso().turno }}</strong>
+        </span>
+      </section>
+
+      <app-selector-personal
+        [enDosColumnas]="true"
+        [supervisores]="supervisoresDisponibles()"
+        [logisticos]="logisticosDisponibles()"
+        [cargando]="cargando()"
+        [(supervisoresSel)]="supervisoresMarcados"
+        [(logisticosSel)]="logisticosMarcados"
+      />
+    </div>
+
+    <!-- Pie -->
+    <div class="flex justify-end gap-2 border-t border-app-border2 bg-app-surface px-4 py-2.5 sm:px-5">
+      <button type="button" class="btn btn-sm btn-ghost" (click)="closed.emit()">Cancelar</button>
+      <button type="button" class="btn btn-sm btn-primary" (click)="guardar()"><svg lucideSave class="size-4"></svg> Guardar cambios</button>
+    </div>
+  </div>
+  <div class="modal-backdrop bg-black/40" (click)="closed.emit()"></div>
+</div>

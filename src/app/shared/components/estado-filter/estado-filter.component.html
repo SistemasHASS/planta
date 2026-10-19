@@ -1,0 +1,17 @@
+<div class="flex h-[38px] w-full items-stretch sm:inline-flex sm:w-auto divide-x divide-app-border overflow-hidden rounded-[7px] border border-app-border bg-app-surface" role="group" aria-label="Filtrar por estado">
+  @for (opcion of opciones; track opcion.value) {
+    <button
+      type="button"
+      class="flex-1 px-4 text-sm sm:min-w-24 sm:flex-none sm:px-5 font-semibold transition-colors"
+      [class.bg-emerald-600]="value() === opcion.value"
+      [class.text-white]="value() === opcion.value"
+      [class.text-app-text2]="value() !== opcion.value"
+      [class.hover:bg-tint-emerald]="value() !== opcion.value"
+      [class.hover:text-emerald-700]="value() !== opcion.value"
+      [attr.aria-pressed]="value() === opcion.value"
+      (click)="changed.emit(opcion.value)"
+    >
+      {{ opcion.label }}
+    </button>
+  }
+</div>

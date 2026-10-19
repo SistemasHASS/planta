@@ -1,0 +1,208 @@
+/*
+ * Colores del tema claro y oscuro de la aplicacion.
+ *
+ * Cada color tiene un NOMBRE (--app-surface, --app-text...) y cada tema le da su valor.
+ * Los estilos usan el nombre con var(--app-surface), asi cambian solos al cambiar el tema.
+ *   - Tema claro  = data-theme="planta"  -> los mismos colores de siempre.
+ *   - Tema oscuro = data-theme="dark"  -> sale de las variables de daisyUI (--b1, --b2, --bc...).
+ */
+
+:root,
+[data-theme='planta'] {
+  color-scheme: light;
+
+  /* Fondos */
+  --app-body: #eef4ff;
+  --app-bg: #f4f7fb;
+  --app-surface: #ffffff;
+  --app-surface-2: #f8fafc;
+  --app-surface-3: #f1f5f9;
+
+  /* Lineas y sombras */
+  --app-border: #dbe4f0;
+  --app-border-2: #e2e8f0;
+  --app-shadow: rgba(15, 23, 42, 0.04);
+
+  /* Textos */
+  --app-text: #111827;
+  --app-text-2: #334155;
+  --app-muted: #64748b;
+  --app-subtle: #94a3b8;
+
+  /* Menu lateral */
+  --nav-hover-bg: #dff7ec;
+  --nav-soft-bg: #eef9f3;
+  --nav-active-bg: #e7f7ef;
+  --nav-accent-text: #17684d;
+  --nav-line: #d5efe3;
+  --nav-title-hover: #527062;
+
+  /* Cabecera del menu lateral (saludo + logo) */
+  --nav-header-bg: linear-gradient(180deg, #2f936f 0%, #268764 100%);
+  --nav-header-line: transparent;
+  --nav-header-sub: rgba(255, 255, 255, 0.82);
+  --nav-ver-bg: rgba(255, 255, 255, 0.12);
+  --nav-ver-border: rgba(255, 255, 255, 0.22);
+
+  /* Chips de la barra superior: fondo, borde y texto de cada color */
+  --chip-icon-bg: rgba(255, 255, 255, 0.72);
+  --chip-green-bg: #dcfce7;  --chip-green-border: #bbf7d0;  --chip-green-text: #14532d;
+  --chip-red-bg: #fee2e2;    --chip-red-border: #fecaca;    --chip-red-text: #991b1b;
+  --chip-indigo-bg: #eef2ff; --chip-indigo-border: #c7d2fe; --chip-indigo-text: #312e81;
+  --chip-violet-bg: #ede9fe; --chip-violet-border: #ddd6fe; --chip-violet-text: #4c1d95;
+  --chip-cyan-bg: #cffafe;   --chip-cyan-border: #a5f3fc;   --chip-cyan-text: #155e75;
+
+  /* Aviso "sin conexion" */
+  --warn-bg: #fff8ea;
+  --warn-border: #f1d6a8;
+  --warn-icon: #b7791f;
+  --warn-title: #7b4f0b;
+  --warn-text: #5c4a1f;
+  --warn-subtle: #8a7a55;
+
+  /* Fondo oscurecido detras de los modales */
+  --modal-overlay: rgba(15, 23, 42, 0.44);
+  /* Titulos y bloques de color suave (tintes) que se usan dentro de las pantallas */
+  --app-heading: #1e293b;
+  --tint-sky-bg: #f0f9ff;     --tint-sky-border: #bae6fd;
+  --tint-emerald-bg: #ecfdf5; --tint-emerald-border: #a7f3d0;
+  --tint-amber-bg: #fffbeb;   --tint-amber-border: #fde68a;
+  --tint-rose-bg: #fff1f2;    --tint-rose-border: #fecdd3;
+  --tint-indigo-bg: #eef2ff;  --tint-indigo-border: #c7d2fe;
+
+  /* Campos de formulario y buscador desplegable (search-select) */
+  --field-label: #3b4a43;
+  --field-border: #cfd8d3;
+  --field-bg: #ffffff;
+  --field-text: #1f2937;
+  --field-placeholder-text: #667085;
+  --field-disabled-bg: #f3f6fa;
+  --field-disabled-text: #7c8aa2;
+  --field-icon: #64748b;
+  --field-clear-hover-bg: #eef2f7;
+  --field-clear-hover-text: #475569;
+  --field-hint: #64748b;
+  --field-empty: #94a3b8;
+  --field-panel-bg: #ffffff;
+  --field-search-bg: #f7fbf9;
+  --field-search-border: #cddbd6;
+  --field-search-text: #172033;
+  --field-search-placeholder: #98a6b3;
+  --field-search-icon: #5f756e;
+  --field-option-text: #344054;
+  --field-option-hover-bg: #e8f6f0;
+  --field-option-hover-text: #1b7758;
+  --field-option-selected-bg: #dff3eb;
+  --field-option-selected-text: #17684d;
+  --field-done-bg: #fdecec;
+  --field-done-text: #7a1d1d;
+  --field-done-hover-bg: #fbdcdc;
+  --field-done-sub: #b42318;
+  --field-edit-search-bg: #fffdf8;
+  --field-edit-search-border: #f3dfbc;
+  --field-edit-hover-bg: #fff8e8;
+  --field-edit-hover-text: #8a4b0d;
+  --field-edit-selected-bg: #fff1cf;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --app-body: oklch(var(--b2));
+  --app-bg: oklch(var(--b2));
+  --app-surface: oklch(var(--b1));
+  --app-surface-2: oklch(var(--b2));
+  --app-surface-3: oklch(var(--b3));
+
+  --app-border: oklch(var(--bc) / 0.16);
+  --app-border-2: oklch(var(--bc) / 0.12);
+  --app-shadow: rgba(0, 0, 0, 0.35);
+
+  --app-text: oklch(var(--bc) / 1);
+  --app-text-2: oklch(var(--bc) / 0.88);
+  --app-muted: oklch(var(--bc) / 0.68);
+  --app-subtle: oklch(var(--bc) / 0.5);
+
+  --nav-hover-bg: rgba(53, 179, 131, 0.16);
+  --nav-soft-bg: rgba(53, 179, 131, 0.1);
+  --nav-active-bg: rgba(53, 179, 131, 0.2);
+  --nav-accent-text: #86e0bb;
+  --nav-line: rgba(53, 179, 131, 0.3);
+  --nav-title-hover: #a7d8c3;
+
+  /* Cabecera del menu lateral: verde bosque profundo, mas sobrio que el verde del tema claro */
+  --nav-header-bg: linear-gradient(180deg, #1c5f4a 0%, #134436 100%);
+  --nav-header-line: rgba(255, 255, 255, 0.08);
+  --nav-header-sub: rgba(255, 255, 255, 0.7);
+  --nav-ver-bg: rgba(255, 255, 255, 0.07);
+  --nav-ver-border: rgba(255, 255, 255, 0.28);
+
+  --chip-icon-bg: rgba(255, 255, 255, 0.12);
+  --chip-green-bg: rgba(34, 197, 94, 0.16);   --chip-green-border: rgba(34, 197, 94, 0.4);   --chip-green-text: #86efac;
+  --chip-red-bg: rgba(239, 68, 68, 0.16);     --chip-red-border: rgba(239, 68, 68, 0.4);     --chip-red-text: #fca5a5;
+  --chip-indigo-bg: rgba(99, 102, 241, 0.18); --chip-indigo-border: rgba(129, 140, 248, 0.4); --chip-indigo-text: #c7d2fe;
+  --chip-violet-bg: rgba(139, 92, 246, 0.18); --chip-violet-border: rgba(167, 139, 250, 0.4); --chip-violet-text: #ddd6fe;
+  --chip-cyan-bg: rgba(6, 182, 212, 0.16);    --chip-cyan-border: rgba(34, 211, 238, 0.4);    --chip-cyan-text: #a5f3fc;
+
+  --warn-bg: rgba(245, 158, 11, 0.12);
+  --warn-border: rgba(245, 158, 11, 0.35);
+  --warn-icon: #fbbf24;
+  --warn-title: #fcd34d;
+  --warn-text: #fde68a;
+  --warn-subtle: #d6c28a;
+  --modal-overlay: rgba(0, 0, 0, 0.62);
+  --app-heading: oklch(var(--bc) / 1);
+  --tint-sky-bg: rgba(14, 165, 233, 0.12);     --tint-sky-border: rgba(56, 189, 248, 0.35);
+  --tint-emerald-bg: rgba(16, 185, 129, 0.12); --tint-emerald-border: rgba(52, 211, 153, 0.35);
+  --tint-amber-bg: rgba(245, 158, 11, 0.12);   --tint-amber-border: rgba(251, 191, 36, 0.35);
+  --tint-rose-bg: rgba(244, 63, 94, 0.12);     --tint-rose-border: rgba(251, 113, 133, 0.35);
+  --tint-indigo-bg: rgba(99, 102, 241, 0.14);  --tint-indigo-border: rgba(129, 140, 248, 0.4);
+
+  --field-label: oklch(var(--bc) / 0.85);
+  --field-border: oklch(var(--bc) / 0.25);
+  --field-bg: oklch(var(--b2));
+  --field-text: oklch(var(--bc) / 1);
+  --field-placeholder-text: oklch(var(--bc) / 0.55);
+  --field-disabled-bg: oklch(var(--b3));
+  --field-disabled-text: oklch(var(--bc) / 0.4);
+  --field-icon: oklch(var(--bc) / 0.6);
+  --field-clear-hover-bg: oklch(var(--bc) / 0.12);
+  --field-clear-hover-text: oklch(var(--bc) / 0.9);
+  --field-hint: oklch(var(--bc) / 0.6);
+  --field-empty: oklch(var(--bc) / 0.5);
+  --field-panel-bg: oklch(var(--b1));
+  --field-search-bg: oklch(var(--b2));
+  --field-search-border: oklch(var(--bc) / 0.2);
+  --field-search-text: oklch(var(--bc) / 1);
+  --field-search-placeholder: oklch(var(--bc) / 0.45);
+  --field-search-icon: oklch(var(--bc) / 0.55);
+  --field-option-text: oklch(var(--bc) / 0.9);
+  --field-option-hover-bg: rgba(53, 167, 123, 0.18);
+  --field-option-hover-text: #86e0bb;
+  --field-option-selected-bg: rgba(53, 167, 123, 0.28);
+  --field-option-selected-text: #a7f0cf;
+  --field-done-bg: rgba(239, 68, 68, 0.16);
+  --field-done-text: #fca5a5;
+  --field-done-hover-bg: rgba(239, 68, 68, 0.24);
+  --field-done-sub: #fca5a5;
+  --field-edit-search-bg: rgba(217, 137, 31, 0.1);
+  --field-edit-search-border: rgba(217, 137, 31, 0.35);
+  --field-edit-hover-bg: rgba(217, 137, 31, 0.2);
+  --field-edit-hover-text: #fcd34d;
+  --field-edit-selected-bg: rgba(217, 137, 31, 0.3);
+}
+
+/* Tema oscuro: los campos de formulario van un tono mas oscuro que la tarjeta (como en el diseno de referencia). */
+[data-theme='dark'] .input,
+[data-theme='dark'] .select,
+[data-theme='dark'] .textarea {
+  background-color: var(--app-surface-2);
+}
+
+/*
+ * Esquema de color de los controles nativos (calendario del campo fecha, barras de scroll...).
+ * daisyUI agrega "color-scheme: dark" cuando el sistema operativo esta en modo oscuro, aunque la app este en claro.
+ * Con html[...] (mas especifico) la app manda siempre segun su propio tema.
+ */
+html[data-theme='planta'] { color-scheme: light; }
+html[data-theme='dark'] { color-scheme: dark; }

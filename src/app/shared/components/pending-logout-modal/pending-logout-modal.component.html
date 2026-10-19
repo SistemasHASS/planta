@@ -1,0 +1,41 @@
+@if (modal.state().visible) {
+  <div class="pending-logout-backdrop" role="dialog" aria-modal="true" aria-labelledby="pending-logout-title" (click)="modal.cancel()">
+    <section class="pending-logout-card" (click)="$event.stopPropagation()">
+      <button type="button" class="close-button" aria-label="Cancelar cierre de sesión" (click)="modal.cancel()">
+        <svg lucideX></svg>
+      </button>
+
+      <div class="warning-mark" aria-hidden="true">
+        <svg lucideAlertOctagon></svg>
+      </div>
+
+      <div class="heading">
+        <p>Acción con pérdida de datos</p>
+        <h2 id="pending-logout-title">Tienes datos sin sincronizar</h2>
+        <span>{{ modal.state().summary?.total }} {{ modal.state().summary?.total === 1 ? 'cambio pendiente' : 'cambios pendientes' }}</span>
+      </div>
+
+      <div class="pending-list" aria-label="Datos pendientes de sincronizar">
+        @for (item of modal.state().summary?.items ?? []; track item.label) {
+          <div class="pending-row">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.count }}</strong>
+          </div>
+        }
+      </div>
+
+      <div class="danger-note">
+        <svg lucideTriangleAlert aria-hidden="true"></svg>
+        <p>Si cierras sesión ahora, estos datos locales se eliminarán y no podrán sincronizarse después.</p>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="keep-button" (click)="modal.cancel()">Volver y sincronizar</button>
+        <button type="button" class="logout-button" (click)="modal.accept()">
+          <svg lucideLogOut></svg>
+          Entiendo, cerrar sesión y eliminar datos
+        </button>
+      </div>
+    </section>
+  </div>
+}

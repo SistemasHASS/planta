@@ -1,0 +1,193 @@
+<section class="w-full space-y-4 p-3 sm:p-5">
+  @if (!online()) {
+    <div class="flex flex-col items-center gap-3 rounded-2xl border border-app-border2 bg-app-surface p-10 text-center shadow-sm">
+      <svg lucideWifiOff class="size-10 text-app-subtle"></svg>
+      <h2 class="text-lg font-bold text-app-text">Sin conexión a internet</h2>
+      <p class="max-w-md text-sm text-app-muted">Este reporte solo está disponible en modo online. Conéctate a internet para continuar.</p>
+    </div>
+  } @else {
+    <div #reportPage class="space-y-5">
+      <!-- Filtros -->
+      <div class="space-y-3 rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div class="min-w-0">
+            <h1 class="text-lg font-extrabold leading-tight text-app-heading">KG de Materia Prima Ingresada</h1>
+            <p class="text-xs text-app-muted">Reporte diario de recepción en acopios</p>
+          </div>
+          <div class="grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex">
+            <button type="button" class="btn h-[38px] min-h-[38px] rounded-[7px] border-0 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700" (click)="actualizar()" [disabled]="isLoading()">
+              <svg lucideRefreshCcw class="size-4"></svg> Actualizar
+            </button>
+            <button type="button" class="btn h-[38px] min-h-[38px] rounded-[7px] border-0 bg-slate-700 text-white shadow-sm hover:bg-slate-800" (click)="capturarDashboard()" [disabled]="isLoading()">
+              <svg lucideCamera class="size-4"></svg> Capturar
+            </button>
+          </div>
+        </div>
+
+        <div class="grid items-end gap-3 border-t border-app-border pt-3 sm:grid-cols-2 lg:flex">
+          <label class="block w-full lg:w-44 lg:shrink-0">
+            <span class="mb-[7px] block text-[11px] font-extrabold uppercase text-app-text2">Fecha</span>
+            <input type="date" class="input input-bordered h-[38px] min-h-[38px] w-full rounded-[7px] border-app-border bg-app-surface px-4 text-[16px] font-semibold text-app-heading sm:text-[13px]" [ngModel]="fechaConsulta()" (ngModelChange)="fechaConsulta.set($event)" />
+          </label>
+
+          @if (mostrarEmpresa()) {
+            <div class="w-full min-w-0 lg:flex-1">
+              <app-search-select label="Empresa" placeholder="Selecciona empresa" [options]="empresaOpciones()" [value]="empresaRuc() || null" [disabled]="isLoading()" (selected)="cambiarEmpresa($event)" />
+            </div>
+            <div class="w-full min-w-0 lg:flex-1">
+              <app-search-select label="Campaña" placeholder="Selecciona campaña" [options]="campaniaOpciones()" [value]="campaniaId() || null" [disabled]="campaniaOpciones().length === 0 || isLoading()" (selected)="cambiarCampania($event)" />
+            </div>
+          }
+
+          <div class="w-full min-w-0 lg:flex-1">
+            <app-search-multi-select label="Acopio" placeholder="Todos los acopios" [showSelectAll]="true" [options]="acopiosOptions()" [values]="acopiosSeleccionados()" (valuesChange)="acopiosSeleccionados.set($event)" />
+          </div>
+
+          <button type="button" class="btn btn-primary h-[38px] min-h-[38px] w-full rounded-[7px] sm:col-span-2 lg:w-auto lg:shrink-0" (click)="aplicarFiltros()" [disabled]="isLoading()">Filtrar</button>
+        </div>
+      </div>
+
+      @if (errorMensaje()) {
+        <p class="rounded-xl border border-red-200 dark:border-red-500/35 bg-red-50 dark:bg-red-500/15 p-3 text-sm text-red-700 dark:text-red-300">{{ errorMensaje() }}</p>
+      }
+
+      @if ((kpis()?.detallesSinPesoVacio ?? 0) > 0) {
+        <p class="rounded-xl border border-tint-amber-border bg-amber-50 dark:bg-amber-500/15 p-3 text-sm text-amber-800 dark:text-amber-300">
+          Hay {{ kpis()?.detallesSinPesoVacio | number }} detalle(s) cuya clasificación no tiene peso vacío configurado. Su destaraje de jarras se considera en cero.
+        </p>
+      }
+
+      @if (kpis(); as k) {
+        <!-- KPIs -->
+        <div class="flex gap-2 overflow-x-auto pb-1 lg:grid lg:grid-cols-6 lg:overflow-visible lg:pb-0">
+          <div class="min-w-[9rem] shrink-0 rounded-xl border border-blue-200 dark:border-blue-500/35 bg-blue-50 dark:bg-blue-500/15 px-3 py-2 lg:min-w-0">
+            <span class="block text-[10px] font-bold uppercase leading-tight tracking-wide text-blue-700 dark:text-blue-300">KG brutos</span>
+            <p class="truncate text-lg font-extrabold leading-tight text-app-heading">{{ k.kgBrutoTotal | number: '1.2-2' }}</p>
+            <span class="block truncate text-[11px] text-app-muted">Antes del destaraje</span>
+          </div>
+          <div class="min-w-[9rem] shrink-0 rounded-xl border border-red-200 dark:border-red-500/35 bg-red-50 dark:bg-red-500/15 px-3 py-2 lg:min-w-0">
+            <span class="block text-[10px] font-bold uppercase leading-tight tracking-wide text-red-700 dark:text-red-300">KG descontados</span>
+            <p class="truncate text-lg font-extrabold leading-tight text-app-heading">{{ k.taraTotalKg | number: '1.2-2' }}</p>
+            <span class="block truncate text-[11px] text-app-muted">Jarras y javas</span>
+          </div>
+          <div class="min-w-[9rem] shrink-0 rounded-xl border border-tint-emerald-border bg-emerald-50 dark:bg-emerald-500/15 px-3 py-2 lg:min-w-0">
+            <span class="block text-[10px] font-bold uppercase leading-tight tracking-wide text-emerald-700 dark:text-emerald-300">KG netos</span>
+            <p class="truncate text-lg font-extrabold leading-tight text-app-heading">{{ k.kgNetoTotal | number: '1.2-2' }}</p>
+            <span class="block truncate text-[11px] text-app-muted">Resultado del destaraje</span>
+          </div>
+          <div class="min-w-[9rem] shrink-0 rounded-xl border border-cyan-200 dark:border-cyan-500/35 bg-cyan-50 dark:bg-cyan-500/15 px-3 py-2 lg:min-w-0">
+            <span class="block text-[10px] font-bold uppercase leading-tight tracking-wide text-cyan-700 dark:text-cyan-300">Envíos registrados</span>
+            <p class="truncate text-lg font-extrabold leading-tight text-app-heading">{{ k.enviosTotales | number }}</p>
+            <span class="block truncate text-[11px] text-app-muted">Ingresos de materia prima</span>
+          </div>
+          <div class="min-w-[9rem] shrink-0 rounded-xl border border-violet-200 dark:border-violet-500/35 bg-violet-50 dark:bg-violet-500/15 px-3 py-2 lg:min-w-0">
+            <span class="block text-[10px] font-bold uppercase leading-tight tracking-wide text-violet-700 dark:text-violet-300">Envases recibidos</span>
+            <p class="truncate text-lg font-extrabold leading-tight text-app-heading">{{ k.cantidadEnvases | number }}</p>
+            <span class="block truncate text-[11px] text-app-muted">Unidades registradas</span>
+          </div>
+          <div class="min-w-[9rem] shrink-0 rounded-xl border border-tint-amber-border bg-amber-50 dark:bg-amber-500/15 px-3 py-2 lg:min-w-0">
+            <span class="block text-[10px] font-bold uppercase leading-tight tracking-wide text-amber-700 dark:text-amber-300">Acopios activos</span>
+            <p class="truncate text-lg font-extrabold leading-tight text-app-heading">{{ k.acopiosTotales | number }}</p>
+            <span class="block truncate text-[11px] text-app-muted">Plantas con recepción</span>
+          </div>
+        </div>
+
+        <div class="grid gap-4 xl:grid-cols-2">
+          <div class="min-w-0 rounded-2xl border border-app-border2 bg-app-surface p-3 shadow-sm sm:p-5">
+            <h2 class="mb-3 text-sm font-bold text-app-text">KG netos por Acopio</h2>
+            <div #chartAcopio class="h-80 w-full"></div>
+          </div>
+          <div class="min-w-0 rounded-2xl border border-app-border2 bg-app-surface p-3 shadow-sm sm:p-5">
+            <h2 class="mb-3 text-sm font-bold text-app-text">Distribución neta por Clasificación de Envase</h2>
+            <div #chartClasificacion class="h-80 w-full"></div>
+          </div>
+
+        </div>
+
+        <div class="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+          <!-- Detalle por acopio y clasificacion -->
+          <div class="min-w-0 rounded-2xl border border-app-border2 bg-app-surface p-3 shadow-sm sm:p-5">
+            <h2 class="mb-3 text-sm font-bold text-app-text">Detalle de peso por Acopio y Clasificación</h2>
+            <div class="tabla-scroll !max-h-96">
+              <table class="table table-sm whitespace-nowrap">
+                <thead>
+                  <tr>
+                    <th>Acopio</th>
+                    <th>Clasificación</th>
+                    <th class="text-right">Envíos</th>
+                    <th class="text-right">Envases</th>
+                    <th class="text-right">KG bruto</th>
+                    <th class="text-right">Destaraje</th>
+                    <th class="text-right">KG neto</th>
+                    <th class="text-right">% neto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (f of filasDetalle(); track f.acopio + '|' + f.detalle.clasificacionEnvase) {
+                    <tr [class]="f.grupo % 2 === 0 ? 'bg-app-surface2/70' : 'bg-amber-50/50 dark:bg-amber-500/15'">
+                      <td class="border-l-4 border-app-border2 font-semibold">{{ f.nombre }}</td>
+                      <td><span class="rounded-full px-2 py-0.5 text-[11px] font-bold" [class]="insignia(f.detalle.clasificacionEnvase)">{{ f.detalle.descripcion }}</span></td>
+                      <td class="text-right">{{ f.detalle.envios | number }}</td>
+                      <td class="text-right">{{ f.detalle.cantidadEnvases | number }}</td>
+                      <td class="text-right">{{ f.detalle.kgBruto | number: '1.2-2' }}</td>
+                      <td class="text-right text-red-600 dark:text-red-300">-{{ f.detalle.taraTotalKg | number: '1.2-2' }}</td>
+                      <td class="text-right font-semibold">{{ f.detalle.kgNeto | number: '1.2-2' }}</td>
+                      <td class="text-right"><span class="badge badge-primary badge-sm font-semibold">{{ f.detalle.porcentajeNeto | number: '1.1-1' }}%</span></td>
+                    </tr>
+                  }
+                  @if (filasDetalle().length === 0) {
+                    <tr><td colspan="8" class="text-center text-app-subtle">Sin datos</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- KG netos por variedad -->
+          <div class="min-w-0 rounded-2xl border border-app-border2 bg-app-surface p-3 shadow-sm sm:p-5">
+            <h2 class="text-sm font-bold text-app-text">KG netos por Variedad</h2>
+            <p class="mb-3 text-xs text-app-muted">Recepción clasificada por tipo de jarra</p>
+            <div class="tabla-scroll !max-h-96">
+              <table class="table table-sm whitespace-nowrap">
+                <thead>
+                  <tr>
+                    <th>Variedad</th>
+                    <th class="text-right !bg-app-surface3 !text-app-text2 !shadow-[inset_0_-3px_0_#64748b]">Jarra blanca</th>
+                    <th class="text-right !bg-green-100 !text-green-700 dark:!bg-[#133931] dark:!text-green-300 !shadow-[inset_0_-3px_0_#22c55e]">Jarra verde</th>
+                    <th class="text-right !bg-blue-100 !text-blue-700 dark:!bg-[#182c50] dark:!text-blue-300 !shadow-[inset_0_-3px_0_#2563eb]">Descarte</th>
+                    <th class="text-right">Total neto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (v of kgPorVariedad(); track v.variedad) {
+                    <tr>
+                      <td class="font-semibold">{{ v.variedad }}</td>
+                      <td class="bg-slate-500/10 text-right text-app-text2">{{ v.jarraBlancaKgNeto | number: '1.2-2' }}</td>
+                      <td class="bg-green-500/10 text-right text-green-700 dark:text-green-300">{{ v.jarraVerdeKgNeto | number: '1.2-2' }}</td>
+                      <td class="bg-blue-600/10 text-right text-blue-700 dark:text-blue-300">{{ v.descarteKgNeto | number: '1.2-2' }}</td>
+                      <td class="text-right font-bold">{{ v.kgNetoTotal | number: '1.2-2' }}</td>
+                    </tr>
+                  }
+                  @if (kgPorVariedad().length === 0) {
+                    <tr><td colspan="5" class="text-center text-app-subtle">Sin datos de variedades</td></tr>
+                  }
+                </tbody>
+                @if (kgPorVariedad().length > 0) {
+                  <tfoot>
+                    <tr class="font-bold">
+                      <td>Total general</td>
+                      <td class="text-right">{{ totalesVariedad().blanca | number: '1.2-2' }}</td>
+                      <td class="text-right">{{ totalesVariedad().verde | number: '1.2-2' }}</td>
+                      <td class="text-right">{{ totalesVariedad().descarte | number: '1.2-2' }}</td>
+                      <td class="text-right">{{ totalesVariedad().total | number: '1.2-2' }}</td>
+                    </tr>
+                  </tfoot>
+                }
+              </table>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</section>

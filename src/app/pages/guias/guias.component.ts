@@ -1,74 +1,129 @@
-import { Component, ChangeDetectionStrategy, inject, signal, computed, OnInit } from '@angular/core';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { firstValueFrom } from 'rxjs';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { GuiaService } from '../../shared/services/guia.service';
-import { ProcesoService } from '../../shared/services/proceso.service';
-import { PermissionService } from '../../shared/services/permission.service';
-import { AlertService } from '../../shared/services/alert.service';
-import { ConnectivityService } from '../../shared/services/connectivity.service';
-import { AuthService } from '../../shared/services/auth.service';
-import { CatalogoService } from '../../shared/services/catalogo.service';
-import { GuiaRemision, GuiaRemisionPalet } from '../../shared/interfaces/guia.interface';
-import { Proceso } from '../../shared/interfaces/proceso.interface';
-import { Configuracion } from '../../shared/interfaces/administracion.interface';
-import { Transportista, Conductor, Vehiculo } from '../../shared/interfaces/catalogo.interface';
-import { ModalNuevaGuiaComponent } from './components/modal-nueva-guia/modal-nueva-guia.component';
-import { ModalInspeccionComponent } from './components/modal-inspeccion/modal-inspeccion.component';
-import { ModalVerDetalleGuiaComponent } from './components/modal-ver-detalle-guia/modal-ver-detalle-guia.component';
-import { ProcesoRepository } from '../../shared/dexiedb/repository/proceso.repository';
+import {
+  LucideCircleCheck,
+  LucideCloudUpload,
+  LucideEye,
+  LucideFileSpreadsheet,
+  LucideFileText,
+  LucideFlaskConical,
+  LucideLayers,
+  LucidePencil,
+  LucidePlus,
+  LucideRefreshCw,
+  LucideSearch,
+  LucideTrash2,
+  LucideTruck,
+  LucideWifiOff,
+  LucideX,
+  LucideOctagonX,
+} from '@lucide/angular';
+import { SearchSelectComponent, SearchSelectOption } from '../../shared/components/search-select/search-select.component';
+import { PaginatorComponent } from '../../shared/components/paginator/paginator.component';
 import { CatalogosRepository } from '../../shared/dexiedb/repository/catalogos.repository';
-import { CatalogosOperativosRepository } from '../../shared/dexiedb/repository/catalogos-operacionales.repository';
 import { GuiasRemisionRepository } from '../../shared/dexiedb/repository/guias-remision.repository';
-import { GuiaRemisionFacade } from '../../shared/facades/guia-remision.facade';
-import { CatalogosFacade } from '../../shared/facades/catalogos.facade';
-import { ProcesosFacade } from '../../shared/facades/procesos.facade';
-import { formatDateTime, toLocalISOString, formatDate } from '../../shared/utils/datetime.utils';
+import { ProcesoRepository } from '../../shared/dexiedb/repository/proceso.repository';
+import { ROLES } from '../../shared/guards/role.guard';
+import { Configuracion } from '../../shared/interfaces/administracion.interface';
+import { Usuario } from '../../shared/interfaces/auth.interface';
+import { Conductor, Transportista, Vehiculo } from '../../shared/interfaces/catalogo.interface';
+import { GuiaRemision } from '../../shared/interfaces/guia.interface';
+import { Proceso } from '../../shared/interfaces/proceso.interface';
+import { ConfirmModalService } from '../../shared/services/confirm-modal.service';
+import { AlertaService } from '../../shared/services/alerta.service';
+import { AuthService } from '../../shared/services/auth.service';
+import { CatalogosGuiaService } from '../../shared/services/catalogos-guia.service';
+import { ConnectivityService } from '../../shared/services/connectivity.service';
+import { FeedbackModalService } from '../../shared/services/feedback-modal.service';
+import { GuiaRemisionService } from '../../shared/services/guia-remision.service';
+import { LoadingService } from '../../shared/services/loading.service';
+import { GuiasApiService } from '../../shared/services/guias-api.service';
+import { abrirOCompartirArchivo, descargarArchivo, esDispositivoMovil } from '../../shared/utils/archivo';
+import { formatDateTime, nowPeruDate, toLocalISOString } from '../../shared/utils/date-time.util';
+import { estadoGuiaClass, estadoSunatClass, estadoSunatLabel, esAceptadaSunat } from '../../shared/utils/estado-sunat';
+import { crearPaginacion } from '../../shared/utils/paginacion';
+import { newUuid } from '../../shared/utils/uuid';
+import { ModalPdfSunatComponent } from './components/modal-pdf-sunat/modal-pdf-sunat.component';
+import { ModalInspeccionComponent } from './components/modal-inspeccion/modal-inspeccion.component';
+import { ModalNuevaGuiaComponent } from './components/modal-nueva-guia/modal-nueva-guia.component';
+import { ModalVerDetalleGuiaComponent } from './components/modal-ver-detalle-guia/modal-ver-detalle-guia.component';
 
-type ViewPage = 'procesos' | 'guias' | 'detalle';
+const texto = (v: unknown): string => String(v ?? '').trim();
 
+/**
+ * Guias de remision: listar, crear (con inspeccion), editar, emitir ante SUNAT, consultar estado, anular, eliminar y exportar a Excel.
+ * La logica es la de la aplicacion anterior; solo cambian la forma de llamar a la API (api/guias), las alertas y la pantalla.
+ * La pantalla solo funciona con internet (igual que antes); la lectura/guardado en Dexie vive en GuiaRemisionService.
+ */
 @Component({
   selector: 'app-guias',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ModalNuevaGuiaComponent, ModalInspeccionComponent, ModalVerDetalleGuiaComponent, FormsModule],
+  imports: [
+    FormsModule,
+    PaginatorComponent,
+    SearchSelectComponent,
+    ModalPdfSunatComponent,
+    ModalNuevaGuiaComponent,
+    ModalInspeccionComponent,
+    ModalVerDetalleGuiaComponent,
+    LucideCircleCheck,
+    LucideCloudUpload,
+    LucideEye,
+    LucideFileSpreadsheet,
+    LucideFileText,
+    LucideFlaskConical,
+    LucideLayers,
+    LucidePencil,
+    LucidePlus,
+    LucideRefreshCw,
+    LucideSearch,
+    LucideTrash2,
+    LucideTruck,
+    LucideWifiOff,
+    LucideX,
+    LucideOctagonX,
+  ],
   templateUrl: './guias.component.html',
-  styleUrl: './guias.component.scss'
+  styleUrl: './guias.component.scss',
 })
 export class GuiasComponent implements OnInit {
-  private readonly guiaService = inject(GuiaService);
-  private readonly procesoService = inject(ProcesoService);
-  readonly permissions = inject(PermissionService);
-  private readonly alertService = inject(AlertService);
+  private readonly api = inject(GuiasApiService);
+  private readonly guiaRemision = inject(GuiaRemisionService);
+  private readonly catalogosGuia = inject(CatalogosGuiaService);
+  private readonly alertService = inject(AlertaService);
+  private readonly confirmModal = inject(ConfirmModalService);
+  private readonly feedback = inject(FeedbackModalService);
   private readonly connectivity = inject(ConnectivityService);
-  private readonly procesoRepo = inject(ProcesoRepository);
-  private readonly catalogoService = inject(CatalogoService);
-  private readonly catalogosRepo = inject(CatalogosRepository);
-  private readonly catalogosOperativosRepo = inject(CatalogosOperativosRepository);
-  private readonly guiasRemisionRepo = inject(GuiasRemisionRepository);
-  private readonly guiaRemisionFacade = inject(GuiaRemisionFacade);
-  private readonly catalogosFacade = inject(CatalogosFacade);
-  private readonly procesosFacade = inject(ProcesosFacade);
   private readonly auth = inject(AuthService);
-  private readonly sanitizer = inject(DomSanitizer);
+  private readonly catalogosRepo = inject(CatalogosRepository);
+  private readonly guiasRemisionRepo = inject(GuiasRemisionRepository);
+  private readonly procesoRepo = inject(ProcesoRepository);
+  private readonly loading = inject(LoadingService);
+
+  readonly estadoSunatClass = estadoSunatClass;
+  readonly estadoSunatLabel = estadoSunatLabel;
+  readonly estadoGuiaClass = estadoGuiaClass;
+  readonly esAceptadaSunat = esAceptadaSunat;
 
   get online(): boolean {
     return this.connectivity.isOnline();
   }
 
   readonly onlineSignal = computed(() => this.connectivity.isOnline());
-  readonly esAdmin = computed(() => this.auth.perfil() === 'ADMINISTRADOR' || this.auth.perfil() === 'MONITOR');
-  readonly esAdministrador = computed(() => this.auth.perfil() === 'ADMINISTRADOR');
+
+  readonly usuario = signal<Usuario | null>(null);
+  /** Administrador y monitor solo consultan (Excel y, el administrador, anular); logistica crea y opera. */
+  readonly esAdmin = computed(() => [ROLES.admin, ROLES.monitor].some((r) => r === texto(this.usuario()?.idRol).toUpperCase()));
+  readonly esAdministrador = computed(() => texto(this.usuario()?.idRol).toUpperCase() === ROLES.admin);
 
   get tieneGuiasNoSincronizadas(): boolean {
     return this.guias().some((g: any) => g?.sincroniza === 'no_sincronizado');
   }
 
-  currentView = signal<ViewPage>('procesos');
   procesos = signal<Proceso[]>([]);
-  procesoSeleccionado = signal<Proceso | null>(null);
   guias = signal<GuiaRemision[]>([]);
 
-  guiasAgrupadas = computed(() => {
+  readonly guiasAgrupadas = computed(() => {
     const raw = this.guias();
     const map = new Map<string, any>();
     const result: any[] = [];
@@ -100,41 +155,8 @@ export class GuiasComponent implements OnInit {
     return result;
   });
 
-  readonly itemsPorPaginaGuias = signal(25);
-  readonly paginaGuias = signal(1);
-  readonly totalGuiasAgrupadas = computed(() => this.guiasAgrupadas().length);
-  readonly totalPaginasGuias = computed(() =>
-    Math.max(1, Math.ceil(this.totalGuiasAgrupadas() / this.itemsPorPaginaGuias()))
-  );
-  readonly paginaActualGuias = computed(() =>
-    Math.min(Math.max(this.paginaGuias(), 1), this.totalPaginasGuias())
-  );
-  readonly guiasPaginadas = computed(() => {
-    const page = this.paginaActualGuias();
-    const size = this.itemsPorPaginaGuias();
-    const start = (page - 1) * size;
-    return this.guiasAgrupadas().slice(start, start + size);
-  });
-  readonly rangoGuiasDesde = computed(() =>
-    this.totalGuiasAgrupadas() === 0 ? 0 : (this.paginaActualGuias() - 1) * this.itemsPorPaginaGuias() + 1
-  );
-  readonly rangoGuiasHasta = computed(() =>
-    Math.min(this.paginaActualGuias() * this.itemsPorPaginaGuias(), this.totalGuiasAgrupadas())
-  );
+  readonly paginacion = crearPaginacion(() => this.guiasAgrupadas(), 25);
 
-  setPaginaGuias(page: number): void {
-    this.paginaGuias.set(Math.min(Math.max(page, 1), this.totalPaginasGuias()));
-  }
-
-  paginaGuiasAnterior(): void {
-    this.setPaginaGuias(this.paginaActualGuias() - 1);
-  }
-
-  paginaGuiasSiguiente(): void {
-    this.setPaginaGuias(this.paginaActualGuias() + 1);
-  }
-
-  guiaSeleccionada = signal<GuiaRemision | null>(null);
   isLoading = signal(false);
   modalNuevaGuiaAbierto = signal(false);
   modoEdicionGuia = signal(false);
@@ -153,35 +175,23 @@ export class GuiasComponent implements OnInit {
   readonly vehiculos = signal<Vehiculo[]>([]);
   readonly destinatarios = signal<any[]>([]);
   readonly procesosCatalogo = signal<any[]>([]);
-  readonly tipoProcesoEmpacadosCatalogo = signal<any[]>([]);
-  readonly consignatariosCatalogo = signal<any[]>([]);
-  readonly destinosCatalogo = signal<any[]>([]);
-  readonly presentacionesCatalogo = signal<any[]>([]);
-  readonly formatosCatalogo = signal<any[]>([]);
-  readonly variedadesCatalogo = signal<any[]>([]);
-  readonly tiposEmpaqueGuiaCatalogo = signal<any[]>([]);
-  readonly codigosRanchoCatalogo = signal<any[]>([]);
-  readonly lugaresProduccionCatalogo = signal<any[]>([]);
-  readonly transportesCatalogo = signal<any[]>([]);
-  readonly campaniasCatalogo = signal<any[]>([]);
-  readonly codigosCajaCatalogo = signal<any[]>([]);
   readonly motivosTraslado = signal<any[]>([]);
   readonly establecimientoEmisor = signal<any | null>(null);
   readonly establecimientos = signal<any[]>([]);
 
+  readonly estadoOpciones: SearchSelectOption[] = [
+    { value: '', label: 'Todos los estados' },
+    { value: 'ABIERTA', label: 'Abierta' },
+    { value: 'CERRADA', label: 'Cerrada' },
+    { value: 'ANULADO', label: 'Anulado' },
+  ];
   readonly filtroEstado = signal<string>('');
   readonly filtroTexto = signal<string>('');
   readonly filtroFechaDesde = signal<string>('');
   readonly filtroFechaHasta = signal<string>('');
 
-  private todayDate(): string {
-    const d = new Date();
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  }
-
   limpiarFiltros(): void {
-    const hoy = this.todayDate();
+    const hoy = nowPeruDate();
     this.filtroEstado.set('');
     this.filtroTexto.set('');
     this.filtroFechaDesde.set(hoy);
@@ -189,19 +199,19 @@ export class GuiasComponent implements OnInit {
     void this.onBuscarGuias();
   }
 
-  ngOnInit(): void {
-    const hoy = this.todayDate();
+  async ngOnInit(): Promise<void> {
+    const session = await this.auth.getSession();
+    this.usuario.set(session?.user ?? null);
+    const hoy = nowPeruDate();
     this.filtroFechaDesde.set(hoy);
     this.filtroFechaHasta.set(hoy);
-    void this.cargarConfiguracion();
-    void this.cargarCodigosCajaCatalogo();
-    void this.cargarMotivosTraslado();
+    await this.cargarConfiguracion();
     void this.onBuscarGuias();
   }
 
   async onBuscarGuias(options: { mostrarCarga?: boolean } = {}): Promise<void> {
     const mostrarCarga = options.mostrarCarga ?? true;
-    this.paginaGuias.set(1);
+    this.paginacion.page.set(1);
     const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
     if (!idProyecto) {
       await this.cargarConfiguracion();
@@ -213,7 +223,7 @@ export class GuiasComponent implements OnInit {
     }
     const idProyectoFinal = String(this.savedConfig()?.idProyecto ?? '').trim();
     if (mostrarCarga) {
-      this.alertService.mostrarModalCarga();
+      this.loading.show('Buscando guías...');
     }
     try {
       this.isLoading.set(true);
@@ -222,31 +232,25 @@ export class GuiasComponent implements OnInit {
       const fechaDesde = this.filtroFechaDesde().trim() || null;
       const fechaHasta = this.filtroFechaHasta().trim() || null;
 
-      const resultado = await this.guiaRemisionFacade.listarGuiasRemision(idProyectoFinal, estado, fechaDesde, fechaHasta, texto);
-      console.log('1-1-1-1-',resultado)
+      const resultado = await this.guiaRemision.listarGuiasEnLinea(idProyectoFinal, estado, fechaDesde, fechaHasta, texto);
       if (resultado.error) {
         if (mostrarCarga) {
-          this.alertService.cerrarModalCarga();
+          this.loading.hide();
         }
         this.alertService.showAlert('Error', resultado.error, 'error');
         return;
       }
       const guiasRaw = resultado.data;
 
-      await this.cargarProcesosCatalogo();
-      await this.cargarDestinatarios();
-
-      const procesos = this.procesosCatalogo();
-      const destinatarios = this.destinatarios();
+      // Solo se piden los destinatarios (para el nombre); no se guardan en el equipo.
+      const destinatarios = (await this.catalogosGuia.destinatariosEnLinea()) ?? [];
+      this.destinatarios.set(destinatarios);
 
       const guiasEnriquecidas = guiasRaw.map((g: any) => {
         const codigoProceso = String(g?.codigoProceso ?? '').trim();
-        const proceso = procesos.find((p: any) => {
-          const pId = String(p?.idProceso ?? p?.codigoProceso ?? p?.id ?? '').trim();
-          return pId === codigoProceso;
-        });
-        const fechaProceso = String((proceso as any)?.fechaProceso ?? '').trim();
-        const turno = String((proceso as any)?.turno ?? '').trim();
+        // El nombre del proceso ya no se pide al servidor: se muestra el código (o lo que traiga la guía).
+        const fechaProceso = String(g?.fechaProceso ?? '').trim();
+        const turno = String(g?.turno ?? '').trim();
         const nombreProceso = fechaProceso && turno ? `${fechaProceso} - ${turno}` : (fechaProceso || turno || codigoProceso);
 
         const documentoDest = String(g?.documentoDestinatario ?? '').trim();
@@ -265,12 +269,12 @@ export class GuiasComponent implements OnInit {
 
       this.guias.set(guiasEnriquecidas);
       if (mostrarCarga) {
-        this.alertService.cerrarModalCarga();
+        await this.loading.hideAfterMinimum();
       }
     } catch (error: any) {
       console.error('Error listando guías:', error);
       if (mostrarCarga) {
-        this.alertService.cerrarModalCarga();
+        this.loading.hide();
       }
       this.alertService.showAlert('Error', error?.error?.message ?? 'Error al listar guías.', 'error');
     } finally {
@@ -279,56 +283,64 @@ export class GuiasComponent implements OnInit {
   }
 
   async exportarExcel(): Promise<void> {
-    const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
-    const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim() || null;
+    const idProyecto = texto(this.savedConfig()?.idProyecto);
+    const codigoCultivo = texto(this.savedConfig()?.codigoCultivo) || null;
     if (!idProyecto) {
       this.alertService.showAlert('Error', 'No se encontró la configuración del proyecto.', 'error');
       return;
     }
-    this.alertService.mostrarModalCarga();
+    this.loading.show('Generando Excel...');
     try {
-      const estado = this.filtroEstado().trim() || null;
-      const texto = this.filtroTexto().trim() || null;
-      const fechaDesde = this.filtroFechaDesde().trim() || null;
-      const fechaHasta = this.filtroFechaHasta().trim() || null;
+      const blob = await this.api.exportarExcel({
+        idProyecto,
+        estado: this.filtroEstado().trim() || null,
+        texto: this.filtroTexto().trim() || null,
+        fechaDesde: this.filtroFechaDesde().trim() || null,
+        fechaHasta: this.filtroFechaHasta().trim() || null,
+        codigoCultivo,
+      });
+      this.loading.hide();
+      const nombre = `guias-remision-${new Date().toISOString().slice(0, 10)}.xlsx`;
 
-      const blob = await firstValueFrom(this.guiaService.exportarGuiasRemisionExcel(idProyecto, estado, fechaDesde, fechaHasta, texto, codigoCultivo));
-      const clone = blob.slice(0, blob.size, blob.type);
-      const text = await clone.text();
-      let errorPayload: any = null;
-      try {
-        errorPayload = JSON.parse(text);
-      } catch { }
-
-      if (errorPayload?.error) {
-        this.alertService.showAlert('Información', errorPayload.mensaje ?? 'No se encontraron guías para exportar.', 'warning');
-        return;
+      if (esDispositivoMovil()) {
+        // Android / iOS: el archivo llego despues de esperar a la API, asi que solo se puede abrir desde un toque de la persona.
+        this.feedback.open('success', {
+          title: 'Excel listo',
+          message: 'El Excel de guías está listo. Toque "Abrir Excel" para verlo o compartirlo.',
+          actionText: 'Cerrar',
+          secondaryAction: { text: 'Abrir Excel', handler: () => abrirOCompartirArchivo(blob, nombre) },
+        });
+      } else {
+        descargarArchivo(blob, nombre);
       }
-
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `guias-remision-${new Date().toISOString().slice(0, 10)}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
     } catch (error: any) {
       console.error('Error exportando Excel:', error);
-      this.alertService.showAlert('Error', error?.error?.message ?? 'Error al exportar el Excel.', 'error');
-    } finally {
-      this.alertService.cerrarModalCarga();
+      this.loading.hide();
+      // Con responseType blob, el cuerpo del error llega como Blob: se lee para mostrar el mensaje del servidor.
+      const mensaje = await this.mensajeDeError(error, 'Error al exportar el Excel.');
+      this.alertService.showAlert('Información', mensaje, 'warning');
     }
   }
 
+  /** Mensaje del servidor ({ message }) aunque la respuesta llegue como Blob. */
+  private async mensajeDeError(error: any, defecto: string): Promise<string> {
+    const cuerpo = error?.error;
+    if (cuerpo instanceof Blob) {
+      try {
+        return JSON.parse(await cuerpo.text())?.message ?? defecto;
+      } catch {
+        return defecto;
+      }
+    }
+    return cuerpo?.message ?? defecto;
+  }
+
   private getNroDocumentoFromUsuario(): string {
-    const u: any = this.auth.usuario();
-    const v = u?.nrodocumento ?? u?.documentoidentidad ?? u?.documentoIdentidad ?? u?.documento ?? '';
-    return String(v ?? '').trim();
+    return texto(this.usuario()?.documentoIdentidad);
   }
 
   fmtDateTime(value: unknown): string {
-    return formatDateTime(value) ?? '—';
+    return formatDateTime(value) || '—';
   }
 
   sincronizadoLabel(sincroniza: string | undefined): string {
@@ -336,95 +348,26 @@ export class GuiasComponent implements OnInit {
   }
 
   sincronizadoClass(sincroniza: string | undefined): string {
-    return sincroniza === 'no_sincronizado' ? 'sp-badge sp-badge-danger' : 'sp-badge sp-badge-success';
+    return sincroniza === 'no_sincronizado' ? 'badge badge-soft badge-error' : 'badge badge-soft badge-success';
   }
 
-  estadoSunatLabel(estado?: string): string {
-    const key = this.normalizarEstadoSunat(estado);
-    const map: Record<string, string> = {
-      PENDIENTE: 'Pendiente',
-      PENDIENTE_DE_ENVIO: 'Pendiente de Envío',
-      ENVIANDO: 'Enviando',
-      ENVIADO: 'Enviado',
-      ENVIADO_A_DECLARAR: 'Enviado a Declarar',
-      ACEPTADO: 'Aceptado',
-      ACEPTADO_CON_OBSERVACIONES: 'Aceptado c/obs.',
-      RECHAZADO: 'Rechazado',
-      ERROR: 'Error',
-      ERROR_ENVIO: 'Error envío',
-      ANULADO: 'Anulado',
-      NO_ENVIADO: 'No Enviado',
-    };
-    return map[key] ?? (estado || '—');
-  }
-
-  estadoSunatClass(estado?: string): string {
-    const key = this.normalizarEstadoSunat(estado);
-    switch (key) {
-      case 'PENDIENTE':
-      case 'PENDIENTE_DE_ENVIO':
-        return 'badge-sunat badge-sunat-pendiente';
-      case 'ENVIANDO': return 'badge-sunat badge-sunat-enviando';
-      case 'ENVIADO':
-      case 'ENVIADO_A_DECLARAR':
-        return 'badge-sunat badge-sunat-enviado';
-      case 'ACEPTADO': return 'badge-sunat badge-sunat-aceptado';
-      case 'ACEPTADO_CON_OBSERVACIONES': return 'badge-sunat badge-sunat-aceptado-obs';
-      case 'RECHAZADO': return 'badge-sunat badge-sunat-rechazado';
-      case 'ERROR':
-      case 'ERROR_ENVIO':
-        return 'badge-sunat badge-sunat-error';
-      case 'ANULADO': return 'badge-sunat badge-sunat-anulado';
-      case 'NO_ENVIADO': return 'badge-sunat badge-sunat-no-enviado';
-      default: return 'badge-sunat badge-sunat-pendiente';
-    }
-  }
-
-  private normalizarEstadoSunat(estado?: string): string {
-    return (estado ?? '')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toUpperCase()
-      .replace(/\s+/g, '_')
-      .replace(/[^A-Z0-9_]/g, '');
-  }
-
-  esAceptadaSunat(estado?: string): boolean {
-    return this.normalizarEstadoSunat(estado) === 'ACEPTADO';
-  }
-
-  pdfModalAbierto = signal(false);
+  /** Dirección del PDF que se está viendo (null = ventana cerrada). */
   pdfUrlRaw = signal<string | null>(null);
-  pdfCargando = signal(true);
-  modalAdvertenciaAnulacionAbierto = signal(false);
-  guiaAnularPendiente = signal<GuiaRemision | null>(null);
-  pdfUrlSegura = computed<SafeResourceUrl | null>(() => {
-    const url = this.pdfUrlRaw();
-    if (!url) return null;
-    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
-  });
-
+  /** PDF de SUNAT: se ve dentro de una ventana (también en celular) y desde ahí la persona puede descargarlo. */
   abrirPdfModal(url: string | null | undefined): void {
     if (!url) {
       this.alertService.showAlertAcept(
         'PDF no disponible',
-        'Aún no se ha generado el archivo PDF de SUNAT. Consulte el estado SUNAT con el botón <i class="bi bi-arrow-clockwise"></i> para actualizar la guía y obtener el PDF.',
+        'Aún no se ha generado el archivo PDF de SUNAT. Consulte el estado SUNAT con el botón de actualizar para obtener el PDF.',
         'warning'
       );
       return;
     }
-    this.pdfCargando.set(true);
     this.pdfUrlRaw.set(url);
-    this.pdfModalAbierto.set(true);
   }
 
   cerrarPdfModal(): void {
-    this.pdfModalAbierto.set(false);
     this.pdfUrlRaw.set(null);
-  }
-
-  onPdfCargado(): void {
-    this.pdfCargando.set(false);
   }
 
   private async cargarConfiguracion(): Promise<void> {
@@ -449,9 +392,9 @@ export class GuiasComponent implements OnInit {
       this.alertService.showAlert('Error', 'No se pudo obtener la información de la guía.', 'error');
       return;
     }
-    this.alertService.mostrarModalCarga();
+    this.loading.show('Procesando...');
     try {
-      const detalleData: any = await this.guiaRemisionFacade.getGuiaRemisionDetalle(idProyecto, codigoGuiaRemision);
+      const detalleData: any = await this.guiaRemision.getGuiaRemisionDetalle(idProyecto, codigoGuiaRemision);
       
       if (!detalleData) {
         this.alertService.showAlert('Error', this.online ? 'Error al obtener detalle.' : 'No se encontró la guía en almacenamiento local.', 'error');
@@ -466,7 +409,7 @@ export class GuiasComponent implements OnInit {
       await this.cargarEstablecimientoEmisor();
       await this.cargarEstablecimientos();
 
-      const [procesosResp] = await Promise.all([this.guiaRemisionFacade.cargarProcesosParaGuia(codigoGuiaRemision)]);
+      const [procesosResp] = await Promise.all([this.guiaRemision.cargarProcesosParaGuia(codigoGuiaRemision)]);
       if (!procesosResp || procesosResp.length === 0) {
         this.alertService.showAlert('Error', 'No se encontraron procesos.', 'error');
         return;
@@ -523,7 +466,7 @@ export class GuiasComponent implements OnInit {
         if (procesoIdx >= 0) {
           const proceso = procesosData[procesoIdx];
           const detalleCajas = Array.isArray(detalleData?.detalle) ? detalleData.detalle : [];
-          const resultado = await this.guiaRemisionFacade.obtenerPaletsParaEdicion(idProyecto, codigoProceso, codigoGuiaRemision, detalleCajas);
+          const resultado = await this.guiaRemision.obtenerPaletsParaEdicion(idProyecto, codigoProceso, codigoGuiaRemision, detalleCajas);
           proceso.palets = (resultado?.palets ?? []).map((p: any) => ({
             ...p,
             idPalet: String(p?.idPalet ?? '').trim(),
@@ -602,7 +545,7 @@ export class GuiasComponent implements OnInit {
       console.error('Error preparando edición:', error);
       this.alertService.showAlert('Error', 'Error al preparar la edición de la guía.', 'error');
     } finally {
-      this.alertService.cerrarModalCarga();
+      this.loading.hide();
     }
   }
 
@@ -621,13 +564,10 @@ export class GuiasComponent implements OnInit {
       return;
     }
 
-    this.alertService.mostrarModalCarga();
+    this.loading.show('Procesando...');
     try {
-      let resp: any = await firstValueFrom(this.guiaService.emitirGuiaRemision(idProyecto, codigoGuiaRemision));
-      if (Array.isArray(resp) && resp.length > 0) {
-        resp = resp[0];
-      }
-      this.alertService.cerrarModalCarga();
+      const resp: any = await this.api.emitir(idProyecto, codigoGuiaRemision);
+      this.loading.hide();
       if (resp?.error) {
         this.alertService.showAlertAcept('Error', resp?.mensaje ?? 'Error al emitir la guía.', 'error');
         return;
@@ -635,7 +575,7 @@ export class GuiasComponent implements OnInit {
       await this.onBuscarGuias({ mostrarCarga: false });
       this.alertService.showAlert('Éxito', 'Guía emitida y numerada correctamente.', 'success');
     } catch (error: any) {
-      this.alertService.cerrarModalCarga();
+      this.loading.hide();
       console.error('Error emitiendo guía:', error);
       this.alertService.showAlert('Error', error?.error?.message ?? 'Error al emitir la guía.', 'error');
     }
@@ -649,10 +589,10 @@ export class GuiasComponent implements OnInit {
       return;
     }
 
-    this.alertService.mostrarModalCarga();
+    this.loading.show('Procesando...');
     try {
-      const resp = await this.guiaRemisionFacade.consultarEstadoSunat(idProyecto, codigoGuiaRemision);
-      this.alertService.cerrarModalCarga();
+      const resp = await this.guiaRemision.consultarEstadoSunat(idProyecto, codigoGuiaRemision);
+      this.loading.hide();
       if (resp?.error) {
         this.alertService.showAlertAcept('Error', resp?.mensaje ?? 'Error al consultar el estado SUNAT.', 'error');
         return;
@@ -661,7 +601,7 @@ export class GuiasComponent implements OnInit {
       await this.onBuscarGuias({ mostrarCarga: false });
       this.alertService.showAlertAcept('Estado SUNAT', mensaje, 'success');
     } catch (error: any) {
-      this.alertService.cerrarModalCarga();
+      this.loading.hide();
       console.error('Error consultando estado SUNAT:', error);
       this.alertService.showAlert('Error', error?.error?.message ?? 'Error al consultar el estado SUNAT.', 'error');
     }
@@ -675,21 +615,23 @@ export class GuiasComponent implements OnInit {
     );
     if (!confirmado) return;
 
-    this.guiaAnularPendiente.set(g);
-    this.modalAdvertenciaAnulacionAbierto.set(true);
+    // Segunda confirmación (modal estándar de la app): la anulación no se puede revertir.
+    const segura = await this.confirmModal.confirm({
+      title: 'Advertencia de anulación',
+      eyebrow: 'Acción irreversible',
+      message: 'Una vez anulada la guía no se podrá revertir. Verifique que ya esté anulada en SUNAT antes de continuar.',
+      detail: `Guía ${g.serie ?? ''}-${g.numero ?? ''}\n${g.nombreDestinatario ?? '—'}\nSUNAT: ${estadoSunatLabel(g.estadoSunat)} · ${g.totalCajas} cajas — ${g.pesoTotal} kg`,
+      confirmText: 'Sí, anular guía',
+      cancelText: 'Cancelar',
+      tone: 'danger',
+    });
+    if (!segura) return;
+
+    await this.ejecutarAnulacion(g);
   }
 
-  cerrarAdvertenciaAnulacion(): void {
-    this.modalAdvertenciaAnulacionAbierto.set(false);
-    this.guiaAnularPendiente.set(null);
-  }
-
-  async ejecutarAnulacion(): Promise<void> {
-    const g = this.guiaAnularPendiente();
-    if (!g) return;
-
-    this.modalAdvertenciaAnulacionAbierto.set(false);
-    this.guiaAnularPendiente.set(null);
+  /** Anula la guía ya confirmada por la persona. */
+  private async ejecutarAnulacion(g: GuiaRemision): Promise<void> {
 
     const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
     const codigoGuiaRemision = String(g?.codigoGuiaRemision ?? '').trim();
@@ -699,13 +641,10 @@ export class GuiasComponent implements OnInit {
       return;
     }
 
-    this.alertService.mostrarModalCarga();
+    this.loading.show('Procesando...');
     try {
-      let resp: any = await firstValueFrom(this.guiaService.anularGuiaRemision(idProyecto, codigoGuiaRemision,codigoAcopio));
-      if (Array.isArray(resp) && resp.length > 0) {
-        resp = resp[0];
-      }
-      this.alertService.cerrarModalCarga();
+      const resp: any = await this.api.anular(idProyecto, codigoGuiaRemision, codigoAcopio);
+      this.loading.hide();
       if (resp?.error) {
         this.alertService.showAlert('Error', resp?.mensaje ?? 'Error al anular la guía.', 'error');
         return;
@@ -713,36 +652,24 @@ export class GuiasComponent implements OnInit {
       this.alertService.showAlertAcept('Éxito', 'Guía anulada correctamente.', 'success');
       await this.onBuscarGuias();
     } catch (error: any) {
-      this.alertService.cerrarModalCarga();
+      this.loading.hide();
       console.error('Error anulando guía:', error);
       this.alertService.showAlert('Error', error?.error?.message ?? 'Error al anular la guía.', 'error');
     }
   }
 
   async eliminarGuia(g: GuiaRemision): Promise<void> {
-    const paletsList = (g.detallePalets ?? [])
-      .map((p: any) => `<span style="background:#f1f5f9;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:600;color:#0f172a;">${p.codigoPalet}</span>`)
-      .join(' ');
-
-    const msg = `
-      <div style="text-align:left;font-size:14px;color:#334155;line-height:1.6;">
-        <p style="margin-bottom:12px;">¿Está seguro de eliminar esta guía?</p>
-        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:12px;">
-          <div style="font-size:18px;font-weight:700;color:#0f172a;margin-bottom:10px;">
-            ${g.serie ?? ''}-${g.numero ?? ''}
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;">
-            <div><span style="color:#64748b;font-size:12px;">Palets</span><br><strong>${g.cantidadPalets ?? 0}</strong></div>
-            <div><span style="color:#64748b;font-size:12px;">Cajas</span><br><strong>${g.totalCajas ?? 0}</strong></div>
-            <div><span style="color:#64748b;font-size:12px;">Peso</span><br><strong>${g.pesoTotal ?? 0} kg</strong></div>
-            <div><span style="color:#64748b;font-size:12px;">Precinto</span><br><strong>${g.precinto ?? '—'}</strong></div>
-            <div><span style="color:#64748b;font-size:12px;">Viaje</span><br><strong>${g.numeroViaje ?? '—'}</strong></div>
-          </div>
-          ${paletsList ? `<div style="margin-top:10px;"><span style="color:#64748b;font-size:12px;">Id Palets</span><br><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${paletsList}</div></div>` : ''}
-        </div>
-        <p style="color:#dc2626;font-size:13px;font-weight:600;margin:0;">Esta acción no se puede deshacer.</p>
-      </div>
-    `;
+    const palets = (g.detallePalets ?? []).map((p: any) => p.codigoPalet).join(', ');
+    const msg = [
+      '¿Está seguro de eliminar esta guía?',
+      '',
+      `Guía: ${g.serie ?? ''}-${g.numero ?? ''}`,
+      `Palets: ${g.cantidadPalets ?? 0}   Cajas: ${g.totalCajas ?? 0}   Peso: ${g.pesoTotal ?? 0} kg`,
+      `Precinto: ${g.precinto ?? '—'}   Viaje: ${g.numeroViaje ?? '—'}`,
+      palets ? `Id palets: ${palets}` : '',
+      '',
+      'Esta acción no se puede deshacer.',
+    ].filter((l, i, a) => l !== '' || (i > 0 && a[i - 1] !== '')).join('\n');
 
     const confirmado = await this.alertService.showConfirm('Confirmar eliminación', msg, 'warning');
     if (!confirmado) return;
@@ -754,12 +681,9 @@ export class GuiasComponent implements OnInit {
       return;
     }
 
-    this.alertService.mostrarModalCarga();
+    this.loading.show('Procesando...');
     try {
-      let resp: any = await firstValueFrom(this.guiaService.eliminarGuiaRemision(idProyecto, codigoGuiaRemision));
-      if (Array.isArray(resp) && resp.length > 0) {
-        resp = resp[0];
-      }
+      const resp: any = await this.api.eliminar(idProyecto, codigoGuiaRemision);
       if (resp?.error) {
         this.alertService.showAlert('Error', resp?.mensaje ?? 'Error al eliminar la guía.', 'error');
         return;
@@ -770,7 +694,7 @@ export class GuiasComponent implements OnInit {
       console.error('Error eliminando guía:', error);
       this.alertService.showAlert('Error', error?.error?.message ?? 'Error al eliminar la guía.', 'error');
     } finally {
-      this.alertService.cerrarModalCarga();
+      this.loading.hide();
     }
   }
 
@@ -793,11 +717,10 @@ export class GuiasComponent implements OnInit {
       this.alertService.showAlert('Error', 'No se pudo obtener el código de guía.', 'error');
       return;
     }
-    this.alertService.mostrarModalCarga();
+    this.loading.show('Procesando...');
     try {
-      let resp: any = await firstValueFrom(this.guiaService.emitirGuiaRemision(idProyecto, codigo));
-      if (Array.isArray(resp) && resp.length > 0) resp = resp[0];
-      this.alertService.cerrarModalCarga();
+      const resp: any = await this.api.emitir(idProyecto, codigo);
+      this.loading.hide();
       if (resp?.error) {
         this.alertService.showAlertAcept('Error', resp?.mensaje ?? 'Error al emitir las guías.', 'error');
         return;
@@ -805,7 +728,7 @@ export class GuiasComponent implements OnInit {
       this.alertService.showAlertAcept('Éxito', resp?.mensaje ?? 'Guías emitidas correctamente.', 'success');
       await this.onBuscarGuias();
     } catch (error: any) {
-      this.alertService.cerrarModalCarga();
+      this.loading.hide();
       console.error('Error emitiendo grupo:', error);
       this.alertService.showAlertAcept('Error', error?.error?.message ?? 'Error al emitir las guías del grupo.', 'error');
     }
@@ -829,11 +752,10 @@ export class GuiasComponent implements OnInit {
       this.alertService.showAlert('Error', 'No se pudo obtener el código de guía.', 'error');
       return;
     }
-    this.alertService.mostrarModalCarga();
+    this.loading.show('Procesando...');
     try {
-      let resp: any = await firstValueFrom(this.guiaService.eliminarGuiaRemision(idProyecto, codigo));
-      if (Array.isArray(resp) && resp.length > 0) resp = resp[0];
-      this.alertService.cerrarModalCarga();
+      const resp: any = await this.api.eliminar(idProyecto, codigo);
+      this.loading.hide();
       if (resp?.error) {
         this.alertService.showAlertAcept('Error', resp?.mensaje ?? 'Error al eliminar las guías.', 'error');
         return;
@@ -841,7 +763,7 @@ export class GuiasComponent implements OnInit {
       this.alertService.showAlertAcept('Éxito', resp?.mensaje ?? 'Guías eliminadas correctamente.', 'success');
       await this.onBuscarGuias();
     } catch (error: any) {
-      this.alertService.cerrarModalCarga();
+      this.loading.hide();
       console.error('Error eliminando grupo:', error);
       this.alertService.showAlertAcept('Error', error?.error?.message ?? 'Error al eliminar las guías del grupo.', 'error');
     }
@@ -866,11 +788,10 @@ export class GuiasComponent implements OnInit {
       return;
     }
     const codigoAcopio = String(primeraGuia?.codigoAcopio ?? '').trim();
-    this.alertService.mostrarModalCarga();
+    this.loading.show('Procesando...');
     try {
-      let resp: any = await firstValueFrom(this.guiaService.anularGuiaRemision(idProyecto, codigo,codigoAcopio));
-      if (Array.isArray(resp) && resp.length > 0) resp = resp[0];
-      this.alertService.cerrarModalCarga();
+      const resp: any = await this.api.anular(idProyecto, codigo, codigoAcopio);
+      this.loading.hide();
       if (resp?.error) {
         this.alertService.showAlertAcept('Error', resp?.mensaje ?? 'Error al anular las guías.', 'error');
         return;
@@ -878,209 +799,99 @@ export class GuiasComponent implements OnInit {
       this.alertService.showAlertAcept('Éxito', resp?.mensaje ?? 'Guías anuladas correctamente.', 'success');
       await this.onBuscarGuias();
     } catch (error: any) {
-      this.alertService.cerrarModalCarga();
+      this.loading.hide();
       console.error('Error anulando grupo:', error);
       this.alertService.showAlertAcept('Error', error?.error?.message ?? 'Error al anular las guías del grupo.', 'error');
     }
   }
 
-  volverAProcesos(): void {
-    this.currentView.set('procesos');
-    this.procesoSeleccionado.set(null);
-  }
-
-  volverAGuias(): void {
-    this.currentView.set('guias');
-    this.guiaSeleccionada.set(null);
-  }
-
   async cargarProcesosParaGuia(): Promise<any> {
-    return this.guiaRemisionFacade.cargarProcesosParaGuia();
+    return this.guiaRemision.cargarProcesosParaGuia();
   }
 
   async cargarTransportistas(): Promise<void> {
-    const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
-    const lista = await this.catalogosFacade.cargarTransportistas(idProyecto);
-    this.transportistas.set(lista ?? []);
+    this.transportistas.set((await this.catalogosGuia.transportistas(texto(this.savedConfig()?.idProyecto))) ?? []);
   }
 
   async cargarConductores(): Promise<void> {
-    const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
-    const lista = await this.catalogosFacade.cargarConductores(idProyecto);
-    this.conductores.set(lista ?? []);
+    this.conductores.set((await this.catalogosGuia.conductores(texto(this.savedConfig()?.idProyecto))) ?? []);
   }
 
   async cargarVehiculos(): Promise<void> {
-    const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
-    const lista = await this.catalogosFacade.cargarVehiculos(idProyecto);
-    this.vehiculos.set(lista ?? []);
+    this.vehiculos.set((await this.catalogosGuia.vehiculos(texto(this.savedConfig()?.idProyecto))) ?? []);
   }
 
   async cargarDestinatarios(): Promise<void> {
-    const lista = await this.catalogosFacade.cargarDestinatarios();
-    this.destinatarios.set(lista ?? []);
+    this.destinatarios.set((await this.catalogosGuia.destinatarios()) ?? []);
   }
 
   async cargarProcesosCatalogo(): Promise<void> {
-    const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
-    const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
+    const idProyecto = texto(this.savedConfig()?.idProyecto);
+    const codigoCultivo = texto(this.savedConfig()?.codigoCultivo);
     if (!codigoCultivo || !idProyecto) return;
-    const lista = await this.procesosFacade.cargarProcesosCatalogo(codigoCultivo, idProyecto);
-    this.procesosCatalogo.set(lista ?? []);
+    this.procesosCatalogo.set((await this.catalogosGuia.procesos(codigoCultivo, idProyecto)) ?? []);
   }
 
-  async cargarTipoProcesoEmpacadosCatalogo(): Promise<void> {
-    const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
-    const lista = await this.catalogosFacade.cargarTipoProcesoEmpacadosCatalogo(idProyecto);
-    this.tipoProcesoEmpacadosCatalogo.set(lista ?? []);
-  }
-
-  async cargarConsignatariosCatalogo(): Promise<void> {
-    const lista = await this.catalogosFacade.cargarConsignatariosCatalogo();
-    this.consignatariosCatalogo.set(lista ?? []);
-  }
-
-  async cargarDestinosCatalogo(): Promise<void> {
-    const lista = await this.catalogosFacade.cargarDestinosCatalogo();
-    this.destinosCatalogo.set(lista ?? []);
-  }
-
-  async cargarPresentacionesCatalogo(): Promise<void> {
-    const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
-    const lista = await this.catalogosFacade.cargarPresentacionesCatalogo(codigoCultivo);
-    this.presentacionesCatalogo.set(lista ?? []);
-  }
-
-  async cargarFormatosCatalogo(): Promise<void> {
-    const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
-    const lista = await this.catalogosFacade.cargarFormatosCatalogo(codigoCultivo);
-    this.formatosCatalogo.set(lista ?? []);
-  }
-
-  async cargarVariedadesCatalogo(): Promise<void> {
-    const lista = await this.catalogosFacade.cargarVariedadesCatalogo();
-    this.variedadesCatalogo.set(lista ?? []);
-  }
-
-  async cargarTiposEmpaqueGuiaCatalogo(): Promise<void> {
-    const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
-    const lista = await this.catalogosFacade.cargarTiposEmpaqueGuiaCatalogo(codigoCultivo);
-    this.tiposEmpaqueGuiaCatalogo.set(lista ?? []);
-  }
-
-  async cargarCodigosRanchoCatalogo(): Promise<void> {
-    const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
-    const lista = await this.catalogosFacade.cargarCodigosRanchoCatalogo(idProyecto);
-    this.codigosRanchoCatalogo.set(lista ?? []);
-  }
-
-  async cargarLugaresProduccionCatalogo(): Promise<void> {
-    const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
-    const lista = await this.catalogosFacade.cargarLugaresProduccionCatalogo(idProyecto);
-    this.lugaresProduccionCatalogo.set(lista ?? []);
-  }
-
-  async cargarTransportesCatalogo(): Promise<void> {
-    const lista = await this.catalogosFacade.cargarTransportesCatalogo();
-    this.transportesCatalogo.set(lista ?? []);
-  }
-
-  async cargarCampaniasCatalogo(): Promise<void> {
-    const lista = await this.catalogosFacade.cargarCampaniasCatalogo();
-    this.campaniasCatalogo.set(lista ?? []);
-  }
-
+  /** Baja los codigos de caja a Dexie (los usa el detalle de una guia sin internet). */
   async cargarCodigosCajaCatalogo(): Promise<void> {
-    const lista = await this.catalogosFacade.cargarCodigosCajaCatalogo();
-    this.codigosCajaCatalogo.set(lista ?? []);
+    await this.catalogosGuia.codigosCaja();
   }
 
   async cargarMotivosTraslado(): Promise<void> {
-    const lista = await this.catalogosFacade.cargarMotivosTraslado();
-    this.motivosTraslado.set((lista ?? []).filter((m: any) => ['13', '04'].includes(String(m?.codigo ?? '').trim())));
+    const lista = await this.catalogosGuia.motivosTraslado();
+    this.motivosTraslado.set((lista ?? []).filter((m: any) => ['13', '04'].includes(texto(m?.codigo))));
   }
 
   async cargarEstablecimientoEmisor(): Promise<void> {
-    const resp = await firstValueFrom(this.catalogoService.getEstablecimientoEmisor());
-    const { error, mensaje, data } = this.normalizeBackendResp(resp);
-    if (error) {
-      throw new Error(mensaje || 'No se pudo cargar el establecimiento emisor.');
-    }
-
-    const establecimiento = Array.isArray(data) ? data[0] : data;
-    if (!establecimiento) {
-      throw new Error('No se encontró el establecimiento emisor.');
-    }
-
-    this.establecimientoEmisor.set(establecimiento);
+    this.establecimientoEmisor.set(await this.catalogosGuia.establecimientoEmisor());
   }
 
   async cargarEstablecimientos(): Promise<void> {
-    const resp = await firstValueFrom(this.catalogoService.listarEstablecimientos());
-    const { error, mensaje, data } = this.normalizeBackendResp(resp);
-    if (error) {
-      throw new Error(mensaje || 'No se pudieron cargar los establecimientos.');
-    }
+    this.establecimientos.set(await this.catalogosGuia.establecimientos());
+  }
 
-    this.establecimientos.set(Array.isArray(data) ? data : []);
+  /** Celular o tablet: un toque sobre la fila abre el detalle de la guía. */
+  alTocarFila(guia: GuiaRemision): void {
+    if (esDispositivoMovil()) void this.abrirModalVerDetalle(guia);
+  }
+
+  /** Computador: doble clic sobre la fila abre el detalle de la guía. */
+  alHacerDobleClicFila(guia: GuiaRemision): void {
+    if (!esDispositivoMovil()) void this.abrirModalVerDetalle(guia);
   }
 
   async abrirModalVerDetalle(g: GuiaRemision): Promise<void> {
     const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
     const codigoGuiaRemision = String(g?.codigoGuiaRemision ?? '').trim();
     if (!idProyecto || !codigoGuiaRemision) {
-      this.alertService.cerrarModalCarga();
+      this.loading.hide();
       this.alertService.showAlert('Error', 'No se pudo obtener la información de la guía.', 'error');
       return;
     }
-    this.alertService.mostrarModalCarga();
+    this.loading.show('Procesando...');
     try {
-      const detalleData = await this.guiaRemisionFacade.getGuiaRemisionDetalle(idProyecto, codigoGuiaRemision);
+      const detalleData = await this.guiaRemision.getGuiaRemisionDetalle(idProyecto, codigoGuiaRemision);
 
       if (!detalleData) {
-        this.alertService.cerrarModalCarga();
+        this.loading.hide();
         this.alertService.showAlert('Error', 'Error al obtener el detalle de la guía. Comuníquese con el administrador del sistema.', 'error');
         return;
       }
 
       if(detalleData?.error){
-        this.alertService.cerrarModalCarga();
+        this.loading.hide();
         this.alertService.showAlert('Error', detalleData?.mensaje ?? 'Error al obtener el detalle de la guía.', 'error');
         return;
       }
-      this.alertService.cerrarModalCarga();
+      this.loading.hide();
       this.guiaDetalle.set(detalleData);
       this.modalVerDetalleAbierto.set(true);
     } catch (error: any) {
       console.error('Error obteniendo detalle guía:', error);
-      this.alertService.cerrarModalCarga();
+      this.loading.hide();
       this.alertService.showAlert('Error', error?.message ?? error?.error?.message ?? 'Error al obtener detalle de la guía.', 'error');
     } 
    
-  }
-
-  private buildDetalleDescripcion(p: any, fruta: string): string {
-
-    const s = (v: any) => String(v ?? '').trim();
-    const part = (arr: (string | undefined | null)[]) => arr.map(s).filter(Boolean).join(' ');
-
-    const bloque1 = part([p.nombreTipoProcesoEmpacado]);
-    const bloque2 = part([p.nombreConsignatario, p.nombreDestino, p.nombrePresentacion, p.nombreFormato]);
-    const bloque3 = part([fruta, 'var.', p.nombreVariedad, p.pesoPorCaja ? `${p.pesoPorCaja} kg` : '']);
-    const bloque4 = part([p.nombreTipoEmpaqueGuia, '/', p.codigoRancho]);
-    const bloque5 = part(['LDP', p.codigoLugarProduccion]);
-    const bloque6 = s(p.nombreTransporte);
-
-    const secciones = [
-      bloque1,
-      bloque2,
-      bloque3,
-      bloque4,
-      bloque5,
-      bloque6 ? `(${bloque6})` : undefined,
-    ].filter(Boolean);
-
-    return secciones.join(' - ');
   }
 
   cerrarModalVerDetalle(): void {
@@ -1089,7 +900,7 @@ export class GuiasComponent implements OnInit {
   }
 
   async abrirModalNuevaGuia(): Promise<void> {
-    this.alertService.mostrarModalCarga();
+    this.loading.show('Procesando...');
     this.isLoadingModalProcesos.set(true);
     try {
       if (!this.savedConfig()) {
@@ -1129,7 +940,7 @@ export class GuiasComponent implements OnInit {
       }
       this.procesos.set(data);
       this.modalNuevaGuiaAbierto.set(true);
-      this.alertService.cerrarModalCarga();
+      this.loading.hide();
     } catch (err: any) {
       console.error('Error cargando procesos guía:', err);
       this.alertService.showAlert('Error', err?.error?.message ?? 'Error al cargar procesos', 'error');
@@ -1173,7 +984,7 @@ export class GuiasComponent implements OnInit {
     const guiaPayload: GuiaRemision = {
       codigoGuiaRemision: guiaOriginal?.codigoGuiaRemision,
       codigoProceso: codigoProceso,
-      transactionId_uuid: guiaOriginal?.transactionId_uuid ?? this.generateUUID(),
+      transactionId_uuid: guiaOriginal?.transactionId_uuid ?? newUuid(),
       documentoDestinatario: motivoTraslado === '04' ? documentoEmpresa : (documentoFiscal || ''),
       puntoPartida: String(payload.puntoPartida ?? '').trim(),
       puntoLlegada: String(payload.puntoLlegada ?? '').trim() || undefined,
@@ -1263,10 +1074,10 @@ export class GuiasComponent implements OnInit {
     }
 
     try {
-      this.alertService.mostrarModalCarga();
-      const rawResp: any = await this.guiaRemisionFacade.editarGuiaRemision({idProyecto:idProyecto,guias:syncPayload});
+      this.loading.show('Procesando...');
+      const rawResp: any = await this.guiaRemision.editarGuiaRemision({idProyecto:idProyecto,guias:syncPayload});
       const { error, mensaje } = this.normalizeBackendResp(rawResp);
-      this.alertService.cerrarModalCarga();
+      this.loading.hide();
 
       if (error) {
         this.alertService.showAlertAcept('Error', mensaje || 'Error al editar la guía.', 'error');
@@ -1275,7 +1086,7 @@ export class GuiasComponent implements OnInit {
       await this.onBuscarGuias({ mostrarCarga: false });
       this.alertService.showAlert('Éxito', mensaje || 'Guía editada correctamente.', 'success');
     } catch (error: any) {
-      this.alertService.cerrarModalCarga();
+      this.loading.hide();
       this.alertService.showAlertAcept('Error', error?.error?.message ?? 'Error al editar la guía.', 'error');
     } finally {
       this.modoEdicionGuia.set(false);
@@ -1312,7 +1123,7 @@ export class GuiasComponent implements OnInit {
     const motivoTraslado = String(guia.motivoTraslado ?? '13').trim();
     const documentoEmpresa = String(this.savedConfig()?.nrodocumento ?? '').trim();
 
-    const transactionId = String(guia?.transactionId_uuid ?? '').trim() || this.generateUUID();
+    const transactionId = String(guia?.transactionId_uuid ?? '').trim() || newUuid();
 
     const guiaPayload: GuiaRemision = {
       codigoProceso: codigoProceso,
@@ -1329,7 +1140,7 @@ export class GuiasComponent implements OnInit {
       idVehiculo: Number(guia.vehiculoId) || null,
       motivoTraslado,
       descripcionMotivoTraslado: motivoTraslado === '13' ? (String(guia.descripcionMotivoTraslado ?? '').trim() || undefined) : undefined,
-      fechaEntregaBienes: String(guia.fechaEntregaBienes ?? '').trim() || formatDate(new Date()),
+      fechaEntregaBienes: String(guia.fechaEntregaBienes ?? '').trim() || nowPeruDate(),
       precinto: String(guia.precinto ?? '').trim() || null,
       estado: 'ABIERTA',
       pesoTotal: null as any,
@@ -1405,10 +1216,10 @@ export class GuiasComponent implements OnInit {
     }
 
     try {
-      this.alertService.mostrarModalCarga();
-      const rawResp: any = await firstValueFrom(this.guiaService.sincronizarGuiasRemision(syncPayload));
+      this.loading.show('Procesando...');
+      const rawResp: any = await this.api.sincronizar(syncPayload.idProyecto, syncPayload.guias);
       const { error, mensaje } = this.normalizeBackendResp(rawResp);
-      this.alertService.cerrarModalCarga();
+      this.loading.hide();
 
       if (error) {
         this.alertService.showAlertAcept('Error', mensaje || 'Error al sincronizar guía.', 'error');
@@ -1422,7 +1233,7 @@ export class GuiasComponent implements OnInit {
       this.alertService.showAlert('Éxito', mensaje || 'Guía sincronizada correctamente.', 'success');
     } catch (error: any) {
       console.error('Error sincronizando guía:', error);
-      this.alertService.cerrarModalCarga();
+      this.loading.hide();
       this.alertService.showAlertAcept('Error', error?.error?.message ?? 'Error al sincronizar guía.', 'error');
       this.guardandoGuia.set(false);
     } finally {
@@ -1463,10 +1274,10 @@ export class GuiasComponent implements OnInit {
     );
     if (!confirmado) return;
 
-    this.alertService.mostrarModalCarga();
+    this.loading.show('Procesando...');
     try {
-      const resultado = await this.guiaRemisionFacade.sincronizarGuiasOffline(idProyecto);
-      this.alertService.cerrarModalCarga();
+      const resultado = await this.guiaRemision.sincronizarGuiasOffline(idProyecto);
+      this.loading.hide();
       if (resultado.success) {
         this.alertService.showAlert('Éxito', resultado.mensaje, 'success');
         await this.onBuscarGuias();
@@ -1474,24 +1285,8 @@ export class GuiasComponent implements OnInit {
         this.alertService.showAlert('Error', resultado.mensaje, 'error');
       }
     } catch (error: any) {
-      this.alertService.cerrarModalCarga();
+      this.loading.hide();
       this.alertService.showAlert('Error', error?.message ?? 'Error al sincronizar guías.', 'error');
     }
   }
-
-  private generateUUID(): string {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-      return crypto.randomUUID();
-    }
-
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-  }
 }
-
-
-
-

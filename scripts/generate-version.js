@@ -1,31 +1,11 @@
+// Genera src/app/version.ts y public/sw-version.js a partir de la "version" del package.json.
+// Corre solo antes de `npm start` y `npm run build` (ver "prestart" y "prebuild").
+// Para publicar una version nueva: cambiar "version" en package.json.
 const fs = require('fs');
 
-const packageJson = require('../package.json');
+const { version } = require('../package.json');
 
-const version = packageJson.version;
+fs.writeFileSync('src/app/version.ts', `export const APP_VERSION = '${version}';`);
+fs.writeFileSync('public/sw-version.js', `const APP_VERSION = '${version}';`);
 
-const contenido = `
-export const APP_VERSION = '${version}';
-`;
-
-fs.writeFileSync('src/app/version.ts', contenido);
-
-const swVersion = `const APP_VERSION = '${version}';`;
-
-fs.writeFileSync('public/sw-version.js', swVersion);
-
-
-console.log(`
-==============================================================
-
-  ██████  ██       █████  ███    ██ ████████  █████
-  ██   ██ ██      ██   ██ ████   ██    ██    ██   ██
-  ██████  ██      ███████ ██ ██  ██    ██    ███████
-  ██      ██      ██   ██ ██  ██ ██    ██    ██   ██
-  ██      ███████ ██   ██ ██   ████    ██    ██   ██
-
-               P L A N T A  -  E M P A Q U E
-                         v${version}
-
-==============================================================
-`);
+console.log(`Version de la aplicacion: ${version}`);

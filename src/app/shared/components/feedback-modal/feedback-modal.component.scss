@@ -1,0 +1,316 @@
+.feedback-modal {
+  background: var(--modal-overlay);
+  backdrop-filter: blur(4px) saturate(1.05);
+}
+
+.feedback-box {
+  --modal-accent: #2f9a73;
+  --modal-soft: #dff5ec;
+  --modal-ink: #14553f;
+  position: relative;
+  width: min(620px, calc(100vw - 32px));
+  max-height: min(760px, calc(100vh - 32px));
+  min-height: 270px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--modal-accent) 24%, var(--app-surface));
+  background: var(--app-surface);
+  box-shadow: 0 30px 90px rgba(15, 23, 42, 0.3);
+  text-align: center;
+  animation: feedback-in 180ms ease-out;
+}
+
+.feedback-modal.is-error .feedback-box {
+  --modal-accent: #dc2626;
+  --modal-soft: #fee2e2;
+  --modal-ink: #8f1d1d;
+}
+
+.feedback-modal.is-warning .feedback-box {
+  --modal-accent: #d97706;
+  --modal-soft: #fef3c7;
+  --modal-ink: #8a4b05;
+}
+
+.feedback-box::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--modal-accent),
+    color-mix(in srgb, var(--modal-accent) 38%, var(--app-surface)),
+    var(--modal-accent)
+  );
+}
+
+.close-button {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--app-border-2);
+  border-radius: 999px;
+  background: var(--app-surface-2);
+  color: var(--app-muted);
+  transition:
+    background 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+}
+
+.close-button:hover {
+  background: var(--app-surface-3);
+  color: var(--app-text);
+}
+
+.close-button:active {
+  transform: scale(0.96);
+}
+
+.close-button svg {
+  width: 17px;
+  height: 17px;
+}
+
+.icon-orbit {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  color: var(--modal-accent);
+}
+
+.icon-halo {
+  position: absolute;
+  inset: 4px;
+  border-radius: 999px;
+  background: radial-gradient(circle, var(--modal-soft) 0 48%, transparent 49%);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--modal-accent) 9%, transparent);
+  animation: halo-pulse 1.7s ease-in-out infinite;
+}
+
+.feedback-icon {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  stroke-width: 2.2;
+  filter: drop-shadow(
+    0 10px 18px color-mix(in srgb, var(--modal-accent) 22%, transparent)
+  );
+}
+
+.feedback-copy {
+  display: grid;
+  gap: 8px;
+  padding: 0 24px;
+}
+
+.feedback-copy h2 {
+  margin: 0;
+  color: var(--app-heading);
+  font-size: 22px;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+
+.feedback-copy p {
+  margin: 0;
+  white-space: pre-line;
+  color: var(--app-muted);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.feedback-sections {
+  width: min(100%, 520px);
+  display: grid;
+  gap: 8px;
+  padding: 0 24px;
+  text-align: left;
+}
+
+.feedback-section {
+  border: 1px solid var(--app-border-2);
+  border-left: 4px solid #64748b;
+  border-radius: 6px;
+  background: var(--app-surface-2);
+  padding: 9px 12px;
+}
+
+.feedback-section.is-success {
+  border-color: var(--tint-emerald-border);
+  border-left-color: #2f9a73;
+  background: var(--tint-emerald-bg);
+}
+
+.feedback-section.is-warning {
+  border-color: var(--tint-amber-border);
+  border-left-color: #d97706;
+  background: var(--tint-amber-bg);
+}
+
+.feedback-section.is-error {
+  border-color: var(--tint-rose-border);
+  border-left-color: #dc2626;
+  background: var(--tint-rose-bg);
+}
+
+.feedback-section h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  color: var(--app-text-2);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.feedback-section h3 span {
+  display: grid;
+  min-width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.12);
+  color: var(--app-text-2);
+  font-size: 11px;
+}
+
+.feedback-section ul {
+  display: grid;
+  gap: 3px;
+  max-height: 130px;
+  overflow-y: auto;
+  margin: 7px 0 0;
+  padding-left: 18px;
+  color: var(--app-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.action-button {
+  min-width: 138px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: var(--modal-accent);
+  color: #ffffff;
+  padding: 0 22px;
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: 0 14px 28px
+    color-mix(in srgb, var(--modal-accent) 25%, transparent);
+  transition:
+    transform 150ms ease,
+    filter 150ms ease;
+}
+
+.action-button:hover {
+  filter: brightness(0.95);
+}
+
+.action-button:active {
+  transform: translateY(1px);
+}
+
+@keyframes feedback-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes halo-pulse {
+  0%,
+  100% {
+    transform: scale(0.96);
+    opacity: 0.82;
+  }
+
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feedback-box,
+  .icon-halo {
+    animation: none;
+  }
+}
+
+.feedback-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.secondary-button {
+  min-width: 138px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1.5px solid var(--modal-accent);
+  border-radius: 6px;
+  background: var(--app-surface);
+  color: var(--modal-accent);
+  padding: 0 20px;
+  font-size: 14px;
+  font-weight: 800;
+  transition:
+    transform 150ms ease,
+    filter 150ms ease;
+}
+
+.secondary-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.secondary-button:hover {
+  filter: brightness(0.95);
+}
+
+.secondary-button:active {
+  transform: translateY(1px);
+}
+
+/* Tema oscuro: colores suaves del icono segun el tipo de mensaje */
+:host-context([data-theme='dark']) .feedback-box {
+  --modal-soft: rgba(47, 154, 115, 0.22);
+  --modal-ink: #86e0bb;
+}
+:host-context([data-theme='dark']) .feedback-modal.is-error .feedback-box {
+  --modal-soft: rgba(220, 38, 38, 0.22);
+  --modal-ink: #fca5a5;
+}
+:host-context([data-theme='dark']) .feedback-modal.is-warning .feedback-box {
+  --modal-soft: rgba(217, 119, 6, 0.22);
+  --modal-ink: #fcd34d;
+}

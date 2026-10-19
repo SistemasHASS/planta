@@ -1,414 +1,196 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { AlertService } from '../../shared/services/alert.service';
-import { DestinatariosTablaComponent } from './components/tabla/destinatarios-tabla.component';
-import { DestinatariosModalComponent } from './components/modal/destinatarios-modal.component';
-import { Destinatario } from '../../shared/interfaces/catalogo.interface';
-import { CatalogoService } from '../../shared/services/catalogo.service';
-import { CatalogosRepository } from '../../shared/dexiedb/repository/catalogos.repository';
+import { LucideInbox, LucideMapPin, LucidePencil, LucidePower, LucideRefreshCcw, LucideSearch, LucideWifiOff, LucideX } from '@lucide/angular';
+import { PaginatorComponent } from '../../shared/components/paginator/paginator.component';
+import { SearchSelectComponent, SearchSelectOption } from '../../shared/components/search-select/search-select.component';
+import { AdministracionApiService } from '../../shared/services/administracion-api.service';
+import { AlertaService } from '../../shared/services/alerta.service';
+import { CatalogosApiService } from '../../shared/services/catalogos-api.service';
+import { ConfirmModalService } from '../../shared/services/confirm-modal.service';
 import { ConnectivityService } from '../../shared/services/connectivity.service';
-import { firstValueFrom } from 'rxjs';
+import { FeedbackModalService } from '../../shared/services/feedback-modal.service';
+import { LoadingService } from '../../shared/services/loading.service';
+import { esDispositivoMovil } from '../../shared/utils/archivo';
+import { crearPaginacion } from '../../shared/utils/paginacion';
+import { ModalEditarDestinatarioComponent } from './components/modal-editar-destinatario/modal-editar-destinatario.component';
+import { DestinatarioAdmin, destinatarioAJson } from './destinatarios.interface';
 
+const texto = (valor: unknown): string => String(valor ?? '').trim();
+
+/** El servidor puede mandar bit como true/false, 1/0 o texto. */
+const esVerdadero = (valor: unknown): boolean => {
+  if (typeof valor === 'string') return ['1', 'true', 'si', 'sí'].includes(valor.trim().toLowerCase());
+  return valor === true || valor === 1;
+};
+
+type FiltroEstado = '' | 'activos' | 'inactivos';
+
+/**
+ * Gestión de destinatarios (solo administrador, solo en línea). La lista sale de los clientes; a cada uno se le
+ * configura su domicilio y punto de llegada. Todo se lee y se guarda en el servidor; no se guarda nada en el equipo.
+ */
 @Component({
   selector: 'app-destinatarios',
-  standalone: true,
-  imports: [CommonModule, FormsModule, DestinatariosTablaComponent, DestinatariosModalComponent],
+  imports: [
+    FormsModule,
+    PaginatorComponent,
+    SearchSelectComponent,
+    ModalEditarDestinatarioComponent,
+    LucideInbox,
+    LucideMapPin,
+    LucidePencil,
+    LucidePower,
+    LucideRefreshCcw,
+    LucideSearch,
+    LucideWifiOff,
+    LucideX,
+  ],
   templateUrl: './destinatarios.component.html',
-  styleUrl: './destinatarios.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DestinatariosComponent implements OnInit {
-  private readonly alertService = inject(AlertService);
-  private readonly catalogoService = inject(CatalogoService);
-  private readonly catalogosRepo = inject(CatalogosRepository);
+  private readonly catalogosApi = inject(CatalogosApiService);
+  private readonly administracionApi = inject(AdministracionApiService);
   private readonly connectivity = inject(ConnectivityService);
+  private readonly loading = inject(LoadingService);
+  private readonly feedback = inject(FeedbackModalService);
+  private readonly alertService = inject(AlertaService);
+  private readonly confirmModal = inject(ConfirmModalService);
 
-  readonly isLoading = signal(false);
-  readonly searchTerm = signal('');
+  readonly online = computed(() => this.connectivity.online());
 
-  readonly estadoFiltro = signal<'activos' | 'inactivos' | 'todos'>('activos');
+  readonly destinatarios = signal<DestinatarioAdmin[]>([]);
+  readonly filtroTexto = signal('');
+  readonly filtroEstado = signal<FiltroEstado>('activos');
+  /** Destinatario que se está editando (null = ventana cerrada). */
+  readonly editando = signal<DestinatarioAdmin | null>(null);
 
-  readonly modalAbierto = signal(false);
-  readonly modalModo = signal<'nuevo' | 'editado'>('nuevo');
-  readonly modalValue = signal<Destinatario | null>(null);
+  readonly estadoOpciones: SearchSelectOption[] = [
+    { value: '', label: 'Todos los estados' },
+    { value: 'activos', label: 'Activos' },
+    { value: 'inactivos', label: 'Inactivos' },
+  ];
 
-  readonly items = signal<Destinatario[]>([]);
-
-  get online(): boolean {
-    return this.connectivity.isOnline();
-  }
-
-  readonly filteredItems = computed(() => {
-    const term = (this.searchTerm() ?? '').trim().toLowerCase();
-    const estado = this.estadoFiltro();
-    const base = this.items();
-
-    let result = [...base];
-
-    if (estado !== 'todos') {
-      const wantActivo = estado === 'activos';
-      result = result.filter(i => this.asBitBoolean(i?.activo) === wantActivo);
-    }
-
-    if (term) {
-      result = result.filter(i => {
-        const parts = [
-          i.id,
-          i.documentoFiscal,
-          i.documento,
-          i.nombre,
-          i.domicilioFiscal,
-          i.puntoLlegada,
-        ]
-          .map(v => String(v ?? ''))
-          .join(' ')
-          .toLowerCase();
-        return parts.includes(term);
-      });
-    }
-
-    return result.sort((a, b) => String(a?.nombre ?? '').localeCompare(String(b?.nombre ?? '')));
+  /** Destinatarios que coinciden con el estado elegido y con lo escrito (documento, nombre o dirección). */
+  readonly destinatariosFiltrados = computed(() => {
+    const buscado = this.filtroTexto().trim().toLowerCase();
+    const estado = this.filtroEstado();
+    return this.destinatarios().filter((d) => {
+      if (estado === 'activos' && !d.activo) return false;
+      if (estado === 'inactivos' && d.activo) return false;
+      if (!buscado) return true;
+      return [d.documentoFiscal, d.documento, d.nombre, d.domicilioFiscal, d.puntoLlegada].some((valor) => texto(valor).toLowerCase().includes(buscado));
+    });
   });
+  readonly paginacion = crearPaginacion(() => this.destinatariosFiltrados(), 25);
 
   async ngOnInit(): Promise<void> {
-    await this.listarDestinatarios();
+    await this.cargarDestinatarios();
   }
 
-  async listarDestinatarios() {
-    try {
-      this.isLoading.set(true);
-      if (this.online) {
-        await this.apiListarDestinatarios();
-      } else {
-        await this.listarDestinatariosRepository();
-      }
-      this.isLoading.set(false);
-    } catch (error) {
-      console.log(error);
-      this.alertService.showAlert('Error', 'Error al listar los destinatarios', 'error');
-    } finally {
-      this.isLoading.set(false);
-    }
-  }
-
-  setEstadoFiltro(f: 'activos' | 'inactivos' | 'todos'): void {
-    this.estadoFiltro.set(f);
-  }
-
-  async onToggleActivo(item: Destinatario): Promise<void> {
-    try {
-      this.alertService.mostrarModalCarga();
-      const pk = (item as any)?._pk;
-      if (pk === null || pk === undefined) {
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Error', 'No se encontró el registro.', 'error');
-        return;
-      }
-
-      const nuevoValor = !this.asBitBoolean(item.activo);
-
-      // Offline: actualizar solo Dexie
-      if (!this.online) {
-        await this.catalogosRepo.destinatariosRepo.update(pk, { activo: nuevoValor, bd: 0 });
-        await this.listarDestinatariosRepository();
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Éxito', nuevoValor ? 'Destinatario activado' : 'Destinatario desactivado', 'success');
-        return;
-      }
-
-      // Online: enviar al API
-      const record = await this.catalogosRepo.destinatariosRepo.getByKey(pk);
-      if (!record) {
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Error', 'No se encontró el registro en base local.', 'error');
-        return;
-      }
-
-      const payload = this.buildDestinatarioPayload({ ...record, activo: nuevoValor });
-      const resp: any = await firstValueFrom(this.catalogoService.sincronizarDestinatarios([payload]));
-
-      if (resp?.error) {
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Error', resp.mensaje ?? 'Error al sincronizar.', 'error');
-        return;
-      }
-
-      // Éxito: eliminar registro local y recargar desde API
-      await this.catalogosRepo.destinatariosRepo.delete(pk);
-      await this.apiListarDestinatarios();
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Éxito', nuevoValor ? 'Destinatario activado' : 'Destinatario desactivado', 'success');
-    } catch (error) {
-      console.error(error);
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Error', 'No se pudo cambiar el estado.', 'error');
-    }
-  }
-
-  async listarDestinatariosRepository() {
-    let info = await this.catalogosRepo.destinatariosRepo.getAll();
-    if (info.length > 0) {
-      this.items.set(info);
-      return true;
-    } else {
-      this.items.set([]);
-      return false;
-    }
-  }
-
-  async apiListarDestinatarios() {
-    if (!this.online) {
-      this.alertService.showAlert('Error', 'No tienes conexión a internet', 'error');
+  /** Pide al servidor los clientes con su destinatario y los muestra (no guarda nada en el equipo). */
+  async cargarDestinatarios(): Promise<void> {
+    if (!this.online()) {
+      this.destinatarios.set([]);
+      this.feedback.error('Error de conexión: necesitas internet para ver los destinatarios.', 'Sin conexión');
       return;
     }
-    const resp: any = await firstValueFrom(this.catalogoService.listarDestinatarios());
-    if (resp?.error) {
-      this.alertService.showAlert('Error', resp.mensaje, 'error');
-      return;
-    }
-    const data = resp?.data ?? resp;
-    const apiItems = Array.isArray(data) ? data : (data?.destinatarios ?? data?.items ?? []);
-    const normalizados = await this.normalizarDestinatariosDexie(apiItems);
-    // Reemplazar completamente Dexie con los datos de la API
-    await this.catalogosRepo.destinatariosRepo.clear();
-    if (normalizados.length > 0) {
-      for (const item of normalizados) {
-        await this.catalogosRepo.destinatariosRepo.save(item as any);
-      }
-    }
-    await this.listarDestinatariosRepository();
-  }
 
-  async normalizarDestinatariosDexie(data: any[], bd: number = 1): Promise<any[]> {
-    const normalizar: Destinatario[] = [];
-    for (const item of (Array.isArray(data) ? data : [])) {
-      normalizar.push({
-        id: item.id,
-        idCliente: item.idCliente,
-        documentoFiscal: item.documentoFiscal,
-        documento: item.documento,
-        nombre: item.nombre,
-        domicilioFiscal: item.domicilioFiscal ?? '',
-        puntoLlegada: item.puntoLlegada ?? '',
-        domicilioFiscalDepartamento: item.domicilioFiscalDepartamento ?? '',
-        domicilioFiscalProvincia: item.domicilioFiscalProvincia ?? '',
-        domicilioFiscalDistrito: item.domicilioFiscalDistrito ?? '',
-        puntoLlegadaDepartamento: item.puntoLlegadaDepartamento ?? '',
-        puntoLlegadaProvincia: item.puntoLlegadaProvincia ?? '',
-        puntoLlegadaDistrito: item.puntoLlegadaDistrito ?? '',
-        activo: item.activo ?? true,
-        fechaCreacion: item.fechaCreacion ?? new Date().toISOString(),
-        bd: bd,
-      });
-    }
-    return normalizar;
-  }
-
-  onSearchChange(v: string): void {
-    this.searchTerm.set(v);
-  }
-
-  abrirNuevo(): void {
-    this.modalModo.set('nuevo');
-    this.modalValue.set(null);
-    this.modalAbierto.set(true);
-  }
-
-  abrirEditar(item: Destinatario): void {
-    this.modalModo.set('editado');
-    this.modalValue.set(item);
-    this.modalAbierto.set(true);
-  }
-
-  cerrarModal(): void {
-    this.modalAbierto.set(false);
-  }
-
-  private isEmpty(v: any): boolean {
-    return v === null || v === undefined || v === '';
-  }
-
-  private async resolvePkForEdit(payload: any, pk: any): Promise<any> {
-    if (pk !== null && pk !== undefined) return pk;
-    const id = payload?.id;
-    if (id === null || id === undefined) return undefined;
-    const existing: any = await this.catalogosRepo.destinatariosRepo.getByField('id', id);
-    return existing?._pk;
-  }
-
-  private async findDuplicateDestinatario(payload: Partial<Destinatario>): Promise<Destinatario | undefined> {
-    const docFiscal = (payload.documentoFiscal ?? '').trim();
-    if (!docFiscal) return undefined;
-    const all = await this.catalogosRepo.destinatariosRepo.getAll();
-    return all.find((r: any) => {
-      const sameDoc = (r.documentoFiscal ?? '').trim() === docFiscal;
-      const differentId = Number(r.id ?? 0) !== Number(payload.id ?? 0);
-      return sameDoc && differentId;
-    });
-  }
-
-  async guardarModal(ev: any): Promise<void> {
+    this.loading.show('Cargando destinatarios...');
     try {
-      this.alertService.mostrarModalCarga();
-      const modo = ev?.modo ?? this.modalModo();
-      const payload = (ev?.payload ?? ev ?? {}) as Partial<Destinatario>;
-      const pk = ev?._pk;
-
-      if (this.isEmpty(payload?.documentoFiscal) || this.isEmpty(payload?.nombre)) {
-        this.alertService.showAlert('Advertencia', 'Complete los campos obligatorios (*)', 'warning');
+      const sobre = await this.catalogosApi.destinatarios();
+      if (sobre?.error) {
+        this.destinatarios.set([]);
+        this.feedback.error(sobre.mensaje || 'No se pudieron obtener los destinatarios.');
         return;
       }
-
-      const dup = await this.findDuplicateDestinatario(payload);
-      if (dup) {
-        this.alertService.showAlertAcept('Advertencia', 'Ya existe un destinatario con ese documento fiscal.', 'warning');
-        return;
-      }
-
-      const now = new Date().toISOString();
-      const isNew = modo === 'nuevo';
-      const record: any = {
-        ...(payload as any),
-        id: isNew ? this.nextId() : Number(payload?.id),
-        bd: 0,
-        fechaCreacion: isNew ? null : (payload as any)?.fechaCreacion ?? null,
-        fechaModificacion: now,
-        modo: isNew ? 'nuevo' : 'editado',
-      };
-
-      if (!isNew) {
-        const resolvedPk = await this.resolvePkForEdit(payload, pk);
-        if (resolvedPk !== null && resolvedPk !== undefined) {
-          record._pk = resolvedPk;
-        }
-      }
-
-      let normalizado = await this.normalizarDestinatariosDexie([record], 0);
-      if (!isNew) {
-        normalizado[0]._pk = record._pk;
-      }
-
-      // Offline: guardar en Dexie directamente
-      if (!this.online) {
-        await this.catalogosRepo.destinatariosRepo.saveFordec(normalizado[0]);
-        await this.listarDestinatariosRepository();
-        this.alertService.cerrarModalCarga();
-        this.modalAbierto.set(false);
-        this.alertService.showAlert('Éxito', isNew ? 'Destinatario creado' : 'Destinatario actualizado', 'success');
-        return;
-      }
-
-      // Online: sincronizar con API
-      const apiPayload = this.buildDestinatarioPayload(normalizado[0], isNew);
-      const resp: any = await firstValueFrom(this.catalogoService.sincronizarDestinatarios([apiPayload]));
-
-      if (resp?.error) {
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Error', resp.mensaje ?? 'Error al sincronizar.', 'error');
-        return;
-      }
-
-      // Éxito: eliminar registro local y recargar desde API
-      if (!isNew && record._pk !== undefined) {
-        await this.catalogosRepo.destinatariosRepo.delete(record._pk);
-      }
-      await this.apiListarDestinatarios();
-      this.alertService.cerrarModalCarga();
-      this.modalAbierto.set(false);
-      this.alertService.showAlert('Éxito', isNew ? 'Destinatario creado' : 'Destinatario actualizado', 'success');
-    } catch (error) {
-      console.error(error);
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Error', 'Error al guardar el destinatario.', 'error');
-    }
-  }
-
-  async onSincronizar(): Promise<void> {
-    try {
-      if (!this.online) {
-        this.alertService.showAlert('Error', 'No tiene conexión a internet', 'error');
-        return;
-      }
-
-      const confirmar = await this.alertService.showConfirm(
-        'Confirmar sincronización',
-        'Se subirán a BD los registros pendientes. ¿Desea continuar?',
-        'question',
+      const filas = Array.isArray(sobre?.data) ? sobre.data : [];
+      this.destinatarios.set(
+        filas.map((fila) => ({
+          id: Number(fila['id'] ?? 0),
+          idCliente: Number(fila['idCliente'] ?? 0),
+          documentoFiscal: texto(fila['documentoFiscal']),
+          documento: texto(fila['documento']),
+          tipoDocumento: texto(fila['tipoDocumento']),
+          nombre: texto(fila['nombre']),
+          esCliente: texto(fila['esCliente']),
+          domicilioFiscal: texto(fila['domicilioFiscal']),
+          puntoLlegada: texto(fila['puntoLlegada']),
+          domicilioFiscalDepartamento: texto(fila['domicilioFiscalDepartamento']),
+          domicilioFiscalProvincia: texto(fila['domicilioFiscalProvincia']),
+          domicilioFiscalDistrito: texto(fila['domicilioFiscalDistrito']),
+          puntoLlegadaDepartamento: texto(fila['puntoLlegadaDepartamento']),
+          puntoLlegadaProvincia: texto(fila['puntoLlegadaProvincia']),
+          puntoLlegadaDistrito: texto(fila['puntoLlegadaDistrito']),
+          activo: esVerdadero(fila['activo']),
+        })),
       );
-
-      if (!confirmar) return;
-
-      this.alertService.mostrarModalCarga();
-      const dataSend: any[] = await this.catalogosRepo.destinatariosRepo.getAllNoSincronizado();
-
-      if (dataSend.length === 0) {
-        await this.catalogosRepo.destinatariosRepo.clear();
-        await this.apiListarDestinatarios();
-        this.alertService.cerrarModalCarga();
-        return;
-      }
-
-      const payloads = dataSend.map((item: any) => {
-        const isNew = !item.fechaCreacion;
-        return this.buildDestinatarioPayload(item, isNew);
-      });
-
-      const resp: any = await firstValueFrom(this.catalogoService.sincronizarDestinatarios(payloads));
-
-      if (resp?.error) {
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Error', resp.mensaje ?? 'Error al sincronizar.', 'error');
-        return;
-      }
-
-      // Éxito: limpiar Dexie y recargar desde API
-      await this.catalogosRepo.destinatariosRepo.clear();
-      await this.apiListarDestinatarios();
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Éxito', 'Sincronización realizada correctamente.', 'success');
-    } catch (error) {
-      console.error('Error en sincronización:', error);
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Error', 'Error al sincronizar destinatarios.', 'error');
+      this.paginacion.page.set(1);
+    } catch {
+      this.destinatarios.set([]);
+      this.feedback.error('Error de conexión: no se pudieron obtener los destinatarios.', 'Sin conexión');
+    } finally {
+      await this.loading.hideAfterMinimum();
     }
   }
 
-  private buildDestinatarioPayload(record: any, isNew: boolean = false): any {
-    const payload: any = {
-      id: isNew ? 0 : (record.id ?? 0),
-      idCliente: record.idCliente ?? record.id ?? 0,
-      documentoFiscal: (record.documentoFiscal ?? '').trim(),
-      documento: (record.documento ?? record.documentoFiscal ?? '').trim(),
-      domicilioFiscal: record.domicilioFiscal ?? '',
-      puntoLlegada: record.puntoLlegada ?? '',
-      domicilioFiscalDistrito: record.domicilioFiscalDistrito ?? '',
-      puntoLlegadaDistrito: record.puntoLlegadaDistrito ?? '',
-      activo: this.asBitBoolean(record.activo),
-      nombre: record.nombre ?? '',
-      tipoDocumento: record.tipoDocumento ?? '',
-      esCliente: record.esCliente ?? '',
-    };
-    return payload;
+  /** Celular o tablet: un toque sobre la fila abre la edición. */
+  alTocarFila(d: DestinatarioAdmin): void {
+    if (esDispositivoMovil()) this.editar(d);
   }
 
-  private asBitBoolean(value: unknown): boolean {
-    if (value === true) return true;
-    if (value === false) return false;
-    if (value === 1) return true;
-    if (value === 0) return false;
-    if (value === null || value === undefined) return false;
-    if (typeof value === 'string') {
-      const v = value.trim().toLowerCase();
-      if (v === '1' || v === 'true' || v === 'si' || v === 'sí' || v === 'y') return true;
-      if (v === '0' || v === 'false' || v === 'no' || v === 'n' || v === '') return false;
+  /** Computador: doble clic sobre la fila abre la edición. */
+  alHacerDobleClicFila(d: DestinatarioAdmin): void {
+    if (!esDispositivoMovil()) this.editar(d);
+  }
+
+  editar(d: DestinatarioAdmin): void {
+    this.editando.set(d);
+  }
+
+  /** El modal ya guardó: se cierra, se avisa y se vuelve a pedir la lista al servidor. */
+  async alGuardar(mensaje: string): Promise<void> {
+    this.editando.set(null);
+    this.alertService.showAlert('Éxito', mensaje, 'success');
+    await this.cargarDestinatarios();
+  }
+
+  /** Activa o desactiva el destinatario (pide confirmación y lo envía de frente al servidor). */
+  async cambiarEstado(d: DestinatarioAdmin): Promise<void> {
+    if (!d.id) {
+      this.feedback.warning('Primero configura el destinatario (domicilio y punto de llegada) con el botón Editar.');
+      return;
     }
-    return !!value;
-  }
+    if (!this.online()) {
+      this.feedback.warning('Necesitas internet para cambiar el estado.', 'Sin conexión');
+      return;
+    }
 
-  private nextId(): number {
-    const arr = this.items();
-    if (!arr.length) return 1;
-    return Math.max(...arr.map(x => Number(x?.id ?? 0))) + 1;
+    const activar = !d.activo;
+    const confirmado = await this.confirmModal.confirm({
+      title: activar ? 'Activar destinatario' : 'Desactivar destinatario',
+      eyebrow: 'Estado del destinatario',
+      message: activar ? 'El destinatario volverá a estar disponible para las guías.' : 'El destinatario dejará de estar disponible para las guías.',
+      detail: d.nombre,
+      confirmText: activar ? 'Activar' : 'Desactivar',
+      cancelText: 'Cancelar',
+      tone: activar ? 'success' : 'danger',
+    });
+    if (!confirmado) return;
+
+    this.loading.show(activar ? 'Activando destinatario...' : 'Desactivando destinatario...');
+    try {
+      const respuesta = await this.administracionApi.sincronizarDestinatarios(destinatarioAJson({ ...d, activo: activar }));
+      this.loading.hide();
+      if (respuesta?.error) {
+        this.feedback.error(respuesta.mensaje || 'No se pudo cambiar el estado.');
+        return;
+      }
+      this.alertService.showAlert('Éxito', activar ? 'Destinatario activado' : 'Destinatario desactivado', 'success');
+      await this.cargarDestinatarios();
+    } catch {
+      this.loading.hide();
+      this.feedback.error('Ocurrió un error inesperado al cambiar el estado.');
+    }
   }
 }

@@ -1,48 +1,185 @@
-import { Component, ChangeDetectionStrategy, inject, signal, OnInit, computed, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { PaletService } from '../../shared/services/palet.service';
-import { ProcesoService } from '../../shared/services/proceso.service';
-import { CatalogoService } from '../../shared/services/catalogo.service';
-import { AuthService } from '../../shared/services/auth.service';
-import { AlertService } from '../../shared/services/alert.service';
-import { PermissionService } from '../../shared/services/permission.service';
-import { Palet, DPalet } from '../../shared/interfaces/palet.interface';
-import { Proceso } from '../../shared/interfaces/proceso.interface';
-import { Consignatario, Destino, Formato, Variedad, TipoEmpaque, TipoEmpaqueGuia, Presentacion, TipoCaja, TipoClamshell, LugarProduccion, CodigoRancho, Transporte, TipoProcesoEmpacado, Calibre, Categoria } from '../../shared/interfaces/catalogo.interface';
-import { ConnectivityService } from '../../shared/services/connectivity.service';
-import { ProcesoRepository } from '../../shared/dexiedb/repository/proceso.repository';
-import { firstValueFrom } from 'rxjs';
-import { Configuracion } from '../../shared/interfaces/administracion.interface';
-import { CatalogosRepository } from '../../shared/dexiedb/repository/catalogos.repository';
-import { CatalogosOperativosRepository } from '../../shared/dexiedb/repository/catalogos-operacionales.repository';
+import { firstValueFrom, from } from 'rxjs';
+import {
+  LucideArrowLeftRight,
+  LucideBox,
+  LucideChevronDown,
+  LucideChevronUp,
+  LucideCircleAlert,
+  LucideCircleCheck,
+  LucideFileText,
+  LucideLayers,
+  LucidePackage,
+  LucidePencil,
+  LucidePlus,
+  LucideRefreshCcw,
+  LucideRotateCcw,
+  LucideTrash2,
+  LucideTruck,
+  LucideWeight,
+} from '@lucide/angular';
 import { AdministracionRepository } from '../../shared/dexiedb/repository/administracion.repository';
-import { formatDateTime, formatTimeClave } from '../../shared/utils/datetime.utils';
-import { ModalCajasComponent } from './components/modal-cajas/modal-cajas.component';
+import { CatalogosOperativosRepository } from '../../shared/dexiedb/repository/catalogos-operacionales.repository';
+import { CatalogosRepository } from '../../shared/dexiedb/repository/catalogos.repository';
+import { ProcesoRepository } from '../../shared/dexiedb/repository/proceso.repository';
+import { Usuario } from '../../shared/interfaces/auth.interface';
+import { Configuracion } from '../../shared/interfaces/administracion.interface';
+import {
+  Calibre,
+  Categoria,
+  CodigoRancho,
+  Consignatario,
+  Destino,
+  Formato,
+  LugarProduccion,
+  Presentacion,
+  TipoCaja,
+  TipoClamshell,
+  TipoEmpaque,
+  TipoEmpaqueGuia,
+  TipoProcesoEmpacado,
+  Transporte,
+  Variedad,
+} from '../../shared/interfaces/catalogo.interface';
+import { DPalet, Palet } from '../../shared/interfaces/palet.interface';
+import { Proceso } from '../../shared/interfaces/proceso.interface';
+import { AlertaService } from '../../shared/services/alerta.service';
+import { AuthService } from '../../shared/services/auth.service';
+import { CatalogosApiService } from '../../shared/services/catalogos-api.service';
+import { ConnectivityService } from '../../shared/services/connectivity.service';
+import { FeedbackModalService } from '../../shared/services/feedback-modal.service';
+import { MaestrosApiService } from '../../shared/services/maestros-api.service';
+import { PaletsApiService } from '../../shared/services/palets-api.service';
+import { LoadingService } from '../../shared/services/loading.service';
+import { PaletsSyncService } from '../../shared/services/palets-sync.service';
+import { ProcesosApiService } from '../../shared/services/procesos-api.service';
+import { ProcesosSyncService } from '../../shared/services/procesos-sync.service';
+import { abrirOCompartirArchivo, descargarArchivo, esDispositivoMovil } from '../../shared/utils/archivo';
+import { formatDateTime, formatTimeClave } from '../../shared/utils/date-time.util';
+import { permisos } from '../../shared/utils/permisos';
+import { FormCajas, ModalCajasComponent } from './components/modal-cajas/modal-cajas.component';
+import { InfoEliminar, ModalEliminarPaletComponent } from './components/modal-eliminar-palet/modal-eliminar-palet.component';
+import { ModalCerrarPaletComponent } from './components/modal-cerrar-palet/modal-cerrar-palet.component';
+
+const texto = (v: unknown): string => String(v ?? '').trim();
+
+/**
+ * Palets de un proceso: crear, agregar cajas (composiciones), cerrar, reabrir, eliminar, ficha de composicion y
+ * sincronizacion con el servidor. Trabaja con y sin internet (Dexie). La logica es la de la aplicacion anterior; solo cambian
+ * la forma de llamar a la API (api/palets) y la pantalla.
+ */
 @Component({
   selector: 'app-palets',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, ModalCajasComponent],
+  imports: [
+    FormsModule,
+    RouterLink,
+    ModalCajasComponent,
+    ModalCerrarPaletComponent,
+    ModalEliminarPaletComponent,
+    LucideArrowLeftRight,
+    LucideBox,
+    LucideChevronDown,
+    LucideChevronUp,
+    LucideCircleAlert,
+    LucideCircleCheck,
+      LucideFileText,
+    LucideLayers,
+    LucidePackage,
+    LucidePencil,
+      LucidePlus,
+    LucideRefreshCcw,
+    LucideRotateCcw,
+    LucideTrash2,
+    LucideTruck,
+    LucideWeight,
+    ],
   templateUrl: './palets.component.html',
-  styleUrl: './palets.component.scss'
 })
-export class PaletsComponent implements OnInit, OnDestroy {
-  private readonly paletService = inject(PaletService);
+export class PaletsComponent implements OnInit {
+  private readonly api = inject(PaletsApiService);
+  private readonly procesosApi = inject(ProcesosApiService);
+  private readonly catalogosApi = inject(CatalogosApiService);
+  private readonly maestros = inject(MaestrosApiService);
+  private readonly procesosSync = inject(ProcesosSyncService);
+  private readonly paletsSync = inject(PaletsSyncService);
   private readonly procesoRepo = inject(ProcesoRepository);
-  private readonly procesoService = inject(ProcesoService);
-  private readonly catalogoService = inject(CatalogoService);
   private readonly catalogosRepo = inject(CatalogosRepository);
   private readonly catalogosOperativosRepo = inject(CatalogosOperativosRepository);
   private readonly administracionRepo = inject(AdministracionRepository);
   private readonly auth = inject(AuthService);
-  private readonly alertService = inject(AlertService);
-  readonly permissions = inject(PermissionService);
+  private readonly loading = inject(LoadingService);
   private readonly connectivity = inject(ConnectivityService);
+  private readonly feedback = inject(FeedbackModalService);
+  private readonly alertService = inject(AlertaService);
+
+  readonly usuario = signal<Usuario | null>(null);
   readonly savedConfig = signal<Configuracion | null>(null);
-  readonly activeCampaniaId = signal<string | null>(null);
+
+  readonly esAdmin = computed(() => permisos.esAdmin(this.usuario()?.idRol));
+  readonly puedeCrearPalet = computed(() => permisos.puedeCrearPalet(this.usuario()?.idRol));
+  readonly puedeAgregarCajas = computed(() => permisos.puedeAgregarCajas(this.usuario()?.idRol));
+  readonly puedeCerrarPalet = computed(() => permisos.puedeCerrarPalet(this.usuario()?.idRol));
+  readonly puedeReabrirPalet = computed(() => permisos.puedeReabrirPalet(this.usuario()?.idRol));
+  readonly puedeEliminarPalet = computed(() => permisos.puedeEliminarPalet(this.usuario()?.idRol));
+
+  // La aplicacion anterior llamaba a sus servicios y recibia [{ error, data, mensaje }]. Estos adaptadores devuelven esa misma
+  // forma desde la API nueva, para que la logica de la pantalla siga igual.
+  private readonly paletService = {
+    listarPaletPorProceso: (idProceso: string) => from(this.api.porProceso(idProceso).then((s) => [s])),
+    getTipoProcesoEmpacadoPorAcopio: (idProyecto: string) => from(this.procesosApi.tipoProcesoEmpacadoAcopio(idProyecto).then((s) => [s])),
+    getDestinosPorMatrizCompatibilidad: (idProyecto: string, documentoConsignatario: string) =>
+      from(this.api.destinosPorMatriz(idProyecto, documentoConsignatario).then((s) => [s])),
+    getFormatosPorMatriz: (codigoCultivo: string, documentoConsignatario: string, destinoId: string) =>
+      from(this.api.formatosPorMatriz({ codigoCultivo, documentoConsignatario, destinoId }).then((s) => [s])),
+    getTiposEmpaqueGuiaPorMatriz: (codigoCultivo: string, documentoConsignatario: string, destinoId: string, formatoId: number) =>
+      from(this.api.tiposEmpaqueGuiaPorMatriz({ codigoCultivo, documentoConsignatario, destinoId, formatoId }).then((s) => [s])),
+    getPresentacionesPorMatriz: (codigoCultivo: string, documentoConsignatario: string, destinoId: string, formatoId: number, tipoEmpaqueGuiaId: number) =>
+      from(this.api.presentacionesPorMatriz({ codigoCultivo, documentoConsignatario, destinoId, formatoId, tipoEmpaqueGuiaId }).then((s) => [s])),
+    getTiposCajaPorMatriz: (codigoCultivo: string, documentoConsignatario: string, destinoId: string, formatoId: number, tipoEmpaqueGuiaId: number, presentacionId?: number) =>
+      from(
+        this.api
+          .tiposCajaPorMatriz({ codigoCultivo, documentoConsignatario, destinoId, formatoId, tipoEmpaqueGuiaId, ...(presentacionId && presentacionId > 0 ? { presentacionId } : {}) })
+          .then((s) => [s]),
+      ),
+    getTiposClamshellPorMatriz: (codigoCultivo: string, documentoConsignatario: string, destinoId: string, formatoId: number, tipoEmpaqueGuiaId: number, tipoCajaId?: number, presentacionId?: number) =>
+      from(
+        this.api
+          .tiposClamshellPorMatriz({
+            codigoCultivo,
+            documentoConsignatario,
+            destinoId,
+            formatoId,
+            tipoEmpaqueGuiaId,
+            ...(tipoCajaId && tipoCajaId > 0 ? { tipoCajaId } : {}),
+            ...(presentacionId && presentacionId > 0 ? { presentacionId } : {}),
+          })
+          .then((s) => [s]),
+      ),
+    getDPaletsPorAcopio: () => from(this.api.dPaletsPorAcopio().then((s) => [s])),
+    getDPaletsPorPalet: (idPalet: string) => from(this.api.dPaletsPorPalet(idPalet).then((s) => [s])),
+    sincronizar: (palets: unknown) => from(this.api.sincronizar(palets).then((s) => [s])),
+    /** Devuelve la lista de resultados por detalle ({ idDPalet, success, mensaje }). */
+    sincronizarDPalets: (dPalets: unknown[]) => from(this.api.sincronizarDPalets(dPalets).then((s) => (Array.isArray(s.data) ? s.data : []))),
+  };
+
+  private readonly catalogoService = {
+    listarConsignatarios: () => from(this.catalogosApi.consignatarios().then((s) => [s])),
+    listarVariedades: () => from(this.catalogosApi.variedades()),
+    listarLugaresProduccion: (idProyecto: string) => from(this.catalogosApi.porProyecto('lugaresProduccion', idProyecto)),
+    listarCodigosRanchoCatalogo: (idProyecto: string) => from(this.catalogosApi.porProyecto('codigosRancho', idProyecto)),
+    listarTransporte: () => from(this.maestros.transporte()),
+    listarPaises: () => from(this.maestros.paises()),
+    listarFormatos: (c: string) => from(this.catalogosApi.porCultivo('formatos', c)),
+    listarTiposEmpaqueGuia: (c: string) => from(this.catalogosApi.porCultivo('tiposEmpaqueGuia', c)),
+    listarPresentaciones: (c: string) => from(this.catalogosApi.porCultivo('presentaciones', c)),
+    listarTiposCaja: (c: string) => from(this.catalogosApi.porCultivo('tiposCaja', c)),
+    listarTiposClamshell: (c: string) => from(this.catalogosApi.porCultivo('tiposClamshell', c)),
+  };
 
   private _cargandoCascada = false;
-  private timerInterval: ReturnType<typeof setInterval> | null = null;
   get online(): boolean {
     return this.connectivity.isOnline();
   }
@@ -85,27 +222,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
   tiposProcesoEmpacadoModal = signal<TipoProcesoEmpacado[]>([]);
   tipoProcesoEmpacadoDisabled = signal(false);
   codigoRanchoDisabled = signal(true);
-  formCajas = signal<{
-    consignatarioId: string | number;
-    destinoId: number | string;
-    formatoId: number;
-    tipoEmpaqueId: number;
-    calibreId: number;
-    categoriaId: number;
-    tipoEmpaqueGuiaId: number;
-    tipoCajaId: number;
-    tipoClamshellId: number;
-    presentacionId: number;
-    tipoProcesoEmpacadoId: number;
-    variedadId: number | string;
-    variedadGuiaId: string;
-    lugarProduccionId: number;
-    codigoRanchoId: number;
-    transporteId: string;
-    cantidadCajas: number;
-    esReposicion: boolean;
-    esEnsayo: boolean;
-  }>({
+  formCajas = signal<FormCajas>({
     consignatarioId: '',
     destinoId: 0,
     formatoId: 0,
@@ -154,7 +271,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
   }
 
   sincronizadoClass(db?: number): string {
-    return db === 1 ? 'sp-badge sp-badge-success' : 'sp-badge sp-badge-danger';
+    return db === 1 ? 'badge-success' : 'badge-error';
   }
 
   formatPeso(valor: number | undefined | null): string {
@@ -162,77 +279,21 @@ export class PaletsComponent implements OnInit, OnDestroy {
     return String(Math.ceil(n * 1000) / 1000);
   }
 
-  private async resolverNombresDPalets(dpalets: any[]): Promise<DPalet[]> {
-    const [
-      consignatarios, destinos, formatos, presentaciones, variedades,
-      lugares, codigosRancho, tiposEmpaqueGuia, transportes, tiposProceso
-    ] = await Promise.all([
-      this.catalogosRepo.consignatariosRepo.getAll(),
-      this.catalogosRepo.destinosRepo.getAll(),
-      this.catalogosRepo.formatosRepo.getAll(),
-      this.catalogosRepo.presentacionesRepo.getAll(),
-      this.catalogosRepo.variedadesRepo.getAll(),
-      this.catalogosRepo.lugaresProduccionRepo.getAll(),
-      this.catalogosRepo.codigosRanchoRepo.getAll(),
-      this.catalogosRepo.tiposEmpaqueGuiaRepo.getAll(),
-      this.catalogosRepo.transportesRepo.getAll(),
-      this.catalogosRepo.tipoProcesoEmpacadoRepo.getAll(),
-    ]);
-
-    const consigMap = new Map(consignatarios.map(c => [String(c.documento ?? '').trim(), c.nombre]));
-    const destMap = new Map(destinos.map(d => [String(d.id ?? '').trim(), d.pais]));
-    const fmtMap = new Map(formatos.map(f => [String(f.id ?? '').trim(), f.descripcion]));
-    const presMap = new Map(presentaciones.map(p => [String(p.id ?? '').trim(), p.nombre ?? '']));
-    const varMap = new Map(variedades.map(v => [String(v.codigo ?? '').trim(), v.variedad]));
-    const lugMap = new Map(lugares.map(l => [String(l.id ?? '').trim(), l.descripcion]));
-    const ranMap = new Map(codigosRancho.map(r => [String(r.id ?? '').trim(), r.codigo]));
-    const tegMap = new Map(tiposEmpaqueGuia.map(t => [String(t.id ?? '').trim(), t.nombre]));
-    const transMap = new Map(transportes.map(t => [String(t.id ?? '').trim(), t.transporte]));
-    const tpeMap = new Map(tiposProceso.map(t => [String(t.id ?? '').trim(), t.nombre]));
-
-    return dpalets.map((d: any) => {
-      const docCons = String(d.documentoConsignatario ?? '').trim();
-      const destId = String(d.destinoId ?? '').trim();
-      const fmtId = String(d.formatoId ?? '').trim();
-      const presId = String(d.presentacionId ?? '').trim();
-      const varId = String(d.variedadId ?? '').trim();
-      const lugId = String(d.lugarProduccionId ?? '').trim();
-      const ranId = String(d.codigoRanchoId ?? '').trim();
-      const tegId = String(d.tipoEmpaqueGuiaId ?? '').trim();
-      const transId = String(d.transporteId ?? '').trim();
-      const tpeId = String(d.tipoProcesoEmpacadoId ?? '').trim();
-
-      return {
-        ...d,
-        consignatarioNombre: consigMap.get(docCons) ?? d.consignatarioNombre ?? '',
-        destinoNombre: destMap.get(destId) ?? d.destinoNombre ?? '',
-        formatoNombre: fmtMap.get(fmtId) ?? d.formatoNombre ?? '',
-        presentacionNombre: presMap.get(presId) ?? d.presentacionNombre ?? '',
-        variedadNombre: varMap.get(varId) ?? d.variedadNombre ?? '',
-        lugarProduccionNombre: lugMap.get(lugId) ?? d.lugarProduccionNombre ?? '',
-        codigoRanchoNombre: ranMap.get(ranId) ?? d.codigoRanchoNombre ?? '',
-        tipoEmpaqueGuiaNombre: tegMap.get(tegId) ?? d.tipoEmpaqueGuiaNombre ?? '',
-        transporteNombre: transMap.get(transId) ?? d.transporteNombre ?? '',
-        tipoProcesoEmpacadoNombre: tpeMap.get(tpeId) ?? d.tipoProcesoEmpacadoNombre ?? '',
-      } as DPalet;
-    });
-  }
-
-  private get userId(): number {
-    return this.auth.usuario()?.id ?? 0;
+  private resolverNombresDPalets(dpalets: any[]): Promise<DPalet[]> {
+    return this.paletsSync.resolverNombres(dpalets);
   }
 
   async ngOnInit(): Promise<void> {
-    await this.cargarConfiguracion();
-    await this.cargarDesdeDexieCampania();
-    await this.cargarProcesos();
-    if (this.online) {
-      await this.sincronizarDPaletsPorAcopio();
+    this.loading.show('Cargando palets...');
+    try {
+      const session = await this.auth.getSession();
+      this.usuario.set(session?.user ?? null);
+      await this.cargarConfiguracion();
+      await this.cargarDesdeDexieCampania();
+      await this.cargarProcesos();
+    } finally {
+      await this.loading.hideAfterMinimum();
     }
-  }
-
-  ngOnDestroy(): void {
-    if (this.timerInterval) clearInterval(this.timerInterval);
   }
 
   private async cargarDesdeDexieCampania(): Promise<void> {
@@ -240,421 +301,137 @@ export class PaletsComponent implements OnInit, OnDestroy {
       const campania = await this.catalogosRepo.campaniaRepo.getByField('idproyecto', this.savedConfig()?.idProyecto || '');
       this.campania.set(campania);
     } catch (error) {
-      console.log('Error cargando campanias desde Dexie', error);
+      console.error('Error cargando campanias desde Dexie', error);
       this.campania.set([]);
     }
   }
 
-
   private async cargarConfiguracion(): Promise<void> {
     try {
-      const nro = this.getNroDocumentoFromUsuario();
-      const cfg = await this.catalogosRepo.configuracionRepo.getByField('nrodocumento', nro);
+      const nro = texto(this.usuario()?.documentoIdentidad);
+      const cfg = nro ? await this.catalogosRepo.configuracionRepo.getByField('nrodocumento', nro) : null;
       this.savedConfig.set(cfg ?? null);
     } catch (error) {
-      console.log('Error cargando configuracion desde Dexie', error);
-      this.activeCampaniaId.set(null);
+      console.error('Error cargando configuracion desde Dexie', error);
+      this.savedConfig.set(null);
     }
   }
 
-  private getNroDocumentoFromUsuario(): string {
-    const u: any = this.auth.usuario();
-    const v = u?.nrodocumento ?? u?.documentoidentidad ?? u?.documentoIdentidad ?? u?.documento ?? '';
-    return String(v ?? '').trim();
-  }
-
+  /** Con internet pide los procesos abiertos al servidor y los muestra sin guardarlos en Dexie; sin internet usa los que ya hubiera en el equipo. */
   async cargarProcesos(): Promise<void> {
-    this.procesosAbiertos.set([])
-    if (this.online) {
-      await this.listarProcesosApi()
-    } else {
-      const listaProcesos = await this.procesoRepo.procesosRepo.getAll();
-      let procesosAbiertos = listaProcesos.filter((p: Proceso) => p.estado === 'ABIERTO');
-      this.procesosAbiertos.set(procesosAbiertos);
-    }
-  }
-
-
-  async listarProcesosApi(): Promise<void> {
-    this.isLoading.set(true);
-    let resp = await firstValueFrom(this.procesoService.listarProcesoForAcopio(this.savedConfig()?.codigoCultivo || '', this.savedConfig()?.idProyecto || ''));
-    if (resp.length == 0) {
-      this.alertService.showAlert('Error', 'No se encontraron procesos para la campaña activa.', 'error');
-      this.isLoading.set(false);
-      return;
-    } else {
-      if (resp[0].error) {
-        this.alertService.showAlert('Error', resp[0].mensaje, 'error');
-        this.isLoading.set(false);
+    this.procesosAbiertos.set([]);
+    const cfg = this.savedConfig();
+    if (this.online && cfg) {
+      try {
+        const sobre = await this.procesosApi.listar(cfg.idProyecto, cfg.codigoCultivo, { estado: 'ABIERTO' });
+        if (sobre?.error) {
+          this.alertService.showAlert('Error', sobre.mensaje || 'No se pudieron obtener los procesos.', 'error');
+          return;
+        }
+        const data = Array.isArray(sobre?.data) ? sobre.data : [];
+        const procesos = data.map((x) => this.procesosSync.normalizar(x).proceso as Proceso);
+        this.procesosAbiertos.set(procesos.filter((p) => p.estado === 'ABIERTO'));
         return;
-      } else {
-        const data = Array.isArray(resp?.[0]?.data) ? resp[0].data : [];
-        const normalizados: {
-          proceso: Proceso;
-        }[] = data.map((x: any) => this.normalizarProceso(x));
-
-        const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
-
-        const localesNoSync = await this.procesoRepo.procesosRepo.getNoSincronizados();
-        const localNoSyncById = new Map<string, Proceso>(
-          (localesNoSync ?? []).map((p) => [String((p as any)?.idProceso ?? '').trim(), p])
-        );
-
-        const conflictos = Array.from(
-          new Set(
-            normalizados
-              .map((n) => String((n.proceso as any)?.idProceso ?? '').trim())
-              .filter((id) => id.length > 0 && localNoSyncById.has(id))
-          )
-        );
-
-        let normalizadosFiltrados = normalizados;
-        if (conflictos.length > 0) {
-          const msg =
-            `Se encontraron procesos locales NO sincronizados con el mismo idProceso que viene del servidor (ej: ${conflictos.slice(0, 3).join(', ')}${conflictos.length > 3 ? '...' : ''}).\n\n` +
-            '¿Deseas reemplazar el/los procesos locales por los del servidor?\n' +
-            '- Aceptar: elimina los locales NO sincronizados en conflicto y guarda los del servidor.\n' +
-            '- Cancelar: mantiene los locales y omite los del servidor con ese idProceso.';
-
-          const reemplazar = await this.alertService.showConfirm('Conflicto de procesos', msg, 'warning');
-
-          if (reemplazar) {
-            for (const idProceso of conflictos) {
-              await this.procesoRepo.procesosRepo.deleteByIdProceso(idProceso);
-              await this.procesoRepo.dProcesoLogisticosRepo.deleteByIdProceso(idProceso);
-              await this.procesoRepo.dProcesoSupervisoresRepo.deleteByIdProceso(idProceso);
-            }
-          } else {
-            normalizadosFiltrados = normalizados.filter(
-              (n) => !conflictos.includes(String((n.proceso as any)?.idProceso ?? '').trim())
-            );
-          }
-        }
-
-        if (idProyecto) {
-          const idsEliminados = await this.procesoRepo.procesosRepo.clearSincronizadosByProyecto(idProyecto);
-          await this.procesoRepo.dProcesoLogisticosRepo.clearSincronizadosByIdProcesos(idsEliminados);
-          await this.procesoRepo.dProcesoSupervisoresRepo.clearSincronizadosByIdProcesos(idsEliminados);
-        }
-
-        for (const n of normalizadosFiltrados) {
-          await this.procesoRepo.procesosRepo.saveFordec(n.proceso as any);
-        }
-        const listaProcesos = await this.procesoRepo.procesosRepo.getAll();
-        let procesosAbiertos = listaProcesos.filter((p: Proceso) => p.estado === 'ABIERTO');
-        this.procesosAbiertos.set(procesosAbiertos);
-        this.isLoading.set(false);
+      } catch (error) {
+        console.error('Error obteniendo procesos', error);
+        this.alertService.showAlert('Error', 'No se pudieron obtener los procesos.', 'error');
         return;
       }
     }
+    const listaProcesos = await this.procesoRepo.procesosRepo.getAll();
+    this.procesosAbiertos.set(listaProcesos.filter((p: Proceso) => p.estado === 'ABIERTO'));
   }
 
-
-  normalizarProceso(proceso: any): { proceso: Proceso } {
-    const p: Proceso = {
-      id: proceso?.id ?? undefined,
-      idProceso: String(proceso?.idProceso ?? '').trim(),
-      idProyecto: String(proceso?.idProyecto ?? '').trim(),
-      codigoAcopio: String(proceso?.codigoAcopio ?? '').trim(),
-      acopioNombre: String(proceso?.acopioNombre ?? '').trim(),
-      fechaProceso: String(proceso?.fechaProceso ?? '').trim(),
-      estado: String(proceso?.estado ?? '').trim(),
-      fechaApertura: String(proceso?.fechaApertura ?? '').trim(),
-      fechaCierre: proceso?.fechaCierre ?? null,
-      turno: String(proceso?.turno ?? '').trim(),
-      idUsuarioApertura: proceso?.idUsuarioApertura ?? undefined,
-      idRolApertura: proceso?.idRolApertura ?? undefined,
-      idUsuarioCierre: proceso?.idUsuarioCierre ?? undefined,
-      idRolCierre: proceso?.idRolCierre ?? undefined,
-      db: 1
-    };
-
-    return { proceso: p };
-  }
-
-  async listarPaletsForProceso(idproceso: string, options?: { showLoading?: boolean }): Promise<void> {
+  /** Pide los palets del proceso a la API y los muestra tal cual llegan; no usa Dexie. */
+  async listarPaletsForProceso(idproceso: string, _options?: { showLoading?: boolean }): Promise<void> {
     const idProceso = String(idproceso ?? '').trim();
     if (!idProceso) {
       this.palets.set([]);
-      this.alertService.cerrarModalCarga();
       return;
     }
-    // const showLoading = options?.showLoading ?? true;
-    // if (showLoading) this.alertService.mostrarModalCarga();
-    try {
-      if (this.online) {
-        const resp = await firstValueFrom(this.paletService.listarPaletPorProceso(idProceso));
-        if (!resp?.length) {
-          this.alertService.cerrarModalCarga();
-          this.alertService.showAlert('Error', 'Error al obtener los palets del proceso', 'error');
-          return;
-        }
-
-        const first = resp[0] as any;
-        if (first?.error) {
-          this.alertService.cerrarModalCarga();
-          this.alertService.showAlert('Error', first?.mensaje ?? 'Error al obtener los palets del proceso', 'error');
-          return;
-        }
-
-        const apiPalets: Palet[] = (Array.isArray(first) ? first : (first?.data ?? [])) as any;
-
-        await this.procesoRepo.paletsRepo.clearSincronizadosByIdProceso(idProceso);
-
-        for (const p of (apiPalets ?? [])) {
-          const row: Palet = {
-            ...(p as any),
-            bd: 1,
-          };
-          await this.procesoRepo.paletsRepo.saveByIdPalet(row);
-        }
-      } else {
-        console.log('Obteniendo palets del proceso desde Dexie...');
-      }
-
-      const paletsDb = await this.procesoRepo.paletsRepo.getByIdProceso(idProceso);
-      const activos = (paletsDb ?? []).filter((p: any) => !(p as any)?.eliminado);
-      // const ordenados = activos.slice().sort((a: any, b: any) => {
-      //   const ak = String(a?.idPalet ?? '').trim();
-      //   const bk = String(b?.idPalet ?? '').trim(); 
-      //   if (ak && bk) return bk.localeCompare(ak);
-      //   if (ak) return 1;
-      //   if (bk) return -1;
-      //   return Number(a?.id ?? 0) - Number(b?.id ?? 0);
-      // });
-      this.palets.set(activos);
-      this.alertService.cerrarModalCarga();
-    } catch (error: any) {
-      console.log(error);
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Error', `${error?.error?.message ?? 'Error al obtener los palets del proceso'}`, 'error');
+    if (!this.online) {
+      this.palets.set([]);
+      this.alertService.showAlert('Sin conexión', 'Se necesita internet para ver los palets del proceso.', 'warning');
+      return;
     }
-  }
-
-  async sincronizarDPaletsPorAcopio(): Promise<void> {
     try {
-      const resp: any = await firstValueFrom(this.paletService.getDPaletsPorAcopio());
-      const first = Array.isArray(resp) ? resp[0] : resp;
-      if (first?.error) {
-        console.error('Error obteniendo DPalets por acopio:', first?.mensaje);
+      const sobre = await this.api.porProceso(idProceso);
+      if (sobre?.error) {
+        this.palets.set([]);
+        this.alertService.showAlert('Error', sobre.mensaje || 'Error al obtener los palets del proceso', 'error');
         return;
       }
-      const items: any[] = first?.data ?? [];
-      if (!items.length) {
-        console.log('No hay DPalets remotos para sincronizar');
-        return;
-      }
-
-      // Limpiar DPalets sincronizados previos
-      const dpaletsLocales = await this.procesoRepo.dPaletsRepo.getAll();
-      const sincronizados = (dpaletsLocales ?? []).filter((d: any) => (d.bd ?? 0) === 1);
-      for (const d of sincronizados) {
-        if ((d as any)._pk != null) {
-          await this.procesoRepo.dPaletsRepo.delete((d as any)._pk);
-        }
-      }
-
-      const enriquecidos = await this.resolverNombresDPalets(items);
-      for (const d of enriquecidos) {
-        const row: DPalet = {
-          ...d,
-          bd: 1,
-        };
-        await this.procesoRepo.dPaletsRepo.saveByIdDPalet(row);
-      }
-
-    } catch (err) {
-      console.error('Error sincronizando DPalets por acopio:', err);
+      const apiPalets = (Array.isArray(sobre?.data) ? sobre.data : []) as unknown as Palet[];
+      this.palets.set(apiPalets.filter((p: any) => !p?.eliminado).map((p) => ({ ...(p as any), bd: 1 }) as Palet));
+    } catch (error: any) {
+      console.error(error);
+      this.palets.set([]);
+      this.alertService.showAlert('Error', `${error?.error?.message ?? 'Error al obtener los palets del proceso'}`, 'error');
+    } finally {
+      await this.loading.hideAfterMinimum();
     }
   }
 
   async descargarFichaComposicion(palet: any): Promise<void> {
     if (!palet?.idPalet) return;
+    if (!this.online) {
+      this.alertService.showAlert('Sin conexión', 'La ficha de composición se genera en el servidor. Conéctese a internet para descargarla.', 'warning');
+      return;
+    }
 
-    this.alertService.mostrarModalCarga();
+    this.loading.show('Generando ficha...');
     try {
-      const blob = await firstValueFrom(this.paletService.descargarFichaComposicion(palet.idPalet));
-      this.alertService.cerrarModalCarga();
+      const blob = await this.api.fichaComposicion(palet.idPalet);
+      await this.loading.hideAfterMinimum();
+      const nombre = `FichaComposicion_${palet.numeroPalet || palet.idPalet}.pdf`;
 
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `FichaComposicion_${palet.numeroPalet ?? palet.idPalet}.pdf`;
-      link.click();
-      window.URL.revokeObjectURL(url);
+      if (esDispositivoMovil()) {
+        // Android / iOS: el archivo llego despues de esperar a la API, asi que solo se puede abrir desde un toque de la persona.
+        this.feedback.open('success', {
+          title: 'Ficha lista',
+          message: `La ficha del palet #${palet.numeroPalet || palet.idPalet} está lista. Toque "Abrir ficha" para verla o compartirla.`,
+          actionText: 'Cerrar',
+          secondaryAction: { text: 'Abrir ficha', handler: () => abrirOCompartirArchivo(blob, nombre) },
+        });
+      } else {
+        descargarArchivo(blob, nombre);
+      }
     } catch (error) {
       console.error('Error al descargar ficha de composición', error);
-      this.alertService.cerrarModalCarga();
+      await this.loading.hideAfterMinimum();
       this.alertService.showAlert('Error', 'No se pudo descargar la ficha de composición.', 'error');
     }
   }
 
+  /** Actualizar: vuelve a pedir a la API los palets del proceso abierto, los lista y cierra el detalle abierto; no usa Dexie. */
   async onSincronizar(): Promise<void> {
+    const proceso = this.procesoSeleccionado();
+    if (!proceso) return;
+    if (!this.online) {
+      this.alertService.showAlert('Sin conexión', 'Se necesita internet para actualizar los palets.', 'warning');
+      return;
+    }
+    this.loading.show('Actualizando palets...');
     try {
-      if (!this.online) {
-        this.alertService.showAlert('Error', 'No tiene conexión a internet', 'error');
-        return;
-      }
-
-      const confirmar = await this.alertService.showConfirm(
-        'Confirmar sincronización',
-        'Se subirán a BD los palets pendientes. ¿Desea continuar?',
-        'question',
-      );
-
-      if (!confirmar) return;
-      this.alertService.mostrarModalCarga();
-
-      const paletsNoSync = await this.procesoRepo.paletsRepo.getNoSincronizados();
-      const dpaletsNoSync = await this.procesoRepo.dPaletsRepo.getNoSincronizados();
-      const hayPalets = (paletsNoSync ?? []).length > 0;
-      const hayDPalets = (dpaletsNoSync ?? []).length > 0;
-
-      if (!hayPalets && !hayDPalets) {
-        for (const p of (this.procesosAbiertos() ?? [])) {
-          await this.listarPaletsForProceso(p.idProceso, { showLoading: false });
-        }
-        await this.listarPaletsForProceso(this.procesoSeleccionado()!.idProceso, { showLoading: false });
-        await this.sincronizarDPaletsPorAcopio();
-        const paletSel = this.paletSeleccionado();
-        if (paletSel) await this.verDetalle(paletSel);
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Éxito', 'No hay palets pendientes de sincronización', 'success');
-        return;
-      }
-
-      const resultadosPalet: { idPalet: string; success: boolean; mensaje: string }[] = [];
-      const resultadosDPalet: { idDPalet: string; success: boolean; mensaje: string }[] = [];
-
-      // Sincronizar Palets
-      if (hayPalets) {
-        const payloads = structuredClone(paletsNoSync) as any[];
-        payloads.forEach((item: any) => {
-          delete item.bd;
-          delete item._pk;
-          item.modo = item.id == 0 ? 'nuevo' : 'editado';
-        });
-        const resp = await firstValueFrom(this.paletService.sincronizar(payloads));
-        const first = resp?.[0] as any;
-        if (first?.error) {
-          this.alertService.cerrarModalCarga();
-          this.alertService.showAlert('Error', first?.mensaje ?? 'Error al sincronizar palets', 'error');
-          return;
-        }
-        const dataResults: any[] = Array.isArray(first?.data) ? first.data : [];
-        const localMap = new Map<string, number>();
-        for (const local of paletsNoSync as any[]) {
-          const key = String(local?.idPalet ?? '').trim();
-          if (key && local?._pk != null) localMap.set(key, local._pk);
-        }
-        for (const r of dataResults) {
-          const idPalet = String(r?.idPalet ?? '').trim();
-          const success = !!r?.success;
-          resultadosPalet.push({ idPalet, success, mensaje: r?.mensaje ?? '-' });
-          if (success && idPalet && localMap.has(idPalet)) {
-            const pk = localMap.get(idPalet)!;
-            const reg = await this.procesoRepo.paletsRepo.getByKey(pk);
-            if (reg) {
-              (reg as any).bd = 1;
-              await this.procesoRepo.paletsRepo.saveByIdPalet(reg as any);
-            }
-          }
-        }
-      }
-
-      // Sincronizar DPalets
-      if (hayDPalets) {
-        const payloads = structuredClone(dpaletsNoSync) as any[];
-        payloads.forEach((item: any) => {
-          delete item.bd;
-          delete item._pk;
-        });
-        const resp = await firstValueFrom(this.paletService.sincronizarDPalets(payloads));
-        const dataResults: any[] = Array.isArray(resp) ? resp : [];
-        const localMap = new Map<string, number>();
-        for (const local of dpaletsNoSync as any[]) {
-          const key = String(local?.idDPalet ?? '').trim();
-          if (key && local?._pk != null) localMap.set(key, local._pk);
-        }
-        for (const r of dataResults) {
-          const idDPalet = String(r?.idDPalet ?? '').trim();
-          const success = !!r?.success;
-          resultadosDPalet.push({ idDPalet, success, mensaje: r?.mensaje ?? '-' });
-          if (success && idDPalet && localMap.has(idDPalet)) {
-            const pk = localMap.get(idDPalet)!;
-            const reg = await this.procesoRepo.dPaletsRepo.getByKey(pk);
-            if (reg) {
-              (reg as any).bd = 1;
-              await this.procesoRepo.dPaletsRepo.saveByIdDPalet(reg as any);
-            }
-          }
-        }
-      }
-
-      this.alertService.cerrarModalCarga();
-
-      const paletsOk = resultadosPalet.filter(r => r.success).length;
-      const paletsErr = resultadosPalet.filter(r => !r.success).length;
-      const dpaletsOk = resultadosDPalet.filter(r => r.success).length;
-      const dpaletsErr = resultadosDPalet.filter(r => !r.success).length;
-
-      let mensajeFinal = '';
-      if (paletsOk > 0 || dpaletsOk > 0) {
-        mensajeFinal = `Sincronización completada. Palets: ${paletsOk} OK${paletsErr > 0 ? ', ' + paletsErr + ' error' : ''}. Detalles: ${dpaletsOk} OK${dpaletsErr > 0 ? ', ' + dpaletsErr + ' error' : ''}.`;
-      } else {
-        mensajeFinal = `Sincronización completada con errores. Palets: ${paletsErr} error. Detalles: ${dpaletsErr} error.`;
-      }
-      this.alertService.showAlert('Listo', mensajeFinal, paletsErr > 0 || dpaletsErr > 0 ? 'warning' : 'success');
-
-      // Recargar desde servidor para ambos roles
-      this.alertService.mostrarModalCarga();
-      for (const proc of (this.procesosAbiertos() ?? [])) {
-        const idProceso = String(proc.idProceso ?? '').trim();
-        if (!idProceso) continue;
-        try {
-          const respPalets: any = await firstValueFrom(this.paletService.listarPaletPorProceso(idProceso));
-          if (!respPalets?.length) continue;
-          const firstPalet = respPalets[0] as any;
-          if (firstPalet?.error) continue;
-          const apiPalets = (Array.isArray(firstPalet) ? firstPalet : (firstPalet?.data ?? [])) as any[];
-          await this.procesoRepo.paletsRepo.clearSincronizadosByIdProceso(idProceso);
-          for (const p of (apiPalets ?? [])) {
-            const row: any = { ...(p as any), bd: 1 };
-            await this.procesoRepo.paletsRepo.saveByIdPalet(row);
-          }
-        } catch (err) {
-          console.error('Error obteniendo palets para proceso', idProceso, err);
-        }
-      }
-      await this.sincronizarDPaletsPorAcopio();
-
-      // Actualizar UI
-      for (const proc of (this.procesosAbiertos() ?? [])) {
-        await this.listarPaletsForProceso(proc.idProceso, { showLoading: false });
-      }
-      await this.listarPaletsForProceso(this.procesoSeleccionado()!.idProceso, { showLoading: false });
-      const paletSel = this.paletSeleccionado();
-      if (paletSel) await this.verDetalle(paletSel);
-
-      this.alertService.cerrarModalCarga();
-    } catch (error: any) {
-      console.error('Error en sincronización palets:', error);
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Error', `${error?.error?.message ?? 'Error en sincronización'}`, 'error');
+      await this.listarPaletsForProceso(proceso.idProceso);
+      // Solo se actualizan los palets: se cierra el detalle abierto para que se vuelva a abrir con datos nuevos
+      this.paletSeleccionado.set(null);
+      this.composiciones.set([]);
+    } finally {
+      await this.loading.hideAfterMinimum();
     }
   }
 
   async seleccionarProceso(p: Proceso): Promise<void> {
-    this.alertService.mostrarModalCarga()
+    this.loading.show('Cargando palets del proceso...');
     this.procesoSeleccionado.set(p);
     this.paletSeleccionado.set(null);
     this.composiciones.set([]);
-    this.isLoading.set(true);
-    this.alertService.cerrarModalCarga();
-    await this.listarPaletsForProceso(p.idProceso, { showLoading: false })
-
-    //======================================
-    this.isLoading.set(false);
+    try {
+      await this.listarPaletsForProceso(p.idProceso);
+    } finally {
+      await this.loading.hideAfterMinimum();
+    }
   }
 
   cambiarProceso(): void {
@@ -670,71 +447,65 @@ export class PaletsComponent implements OnInit, OnDestroy {
     return k || p?.id;
   }
 
+  /** Sin internet no se puede trabajar con palets: todo se pide y se guarda en el servidor. */
+  private exigirInternet(): boolean {
+    if (this.online) return true;
+    this.alertService.showAlert('Sin conexión', 'Se necesita internet para trabajar con los palets.', 'warning');
+    return false;
+  }
+
+  /** Cambia en la lista (y en el palet abierto) el palet con los datos nuevos. */
+  private reemplazarPalet(actualizado: Palet): void {
+    const uk = String(actualizado?.idPalet ?? '').trim();
+    this.paletSeleccionado.set(actualizado);
+    this.palets.update((lista) =>
+      lista.map((item) => {
+        const pk = String(item?.idPalet ?? '').trim();
+        return pk && uk && pk === uk ? actualizado : item;
+      }),
+    );
+  }
+
+  /** Detalle (composiciones) de un palet directo de la API; no usa Dexie. Devuelve null si falla (ya avisó). */
+  private async pedirDetallePalet(idPalet: string): Promise<DPalet[] | null> {
+    const resp: any = await firstValueFrom(this.paletService.getDPaletsPorPalet(String(idPalet ?? '').trim()));
+    const first = Array.isArray(resp) ? resp[0] : resp;
+    if (first?.error) {
+      this.alertService.showAlert('Error', first?.mensaje ?? 'Error al obtener el detalle del palet', 'error');
+      return null;
+    }
+    const items: any[] = first?.data ?? [];
+    const enriquecidos = await this.resolverNombresDPalets(items);
+    return enriquecidos.filter((d: any) => !d?.eliminado);
+  }
+
   async verDetalle(p: Palet): Promise<void> {
-    this.alertService.mostrarModalCarga()
     this.paletSeleccionado.set(p);
-
+    if (!this.exigirInternet()) {
+      this.composiciones.set([]);
+      return;
+    }
+    this.loading.show('Cargando detalle del palet...');
     try {
-      let activos: DPalet[] = [];
-      let errorEndpoint:boolean =false
-      let errorMesanje: string =''
-      if (this.online) {
-        const idPalet = String(p?.idPalet ?? '').trim();
-        const resp: any = await firstValueFrom(this.paletService.getDPaletsPorPalet(idPalet));
-        const first = Array.isArray(resp) ? resp[0] : resp;
-        if (first?.error) {
-          errorEndpoint = true;
-          errorMesanje = first?.mensaje ?? 'Error al obtener el detalle del palet';
-        } else {
-          const items: any[] = first?.data ?? [];
-          const enriquecidos = await this.resolverNombresDPalets(items);
-
-          // Reemplazar solo DPalets sincronizados (bd=1) del palet en Dexie, preservar locales (bd=0)
-          await this.procesoRepo.dPaletsRepo.deleteSincronizadosByIdPalet(idPalet);
-          for (const d of enriquecidos) {
-            const row: DPalet = {
-              ...d,
-              bd: 1,
-            };
-            await this.procesoRepo.dPaletsRepo.saveByIdDPalet(row);
-          }
-          activos = enriquecidos.filter((d: any) => !(d as any)?.eliminado);
-        }
-      } 
-      // else {
-        const dpalets = await this.procesoRepo.dPaletsRepo.getByIdPalet(p.idPalet ?? '');
-        activos = (dpalets ?? []).filter((d: any) => !(d as any)?.eliminado);
-      // }
+      const activos = await this.pedirDetallePalet(p?.idPalet ?? '');
+      if (!activos) {
+        this.composiciones.set([]);
+        return;
+      }
       this.composiciones.set(activos);
 
-      // Recalcular totales del palet solo con dpalets no eliminados
+      // Totales del palet solo con las composiciones no eliminadas
       const totalCajas = activos.reduce((sum: number, d: any) => sum + (d?.cantidadCajas || 0), 0);
       const totalPeso = activos.reduce((sum: number, d: any) => sum + (d?.pesoTotal || 0), 0);
       const limite = p?.limiteCajasPorPalet ?? 0;
       const porcentaje = limite > 0 ? Math.round((totalCajas / limite) * 100) : 0;
-
-      const paletActualizado: Palet = {
-        ...p,
-        cantidadCajas: totalCajas,
-        pesoTotal: totalPeso,
-        porcentajeAvance: porcentaje
-      };
-
-      this.paletSeleccionado.set(paletActualizado);
-      this.palets.update(palets =>
-        palets.map(item => {
-          const pk = String(item?.idPalet ?? '').trim();
-          const uk = String(paletActualizado?.idPalet ?? '').trim();
-          return pk && uk && pk === uk ? paletActualizado : item;
-        })
-      );
-      this.alertService.cerrarModalCarga();
-      if(errorEndpoint){
-        this.alertService.showAlert('Error', errorMesanje, 'error');
-      }
+      this.reemplazarPalet({ ...p, cantidadCajas: totalCajas, pesoTotal: totalPeso, porcentajeAvance: porcentaje });
     } catch (err) {
       console.error('Error cargando detalle del palet:', err);
       this.composiciones.set([]);
+      this.alertService.showAlert('Error', 'Error al obtener el detalle del palet', 'error');
+    } finally {
+      await this.loading.hideAfterMinimum();
     }
   }
 
@@ -744,8 +515,9 @@ export class PaletsComponent implements OnInit, OnDestroy {
       this.alertService.showAlert('Validación', 'Debe seleccionar un proceso primero', 'warning');
       return;
     }
+    if (!this.exigirInternet()) return;
     try {
-      this.alertService.mostrarModalCarga();
+      this.loading.show('Creando palet...');
       let fecha = new Date();
       let fechaApertura = formatDateTime(fecha);
       let newPalets: Palet = {
@@ -764,27 +536,22 @@ export class PaletsComponent implements OnInit, OnDestroy {
         medidaCorrectiva: '',
         modo: 'nuevo'
       }
-      if (this.online) {
-        let resp = await firstValueFrom(this.paletService.sincronizar(newPalets))
-        if (resp.length > 0) {
-          if (resp[0].error) {
-            this.alertService.showAlertAcept('Error', resp[0].mensaje, 'error');
-          } else {
-            await this.listarPaletsForProceso(proceso.idProceso, { showLoading: false })
-            this.alertService.showAlertAcept('Éxito', 'Palet creado exitosamente.', 'success');
-          }
+      let resp = await firstValueFrom(this.paletService.sincronizar(newPalets));
+      if (resp.length > 0) {
+        if (resp[0].error) {
+          await this.loading.hideAfterMinimum();
+          this.alertService.showAlertAcept('Error', resp[0].mensaje ?? 'Error al crear el palet', 'error');
         } else {
-          this.alertService.showAlertAcept('Error', 'Error al crear el Palet, por favor vuelva a Iniciar Sesión.', 'error');
+          await this.listarPaletsForProceso(proceso.idProceso, { showLoading: false });
+          this.alertService.showAlertAcept('Éxito', 'Palet creado exitosamente.', 'success');
         }
       } else {
-        newPalets.bd = 0
-        await this.procesoRepo.paletsRepo.saveByIdPalet(newPalets);
-        await this.listarPaletsForProceso(proceso.idProceso, { showLoading: false })
-        this.alertService.showAlertAcept('Éxito', 'Palet creado exitosamente. - No Sincronizado', 'success');
+        await this.loading.hideAfterMinimum();
+        this.alertService.showAlertAcept('Error', 'Error al crear el Palet, por favor vuelva a Iniciar Sesión.', 'error');
       }
     } catch (error) {
       console.error('Error creando palet:', error);
-      this.alertService.cerrarModalCarga();
+      await this.loading.hideAfterMinimum();
     }
   }
 
@@ -802,11 +569,12 @@ export class PaletsComponent implements OnInit, OnDestroy {
     }
 
     this.paletSeleccionado.set(palet);
-    this.alertService.mostrarModalCarga();
+    this.loading.show('Preparando el formulario...');
 
     let tipos: TipoProcesoEmpacado[] = [];
 
     try {
+      console.log(this.online)
       if (this.online) {
         const idproyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
         const resp: any = await firstValueFrom(this.paletService.getTipoProcesoEmpacadoPorAcopio(idproyecto));
@@ -839,11 +607,11 @@ export class PaletsComponent implements OnInit, OnDestroy {
     } catch (err) {
       console.error('Error cargando tipos proceso empacado:', err);
     } finally {
-      this.alertService.cerrarModalCarga();
+      await this.loading.hideAfterMinimum();
     }
 
     if (tipos.length === 0) {
-      this.alertService.showAlert('Información', 'El acopio no tiene configurado ese tipo proceso empacado.', 'warning');
+      this.alertService.showAlert('Información', 'El acopio no tiene configurado el Tipo de Proceso Empacado.', 'warning');
       return;
     }
     this.tiposProcesoEmpacadoModal.set(tipos);
@@ -863,10 +631,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
       const consignatario = this.consignatarios().find(c => c.documento === comp.documentoConsignatario);
       if (consignatario) {
         this._cargandoCascada = true;
-        const origMostrar = this.alertService.mostrarModalCarga.bind(this.alertService);
-        const origCerrar = this.alertService.cerrarModalCarga.bind(this.alertService);
-        (this.alertService as any).mostrarModalCarga = () => { };
-        (this.alertService as any).cerrarModalCarga = () => { };
+        this.alertService.silenciar();
         try {
           await this.onConsignatarioChange(String(consignatario.documento));
           if (comp.destinoId) {
@@ -878,8 +643,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
         } catch (err) {
           console.error('Error precargando cascada del palet:', err);
         } finally {
-          (this.alertService as any).mostrarModalCarga = origMostrar;
-          (this.alertService as any).cerrarModalCarga = origCerrar;
+          this.alertService.reanudar();
           this._cargandoCascada = false;
         }
       }
@@ -918,7 +682,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
       esEnsayo: dpalet.esEnsayo ?? false,
     });
     const codigoAcopio = String(palet?.codigoAcopio ?? this.procesoSeleccionado()?.codigoAcopio ?? '').trim();
-    this.alertService.mostrarModalCarga();
+    this.loading.show('Cargando datos de la línea...');
     let tipos: TipoProcesoEmpacado[] = [];
     try {
       if (this.online) {
@@ -949,7 +713,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     } catch (err) { 
       console.error('Error cargando tipos proceso empacado:', err); 
     }finally { 
-      this.alertService.cerrarModalCarga(); 
+      await this.loading.hideAfterMinimum(); 
     }
 
     this.tiposProcesoEmpacadoModal.set(tipos);
@@ -966,10 +730,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
     const valoresPrevios = { ...this.formCajas() };
     
     this._cargandoCascada = true;
-    const origMostrar = this.alertService.mostrarModalCarga.bind(this.alertService);
-    const origCerrar = this.alertService.cerrarModalCarga.bind(this.alertService);
-    (this.alertService as any).mostrarModalCarga = () => { };
-    (this.alertService as any).cerrarModalCarga = () => { };
+    this.alertService.silenciar();
     try {
       if (consignatarioIdReal) {
         await this.onConsignatarioChange(String(consignatarioIdReal));
@@ -992,8 +753,7 @@ export class PaletsComponent implements OnInit, OnDestroy {
       this._filtrarVariedadesPorEnsayo();
     } catch (err) { console.error('Error precargando cascada edicion:', err); }
     finally {
-      (this.alertService as any).mostrarModalCarga = origMostrar;
-      (this.alertService as any).cerrarModalCarga = origCerrar;
+      this.alertService.reanudar();
       this._cargandoCascada = false;
     }
 
@@ -1096,94 +856,48 @@ export class PaletsComponent implements OnInit, OnDestroy {
       tipoProcesoEmpacadoId: f.tipoProcesoEmpacadoId ?? null,
       tipoProcesoEmpacadoNombre: tipoProcesoEmpacado?.nombre ?? undefined,
       esReposicion: f.esReposicion ?? false,
-      variedadGuiaId: f.esEnsayo ? (f.variedadGuiaId || null) : null,
+      variedadGuiaId: f.esEnsayo && f.variedadGuiaId ? String(f.variedadGuiaId) : null,
       esEnsayo: f.esEnsayo ?? false,
       eliminado: false,
       fechaCreacion: dpaletOriginal.fechaCreacion ?? new Date().toISOString(),
       bd:0
     };
 
-    if (this.online) {
-      try {
-        this.alertService.mostrarModalCarga();
-        await firstValueFrom(this.paletService.sincronizarDPalets([dpaletEditado]));
-        await this.procesoRepo.dPaletsRepo.saveByIdDPalet(dpaletEditado);
+    if (!this.exigirInternet()) return;
+    try {
+      this.loading.show('Guardando cambios...');
+      await firstValueFrom(this.paletService.sincronizarDPalets([dpaletEditado]));
 
-        // Recalcular totales del palet
-        const dpalets = await this.procesoRepo.dPaletsRepo.getByIdPalet(palet.idPalet ?? '');
-        const activos = (dpalets ?? []).filter((d: any) => !(d as any)?.eliminado);
-        const nuevaCantidad = activos.reduce((sum: number, d: any) => sum + (d.cantidadCajas || 0), 0);
-        const nuevoPeso = activos.reduce((sum: number, d: any) => sum + (d.pesoTotal || 0), 0);
-        const nuevoPorcentaje = limiteCajasPorPalet > 0 ? Math.round((nuevaCantidad / limiteCajasPorPalet) * 100) : 0;
-        const paletActualizado: Palet = {
-          ...palet,
-          cantidadCajas: nuevaCantidad,
-          pesoTotal: nuevoPeso,
-          limiteCajasPorPalet: limiteCajasPorPalet > 0 ? limiteCajasPorPalet : (palet.limiteCajasPorPalet ?? 0),
-          porcentajeAvance: nuevoPorcentaje,
-          formatoId: dpaletEditado.formatoId ?? 0,
-          bd: palet.bd ?? 0,
-          modo: 'editado'
-        };
-        await firstValueFrom(this.paletService.sincronizar(paletActualizado));
-        this.paletSeleccionado.set(paletActualizado);
-        this.palets.update(palets => palets.map(p => {
-          const pk = String(p?.idPalet ?? '').trim();
-          const uk = String(paletActualizado?.idPalet ?? '').trim();
-          return pk && uk && pk === uk ? paletActualizado : p;
-        }));
-        await this.sincronizarDPaletsPorAcopio();
-        await this.verDetalle(paletActualizado);
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Exito', 'Cajas actualizadas correctamente', 'success');
-        this.cerrarModalAgregarCajas();
-        if (limiteCajasPorPalet > 0 && nuevaCantidad >= limiteCajasPorPalet) {
-          this.abrirModalCerrarPalet(paletActualizado);
-        }
-      } catch (err) {
-        console.error('Error editando online:', err);
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlertAcept('Error', 'Error al actualizar cajas en modo online', 'error');
+      // Totales del palet: las composiciones abiertas con la editada reemplazada
+      const clave = (d: any) => String(d?.idDPalet ?? d?.id ?? '');
+      const activos = this.composiciones()
+        .map((d) => (clave(d) === clave(dpaletEditado) ? dpaletEditado : d))
+        .filter((d: any) => !d?.eliminado);
+      const nuevaCantidad = activos.reduce((sum: number, d: any) => sum + (d.cantidadCajas || 0), 0);
+      const nuevoPeso = activos.reduce((sum: number, d: any) => sum + (d.pesoTotal || 0), 0);
+      const nuevoPorcentaje = limiteCajasPorPalet > 0 ? Math.round((nuevaCantidad / limiteCajasPorPalet) * 100) : 0;
+      const paletActualizado: Palet = {
+        ...palet,
+        cantidadCajas: nuevaCantidad,
+        pesoTotal: nuevoPeso,
+        limiteCajasPorPalet: limiteCajasPorPalet > 0 ? limiteCajasPorPalet : (palet.limiteCajasPorPalet ?? 0),
+        porcentajeAvance: nuevoPorcentaje,
+        formatoId: dpaletEditado.formatoId ?? 0,
+        modo: 'editado',
+      };
+      await firstValueFrom(this.paletService.sincronizar(paletActualizado));
+      this.reemplazarPalet(paletActualizado);
+      await this.verDetalle(paletActualizado);
+      await this.loading.hideAfterMinimum();
+      this.alertService.showAlert('Exito', 'Cajas actualizadas correctamente', 'success');
+      this.cerrarModalAgregarCajas();
+      if (limiteCajasPorPalet > 0 && nuevaCantidad >= limiteCajasPorPalet) {
+        this.abrirModalCerrarPalet(paletActualizado);
       }
-      return;
-    } else {
-      try {
-        this.alertService.mostrarModalCarga();
-        await this.procesoRepo.dPaletsRepo.saveByIdDPalet(dpaletEditado);
-        const dpalets = await this.procesoRepo.dPaletsRepo.getByIdPalet(palet.idPalet ?? '');
-        const activos = (dpalets ?? []).filter((d: any) => !(d as any)?.eliminado);
-        const nuevaCantidad = activos.reduce((sum: number, d: any) => sum + (d.cantidadCajas || 0), 0);
-        const nuevoPeso = activos.reduce((sum: number, d: any) => sum + (d.pesoTotal || 0), 0);
-        const nuevoPorcentaje = limiteCajasPorPalet > 0 ? Math.round((nuevaCantidad / limiteCajasPorPalet) * 100) : 0;
-        const paletActualizado: Palet = {
-          ...palet,
-          cantidadCajas: nuevaCantidad,
-          pesoTotal: nuevoPeso,
-          limiteCajasPorPalet: limiteCajasPorPalet > 0 ? limiteCajasPorPalet : (palet.limiteCajasPorPalet ?? 0),
-          porcentajeAvance: nuevoPorcentaje,
-          formatoId: dpaletEditado.formatoId ?? 0,
-          bd: 0
-        };
-        await this.procesoRepo.paletsRepo.saveByIdPalet(paletActualizado);
-        this.paletSeleccionado.set(paletActualizado);
-        this.palets.update(palets => palets.map(p => {
-          const pk = String(p?.idPalet ?? '').trim();
-          const uk = String(paletActualizado?.idPalet ?? '').trim();
-          return pk && uk && pk === uk ? paletActualizado : p;
-        }));
-        this.composiciones.set(activos);
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Exito', 'Cajas actualizadas correctamente (offline)', 'success');
-        this.cerrarModalAgregarCajas();
-        if (limiteCajasPorPalet > 0 && nuevaCantidad >= limiteCajasPorPalet) {
-          this.abrirModalCerrarPalet(paletActualizado);
-        }
-      } catch (err) {
-        console.error('Error editando offline:', err);
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlertAcept('Error', 'Error al actualizar cajas en modo offline', 'error');
-      }
-      return;
+    } catch (err) {
+      console.error('Error editando cajas:', err);
+      await this.loading.hideAfterMinimum();
+      this.alertService.showAlertAcept('Error', 'Error al actualizar las cajas', 'error');
     }
   }
 
@@ -1446,113 +1160,46 @@ export class PaletsComponent implements OnInit, OnDestroy {
       tipoProcesoEmpacadoId: f.tipoProcesoEmpacadoId ?? null,
       tipoProcesoEmpacadoNombre: tipoProcesoEmpacado?.nombre ?? undefined,
       esReposicion: f.esReposicion ?? false,
-      variedadGuiaId: f.esEnsayo ? (f.variedadGuiaId || null) : null,
+      variedadGuiaId: f.esEnsayo && f.variedadGuiaId ? String(f.variedadGuiaId) : null,
       esEnsayo: f.esEnsayo ?? false,
       eliminado: false,
       bd:0,
       fechaCreacion: new Date().toISOString()
     };
 
-    if (this.online) {
-      try {
-        this.alertService.mostrarModalCarga();
-        await firstValueFrom(this.paletService.sincronizarDPalets([nuevoDPalet]));
+    if (!this.exigirInternet()) return;
+    try {
+      this.loading.show('Guardando cajas...');
+      await firstValueFrom(this.paletService.sincronizarDPalets([nuevoDPalet]));
 
-        await this.procesoRepo.dPaletsRepo.saveByIdDPalet(nuevoDPalet);
+      const nuevaCantidad = (palet.cantidadCajas || 0) + f.cantidadCajas;
+      const nuevoPeso = (palet.pesoTotal || 0) + (f.cantidadCajas * pesoPorCaja);
+      const nuevoPorcentaje = limiteCajasPorPalet > 0 ? Math.round((nuevaCantidad / limiteCajasPorPalet) * 100) : 0;
+      const paletActualizado: Palet = {
+        ...palet,
+        cantidadCajas: nuevaCantidad,
+        pesoTotal: nuevoPeso,
+        limiteCajasPorPalet: limiteCajasPorPalet > 0 ? limiteCajasPorPalet : (palet.limiteCajasPorPalet ?? 0),
+        porcentajeAvance: nuevoPorcentaje,
+        formatoId: nuevoDPalet.formatoId ?? 0,
+        modo: 'editado',
+      };
 
-        const nuevaCantidad = (palet.cantidadCajas || 0) + f.cantidadCajas;
-        const nuevoPeso = (palet.pesoTotal || 0) + (f.cantidadCajas * pesoPorCaja);
-        const nuevoPorcentaje = limiteCajasPorPalet > 0
-          ? Math.round((nuevaCantidad / limiteCajasPorPalet) * 100)
-          : 0;
-        const paletActualizado: Palet = {
-          ...palet,
-          cantidadCajas: nuevaCantidad,
-          pesoTotal: nuevoPeso,
-          limiteCajasPorPalet: limiteCajasPorPalet > 0 ? limiteCajasPorPalet : (palet.limiteCajasPorPalet ?? 0),
-          porcentajeAvance: nuevoPorcentaje,
-          formatoId: nuevoDPalet.formatoId ?? 0,
-          bd: palet.bd ?? 0,
-          modo: 'editado'
-        };
+      await firstValueFrom(this.paletService.sincronizar(paletActualizado));
+      this.reemplazarPalet(paletActualizado);
+      await this.verDetalle(paletActualizado);
 
-        let respPalet = await firstValueFrom(this.paletService.sincronizar(paletActualizado));
-        this.paletSeleccionado.set(paletActualizado);
-        this.palets.update(palets =>
-          palets.map(p => {
-            const pk = String(p?.idPalet ?? '').trim();
-            const uk = String(paletActualizado?.idPalet ?? '').trim();
-            return pk && uk && pk === uk ? paletActualizado : p;
-          })
-        );
-
-        await this.sincronizarDPaletsPorAcopio();
-        await this.verDetalle(paletActualizado);
-
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Éxito', 'Cajas agregadas correctamente', 'success');
-        this.cerrarModalAgregarCajas();
-        if (limiteCajasPorPalet > 0 && nuevaCantidad >= limiteCajasPorPalet) {
-          this.abrirModalCerrarPalet(paletActualizado);
-        }
-      } catch (err) {
-        console.error('Error guardando online:', err);
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlertAcept('Error', 'Error al guardar cajas en modo online', 'error');
+      await this.loading.hideAfterMinimum();
+      this.alertService.showAlert('Éxito', 'Cajas agregadas correctamente', 'success');
+      this.cerrarModalAgregarCajas();
+      if (limiteCajasPorPalet > 0 && nuevaCantidad >= limiteCajasPorPalet) {
+        this.abrirModalCerrarPalet(paletActualizado);
       }
-      return;
-    } else {
-      try {
-        this.alertService.mostrarModalCarga();
-
-        await this.procesoRepo.dPaletsRepo.saveByIdDPalet(nuevoDPalet);
-
-        const nuevaCantidad = (palet.cantidadCajas || 0) + f.cantidadCajas;
-        const nuevoPeso = (palet.pesoTotal || 0) + (f.cantidadCajas * pesoPorCaja);
-        const nuevoPorcentaje = limiteCajasPorPalet > 0
-          ? Math.round((nuevaCantidad / limiteCajasPorPalet) * 100)
-          : 0;
-
-        const paletActualizado: Palet = {
-          ...palet,
-          cantidadCajas: nuevaCantidad,
-          pesoTotal: nuevoPeso,
-          limiteCajasPorPalet: limiteCajasPorPalet > 0 ? limiteCajasPorPalet : (palet.limiteCajasPorPalet ?? 0),
-          porcentajeAvance: nuevoPorcentaje,
-          formatoId: nuevoDPalet.formatoId ?? 0,
-          bd: 0
-        };
-
-        await this.procesoRepo.paletsRepo.saveByIdPalet(paletActualizado);
-
-        this.paletSeleccionado.set(paletActualizado);
-        this.palets.update(palets =>
-          palets.map(p => {
-            const pk = String(p?.idPalet ?? '').trim();
-            const uk = String(paletActualizado?.idPalet ?? '').trim();
-            return pk && uk && pk === uk ? paletActualizado : p;
-          })
-        );
-
-        const dpalets = await this.procesoRepo.dPaletsRepo.getByIdPalet(palet.idPalet ?? '');
-        const activos = (dpalets ?? []).filter((d: any) => !(d as any)?.eliminado);
-        this.composiciones.set(activos);
-
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Éxito', 'Cajas agregadas correctamente (offline)', 'success');
-        this.cerrarModalAgregarCajas();
-        if (limiteCajasPorPalet > 0 && nuevaCantidad >= limiteCajasPorPalet) {
-          this.abrirModalCerrarPalet(paletActualizado);
-        }
-      } catch (err) {
-        console.error('Error guardando offline:', err);
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlertAcept('Error', 'Error al guardar cajas en modo offline', 'error');
-      }
-      return;
-
+    } catch (err) {
+      console.error('Error guardando cajas:', err);
+      await this.loading.hideAfterMinimum();
+      this.alertService.showAlertAcept('Error', 'Error al guardar las cajas', 'error');
     }
-
   }
 
   abrirModalCerrarPalet(palet: Palet): void {
@@ -1571,10 +1218,11 @@ export class PaletsComponent implements OnInit, OnDestroy {
     const palet = this.paletSeleccionado();
     if (!palet) return;
 
+    if (!this.exigirInternet()) return;
     const tieneObs = this.cerrarPaletTieneObs();
     const obs = this.cerrarPaletObservaciones();
     const medida = this.cerrarPaletMedida();
-    this.alertService.mostrarModalCarga();
+    this.loading.show('Cerrando palet...');
 
     const estadoCerrado = (palet.cantidadCajas || 0) >= (palet.limiteCajasPorPalet || 0) ? 'CERRADO_COMPLETO' : 'CERRADO_SALDO';
 
@@ -1583,91 +1231,69 @@ export class PaletsComponent implements OnInit, OnDestroy {
       estado: estadoCerrado,
       observaciones: tieneObs ? obs : palet.observaciones,
       medidaCorrectiva: medida || palet.medidaCorrectiva,
-      bd: this.online ? 1 : 0,
-      modo: 'editado'
+      modo: 'editado',
     };
 
-    if (this.online) {
-      try {
-        await firstValueFrom(this.paletService.sincronizar(paletCerrado));
-        await this.procesoRepo.paletsRepo.saveByIdPalet(paletCerrado);
-
-        this.paletSeleccionado.set(paletCerrado);
-        this.palets.update(palets =>
-          palets.map(p => {
-            const pk = String(p?.idPalet ?? '').trim();
-            const uk = String(paletCerrado?.idPalet ?? '').trim();
-            return pk && uk && pk === uk ? paletCerrado : p;
-          })
-        );
-
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Éxito', 'Palet cerrado correctamente', 'success');
-        this.cerrarModalCerrarPalet();
-      } catch (err) {
-        console.error('Error cerrando palet online:', err);
-        this.alertService.cerrarModalCarga();
-        const msg = (err as any)?.error?.message ?? 'Error al cerrar el palet';
-        this.alertService.showAlertAcept('Error', String(msg), 'error');
-      }
-    } else {
-      try {
-        await this.procesoRepo.paletsRepo.saveByIdPalet(paletCerrado);
-
-        this.paletSeleccionado.set(paletCerrado);
-        this.palets.update(palets =>
-          palets.map(p => {
-            const pk = String(p?.idPalet ?? '').trim();
-            const uk = String(paletCerrado?.idPalet ?? '').trim();
-            return pk && uk && pk === uk ? paletCerrado : p;
-          })
-        );
-
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Éxito', 'Palet cerrado correctamente (offline)', 'success');
-        this.cerrarModalCerrarPalet();
-      } catch (err) {
-        console.error('Error cerrando palet offline:', err);
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlertAcept('Error', 'Error al cerrar el palet en modo offline', 'error');
-      }
+    try {
+      await firstValueFrom(this.paletService.sincronizar(paletCerrado));
+      this.reemplazarPalet(paletCerrado);
+      await this.loading.hideAfterMinimum();
+      this.alertService.showAlert('Éxito', 'Palet cerrado correctamente', 'success');
+      this.cerrarModalCerrarPalet();
+    } catch (err) {
+      console.error('Error cerrando palet:', err);
+      await this.loading.hideAfterMinimum();
+      const msg = (err as any)?.error?.message ?? 'Error al cerrar el palet';
+      this.alertService.showAlertAcept('Error', String(msg), 'error');
     }
   }
 
+  /** Detalle de lo que se va a eliminar (modal propio). Se resuelve con lo que elija la persona. */
+  readonly eliminarInfo = signal<InfoEliminar | null>(null);
+  private resolverEliminar?: (ok: boolean) => void;
+
+  private pedirEliminar(info: InfoEliminar): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      this.resolverEliminar = resolve;
+      this.eliminarInfo.set(info);
+    });
+  }
+
+  responderEliminar(ok: boolean): void {
+    this.eliminarInfo.set(null);
+    this.resolverEliminar?.(ok);
+    this.resolverEliminar = undefined;
+  }
+
   async abrirModalEliminarPalet(palet: Palet): Promise<void> {
-    const dpalets = await this.procesoRepo.dPaletsRepo.getByIdPalet(palet.idPalet ?? '');
-    const activos = (dpalets ?? []).filter((d: any) => !(d as any)?.eliminado);
+    if (!this.exigirInternet()) return;
+    this.loading.show('Cargando detalle del palet...');
+    let activos: DPalet[] | null = null;
+    try {
+      activos = await this.pedirDetallePalet(palet.idPalet ?? '');
+    } catch (err) {
+      console.error('Error obteniendo el detalle del palet', err);
+      this.alertService.showAlert('Error', 'Error al obtener el detalle del palet', 'error');
+    } finally {
+      await this.loading.hideAfterMinimum();
+    }
+    if (!activos) return;
 
-    const cajasHtml = activos.length
-      ? activos.map((d: any) => `
-        <div style="border-bottom:1px solid #eee;padding:4px 0;font-size:13px;">
-          <strong>${d.consignatarioNombre || '-'}</strong> — ${d.destinoNombre || '-'}<br>
-          <span style="color:#666">Cajas: ${d.cantidadCajas || 0} | Peso: ${this.formatPeso(d.pesoTotal || 0)} kg | Variedad: ${d.variedadNombre || '-'}</span>
-        </div>
-      `).join('')
-      : '<div style="color:#999;font-size:13px;padding:4px 0;">Sin composiciones</div>';
-
-    const detalleHtml = `
-      <div style="text-align:left;font-size:14px;line-height:1.6">
-        <strong>Palet #${palet.numeroPalet}</strong><br>
-        <strong>Estado:</strong> ${palet.estado || '-'}<br>
-        <strong>Cajas:</strong> ${palet.cantidadCajas || 0}<br>
-        <strong>Peso total:</strong> ${this.formatPeso(palet.pesoTotal || 0)} kg<br>
-        <hr style="margin:8px 0;border:none;border-top:1px solid #ddd;">
-        <strong>Composiciones:</strong>
-        <div style="max-height:120px;overflow-y:auto;margin-top:4px;">
-          ${cajasHtml}
-        </div>
-      </div>
-    `;
-
-    const ok1 = await this.alertService.showOptions(
-      `¿Desea eliminar el palet #${palet.numeroPalet}?`,
-      detalleHtml,
-      'warning',
-      'Eliminar',
-      'Cancelar'
-    );
+    const ok1 = await this.pedirEliminar({
+      titulo: `¿Desea eliminar el palet #${palet.numeroPalet == 0 ? palet.id : palet.numeroPalet}?`,
+      resumen: [
+        { etiqueta: 'Palet', valor: `#${palet.numeroPalet == 0 ? palet.id : palet.numeroPalet}` },
+        { etiqueta: 'Estado', valor: this.getEstadoLabel(palet.estado) },
+        { etiqueta: 'Cajas', valor: String(palet.cantidadCajas || 0) },
+        { etiqueta: 'Peso total', valor: `${this.formatPeso(palet.pesoTotal || 0)} kg` },
+      ],
+      listaTitulo: 'Composiciones',
+      lista: activos.map((d: any) => ({
+        titulo: `${d.consignatarioNombre || '-'} — ${d.destinoNombre || '-'}`,
+        detalle: `Cajas: ${d.cantidadCajas || 0} · Peso: ${this.formatPeso(d.pesoTotal || 0)} kg · Variedad: ${d.variedadNombre || '-'}`,
+      })),
+      listaVacia: 'Sin composiciones',
+    });
     if (!ok1) return;
 
     const ok2 = await this.alertService.showConfirm(
@@ -1681,125 +1307,68 @@ export class PaletsComponent implements OnInit, OnDestroy {
   }
 
   async eliminarPalet(palet: Palet): Promise<void> {
-    this.alertService.mostrarModalCarga();
+    if (!this.exigirInternet()) return;
+    this.loading.show('Eliminando palet...');
 
     const paletEliminado: Palet = {
       ...palet,
       eliminado: true,
       estado: 'ELIMINADO',
-      bd: this.online ? 1 : 0,
-      modo: 'editado'
+      modo: 'editado',
     };
 
-    if (this.online) {
-      try {
-        await firstValueFrom(this.paletService.sincronizar(paletEliminado));
-        await this.procesoRepo.paletsRepo.saveByIdPalet(paletEliminado);
-
-        this.paletSeleccionado.set(null);
-        this.palets.update(palets =>
-          palets.filter(p => String(p?.idPalet ?? '').trim() !== String(paletEliminado?.idPalet ?? '').trim())
-        );
-
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Éxito', 'Palet eliminado correctamente', 'success');
-        const proceso = this.procesoSeleccionado();
-        if (proceso) await this.listarPaletsForProceso(proceso.idProceso, { showLoading: false });
-      } catch (err) {
-        console.error('Error eliminando palet online:', err);
-        this.alertService.cerrarModalCarga();
-        const msg = (err as any)?.error?.message ?? 'Error al eliminar el palet';
-        this.alertService.showAlertAcept('Error', String(msg), 'error');
-      }
-    } else {
-      try {
-        await this.procesoRepo.paletsRepo.saveByIdPalet(paletEliminado);
-
-        this.paletSeleccionado.set(null);
-        this.palets.update(palets =>
-          palets.filter(p => String(p?.idPalet ?? '').trim() !== String(paletEliminado?.idPalet ?? '').trim())
-        );
-
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Éxito', 'Palet eliminado correctamente (offline)', 'success');
-        const proceso = this.procesoSeleccionado();
-        if (proceso) await this.listarPaletsForProceso(proceso.idProceso, { showLoading: false });
-      } catch (err) {
-        console.error('Error eliminando palet offline:', err);
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlertAcept('Error', 'Error al eliminar el palet en modo offline', 'error');
-      }
+    try {
+      await firstValueFrom(this.paletService.sincronizar(paletEliminado));
+      this.paletSeleccionado.set(null);
+      this.composiciones.set([]);
+      this.alertService.showAlert('Éxito', 'Palet eliminado correctamente', 'success');
+      const proceso = this.procesoSeleccionado();
+      if (proceso) await this.listarPaletsForProceso(proceso.idProceso, { showLoading: false });
+      else await this.loading.hideAfterMinimum();
+    } catch (err) {
+      console.error('Error eliminando palet:', err);
+      await this.loading.hideAfterMinimum();
+      const msg = (err as any)?.error?.message ?? 'Error al eliminar el palet';
+      this.alertService.showAlertAcept('Error', String(msg), 'error');
     }
   }
 
   async reabrirPalet(palet: Palet): Promise<void> {
     const ok = await this.alertService.showConfirm('Confirmación', `¿Está seguro que desea reabrir el palet #${palet.numeroPalet}?`, 'warning');
     if (!ok) return;
+    if (!this.exigirInternet()) return;
 
-    this.alertService.mostrarModalCarga();
+    this.loading.show('Reabriendo palet...');
 
     const paletReabierto: Palet = {
       ...palet,
       estado: 'ABIERTO',
       fechaCierre: '',
-      bd: this.online ? 1 : 0,
-      modo: 'editado'
+      modo: 'editado',
     };
 
-    if (this.online) {
-      try {
-        const resp = await firstValueFrom(this.paletService.sincronizar(paletReabierto));
-        const first = resp?.[0] as any;
-        const resultData = first?.data?.[0];
+    try {
+      const resp = await firstValueFrom(this.paletService.sincronizar(paletReabierto));
+      const first = resp?.[0] as any;
+      const resultData = first?.data?.[0];
 
-        if (resultData && !resultData.success) {
-          this.alertService.cerrarModalCarga();
-          await this.listarPaletsForProceso(palet.idProceso);
-          this.alertService.showAlertAcept('Error', resultData.mensaje || 'No se pudo reabrir el palet', 'error');
-          // Forzamos recarga desde API para asegurar que la UI refleje el estado real del servidor
-          return;
-        }
-
-        await this.procesoRepo.paletsRepo.saveByIdPalet(paletReabierto);
-        
-        // Forzamos recarga desde API para obtener el estado oficial
+      if (resultData && !resultData.success) {
+        // Se vuelve a pedir la lista para que la pantalla refleje el estado real del servidor
         await this.listarPaletsForProceso(palet.idProceso);
-
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Éxito', 'Palet reabierto correctamente', 'success');
-
-        // Buscar el palet actualizado en la lista para ver su detalle
-        const actualizado = this.palets().find(p => String(p.idPalet).trim() === String(palet.idPalet).trim());
-        if (actualizado) {
-          await this.verDetalle(actualizado);
-        }
-      } catch (err) {
-        console.error('Error reabriendo palet online:', err);
-        this.alertService.cerrarModalCarga();
-        const msg = (err as any)?.error?.message ?? 'Error al reabrir el palet';
-        this.alertService.showAlertAcept('Error', String(msg), 'error');
+        this.alertService.showAlertAcept('Error', resultData.mensaje || 'No se pudo reabrir el palet', 'error');
+        return;
       }
-    } else {
-      try {
-        await this.procesoRepo.paletsRepo.saveByIdPalet(paletReabierto);
 
-        this.paletSeleccionado.set(paletReabierto);
-        this.palets.update(palets =>
-          palets.map(p => {
-            const pk = String(p?.idPalet ?? '').trim();
-            const uk = String(paletReabierto?.idPalet ?? '').trim();
-            return pk && uk && pk === uk ? paletReabierto : p;
-          })
-        );
+      await this.listarPaletsForProceso(palet.idProceso);
+      this.alertService.showAlert('Éxito', 'Palet reabierto correctamente', 'success');
 
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Éxito', 'Palet reabierto correctamente (offline)', 'success');
-        await this.verDetalle(paletReabierto);
-      } catch (err) {
-        console.error('Error reabriendo palet offline:', err);
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlertAcept('Error', 'Error al reabrir el palet en modo offline', 'error');
-      }
+      const actualizado = this.palets().find(p => String(p.idPalet).trim() === String(palet.idPalet).trim());
+      if (actualizado) await this.verDetalle(actualizado);
+    } catch (err) {
+      console.error('Error reabriendo palet:', err);
+      await this.loading.hideAfterMinimum();
+      const msg = (err as any)?.error?.message ?? 'Error al reabrir el palet';
+      this.alertService.showAlertAcept('Error', String(msg), 'error');
     }
   }
 
@@ -1807,24 +1376,18 @@ export class PaletsComponent implements OnInit, OnDestroy {
     const palet = this.paletSeleccionado();
     if (!palet) return;
 
-    // Confirmación 1: mostrar detalle de lo que se eliminará
-    const detalleHtml = `
-      <div style="text-align:left;font-size:14px;line-height:1.6">
-        <strong>Consignatario:</strong> ${dpalet.consignatarioNombre || '-'}<br>
-        <strong>Destino:</strong> ${dpalet.destinoNombre || '-'}<br>
-        <strong>Formato:</strong> ${dpalet.formatoNombre || '-'}<br>
-        <strong>Variedad:</strong> ${dpalet.variedadNombre || '-'}<br>
-        <strong>Cajas:</strong> ${dpalet.cantidadCajas}<br>
-        <strong>Peso total:</strong> ${this.formatPeso(dpalet.pesoTotal)} kg
-      </div>
-    `;
-    const ok1 = await this.alertService.showOptions(
-      '¿Desea eliminar esta composición?',
-      detalleHtml,
-      'warning',
-      'Eliminar',
-      'Cancelar'
-    );
+    // Confirmación 1: detalle de lo que se eliminará
+    const ok1 = await this.pedirEliminar({
+      titulo: '¿Desea eliminar esta composición?',
+      resumen: [
+        { etiqueta: 'Consignatario', valor: dpalet.consignatarioNombre || '-' },
+        { etiqueta: 'Destino', valor: dpalet.destinoNombre || '-' },
+        { etiqueta: 'Formato', valor: dpalet.formatoNombre || '-' },
+        { etiqueta: 'Variedad', valor: dpalet.variedadNombre || '-' },
+        { etiqueta: 'Cajas', valor: String(dpalet.cantidadCajas ?? 0) },
+        { etiqueta: 'Peso total', valor: `${this.formatPeso(dpalet.pesoTotal)} kg` },
+      ],
+    });
     if (!ok1) return;
 
     // Confirmación 2: irreversible
@@ -1835,28 +1398,20 @@ export class PaletsComponent implements OnInit, OnDestroy {
     );
     if (!ok2) return;
 
+    if (!this.exigirInternet()) return;
     try {
-      this.alertService.mostrarModalCarga();
+      this.loading.show('Eliminando composición...');
 
-      // Marcar DPalet como eliminado (tanto online como offline)
       const dpaletEliminado: DPalet = {
         ...dpalet,
         eliminado: true,
-        bd: this.online ? 1 : 0,
-        idProceso: palet.idProceso
+        idProceso: palet.idProceso,
       };
+      await firstValueFrom(this.paletService.sincronizarDPalets([dpaletEliminado]));
 
-      if (this.online) {
-        // MODO ONLINE: sincronizar DPalet eliminado al servidor
-        await firstValueFrom(this.paletService.sincronizarDPalets([dpaletEliminado]));
-      }
-
-      // Guardar en Dexie
-      await this.procesoRepo.dPaletsRepo.saveByIdDPalet(dpaletEliminado);
-
-      // Recalcular totales del palet desde DPalets no eliminados
-      const dpalets = await this.procesoRepo.dPaletsRepo.getByIdPalet(palet.idPalet ?? '');
-      const activos = (dpalets ?? []).filter((d: any) => !(d as any)?.eliminado);
+      // Totales del palet con las composiciones que quedan
+      const clave = (d: any) => String(d?.idDPalet ?? d?.id ?? '');
+      const activos = this.composiciones().filter((d: any) => clave(d) !== clave(dpalet) && !d?.eliminado);
       const totalCajas = activos.reduce((sum: number, d: any) => sum + (d?.cantidadCajas || 0), 0);
       const totalPeso = activos.reduce((sum: number, d: any) => sum + (d?.pesoTotal || 0), 0);
       const limite = palet?.limiteCajasPorPalet ?? 0;
@@ -1870,33 +1425,17 @@ export class PaletsComponent implements OnInit, OnDestroy {
         porcentajeAvance: porcentaje,
         formatoId,
         modo: 'editado',
-        bd: this.online ? (palet.bd ?? 0) : 0
       };
+      await firstValueFrom(this.paletService.sincronizar(paletActualizado));
 
-      if (this.online) {
-        // Sincronizar palet actualizado al servidor
-        await firstValueFrom(this.paletService.sincronizar(paletActualizado));
-        // Refrescar DPalets desde el servidor
-        await this.sincronizarDPaletsPorAcopio();
-      }
-
-      // Guardar palet actualizado en Dexie y actualizar UI
-      await this.procesoRepo.paletsRepo.saveByIdPalet(paletActualizado);
-      this.paletSeleccionado.set(paletActualizado);
-      this.palets.update(palets =>
-        palets.map(item => {
-          const pk = String(item?.idPalet ?? '').trim();
-          const uk = String(paletActualizado?.idPalet ?? '').trim();
-          return pk && uk && pk === uk ? paletActualizado : item;
-        })
-      );
+      this.reemplazarPalet(paletActualizado);
       this.composiciones.set(activos);
 
-      this.alertService.cerrarModalCarga();
+      await this.loading.hideAfterMinimum();
       this.alertService.showAlert('Éxito', 'Composición eliminada correctamente', 'success');
     } catch (err) {
       console.error('Error eliminando composición:', err);
-      this.alertService.cerrarModalCarga();
+      await this.loading.hideAfterMinimum();
       this.alertService.showAlertAcept('Error', 'Error al eliminar la composición', 'error');
     }
   }
@@ -2589,18 +2128,38 @@ export class PaletsComponent implements OnInit, OnDestroy {
     }
   }
 
+  esSeleccionado(p: Palet): boolean {
+    const sel = this.paletSeleccionado();
+    return !!sel && this.paletKey(sel) === this.paletKey(p);
+  }
+
+  /** Color de la tarjeta del palet segun su estado; el palet abierto en el detalle resalta con anillo y fondo verde. */
+  paletEstilo(estado: string, seleccionado: boolean): string {
+    if (seleccionado) return 'border-emerald-300 border-l-emerald-500 from-emerald-50 to-white ring-1 ring-emerald-300 shadow-md dark:border-emerald-500/50 dark:from-emerald-500/20 dark:to-transparent dark:ring-emerald-500/40';
+    switch (estado) {
+      case 'ABIERTO':
+        return 'border-l-sky-500 from-sky-50 to-white dark:from-sky-500/15 dark:to-transparent';
+      case 'CERRADO_COMPLETO':
+        return 'border-l-emerald-500 from-emerald-50 to-white dark:from-emerald-500/15 dark:to-transparent';
+      case 'CERRADO_SALDO':
+        return 'border-l-amber-500 from-amber-50 to-white dark:from-amber-500/15 dark:to-transparent';
+      default:
+        return 'border-l-slate-500 from-slate-200/70 to-white dark:from-slate-500/20 dark:to-transparent';
+    }
+  }
+
   getEstadoBadgeClass(estado: string): string {
     switch (estado) {
       case 'ABIERTO':
-        return 'badge-abierto';
+        return 'badge-info';
       case 'CERRADO_COMPLETO':
-        return 'badge-cerrado-completo';
+        return 'badge-success';
       case 'CERRADO_SALDO':
-        return 'badge-cerrado-saldo';
+        return 'badge-warning';
       case 'DESPACHADO':
-        return 'badge-despachado';
+        return 'badge-neutral';
       default:
-        return 'bg-secondary';
+        return 'badge-ghost';
     }
   }
 

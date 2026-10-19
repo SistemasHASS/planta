@@ -1,77 +1,58 @@
-# PaletsFront
+# Sistema de Empaque Planta - Frontend (nuevo)
 
-Este proyecto usa [Angular CLI](https://github.com/angular/angular-cli) versión 21.2.9.
+Version nueva del frontend de Planta, armada sobre la **Plantilla Base** (Tailwind + daisyUI + Lucide) con las mejoras de movil de **Aseguramiento de Calidad**. El frontend anterior (Bootstrap) sigue en `Temporal/planta` y no se toca.
 
-## Requisitos
+**Stack:** Angular 21 (standalone) · Tailwind 3 + daisyUI 4 · Lucide (iconos) · Dexie (IndexedDB).
 
-- **Node.js**: recomendado **LTS** (por ejemplo Node 20/22)
-- **npm**: el que viene con Node
-
-Si usas `nvm`:
-
-```bash
-nvm install --lts
-nvm use --lts
-```
-
-## Instalación
+## Como correrlo
 
 ```bash
 npm install
+npm start          # http://localhost:4200
+npm run build      # produccion en dist/planta-app
 ```
 
-## Servidor de desarrollo
+URL de la API: `src/environments/environment.ts` (`apiBaseUrl`, sin `/api` ni `/` al final) y `environment.prod.ts`. El backend debe permitir el origen `http://localhost:4200` con credenciales (CORS).
 
-Para levantar el servidor de desarrollo local, ejecuta:
+## Inicio de sesion (importante)
 
-```bash
-npm start
+El backend actual de Planta (`api_planta`) autentica asi, y este frontend esta hecho para ese esquema:
+
+- `POST /api/auth/login` con `{ usuario, password }` -> devuelve `{ user }` y guarda el JWT en la cookie HttpOnly `access_token` (8 horas).
+- No hay refresh token ni endpoints de sesiones. Cuando el JWT vence, la API responde `401`: se muestra el aviso de sesion vencida y se vuelve al login. **Los datos offline pendientes no se borran.**
+- Todas las llamadas a la API van con `withCredentials` (ver `shared/interceptors/auth.interceptor.ts`).
+- La sesion y el usuario se guardan en Dexie para abrir la app sin internet. Si entra otro usuario o empresa en el mismo navegador, se elimina la base local anterior.
+- Cerrar sesion exige internet y avisa si hay datos pendientes de sincronizar.
+
+La plantilla original usa access token + refresh token (`/api/auth/refresh`, `/api/auth/sessions`). Para adoptarlo hay que cambiar tambien el backend; el cambio en este frontend queda acotado a `auth-api.service.ts`, `auth.service.ts` y `auth.interceptor.ts`.
+
+Roles (`idRol`): ver `shared/guards/role.guard.ts` (`ADPLA`, `LOPLA`, `MOPLA`, `GMPLA`, `COPLA`, `OPPLA`).
+
+## Estructura
+
+```
+src/app/
+  auth/login/          Login
+  layout/              Menu lateral (sidebar), barra superior (topbar) y contenido
+  pages/               Una carpeta por pantalla (hoy solo `inicio`, con ejemplos de tabla y avisos)
+  shared/
+    components/        Modales (carga, aviso, confirmar, texto, sesion vencida), selects con buscador, paginador
+    services/          Auth, conectividad y servicios de los modales
+    interceptors/      auth (cookie JWT, 401/403) y connectivity (modo offline)
+    guards/            auth y roles
+    dexiedb/           Base local (schema/ y repository/). Nunca dentro de una pantalla
+    utils/             Fechas, paginacion, portal de modales, uuid
 ```
 
-Cuando el servidor esté corriendo, abre tu navegador y entra a `http://localhost:4200/`. La aplicación se recargará automáticamente cada vez que modifiques archivos del proyecto.
+## Estandares de pantalla (tomados de Aseguramiento)
 
-## Generación de código (scaffolding)
+- Encabezado con icono, filtros en tarjeta, tabla `table table-zebra` dentro de `.tabla-scroll` y `<app-paginator>` debajo. Ver `pages/inicio`.
+- Estilos globales y fixes de movil/iOS en `src/styles.scss` (modales en `body`, botones sin salto de linea, tablas con encabezado fijo).
+- Pantallas solo online: `data: { requiresInternet: true }` en la ruta y `requiresInternet: true` en el menu.
 
-Angular CLI incluye herramientas de scaffolding. Para generar un componente nuevo, ejecuta:
+## Como crear una pantalla nueva
 
-```bash
-ng generate component component-name
-```
-
-Para ver la lista completa de schematics disponibles (como `components`, `directives` o `pipes`), ejecuta:
-
-```bash
-ng generate --help
-```
-
-## Compilación (build)
-
-Para compilar el proyecto, ejecuta:
-
-```bash
-npm run build
-```
-
-Esto compila el proyecto y guarda los artefactos en el directorio `dist/`. Por defecto, el build de producción optimiza la aplicación para rendimiento.
-
-## Pruebas unitarias
-
-Para ejecutar pruebas unitarias con [Karma](https://karma-runner.github.io), usa:
-
-```bash
-npm test
-```
-
-## Pruebas end-to-end (e2e)
-
-Para pruebas end-to-end (e2e), ejecuta:
-
-```bash
-ng e2e
-```
-
-Angular CLI no incluye un framework e2e por defecto. Puedes elegir el que mejor se adapte a tu necesidad.
-
-## Recursos adicionales
-
-Para más información sobre Angular CLI (incluyendo referencias de comandos), revisa: [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli).
+1. `pages/<modulo>/<modulo>.component.ts` (+ `.html`). Servicio HTTP en `shared/services/<modulo>-api.service.ts` y tipos en `shared/interfaces/`.
+2. Ruta en `app.routes.ts` (dentro de `children`).
+3. Enlace en `NAV_SECTIONS` de `layout/components/sidebar/sidebar.component.ts` (con `roles` si es restringida).
+4. Datos offline: tabla en `dexiedb/db-table-names.ts`, indice en `dexiedb/schema/<modulo>-db-schema.ts`, nueva `version(n)` en `dexie-db.service.ts` y, si hay pendientes de subir, una linea en `pending-sync.service.ts`.

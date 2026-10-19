@@ -1,238 +1,122 @@
-@if (visible) {
-<div class="modal-backdrop-custom" (click)="onCerrar()"></div>
-<div class="modal-custom modal-lg">
-  <div class="modal-header-custom">
-    <h5><i class="bi" [class.bi-pencil-square]="modoEdicion" [class.bi-plus-circle]="!modoEdicion"></i> {{ titulo }}</h5>
-    <button type="button" class="btn-close btn-close-white" (click)="onCerrar()" aria-label="Close"></button>
-  </div>
-  <div class="modal-body-custom">
-    @if (palet) {
-    <div class="alert" [class.alert-info]="composiciones.length === 0" [class.alert-warning]="composiciones.length > 0"
-      style="padding:10px 14px; margin-bottom:14px; font-size:13px;">
-      <div class="d-flex flex-wrap gap-3 align-items-center">
-        <span><i class="bi bi-box-seam"></i> <strong>Palet #{{ palet.numeroPalet == 0 ? palet.id : palet.numeroPalet }}</strong></span>
-        <span><i class="bi bi-layers"></i> Cajas actuales: <strong>{{ palet.cantidadCajas || 0 }}</strong></span>
-        @if (palet.limiteCajasPorPalet) {
-        <span><i class="bi bi-layers-fill"></i> Límite: <strong>{{ palet.limiteCajasPorPalet }}</strong></span>
-        <span><i class="bi bi-plus-circle"></i> Faltantes: <strong>{{ (palet.limiteCajasPorPalet || 0) - (palet.cantidadCajas || 0) > 0 ? (palet.limiteCajasPorPalet || 0) - (palet.cantidadCajas || 0) : 0 }}</strong></span>
-        }
+@if (visible()) {
+  <div class="modal modal-open" role="dialog" aria-modal="true">
+    <div class="modal-box flex w-full !max-h-full !max-w-4xl flex-col gap-0 overflow-hidden p-0">
+
+      <div class="flex items-center justify-between gap-3 border-b border-app-border2 bg-gradient-to-r from-emerald-50 via-white to-white px-4 py-2 sm:px-5 dark:from-emerald-500/15 dark:via-transparent dark:to-transparent">
+        <div class="flex min-w-0 items-center gap-3">
+          <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow"><svg lucidePackage class="size-5"></svg></span>
+          <div class="min-w-0">
+            <span class="text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Palets</span>
+            <h3 class="truncate text-base font-extrabold leading-tight text-app-heading sm:text-lg">{{ titulo() }}</h3>
+          </div>
+        </div>
+        <button type="button" class="btn btn-circle btn-ghost size-10 min-h-10 sm:size-8 sm:min-h-8" aria-label="Cerrar" (click)="cerrar.emit()"><svg lucideX class="size-4"></svg></button>
       </div>
-      @if (composiciones.length > 0) {
-      <div class="mt-1" style="border-top:1px solid rgba(0,0,0,0.1); padding-top:6px; margin-top:6px;">
-        <small><i class="bi bi-info-circle"></i> Este palet tiene cajas registradas. Formato fijado a:
-          <strong>{{ composiciones[0]?.formatoNombre || ('Formato #' + composiciones[0]?.formatoId) }}</strong>. Al agregar más cajas, el formato debe ser el mismo.</small>
-      </div>
-      }
-    </div>
-    }
-    <form id="formAgregarCajas">
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <label class="form-label form-label-required">Tipo Proceso Empacado</label>
-          <app-advanced-select
-            [itemsInput]="tiposProcesoEmpacadoModal"
-            idField="id"
-            placeholder="Seleccione..."
-            [required]="true"
-            [disabled]="tipoProcesoEmpacadoDisabled"
-            [value]="formCajas.tipoProcesoEmpacadoId"
-            (valueChange)="onCampoChange('tipoProcesoEmpacadoId', $event)">
-          </app-advanced-select>
-          <small class="text-muted" id="helpTipoProceso">
-            @if (tipoProcesoEmpacadoDisabled) {
-            Tipo de proceso fijo para este acopio
-            } @else {
-            Seleccione un tipo de proceso
+
+      <div class="min-h-0 flex-1 space-y-3 overflow-y-auto bg-app-surface2 px-3 pb-3 pt-3 sm:px-5 sm:pb-5">
+
+        @if (palet(); as p) {
+          <section class="rounded-2xl border px-4 py-3 text-sm"
+            [class.border-sky-200]="composiciones().length === 0" [class.bg-sky-50]="composiciones().length === 0"
+            [class.border-tint-amber-border]="composiciones().length > 0" [class.bg-amber-50]="composiciones().length > 0">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="rounded-full bg-app-surface px-3 py-1 text-sm font-extrabold text-app-heading shadow-sm">Palet #{{ numeroPalet() }}</span>
+              <span class="inline-flex items-center gap-1 rounded-full bg-app-surface px-3 py-1 text-xs font-semibold text-app-text shadow-sm"><svg lucideLayers class="size-3.5"></svg> Cajas actuales: <strong>{{ p.cantidadCajas || 0 }}</strong></span>
+              @if (p.limiteCajasPorPalet) {
+                <span class="rounded-full bg-app-surface px-3 py-1 text-xs font-semibold text-app-text shadow-sm">Límite: <strong>{{ p.limiteCajasPorPalet }}</strong></span>
+                <span class="rounded-full bg-app-surface px-3 py-1 text-xs font-semibold text-app-text shadow-sm">Faltantes: <strong>{{ faltantes() }}</strong></span>
+              }
+            </div>
+            @if (composiciones().length > 0) {
+              <p class="mt-2 border-t border-tint-amber-border pt-2 text-xs text-amber-900 dark:text-amber-300">
+                Este palet ya tiene cajas registradas. Formato fijado a
+                <strong>{{ composiciones()[0].formatoNombre || ('Formato #' + composiciones()[0].formatoId) }}</strong>:
+                al agregar más cajas, el formato debe ser el mismo.
+              </p>
             }
-          </small>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label form-label-required">Consignatario</label>
-          <app-advanced-select
-            [itemsInput]="consignatarios"
-            idField="documento"
-            placeholder="Seleccione..."
-            [required]="true"
-            [value]="formCajas.consignatarioId"
-            (valueChange)="onCampoChange('consignatarioId', $event)">
-          </app-advanced-select>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label form-label-required">Destino</label>
-          <app-advanced-select
-            [itemsInput]="filteredDestinos"
-            idField="id"
-            [labelFields]="['pais']"
-            placeholder="Seleccione..."
-            [required]="true"
-            [disabled]="filteredDestinos.length === 0"
-            [value]="formCajas.destinoId"
-            (valueChange)="onCampoChange('destinoId', $event)">
-          </app-advanced-select>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label form-label-required">Formato</label>
-          <app-advanced-select
-            [itemsInput]="filteredFormatos"
-            idField="id"
-            [labelFields]="['nombre']"
-            placeholder="Seleccione..."
-            [required]="true"
-            [disabled]="formatoDisabled"
-            [value]="formCajas.formatoId"
-            (valueChange)="onCampoChange('formatoId', $event)">
-          </app-advanced-select>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label form-label-required">Tipo de Empaque Guía</label>
-          <app-advanced-select
-            [itemsInput]="filteredTiposEmpaqueGuia"
-            idField="id"
-            placeholder="Seleccione..."
-            [required]="true"
-            [disabled]="tipoEmpaqueGuiaDisabled"
-            [value]="formCajas.tipoEmpaqueGuiaId"
-            (valueChange)="onCampoChange('tipoEmpaqueGuiaId', $event)">
-          </app-advanced-select>
-        </div>
-        <input type="hidden" name="calibreId" id="selectCalibre" [ngModel]="formCajas.calibreId"
-          [ngModelOptions]="{standalone: true}">
-        <input type="hidden" name="categoriaId" id="selectCategoria" [ngModel]="formCajas.categoriaId"
-          [ngModelOptions]="{standalone: true}">
-        <input type="hidden" name="tipoEmpaqueId" id="selectTipoEmpaque" [ngModel]="formCajas.tipoEmpaqueId"
-          [ngModelOptions]="{standalone: true}">
-        <div class="col-md-6 mb-3">
-          <label class="form-label">Presentación</label>
-          <app-advanced-select
-            [itemsInput]="filteredPresentaciones"
-            idField="id"
-            placeholder="Seleccione..."
-            [disabled]="presentacionDisabled"
-            [value]="formCajas.presentacionId"
-            (valueChange)="onCampoChange('presentacionId', $event)">
-          </app-advanced-select>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label form-label-required">Tipo de Caja</label>
-          <app-advanced-select
-            [itemsInput]="filteredTiposCaja"
-            idField="id"
-            placeholder="Seleccione..."
-            [required]="true"
-            [disabled]="tipoCajaDisabled"
-            [value]="formCajas.tipoCajaId"
-            (valueChange)="onCampoChange('tipoCajaId', $event)">
-          </app-advanced-select>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label form-label-required">Tipo de Clamshell</label>
-          <app-advanced-select
-            [itemsInput]="filteredTiposClamshell"
-            idField="id"
-            placeholder="Seleccione..."
-            [required]="true"
-            [disabled]="tipoClamshellDisabled"
-            [value]="formCajas.tipoClamshellId"
-            (valueChange)="onCampoChange('tipoClamshellId', $event)">
-          </app-advanced-select>
-        </div>
-        <div class="col-md-6 mb-3">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <label class="form-label form-label-required mb-0">Variedad</label>
-            <div class="form-check form-switch m-0" [style.display]="formCajas.esReposicion ? 'none' : ''">
-              <input class="form-check-input" type="checkbox" id="switchEsEnsayo" [ngModel]="formCajas.esEnsayo"
-                [ngModelOptions]="{standalone: true}" (ngModelChange)="onCampoChange('esEnsayo', $event)">
-              <label class="form-check-label small" for="switchEsEnsayo">¿Es ensayo?</label>
+          </section>
+        }
+
+        <section class="rounded-2xl border border-app-border2 bg-app-surface px-4 py-3">
+          <h4 class="mb-2 text-[11px] font-bold uppercase tracking-widest text-sky-700 dark:text-sky-300">Proceso y destino</h4>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <app-search-select label="Tipo de proceso empacado" [required]="true" [options]="optTiposProceso()" [value]="v(formCajas().tipoProcesoEmpacadoId)" [disabled]="tipoProcesoEmpacadoDisabled()" (selected)="elegido('tipoProcesoEmpacadoId', $event)" />
+            <app-search-select label="Consignatario" [required]="true" [options]="optConsignatarios()" [value]="v(formCajas().consignatarioId)" (selected)="elegido('consignatarioId', $event)" />
+            <div class="sm:col-span-2">
+              <app-search-select label="Destino" [required]="true" [options]="optDestinos()" [value]="v(formCajas().destinoId)" [disabled]="filteredDestinos().length === 0" (selected)="elegido('destinoId', $event)" />
             </div>
           </div>
-          <app-advanced-select
-            [itemsInput]="filteredVariedades"
-            idField="codigo"
-            [labelFields]="['variedad']"
-            placeholder="Seleccione..."
-            [required]="true"
-            [value]="formCajas.variedadId"
-            (valueChange)="onCampoChange('variedadId', $event)">
-          </app-advanced-select>
-        </div>
-        <!-- Select condicional: Variedad en Guía (solo para ensayos) -->
-        <div class="col-md-6 mb-3" id="contenedorVariedadGuia"
-          [style.display]="formCajas.esEnsayo ? 'block' : 'none'">
-          <label class="form-label form-label-required" style="color: #d97706;">
-            <i class="bi bi-arrow-repeat"></i> Variedad en Guía (ensayo)
-          </label>
-          <app-advanced-select
-            [itemsInput]="variedadesNoEnsayo"
-            idField="codigo"
-            [labelFields]="['variedad']"
-            placeholder="Seleccione..."
-            [value]="formCajas.variedadGuiaId"
-            (valueChange)="onCampoChange('variedadGuiaId', $event)">
-          </app-advanced-select>
-          <small class="text-muted" style="color: #d97706 !important;">Esta variedad aparecerá en la guía de
-            remisión</small>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label form-label-required">Lugar de Producción (LDP)</label>
-          <app-advanced-select
-            [itemsInput]="lugaresProduccion"
-            idField="id"
-            placeholder="Seleccione..."
-            [required]="true"
-            [value]="formCajas.lugarProduccionId"
-            (valueChange)="onCampoChange('lugarProduccionId', $event)">
-          </app-advanced-select>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label form-label-required">Código de Rancho</label>
-          <app-advanced-select
-            [itemsInput]="filteredCodigosRancho"
-            idField="id"
-            [labelFields]="['codigo']"
-            placeholder="Seleccione..."
-            [required]="true"
-            [disabled]="codigoRanchoDisabled"
-            [value]="formCajas.codigoRanchoId"
-            (valueChange)="onCampoChange('codigoRanchoId', $event)">
-          </app-advanced-select>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label form-label-required">Vía de Transporte</label>
-          <app-advanced-select
-            [itemsInput]="transportes"
-            idField="id"
-            [labelFields]="['transporte']"
-            placeholder="Seleccione..."
-            [required]="true"
-            [value]="formCajas.transporteId"
-            (valueChange)="onCampoChange('transporteId', $event)">
-          </app-advanced-select>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label form-label-required">Cantidad de Cajas</label>
-          <input type="number" class="form-control" id="inputCantidadCajas" name="cantidadCajas" min="1" required
-            [ngModel]="formCajas.cantidadCajas" [ngModelOptions]="{standalone: true}"
-            (ngModelChange)="onCampoChange('cantidadCajas', +$event)">
-        </div>
+        </section>
+
+        <section class="rounded-2xl border border-app-border2 bg-app-surface px-4 py-3">
+          <h4 class="mb-2 text-[11px] font-bold uppercase tracking-widest text-violet-700 dark:text-violet-300">Empaque</h4>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <app-search-select label="Formato" [required]="true" [options]="optFormatos()" [value]="v(formCajas().formatoId)" [disabled]="formatoDisabled()" (selected)="elegido('formatoId', $event)" />
+            <app-search-select label="Tipo de empaque guía" [required]="true" [options]="optTiposEmpaqueGuia()" [value]="v(formCajas().tipoEmpaqueGuiaId)" [disabled]="tipoEmpaqueGuiaDisabled()" (selected)="elegido('tipoEmpaqueGuiaId', $event)" />
+            <app-search-select label="Presentación" [options]="optPresentaciones()" [value]="v(formCajas().presentacionId)" [disabled]="presentacionDisabled()" (selected)="elegido('presentacionId', $event)" />
+            <app-search-select label="Tipo de caja" [required]="true" [options]="optTiposCaja()" [value]="v(formCajas().tipoCajaId)" [disabled]="tipoCajaDisabled()" (selected)="elegido('tipoCajaId', $event)" />
+            <div class="sm:col-span-2">
+              <app-search-select label="Tipo de clamshell" [required]="true" [options]="optTiposClamshell()" [value]="v(formCajas().tipoClamshellId)" [disabled]="tipoClamshellDisabled()" (selected)="elegido('tipoClamshellId', $event)" />
+            </div>
+          </div>
+        </section>
+
+        <section class="rounded-2xl border border-app-border2 bg-app-surface px-4 py-3">
+          <h4 class="mb-2 text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Origen y transporte</h4>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div>
+              @if (!formCajas().esReposicion) {
+                <label class="mb-1 flex cursor-pointer items-center justify-end gap-2 text-xs font-semibold text-app-text2">
+                  ¿Es ensayo?
+                  <input type="checkbox" class="toggle toggle-sm toggle-primary" [checked]="formCajas().esEnsayo" (change)="cambio('esEnsayo', $any($event.target).checked)" />
+                </label>
+              }
+              <app-search-select label="Variedad" [required]="true" [options]="optVariedades()" [value]="v(formCajas().variedadId)" (selected)="elegido('variedadId', $event)" />
+            </div>
+
+            @if (formCajas().esEnsayo) {
+              <div>
+                <app-search-select label="Variedad en guía (ensayo)" [required]="true" [options]="optVariedadesGuia()" [value]="v(formCajas().variedadGuiaId)" (selected)="elegido('variedadGuiaId', $event)" />
+                <small class="text-amber-700 dark:text-amber-300">Esta variedad aparecerá en la guía de remisión.</small>
+              </div>
+            }
+
+            <app-search-select label="Lugar de producción (LDP)" [required]="true" [options]="optLugares()" [value]="v(formCajas().lugarProduccionId)" (selected)="elegido('lugarProduccionId', $event)" />
+            <app-search-select label="Código de rancho" [required]="true" [options]="optRanchos()" [value]="v(formCajas().codigoRanchoId)" [disabled]="codigoRanchoDisabled()" (selected)="elegido('codigoRanchoId', $event)" />
+            <app-search-select label="Vía de transporte" [required]="true" [options]="optTransportes()" [value]="v(formCajas().transporteId)" (selected)="elegido('transporteId', $event)" />
+          </div>
+        </section>
+
+        <section class="rounded-2xl border border-tint-emerald-border bg-tint-emerald px-4 py-3">
+          <h4 class="mb-2 text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Cantidad</h4>
+          <div class="grid items-end gap-3 sm:grid-cols-2">
+            <label class="block">
+              <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Cantidad de cajas <span class="text-error">*</span></span>
+              <input type="number" inputmode="numeric" min="1" class="h-[42px] w-full rounded-[9px] border border-app-border2 bg-app-surface px-3 text-[16px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/25 sm:text-[14px]" [ngModel]="formCajas().cantidadCajas || null" (ngModelChange)="cambio('cantidadCajas', +$event)" />
+            </label>
+            @if (!formCajas().esEnsayo) {
+              <div class="rounded-[9px] border border-app-border2 bg-app-surface px-3 py-2">
+                <label class="flex cursor-pointer items-center gap-3 text-sm font-semibold text-app-text">
+                  <input type="checkbox" class="toggle toggle-warning" [checked]="formCajas().esReposicion" (change)="cambio('esReposicion', $any($event.target).checked)" />
+                  ¿Es reposición?
+                </label>
+                @if (formCajas().esReposicion) {
+                  <p class="mt-1.5 flex items-center gap-2 text-xs text-app-text2">
+                    <span class="badge badge-warning badge-sm gap-1"><svg lucideRefreshCcw class="size-3"></svg> REPOSICIÓN</span>
+                    Esta línea NO contará como producción del día.
+                  </p>
+                }
+              </div>
+            }
+          </div>
+        </section>
       </div>
-      <!-- Switch de Reposición -->
-      <div class="mb-3" [style.display]="formCajas.esEnsayo ? 'none' : 'block'">
-        <div class="form-check form-switch">
-          <input class="form-check-input" type="checkbox" id="switchEsReposicion" name="esReposicion"
-            [ngModel]="formCajas.esReposicion" (ngModelChange)="onCampoChange('esReposicion', $event)">
-          <label class="form-check-label" for="switchEsReposicion">¿Es reposición?</label>
-        </div>
-        <div id="labelReposicion" class="mt-1" [style.display]="formCajas.esReposicion ? 'block' : 'none'">
-          <span class="badge bg-warning text-dark"><i class="bi bi-arrow-repeat"></i> REPOSICIÓN</span>
-          <small class="text-muted ms-1">Esta línea NO contará como producción del día</small>
-        </div>
+
+      <div class="flex flex-col-reverse justify-end gap-2 border-t border-app-border2 bg-app-surface px-4 py-2.5 sm:flex-row sm:px-5">
+        <button type="button" class="btn btn-sm btn-ghost" (click)="cerrar.emit()">Cancelar</button>
+        <button type="button" class="btn btn-sm btn-primary" (click)="guardar.emit()"><svg lucideCircleCheck class="size-4"></svg> {{ textoGuardar() }}</button>
       </div>
-      <div class="text-end mt-3">
-        <button type="button" class="btn btn-sp-outline" (click)="onCerrar()">Cancelar</button>
-        <button type="button" class="btn btn-sp-success" (click)="onSubmit()"><i
-            class="bi bi-check-circle"></i> {{ textoSubmit }}</button>
-      </div>
-    </form>
+    </div>
+    <div class="modal-backdrop bg-black/40" (click)="cerrar.emit()"></div>
   </div>
-</div>
 }

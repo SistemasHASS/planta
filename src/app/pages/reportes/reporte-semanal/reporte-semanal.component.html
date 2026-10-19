@@ -1,0 +1,238 @@
+<section class="w-full space-y-4 p-3 sm:p-5">
+  @if (!online()) {
+    <div class="flex flex-col items-center gap-3 rounded-2xl border border-app-border2 bg-app-surface p-10 text-center shadow-sm">
+      <svg lucideWifiOff class="size-10 text-app-subtle"></svg>
+      <h2 class="text-lg font-bold text-app-text">Sin conexión a internet</h2>
+      <p class="max-w-md text-sm text-app-muted">El Reporte Semanal solo está disponible en modo online. Conéctate a internet para continuar.</p>
+    </div>
+  } @else {
+    <div #reportPage class="space-y-4">
+      <!-- Barra de filtros -->
+      <div class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm">
+        <div class="grid items-end gap-3 xl:grid-cols-[13rem_minmax(0,1fr)_auto]">
+          <div class="min-w-0">
+            <h1 class="text-lg font-extrabold leading-tight text-app-heading">Producción Semanal</h1>
+            <p class="text-xs text-app-muted">Vista consolidada de la semana</p>
+          </div>
+
+          <div class="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto]">
+            <app-search-select
+              label="Campaña"
+              placeholder="Selecciona campaña"
+              [options]="campanias()"
+              [value]="campaniaId() || null"
+              [disabled]="campanias().length === 0 || isLoading()"
+              (selected)="cambiarCampania($event)"
+            />
+            <app-search-multi-select
+              label="Semana"
+              sortOrder="desc"
+              placeholder="Todos"
+              [showSelectAll]="true"
+              [options]="opciones().semanas"
+              [values]="seleccion().semanas"
+              (valuesChange)="cambiarSeleccion('semanas', $event)"
+            />
+            <app-search-multi-select
+              label="Variedad"
+              placeholder="Todos"
+              [showSelectAll]="true"
+              [options]="opciones().variedades"
+              [values]="seleccion().variedades"
+              (valuesChange)="cambiarSeleccion('variedades', $event)"
+            />
+            <app-search-multi-select
+              label="Formato"
+              placeholder="Todos"
+              [showSelectAll]="true"
+              [options]="opciones().formatos"
+              [values]="seleccion().formatos"
+              (valuesChange)="cambiarSeleccion('formatos', $event)"
+            />
+            <button type="button" class="btn btn-primary h-[38px] min-h-[38px] rounded-[7px] sm:col-span-2 lg:col-span-1" (click)="aplicarFiltros()" [disabled]="isLoading()">
+              <svg lucideFunnel class="size-4"></svg> Filtrar
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 xl:flex">
+            <button type="button" class="btn h-[38px] min-h-[38px] rounded-[7px] border-0 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700" (click)="actualizar()" [disabled]="isLoading()">
+              <svg lucideRefreshCcw class="size-4"></svg> Actualizar
+            </button>
+            <button type="button" class="btn h-[38px] min-h-[38px] rounded-[7px] border-0 bg-slate-700 text-white shadow-sm hover:bg-slate-800" (click)="capturarDashboard()" [disabled]="isLoading()">
+              <svg lucideCamera class="size-4"></svg> Capturar
+            </button>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-outline mt-3 h-[38px] min-h-[38px] w-full rounded-[7px] lg:hidden" (click)="filtrosAvanzados.set(!filtrosAvanzados())" [attr.aria-expanded]="filtrosAvanzados()">
+          <svg lucideSlidersHorizontal class="size-4"></svg> {{ filtrosAvanzados() ? 'Ocultar filtros avanzados' : 'Filtros avanzados' }}
+        </button>
+      </div>
+
+      <div class="grid items-start gap-4 lg:grid-cols-[17rem_minmax(0,1fr)]">
+        <!-- Filtros avanzados -->
+        <aside class="space-y-3 rounded-2xl border border-app-border2 bg-app-surface p-3 shadow-sm" [class.hidden]="!filtrosAvanzados()" [class.lg:block]="true">
+          <h2 class="px-1 text-sm font-extrabold text-app-heading">Filtros avanzados</h2>
+
+          <!-- Destinos -->
+          <div class="rounded-xl border border-app-border2 p-3">
+            <div class="flex items-center justify-between gap-2">
+              <span class="flex items-center gap-2 text-xs font-bold text-app-text"><svg lucideMapPin class="size-4 text-app-muted"></svg> Destinos</span>
+              <span class="flex gap-3 text-xs font-semibold text-primary">
+                <button type="button" (click)="marcarTodos('destinos')">Todos</button>
+                <button type="button" (click)="limpiar('destinos')">Ninguno</button>
+              </span>
+            </div>
+            <input type="text" class="input input-bordered input-sm mt-2 w-full text-[16px] sm:text-sm" placeholder="Buscar destino..." [value]="busqueda().destinos" (input)="buscar('destinos', $any($event.target).value)" />
+            <div class="mt-2 max-h-40 space-y-1 overflow-auto pr-1">
+              @for (o of destinosFiltrados(); track o.value) {
+                <label class="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-xs text-app-text hover:bg-app-surface2">
+                  <input type="checkbox" class="checkbox checkbox-primary checkbox-xs" [checked]="estaMarcado('destinos', o.value)" (change)="alternarOpcion('destinos', o.value)" />
+                  <span class="min-w-0 truncate">{{ o.label }}</span>
+                </label>
+              }
+              @if (destinosFiltrados().length === 0) { <p class="py-2 text-center text-xs text-app-subtle">Sin opciones</p> }
+            </div>
+          </div>
+
+          <!-- Clientes -->
+          <div class="rounded-xl border border-app-border2 p-3">
+            <div class="flex items-center justify-between gap-2">
+              <span class="flex items-center gap-2 text-xs font-bold text-app-text"><svg lucideUsers class="size-4 text-app-muted"></svg> Clientes</span>
+              <span class="flex gap-3 text-xs font-semibold text-primary">
+                <button type="button" (click)="marcarTodos('clientes')">Todos</button>
+                <button type="button" (click)="limpiar('clientes')">Ninguno</button>
+              </span>
+            </div>
+            <input type="text" class="input input-bordered input-sm mt-2 w-full text-[16px] sm:text-sm" placeholder="Buscar cliente..." [value]="busqueda().clientes" (input)="buscar('clientes', $any($event.target).value)" />
+            <div class="mt-2 max-h-40 space-y-1 overflow-auto pr-1">
+              @for (o of clientesFiltrados(); track o.value) {
+                <label class="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-xs text-app-text hover:bg-app-surface2">
+                  <input type="checkbox" class="checkbox checkbox-primary checkbox-xs" [checked]="estaMarcado('clientes', o.value)" (change)="alternarOpcion('clientes', o.value)" />
+                  <span class="min-w-0 truncate">{{ o.label }}</span>
+                </label>
+              }
+              @if (clientesFiltrados().length === 0) { <p class="py-2 text-center text-xs text-app-subtle">Sin opciones</p> }
+            </div>
+          </div>
+
+          <!-- Consignatarios -->
+          <div class="rounded-xl border border-app-border2 p-3">
+            <div class="flex items-center justify-between gap-2">
+              <span class="flex items-center gap-2 text-xs font-bold text-app-text"><svg lucideTruck class="size-4 text-app-muted"></svg> Consignatarios</span>
+              <span class="flex gap-3 text-xs font-semibold text-primary">
+                <button type="button" (click)="marcarTodos('consignatarios')">Todos</button>
+                <button type="button" (click)="limpiar('consignatarios')">Ninguno</button>
+              </span>
+            </div>
+            <input type="text" class="input input-bordered input-sm mt-2 w-full text-[16px] sm:text-sm" placeholder="Buscar consignatario..." [value]="busqueda().consignatarios" (input)="buscar('consignatarios', $any($event.target).value)" />
+            <div class="mt-2 max-h-40 space-y-1 overflow-auto pr-1">
+              @for (o of consignatariosFiltrados(); track o.value) {
+                <label class="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-xs text-app-text hover:bg-app-surface2">
+                  <input type="checkbox" class="checkbox checkbox-primary checkbox-xs" [checked]="estaMarcado('consignatarios', o.value)" (change)="alternarOpcion('consignatarios', o.value)" />
+                  <span class="min-w-0 truncate">{{ o.label }}</span>
+                </label>
+              }
+              @if (consignatariosFiltrados().length === 0) { <p class="py-2 text-center text-xs text-app-subtle">Sin opciones</p> }
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-primary btn-sm w-full lg:hidden" (click)="aplicarFiltros()" [disabled]="isLoading()">Aplicar filtros</button>
+        </aside>
+
+        <!-- Contenido -->
+        <div class="min-w-0 space-y-4">
+          <!-- KPIs -->
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div class="flex items-center justify-between gap-3 rounded-2xl border border-app-border2 border-l-4 border-l-indigo-500 bg-app-surface px-4 py-3 shadow-sm">
+              <div class="min-w-0">
+                <span class="text-xs font-semibold text-app-muted">N° Cajas</span>
+                <p class="truncate text-2xl font-extrabold text-indigo-600 dark:text-indigo-300 sm:text-3xl">{{ kpiCajas() | number }}</p>
+              </div>
+              <span class="grid size-12 shrink-0 place-items-center rounded-xl bg-indigo-50 dark:bg-indigo-500/15 text-indigo-500"><svg lucidePackage class="size-6"></svg></span>
+            </div>
+            <div class="flex items-center justify-between gap-3 rounded-2xl border border-app-border2 border-l-4 border-l-emerald-500 bg-app-surface px-4 py-3 shadow-sm">
+              <div class="min-w-0">
+                <span class="text-xs font-semibold text-app-muted">Peso (KG)</span>
+                <p class="truncate text-2xl font-extrabold text-emerald-600 dark:text-emerald-300 sm:text-3xl">{{ kpiPeso() | number: '1.2-2' }}</p>
+              </div>
+              <span class="grid size-12 shrink-0 place-items-center rounded-xl bg-emerald-50 dark:bg-emerald-500/15 text-emerald-500"><svg lucideGauge class="size-6"></svg></span>
+            </div>
+          </div>
+
+          <div class="grid gap-4 xl:grid-cols-2">
+            <div class="min-w-0 rounded-2xl border border-app-border2 bg-app-surface p-3 shadow-sm sm:p-5">
+              <h2 class="mb-3 text-sm font-bold text-app-text">Peso por Día de la Semana</h2>
+              <div #chartDia class="h-72 w-full sm:h-80"></div>
+            </div>
+            <div class="min-w-0 rounded-2xl border border-app-border2 bg-app-surface p-3 shadow-sm sm:p-5">
+              <h2 class="mb-3 text-sm font-bold text-app-text">Peso por Tipo de Empaque</h2>
+              <div #chartTipo class="h-72 w-full sm:h-80"></div>
+            </div>
+
+            <div class="min-w-0 rounded-2xl border border-app-border2 bg-app-surface p-3 shadow-sm sm:p-5">
+              <h2 class="mb-3 text-sm font-bold text-app-text">Detalle Producción por Variedad</h2>
+              <div class="tabla-scroll !max-h-80">
+                <table class="table table-sm whitespace-nowrap">
+                  <thead>
+                    <tr>
+                      <th>Variedad</th>
+                      <th class="text-right">Peso (KG)</th>
+                      <th class="text-right">% Aportación</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (v of detalleVariedad(); track v.variedadId) {
+                      <tr>
+                        <td>{{ v.variedad }}</td>
+                        <td class="text-right">{{ v.pesoKg | number: '1.2-2' }}</td>
+                        <td class="text-right"><span class="badge badge-soft badge-primary">{{ v.porcentaje }}%</span></td>
+                      </tr>
+                    }
+                    @if (detalleVariedad().length === 0) {
+                      <tr><td colspan="3" class="text-center text-app-subtle">Sin datos</td></tr>
+                    }
+                  </tbody>
+                  @if (detalleVariedad().length > 0) {
+                    <tfoot>
+                      <tr class="font-bold">
+                        <td>Total</td>
+                        <td class="text-right">{{ totalPesoVariedad() | number: '1.2-2' }} kg</td>
+                        <td class="text-right">100.00%</td>
+                      </tr>
+                    </tfoot>
+                  }
+                </table>
+              </div>
+            </div>
+
+            <div class="min-w-0 rounded-2xl border border-app-border2 bg-app-surface p-3 shadow-sm sm:p-5">
+              <h2 class="mb-3 text-sm font-bold text-app-text">Prod. de Var. Driscoll's y Públicas</h2>
+              <div class="grid items-center gap-3 sm:grid-cols-2">
+                <div #chartSegmento class="h-64 w-full min-w-0"></div>
+                <div class="tabla-scroll !max-h-48 !min-h-0 min-w-0">
+                  <table class="table table-sm">
+                    <thead>
+                      <tr><th>Tipo</th><th class="text-right">%</th></tr>
+                    </thead>
+                    <tbody>
+                      @for (d of driscolls(); track d.tipo) {
+                        <tr>
+                          <td>{{ d.tipo }}</td>
+                          <td class="text-right"><span class="badge badge-soft badge-primary">{{ d.porcentaje }}%</span></td>
+                        </tr>
+                      }
+                      @if (driscolls().length === 0) {
+                        <tr><td colspan="2" class="text-center text-app-subtle">Sin datos</td></tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</section>

@@ -1,37 +1,45 @@
 import { inject } from '@angular/core';
-import { CanActivateChildFn, CanActivateFn, Router } from '@angular/router';
-import { AuthService } from '../services/auth.service';
+import { CanActivateChildFn, Router } from '@angular/router';
 import { CatalogosRepository } from '../dexiedb/repository/catalogos.repository';
+import { AuthService } from '../services/auth.service';
+import { FeedbackModalService } from '../services/feedback-modal.service';
+import { ROLES } from './role.guard';
 
-const checkConfiguracion = async (url: string) => {
+const normalizar = (valor: unknown): string => String(valor ?? '').trim().toUpperCase();
+
+/**
+ * Ninguna pantalla se abre hasta que el usuario haya guardado sus Parametros (fundo, cultivo y campaña), como en la
+ * aplicacion anterior. Parametros siempre se puede abrir; si falta la configuracion se vuelve ahi con un aviso.
+ * Solo se exige a los roles que pueden abrir Parametros (logistica, admin y monitor).
+ * Guias manuales (GMPLA) queda fuera mientras su pantalla de Parametros siga migrandose.
+ */
+export const parametrosConfigChildGuard: CanActivateChildFn = async (_route, state) => {
+  const ruta = state.url.split(/[?#]/)[0];
+  if (ruta.startsWith('/parametros')) return true;
+
   const auth = inject(AuthService);
   const router = inject(Router);
-  const catalogosRepo = inject(CatalogosRepository);
+  const repo = inject(CatalogosRepository);
+  const feedback = inject(FeedbackModalService);
 
-  const normalizedUrl = `/${String(url ?? '').replace(/^#\/?/, '').replace(/^\//, '')}`;
+  const session = await auth.getSession();
+  const rol = normalizar(session?.user.idRol ?? session?.user.rol);
+  if (rol === ROLES.guiasManuales) return true;
+  // Quien no puede abrir Parámetros (por su rol) no puede configurarlos: no se le exige, o se quedaría en un ciclo de redirecciones.
+  if (![ROLES.logistica, ROLES.admin, ROLES.monitor].includes(rol as never)) return true;
 
-  // Permitir siempre entrar a Parametros/Setup para que el usuario pueda sincronizar/guardar
-  if (normalizedUrl.startsWith('/parametros/setup') || normalizedUrl.startsWith('/parametros')) return true;
-
-  // Bypass explícito (si en el futuro se usa el guard sobre otras rutas específicas)
-  if (normalizedUrl.includes('allowSetup=1')) return true;
-
-  const u: any = auth.usuario();
-  const nro = String(u?.nrodocumento ?? u?.documentoidentidad ?? u?.documentoIdentidad ?? u?.documento ?? '').trim();
-  if (!nro) return router.createUrlTree(['/parametros/setup']);
-
-  try {
-    const cfg = await catalogosRepo.configuracionRepo.getByField('nrodocumento', nro);
-    return cfg ? true : router.createUrlTree(['/parametros/setup']);
-  } catch {
-    return router.createUrlTree(['/parametros/setup']);
+  const documento = String(session?.user.documentoIdentidad ?? '').trim();
+  let configurado = false;
+  if (documento) {
+    try {
+      const cfg = await repo.configuracionRepo.getByField('nrodocumento', documento);
+      configurado = !!cfg && !!String(cfg.idProyecto ?? '').trim();
+    } catch {
+      configurado = false;
+    }
   }
-};
+  if (configurado) return true;
 
-export const parametrosConfigGuard: CanActivateFn = async (_route, state) => {
-  return checkConfiguracion(state.url);
-};
-
-export const parametrosConfigChildGuard: CanActivateChildFn = async (_route, state) => {
-  return checkConfiguracion(state.url);
+  feedback.warning('Primero selecciona y guarda tus parámetros para usar el sistema.', 'Configuración requerida');
+  return router.parseUrl('/parametros');
 };

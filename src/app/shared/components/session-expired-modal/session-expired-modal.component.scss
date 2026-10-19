@@ -1,0 +1,200 @@
+.session-expired-modal {
+  z-index: 2100;
+  background: var(--modal-overlay);
+  backdrop-filter: blur(6px) saturate(1.05);
+}
+
+.session-expired-box {
+  position: relative;
+  width: min(460px, calc(100vw - 32px));
+  min-height: 390px;
+  display: grid;
+  justify-items: center;
+  gap: 22px;
+  overflow: hidden;
+  border: 1px solid #f7d2bd;
+  border-radius: 14px;
+  background: #fffdfa;
+  box-shadow: 0 32px 90px rgba(15, 23, 42, 0.38);
+  padding: 38px 32px 32px;
+  text-align: center;
+  animation: session-expired-in 220ms ease-out;
+}
+
+.session-expired-box::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 5px;
+  background: linear-gradient(90deg, #dc2626, #fb923c, #dc2626);
+  content: "";
+}
+
+.session-loader {
+  position: relative;
+  width: 102px;
+  height: 102px;
+  display: grid;
+  place-items: center;
+  color: #d94120;
+}
+
+.session-loader-ring {
+  position: absolute;
+  inset: 0;
+  border: 6px solid #fde4dc;
+  border-top-color: #e65332;
+  border-right-color: #fb9b7d;
+  border-radius: 999px;
+  animation: session-spin 920ms linear infinite;
+}
+
+.session-loader::after {
+  position: absolute;
+  inset: 13px;
+  border-radius: 999px;
+  background: #fff1eb;
+  box-shadow: 0 0 0 8px rgba(230, 83, 50, 0.07);
+  content: "";
+}
+
+.session-loader svg {
+  position: relative;
+  z-index: 1;
+  width: 40px;
+  height: 40px;
+  stroke-width: 2.3;
+}
+
+.session-expired-copy {
+  display: grid;
+  gap: 8px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #c2410c;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+}
+
+.session-expired-copy h2 {
+  margin: 0;
+  color: #172033;
+  font-size: clamp(25px, 5vw, 31px);
+  font-weight: 850;
+  line-height: 1.1;
+}
+
+.session-expired-copy > p:last-child {
+  max-width: 340px;
+  margin: 0;
+  color: #667085;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.redirect-status {
+  width: min(100%, 330px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid #fde1d5;
+  border-radius: 10px;
+  background: #fff4ee;
+  padding: 11px 13px 11px 15px;
+  color: #93422d;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.redirect-status strong {
+  display: grid;
+  min-width: 42px;
+  height: 32px;
+  place-items: center;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #d84320;
+  font-size: 14px;
+}
+
+.login-button {
+  width: min(100%, 330px);
+  min-height: 50px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 0;
+  border-radius: 9px;
+  background: #d94120;
+  box-shadow: 0 15px 28px rgba(217, 65, 32, 0.24);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 850;
+  transition: background 150ms ease, transform 150ms ease;
+}
+
+.login-button:hover {
+  background: #bd3119;
+}
+
+.login-button:active {
+  transform: translateY(1px);
+}
+
+.login-button svg {
+  width: 19px;
+  height: 19px;
+}
+
+@keyframes session-expired-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes session-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 480px) {
+  .session-expired-box {
+    width: min(100vw - 24px, 460px);
+    min-height: auto;
+    gap: 18px;
+    padding: 30px 20px 22px;
+  }
+
+  .session-loader {
+    width: 86px;
+    height: 86px;
+  }
+
+  .session-loader svg {
+    width: 35px;
+    height: 35px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .session-expired-box,
+  .session-loader-ring {
+    animation: none;
+  }
+}
+
+/* ===== Tema oscuro ===== */
+:host-context([data-theme='dark']) {
+  .session-expired-box { background: var(--app-surface); border-color: rgba(251, 146, 60, 0.3); }
+  .session-loader-ring { border-color: rgba(251, 146, 60, 0.2); border-top-color: #e65332; border-right-color: #fb9b7d; }
+  .session-loader::after { background: rgba(251, 146, 60, 0.14); }
+  .eyebrow { color: #fdba74; }
+  .session-expired-copy h2 { color: var(--app-heading); }
+  .session-expired-copy > p:last-child { color: var(--app-muted); }
+  .redirect-status { border-color: rgba(251, 146, 60, 0.3); background: rgba(251, 146, 60, 0.1); color: #fdba74; }
+  .redirect-status strong { background: var(--app-surface-3); color: #fb923c; }
+}

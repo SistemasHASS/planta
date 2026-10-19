@@ -1,69 +1,65 @@
-<div class="login-page">
-  <div class="login-container">
-    <div class="login-card">
-      <div class="login-header">
-        <div class="login-logo d-flex justify-content-center">
-          <!-- <div class="login-logo-icon"> -->
-          <img src="/images/favicon.svg" height="80px" alt="Planta">
-          <!-- </div> -->
-        </div>
-        <div class="login-brand">Sistema de Empaque Planta</div>
-        <div class="login-subtitle">Hass Perú · Control & Operaciones</div>
-        <p>Ingresa tus credenciales</p>
-      </div>
-
-      <div class="login-body">
-        @if (errorMsg()) {
-          <div class="alert alert-danger d-flex align-items-center" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <div>{{ errorMsg() }}</div>
-          </div>
-        }
-
-        <form [formGroup]="form" (ngSubmit)="onSubmit()">
-          <div class="mb-3">
-            <label for="usuario" class="form-label">Usuario</label>
-            <div class="input-with-icon">
-              <i class="bi bi-person"></i>
-              <input type="text" class="form-control" id="usuario" formControlName="usuario"
-                     placeholder="Ingresa tu usuario" autocomplete="username">
-            </div>
-          </div>
-          <div class="mb-4">
-            <label for="password" class="form-label">Contraseña</label>
-            <div class="password-field">
-              <i class="bi bi-shield-lock"></i>
-              <input
-                [type]="showPassword() ? 'text' : 'password'"
-                class="form-control"
-                id="password"
-                formControlName="password"
-                placeholder="Ingresa tu contraseña"
-                autocomplete="current-password"
-              >
-              <button
-                type="button"
-                class="btn btn-password-toggle"
-                (click)="togglePasswordVisibility()"
-                [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-              >
-                <i class="bi" [class.bi-eye]="!showPassword()" [class.bi-eye-slash]="showPassword()"></i>
-              </button>
-            </div>
-          </div>
-          <button type="submit" class="btn-login" [disabled]="loading()">
-            @if (loading()) {
-              <span class="spinner-border spinner-border-sm me-1"></span> Ingresando...
-            } @else {
-              <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
-            }
-          </button>
-        </form>
-      </div>
+<main class="grid min-h-screen place-items-center bg-[radial-gradient(circle_at_top,_#eef4ff,_#dfe8f6_56%,_#edf2fb)] dark:bg-[radial-gradient(circle_at_top,_#14213d,_#0a101d_60%,_#060b15)] px-5 py-8">
+  <section class="w-full max-w-[496px] rounded-2xl border border-white/80 bg-app-surface dark:border-app-border2 px-7 py-9 shadow-[0_24px_70px_rgba(37,99,235,0.18)] dark:shadow-[0_24px_70px_rgba(0,0,0,0.55)] sm:px-10">
+    <div class="mb-7 text-center">
+      <img class="mx-auto mb-4 h-[72px] w-[72px]" src="assets/logo.svg" alt="Logo" />
+      <h1 class="text-4xl font-extrabold tracking-normal text-blue-600 dark:text-primary">Sistema de Empaque Planta</h1>
+      <p class="mt-3 text-base text-app-muted">Ingrese sus credenciales para acceder</p>
     </div>
 
-    <p class="login-footer-text">
-      &copy; {{ currentYear }} Planta - Hass Perú
-    </p>
-  </div>
-</div>
+    @if (!network.online()) {
+      <div class="alert alert-warning mb-5 rounded-lg text-sm">
+        Sin internet. El primer inicio de sesion debe ser online.
+      </div>
+    }
+
+    @if (errorMessage()) {
+      <div class="alert alert-error mb-5 rounded-lg text-sm text-white">
+        {{ errorMessage() }}
+      </div>
+    }
+
+    <form class="space-y-5" [formGroup]="form" (ngSubmit)="submit()">
+      <label class="form-control w-full">
+        <span class="label pb-2 text-xs font-bold uppercase tracking-normal text-app-text">Usuario</span>
+        <div class="relative">
+          <svg lucideUser class="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-app-muted" ></svg>
+          <input class="input input-bordered h-12 w-full rounded-xl border-blue-200 bg-app-surface dark:border-app-border2 dark:bg-app-surface2 pl-12 text-app-heading focus:border-blue-500 focus:outline-none" formControlName="usuario" autocomplete="username" placeholder="Usuario" />
+        </div>
+        <span class="label pt-2 text-xs text-app-muted">Use su documento o codigo de usuario</span>
+      </label>
+
+      <label class="form-control w-full">
+        <span class="label pb-2 text-xs font-bold uppercase tracking-normal text-app-text">Contrasena</span>
+        <div class="relative">
+          <svg lucideLock class="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-app-muted" ></svg>
+          <input class="input input-bordered h-12 w-full rounded-xl border-blue-200 bg-app-surface dark:border-app-border2 dark:bg-app-surface2 pl-12 pr-12 text-app-heading focus:border-blue-500 focus:outline-none" formControlName="password" [type]="passwordType()" autocomplete="current-password" placeholder="Ingrese su contrasena" />
+          <button class="btn btn-ghost btn-sm absolute right-2 top-1/2 min-h-0 -translate-y-1/2 rounded-lg p-2" type="button" (click)="showPassword.update(value => !value)" aria-label="Mostrar u ocultar contrasena">
+            @if (showPassword()) {
+              <svg lucideEyeOff class="h-5 w-5 text-app-muted" ></svg>
+            } @else {
+              <svg lucideEye class="h-5 w-5 text-app-muted" ></svg>
+            }
+          </button>
+        </div>
+        <span class="label pt-2 text-xs text-app-muted">Minimo 6 caracteres</span>
+      </label>
+
+      <label class="flex items-center gap-3 text-sm font-medium text-app-text2">
+        <input class="checkbox checkbox-primary checkbox-sm rounded" type="checkbox" [checked]="showPassword()" (change)="showPassword.update(value => !value)" />
+        Mostrar contrasena
+      </label>
+
+      <button class="btn h-12 w-full rounded-xl border-0 bg-blue-600 text-white shadow-[0_16px_30px_rgba(37,99,235,0.30)] hover:bg-blue-700 dark:bg-primary dark:text-primary-content dark:shadow-[0_16px_30px_rgba(0,0,0,0.4)] dark:hover:bg-primary/90" type="submit" [disabled]="loading() || form.invalid || !network.online()">
+        @if (loading()) {
+          <span class="loading loading-spinner loading-sm"></span>
+          Ingresando
+        } @else {
+          <svg lucideLogIn class="h-4 w-4" ></svg>
+          Ingresar
+        }
+      </button>
+    </form>
+
+    <p class="mt-7 text-center text-sm text-app-subtle">Version {{ appVersion }}</p>
+  </section>
+</main>

@@ -1,46 +1,76 @@
-# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+# =====================================================================
+# .gitignore del frontend PLANTA (Angular + Tailwind + daisyUI + Dexie PWA)
+# =====================================================================
 
-# Compiled output
-/dist
-/tmp
-/out-tsc
-/bazel-out
+# ---------- Dependencias ----------
+/node_modules/
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
-# Node
-/node_modules
-npm-debug.log
-yarn-error.log
+# ---------- Compilacion y cache de Angular ----------
+/dist/
+/out-tsc/
+/tmp/
+/.angular/
+/.sass-cache/
+*.tsbuildinfo
 
-# IDEs and editors
+# ---------- Archivos generados al arrancar / compilar ----------
+# Los crea scripts/generate-version.js (prestart / prebuild) a partir de la "version" del package.json.
+/src/app/version.ts
+/public/sw-version.js
+
+# ---------- Pruebas y cobertura ----------
+/coverage/
+/.nyc_output/
+/cypress/videos/
+/cypress/screenshots/
+/playwright-report/
+/test-results/
+
+# ---------- Variables de entorno y secretos ----------
+# Configuracion propia de cada equipo / servidor (URL de la API, etc.): NO se versiona.
+# Lo que si se sube son las plantillas *.example.ts (copiarlas como environment.ts y environment.prod.ts).
+/src/environments/environment.ts
+/src/environments/environment.prod.ts
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+
+# ---------- Logs ----------
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+
+# ---------- Editor / IDE ----------
 .idea/
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
-
-# Visual Studio Code
 .vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
 !.vscode/extensions.json
-.history/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+*.sublime-workspace
+*.swp
+*.swo
+*~
 
-# Miscellaneous
-/.angular/cache
-.sass-cache/
-/connect.lock
-/coverage
-/libpeerconnection.log
-testem.log
-/typings
-__screenshots__/
-
-# System files
+# ---------- Sistema operativo / sistema de archivos ----------
 .DS_Store
 Thumbs.db
+desktop.ini
+.fuse_hidden*
 
-# AI assistant files
-.devin/
+# ---------- Varios ----------
+*.bak
+*.tmp
+.claude/

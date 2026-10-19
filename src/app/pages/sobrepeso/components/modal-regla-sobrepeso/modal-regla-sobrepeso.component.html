@@ -1,0 +1,98 @@
+<div class="modal modal-open" role="dialog" aria-modal="true">
+  <div class="modal-box flex w-full !max-h-full !max-w-3xl flex-col gap-0 overflow-hidden p-0">
+
+    <!-- Cabecera -->
+    <div class="flex items-center justify-between gap-3 border-b border-app-border2 px-4 py-1.5 sm:px-5">
+      <div class="flex min-w-0 items-center gap-3">
+        <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md">
+          <svg lucideGauge class="size-5"></svg>
+        </span>
+        <div class="min-w-0">
+          <span class="text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Reglas de sobrepeso</span>
+          <h3 class="truncate text-base font-extrabold leading-tight text-app-heading sm:text-lg">{{ esNueva() ? 'Nueva regla' : 'Editar regla' }}</h3>
+        </div>
+      </div>
+      <button type="button" class="btn btn-circle btn-ghost size-10 min-h-10 sm:size-8 sm:min-h-8" aria-label="Cerrar" (click)="closed.emit()"><svg lucideX class="size-4"></svg></button>
+    </div>
+
+    <!-- Cuerpo (con scroll) -->
+    <div class="min-h-0 flex-1 space-y-3 overflow-y-auto bg-app-surface2 px-3 pb-3 pt-2 sm:px-5 sm:pb-5 sm:pt-2.5">
+
+      <!-- A qué se aplica -->
+      <section class="rounded-2xl border border-tint-sky-border bg-tint-sky px-4 py-3">
+        <h4 class="mb-2 text-xs font-bold uppercase tracking-wide text-sky-800 dark:text-sky-300">A qué se aplica</h4>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div class="min-w-0 sm:col-span-2">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Consignatario <span class="text-rose-600 dark:text-rose-300">*</span></span>
+            <app-search-select placeholder="— Seleccionar —" [options]="optConsignatarios()" [value]="documentoConsignatario()" (selected)="documentoConsignatario.set($event.value)" />
+            @if (intento() && !documentoConsignatario()) { <span class="mt-1 block text-xs text-rose-600 dark:text-rose-300">Requerido</span> }
+          </div>
+          <div class="min-w-0">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Formato <span class="text-rose-600 dark:text-rose-300">*</span></span>
+            <app-search-select placeholder="— Seleccionar —" [options]="optFormatos()" [value]="formatoId()" (selected)="formatoId.set($event.value)" />
+            @if (intento() && !formatoId()) { <span class="mt-1 block text-xs text-rose-600 dark:text-rose-300">Requerido</span> }
+          </div>
+          <div class="min-w-0">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Destino <span class="text-rose-600 dark:text-rose-300">*</span></span>
+            <app-search-select placeholder="— Seleccionar —" [options]="optDestinos()" [value]="destinoId()" (selected)="destinoId.set($event.value)" />
+            @if (intento() && !destinoId()) { <span class="mt-1 block text-xs text-rose-600 dark:text-rose-300">Requerido</span> }
+          </div>
+          <div class="min-w-0">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Transporte <span class="text-rose-600 dark:text-rose-300">*</span></span>
+            <app-search-select placeholder="— Seleccionar —" [options]="optTransportes()" [value]="transporteId()" (selected)="transporteId.set($event.value)" />
+            @if (intento() && !transporteId()) { <span class="mt-1 block text-xs text-rose-600 dark:text-rose-300">Requerido</span> }
+          </div>
+        </div>
+      </section>
+
+      <!-- Porcentaje -->
+      <section class="rounded-2xl border border-tint-emerald-border bg-tint-emerald px-4 py-3">
+        <h4 class="mb-2 text-xs font-bold uppercase tracking-wide text-emerald-800 dark:text-emerald-300">Sobrepeso</h4>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="block">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Porcentaje (decimal) <span class="text-rose-600 dark:text-rose-300">*</span></span>
+            <input type="text" inputmode="decimal" class="h-[42px] w-full rounded-[9px] border bg-app-surface px-3 text-[16px] outline-none placeholder:text-app-subtle focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/25 sm:text-[14px]" [class.border-app-border2]="!intento() || porcentajeNumero() !== null" [class.border-rose-400]="intento() && porcentajeNumero() === null" placeholder="Ej: 0.0200 = 2%" [ngModel]="porcentaje()" (ngModelChange)="porcentaje.set($event)" />
+            @if (porcentajeNumero() !== null) {
+              <span class="mt-1 block text-xs font-semibold text-emerald-700 dark:text-emerald-300">= {{ (porcentajeNumero()! * 100).toFixed(2) }}%</span>
+            } @else if (intento()) {
+              <span class="mt-1 block text-xs text-rose-600 dark:text-rose-300">Escribe un decimal válido (ej: 0.0200)</span>
+            } @else {
+              <span class="mt-1 block text-xs text-app-muted">Ej: 0.0200 = 2%, 0.0350 = 3.5%</span>
+            }
+          </label>
+          <label class="block">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Descripción</span>
+            <input type="text" class="h-[42px] w-full rounded-[9px] border border-app-border2 bg-app-surface px-3 text-[16px] outline-none placeholder:text-app-subtle focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/25 sm:text-[14px]" placeholder="Nota opcional" maxlength="200" [ngModel]="descripcion()" (ngModelChange)="descripcion.set($event)" />
+          </label>
+        </div>
+      </section>
+
+      <!-- Vigencia y estado -->
+      <section class="rounded-2xl border border-violet-200 bg-violet-50/50 dark:border-violet-500/30 dark:bg-violet-500/10 px-4 py-3">
+        <h4 class="mb-2 text-xs font-bold uppercase tracking-wide text-violet-800 dark:text-violet-300">Vigencia</h4>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="block">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Desde</span>
+            <input type="date" class="h-[42px] w-full rounded-[9px] border border-app-border2 bg-app-surface px-3 text-[16px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/25 sm:text-[14px]" [ngModel]="vigenciaDesde()" (ngModelChange)="vigenciaDesde.set($event)" />
+          </label>
+          <label class="block">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Hasta</span>
+            <input type="date" class="h-[42px] w-full rounded-[9px] border bg-app-surface px-3 text-[16px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/25 sm:text-[14px]" [class.border-app-border2]="!rangoInvalido()" [class.border-rose-400]="rangoInvalido()" [ngModel]="vigenciaHasta()" (ngModelChange)="vigenciaHasta.set($event)" />
+            @if (rangoInvalido()) { <span class="mt-1 block text-xs text-rose-600 dark:text-rose-300">La fecha final no puede ser anterior a la inicial</span> }
+          </label>
+        </div>
+        <label class="mt-3 flex cursor-pointer items-center gap-3">
+          <input type="checkbox" class="checkbox checkbox-success checkbox-sm" [checked]="activo()" (change)="activo.set($any($event.target).checked)" />
+          <span class="text-sm font-semibold text-app-heading">Regla activa</span>
+        </label>
+      </section>
+    </div>
+
+    <!-- Pie -->
+    <div class="flex justify-end gap-2 border-t border-app-border2 bg-app-surface px-4 py-2.5 sm:px-5">
+      <button type="button" class="btn btn-sm btn-ghost" (click)="closed.emit()">Cancelar</button>
+      <button type="button" class="btn btn-sm btn-primary" [disabled]="!hayCambios() || cargando()" (click)="guardar()"><svg lucideSave class="size-4"></svg> {{ esNueva() ? 'Crear regla' : 'Guardar cambios' }}</button>
+    </div>
+  </div>
+  <div class="modal-backdrop bg-black/40" (click)="closed.emit()"></div>
+</div>

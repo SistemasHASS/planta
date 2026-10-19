@@ -1,54 +1,37 @@
 {
-  "name": "palets-front",
-  "version": "1.1.3",
+  "name": "planta-app",
+  "version": "1.0.0",
+  "private": true,
   "scripts": {
-    "ng": "ng",
-    "start": "ng serve",
+    "start": "ng serve --port 4200",
+    "prestart": "node scripts/generate-version.js",
     "build": "ng build",
     "prebuild": "node scripts/generate-version.js",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "watch": "ng build --watch --configuration development"
   },
-  "prettier": {
-    "printWidth": 100,
-    "singleQuote": true,
-    "overrides": [
-      {
-        "files": "*.html",
-        "options": {
-          "parser": "angular"
-        }
-      }
-    ]
-  },
-  "private": true,
   "dependencies": {
-    "@angular/common": "^21.0.0",
-    "@angular/compiler": "^21.0.0",
-    "@angular/core": "^21.0.0",
-    "@angular/forms": "^21.0.0",
-    "@angular/platform-browser": "^21.0.0",
-    "@angular/router": "^21.0.0",
-    "@angular/service-worker": "^21.2.16",
-    "chart.js": "^4.5.1",
-    "dexie": "^4.4.2",
-    "html2canvas": "^1.4.1",
-    "moment": "^2.30.1",
+    "@angular/animations": "^21.1.0",
+    "@angular/common": "^21.1.0",
+    "@angular/compiler": "^21.1.0",
+    "@angular/core": "^21.1.0",
+    "@angular/forms": "^21.1.0",
+    "@angular/platform-browser": "^21.1.0",
+    "@angular/router": "^21.1.0",
+    "@lucide/angular": "^1.32.0",
+    "dexie": "^4.0.11",
+    "highcharts": "^12.0.0",
+    "html2canvas-pro": "^1.5.8",
     "rxjs": "~7.8.0",
-    "sweetalert2": "^11.26.24",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "zone.js": "^0.16.2"
   },
   "devDependencies": {
-    "@angular/build": "^21.0.0",
-    "@angular/cli": "^21.0.0",
-    "@angular/compiler-cli": "^21.0.0",
-    "@types/jasmine": "~5.1.0",
-    "jasmine-core": "~5.9.0",
-    "karma": "~6.4.0",
-    "karma-chrome-launcher": "~3.2.0",
-    "karma-coverage": "~2.2.0",
-    "karma-jasmine": "~5.1.0",
-    "karma-jasmine-html-reporter": "~2.1.0",
+    "@angular/build": "^21.1.3",
+    "@angular/cli": "^21.1.3",
+    "@angular/compiler-cli": "^21.1.0",
+    "autoprefixer": "^10.4.20",
+    "daisyui": "^4.12.24",
+    "tailwindcss": "^3.4.17",
     "typescript": "~5.9.2"
   }
 }

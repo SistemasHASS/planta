@@ -1,55 +1,62 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { LucideArrowLeft, LucideClipboardCheck, LucideFilePlus, LucideFlag, LucideLoader, LucideX } from '@lucide/angular';
+import { portalToBody } from '../../../../shared/utils/portal';
+
+export type SiNo = 'si' | 'no';
 
 export interface InspeccionData {
   temperatura: number | null;
   numeroViaje: number | null;
   ultimoViaje: boolean;
-  libreOlores: 'si' | 'no';
-  libreInsectos: 'si' | 'no';
-  libreMateriasExtranas: 'si' | 'no';
-  unidadLimpia: 'si' | 'no';
+  libreOlores: SiNo;
+  libreInsectos: SiNo;
+  libreMateriasExtranas: SiNo;
+  unidadLimpia: SiNo;
   observaciones: string;
   medidaCorrectiva: string;
 }
 
+type ClavePregunta = 'libreOlores' | 'libreInsectos' | 'libreMaterias' | 'unidadLimpia';
+
+/**
+ * Segundo paso al crear una guia: inspeccion de la unidad de transporte. Solo muestra y valida; la guia la crea la pantalla Guias
+ * cuando recibe `confirmar`.
+ */
 @Component({
   selector: 'app-modal-inspeccion',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule, LucideArrowLeft, LucideClipboardCheck, LucideFilePlus, LucideFlag, LucideLoader, LucideX],
   templateUrl: './modal-inspeccion.component.html',
-  styleUrl: './modal-inspeccion.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ModalInspeccionComponent {
-  @Input() guiaPayload: any = null;
-  @Input() guardando = false;
+  constructor() {
+    portalToBody();
+  }
 
-  @Output() cerrar = new EventEmitter<void>();
-  @Output() atras = new EventEmitter<void>();
-  @Output() confirmar = new EventEmitter<{ guia: any; inspeccion: InspeccionData }>();
+  readonly guiaPayload = input<any>(null);
+  readonly guardando = input(false);
 
-  readonly temperatura = signal<string>('');
-  readonly numeroViaje = signal<string>('');
+  readonly cerrar = output<void>();
+  readonly atras = output<void>();
+  readonly confirmar = output<{ guia: any; inspeccion: InspeccionData }>();
+
+  readonly preguntas: { clave: ClavePregunta; texto: string }[] = [
+    { clave: 'libreOlores', texto: '¿Libre de olores extraños?' },
+    { clave: 'libreInsectos', texto: '¿Libre de insectos/plagas?' },
+    { clave: 'libreMaterias', texto: '¿Libre de materias extrañas/aceites/combustible?' },
+    { clave: 'unidadLimpia', texto: '¿Unidad limpia / buen estado?' },
+  ];
+
+  readonly temperatura = signal('');
+  readonly numeroViaje = signal('');
   readonly ultimoViaje = signal(false);
-
-  readonly libreOlores = signal<'si' | 'no'>('si');
-  readonly libreInsectos = signal<'si' | 'no'>('si');
-  readonly libreMaterias = signal<'si' | 'no'>('si');
-  readonly unidadLimpia = signal<'si' | 'no'>('si');
-
+  readonly respuestas = signal<Record<ClavePregunta, SiNo>>({ libreOlores: 'si', libreInsectos: 'si', libreMaterias: 'si', unidadLimpia: 'si' });
   readonly observaciones = signal('');
   readonly medidaCorrectiva = signal('');
-
   readonly submitAttempted = signal(false);
 
-  readonly hayAlgunoNo = computed(() => {
-    return this.libreOlores() === 'no' ||
-           this.libreInsectos() === 'no' ||
-           this.libreMaterias() === 'no' ||
-           this.unidadLimpia() === 'no';
-  });
+  readonly hayAlgunoNo = computed(() => Object.values(this.respuestas()).includes('no'));
 
   readonly temperaturaNum = computed(() => {
     const v = parseFloat(this.temperatura());
@@ -62,59 +69,58 @@ export class ModalInspeccionComponent {
   });
 
   readonly isValid = computed(() => {
-    if (this.temperaturaNum() === null) return false;
-    if (this.numeroViajeNum() === null) return false;
-    if (this.hayAlgunoNo()) {
-      if (!this.observaciones().trim()) return false;
-      if (!this.medidaCorrectiva().trim()) return false;
-    }
+    if (this.temperaturaNum() === null || this.numeroViajeNum() === null) return false;
+    if (this.hayAlgunoNo()) return !!this.observaciones().trim() && !!this.medidaCorrectiva().trim();
     return true;
   });
 
+  responder(clave: ClavePregunta, valor: SiNo): void {
+    this.respuestas.update((r) => ({ ...r, [clave]: valor }));
+  }
+
   onCerrar(): void {
-    if (this.guardando) return;
-    this.cerrar.emit();
+    if (!this.guardando()) this.cerrar.emit();
   }
 
   onAtras(): void {
-    if (this.guardando) return;
-    this.atras.emit();
+    if (!this.guardando()) this.atras.emit();
   }
 
   onConfirmar(): void {
-    if (this.guardando) return;
-
+    if (this.guardando()) return;
     this.submitAttempted.set(true);
     if (!this.isValid()) return;
 
-    const inspeccion: InspeccionData = {
-      temperatura: this.temperaturaNum(),
-      numeroViaje: this.numeroViajeNum(),
-      ultimoViaje: this.ultimoViaje(),
-      libreOlores: this.libreOlores(),
-      libreInsectos: this.libreInsectos(),
-      libreMateriasExtranas: this.libreMaterias(),
-      unidadLimpia: this.unidadLimpia(),
-      observaciones: this.observaciones().trim(),
-      medidaCorrectiva: this.medidaCorrectiva().trim(),
-    };
-
-    this.confirmar.emit({ guia: this.guiaPayload, inspeccion });
+    const r = this.respuestas();
+    this.confirmar.emit({
+      guia: this.guiaPayload(),
+      inspeccion: {
+        temperatura: this.temperaturaNum(),
+        numeroViaje: this.numeroViajeNum(),
+        ultimoViaje: this.ultimoViaje(),
+        libreOlores: r.libreOlores,
+        libreInsectos: r.libreInsectos,
+        libreMateriasExtranas: r.libreMaterias,
+        unidadLimpia: r.unidadLimpia,
+        observaciones: this.observaciones().trim(),
+        medidaCorrectiva: this.medidaCorrectiva().trim(),
+      },
+    });
   }
 
-  isInvalidTemperatura(): boolean {
+  invalidTemperatura(): boolean {
     return this.submitAttempted() && this.temperaturaNum() === null;
   }
 
-  isInvalidNumeroViaje(): boolean {
+  invalidNumeroViaje(): boolean {
     return this.submitAttempted() && this.numeroViajeNum() === null;
   }
 
-  isInvalidObservaciones(): boolean {
+  invalidObservaciones(): boolean {
     return this.submitAttempted() && this.hayAlgunoNo() && !this.observaciones().trim();
   }
 
-  isInvalidMedida(): boolean {
+  invalidMedida(): boolean {
     return this.submitAttempted() && this.hayAlgunoNo() && !this.medidaCorrectiva().trim();
   }
 }

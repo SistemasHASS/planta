@@ -1,0 +1,40 @@
+<div class="modal modal-open" role="dialog" aria-modal="true">
+  <div class="modal-box flex h-full w-full !max-h-full !max-w-5xl flex-col gap-0 overflow-hidden p-0">
+
+    <!-- Cabecera -->
+    <div class="flex items-center justify-between gap-3 border-b border-app-border2 px-4 py-1.5 sm:px-5">
+      <div class="flex min-w-0 items-center gap-3">
+        <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-rose-500 to-rose-700 text-white shadow-md">
+          <svg lucideFileText class="size-5"></svg>
+        </span>
+        <div class="min-w-0">
+          <span class="text-[11px] font-bold uppercase tracking-widest text-rose-700 dark:text-rose-300">Documento SUNAT</span>
+          <h3 class="truncate text-base font-extrabold leading-tight text-app-heading sm:text-lg">Guía de remisión (PDF)</h3>
+        </div>
+      </div>
+      <div class="flex shrink-0 items-center gap-2">
+        <a class="btn btn-primary btn-sm" [href]="url()" target="_blank" rel="noopener" download><svg lucideDownload class="size-4"></svg> <span class="hidden sm:inline">Descargar</span></a>
+        <button type="button" class="btn btn-circle btn-ghost size-10 min-h-10 sm:size-8 sm:min-h-8" aria-label="Cerrar" (click)="closed.emit()"><svg lucideX class="size-4"></svg></button>
+      </div>
+    </div>
+
+    <!-- PDF -->
+    <div class="relative min-h-0 flex-1 bg-app-surface3">
+      @if (cargando()) {
+        <div class="absolute inset-0 grid place-items-center">
+          <div class="flex flex-col items-center gap-2 text-sm text-app-muted">
+            <span class="loading loading-spinner loading-lg text-primary"></span>
+            Cargando documento...
+          </div>
+        </div>
+      }
+      <iframe [src]="urlSegura()" class="size-full border-0" [class.invisible]="cargando()" title="PDF SUNAT" (load)="alTerminarDeCargar()"></iframe>
+    </div>
+
+    <!-- Pie -->
+    <div class="flex justify-end border-t border-app-border2 bg-app-surface px-4 py-2.5 sm:px-5">
+      <button type="button" class="btn btn-sm" (click)="closed.emit()"><svg lucideX class="size-4"></svg> Cerrar</button>
+    </div>
+  </div>
+  <div class="modal-backdrop bg-black/40" (click)="closed.emit()"></div>
+</div>

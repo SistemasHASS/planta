@@ -1,24 +1,15 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZonelessChangeDetection, isDevMode } from '@angular/core';
-import { provideRouter, withComponentInputBinding, withHashLocation } from '@angular/router';
-import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
-import { provideServiceWorker } from '@angular/service-worker';
-import { appRoutes } from './app.routes';
-import { auth401Interceptor } from './shared/interceptors/auth-401.interceptor';
-import { auth403Interceptor } from './shared/interceptors/resp-403.interceptor';
+import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
+import { provideRouter, withHashLocation } from '@angular/router';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { routes } from './app.routes';
+import { authInterceptor } from './shared/interceptors/auth.interceptor';
 import { connectivityInterceptor } from './shared/interceptors/connectivity.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideZonelessChangeDetection(),
-    provideRouter(appRoutes, withHashLocation(), withComponentInputBinding()),
-    provideHttpClient(
-          withFetch(),
-          withInterceptors([connectivityInterceptor, auth401Interceptor, auth403Interceptor])
-        ),
-    provideServiceWorker('ngsw-worker.js', {
-      enabled: !isDevMode(),
-      registrationStrategy: 'registerWhenStable:30000',
-    }),
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideRouter(routes, withHashLocation()),
+    provideHttpClient(withInterceptors([connectivityInterceptor, authInterceptor]))
   ]
 };

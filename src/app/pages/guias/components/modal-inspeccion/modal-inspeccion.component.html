@@ -1,138 +1,75 @@
-<div class="modal-backdrop-custom" (click)="onCerrar()"></div>
-
-<div class="modal-custom" role="dialog" aria-modal="true">
-  <div class="modal-header-custom" style="background: linear-gradient(135deg, var(--color-primary) 0%, #5a4ad1 100%);">
-    <h3 class="modal-title"><i class="bi bi-clipboard-check"></i> Parámetros de Inspección</h3>
-    <button type="button" class="modal-close inspection-close" [disabled]="guardando" (click)="onCerrar()" aria-label="Cerrar">
-      <i class="bi bi-x-lg"></i>
-    </button>
-  </div>
-
-  <div class="modal-body-custom">
-    <p class="text-muted small mb-3">Complete la inspección de la unidad de transporte. Estos datos se registrarán en el formato de despacho de producto terminado.</p>
-
-    <div class="row">
-      <div class="col-6 mb-3">
-        <label class="form-label fw-bold">Temperatura (°C) <span class="text-danger">*</span></label>
-        <input type="number" step="0.1" class="form-control" [class.is-invalid]="isInvalidTemperatura()"
-               [ngModel]="temperatura()" (ngModelChange)="temperatura.set($event)" placeholder="Ej: 18.4">
-        @if (isInvalidTemperatura()) {
-          <div class="invalid-feedback d-block">Requerido</div>
-        }
-      </div>
-      <div class="col-6 mb-3">
-        <label class="form-label fw-bold">N° de Viaje <span class="text-danger">*</span></label>
-        <input type="number" min="1" class="form-control" [class.is-invalid]="isInvalidNumeroViaje()"
-               [ngModel]="numeroViaje()" (ngModelChange)="numeroViaje.set($event)" placeholder="Ej: 1, 2, 3...">
-        @if (isInvalidNumeroViaje()) {
-          <div class="invalid-feedback d-block">Requerido</div>
-        }
-      </div>
+<div class="modal modal-open" role="dialog" aria-modal="true">
+  <div class="modal-box w-full max-w-lg p-4 sm:p-6">
+    <div class="mb-3 flex items-center justify-between gap-2">
+      <h3 class="flex items-center gap-2 text-lg font-extrabold text-app-heading">
+        <svg lucideClipboardCheck class="size-5 text-primary"></svg>
+        Parámetros de inspección
+      </h3>
+      <button type="button" class="btn btn-sm btn-circle btn-ghost" aria-label="Cerrar" [disabled]="guardando()" (click)="onCerrar()"><svg lucideX class="size-4"></svg></button>
     </div>
 
-    <div class="mb-3">
-      <div class="form-check form-switch">
-        <input class="form-check-input" type="checkbox" role="switch" id="chkUltimoViaje"
-               [ngModel]="ultimoViaje()" (ngModelChange)="ultimoViaje.set($event)">
-        <label class="form-check-label fw-bold" for="chkUltimoViaje">
-          <i class="bi bi-flag-fill text-danger"></i> Último Viaje
-        </label>
-        <small class="text-muted d-block">Al marcar esta opción, se cerrará automáticamente el proceso de este acopio y turno.</small>
-      </div>
+    <p class="mb-3 text-sm text-app-muted">Complete la inspección de la unidad de transporte. Estos datos se registrarán en el formato de despacho de producto terminado.</p>
+
+    <div class="grid grid-cols-2 gap-3">
+      <label class="form-control">
+        <span class="mb-1 text-sm font-semibold text-app-text">Temperatura (°C) <span class="text-error">*</span></span>
+        <input type="number" inputmode="decimal" step="0.1" class="input input-bordered w-full" [class.input-error]="invalidTemperatura()" [ngModel]="temperatura()" (ngModelChange)="temperatura.set($event)" placeholder="Ej: 18.4" />
+        @if (invalidTemperatura()) { <small class="text-error">Requerido</small> }
+      </label>
+      <label class="form-control">
+        <span class="mb-1 text-sm font-semibold text-app-text">N° de viaje <span class="text-error">*</span></span>
+        <input type="number" inputmode="numeric" min="1" class="input input-bordered w-full" [class.input-error]="invalidNumeroViaje()" [ngModel]="numeroViaje()" (ngModelChange)="numeroViaje.set($event)" placeholder="Ej: 1, 2, 3..." />
+        @if (invalidNumeroViaje()) { <small class="text-error">Requerido</small> }
+      </label>
     </div>
 
-    <hr>
-    <p class="fw-bold mb-2">Inspección de la unidad de transporte:</p>
-
-    <div class="mb-2">
-      <label class="form-label small">¿Libre de olores extraños?</label>
-      <div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="libreOlores" value="si" [ngModel]="libreOlores()" (ngModelChange)="libreOlores.set($event)">
-          <label class="form-check-label">Sí</label>
-        </div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="libreOlores" value="no" [ngModel]="libreOlores()" (ngModelChange)="libreOlores.set($event)">
-          <label class="form-check-label">No</label>
-        </div>
-      </div>
+    <div class="mt-3 rounded-xl border border-app-border2 p-3">
+      <label class="flex cursor-pointer items-center gap-3 text-sm font-semibold text-app-text">
+        <input type="checkbox" class="toggle toggle-error" [checked]="ultimoViaje()" (change)="ultimoViaje.set($any($event.target).checked)" />
+        <span class="flex items-center gap-1"><svg lucideFlag class="size-4 text-error"></svg> Último viaje</span>
+      </label>
+      <small class="mt-1 block text-app-muted">Al marcar esta opción, se cerrará automáticamente el proceso de este acopio y turno.</small>
     </div>
 
-    <div class="mb-2">
-      <label class="form-label small">¿Libre de insectos/plagas?</label>
-      <div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="libreInsectos" value="si" [ngModel]="libreInsectos()" (ngModelChange)="libreInsectos.set($event)">
-          <label class="form-check-label">Sí</label>
+    <p class="mb-2 mt-4 font-bold text-app-text">Inspección de la unidad de transporte:</p>
+    <div class="space-y-2">
+      @for (p of preguntas; track p.clave) {
+        <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-app-surface2 px-3 py-2">
+          <span class="text-sm text-app-text">{{ p.texto }}</span>
+          <div class="flex gap-4">
+            <label class="flex cursor-pointer items-center gap-1.5 text-sm font-semibold">
+              <input type="radio" class="radio radio-sm radio-success" [name]="p.clave" [checked]="respuestas()[p.clave] === 'si'" (change)="responder(p.clave, 'si')" /> Sí
+            </label>
+            <label class="flex cursor-pointer items-center gap-1.5 text-sm font-semibold">
+              <input type="radio" class="radio radio-sm radio-error" [name]="p.clave" [checked]="respuestas()[p.clave] === 'no'" (change)="responder(p.clave, 'no')" /> No
+            </label>
+          </div>
         </div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="libreInsectos" value="no" [ngModel]="libreInsectos()" (ngModelChange)="libreInsectos.set($event)">
-          <label class="form-check-label">No</label>
-        </div>
-      </div>
-    </div>
-
-    <div class="mb-2">
-      <label class="form-label small">¿Libre de materias extrañas/aceites/combustible?</label>
-      <div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="libreMaterias" value="si" [ngModel]="libreMaterias()" (ngModelChange)="libreMaterias.set($event)">
-          <label class="form-check-label">Sí</label>
-        </div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="libreMaterias" value="no" [ngModel]="libreMaterias()" (ngModelChange)="libreMaterias.set($event)">
-          <label class="form-check-label">No</label>
-        </div>
-      </div>
-    </div>
-
-    <div class="mb-2">
-      <label class="form-label small">¿Unidad limpia / buen estado?</label>
-      <div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="unidadLimpia" value="si" [ngModel]="unidadLimpia()" (ngModelChange)="unidadLimpia.set($event)">
-          <label class="form-check-label">Sí</label>
-        </div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="unidadLimpia" value="no" [ngModel]="unidadLimpia()" (ngModelChange)="unidadLimpia.set($event)">
-          <label class="form-check-label">No</label>
-        </div>
-      </div>
+      }
     </div>
 
     @if (hayAlgunoNo()) {
-      <hr>
-      <div class="mb-2">
-        <label class="form-label fw-bold text-danger">Observaciones <span class="text-danger">*</span></label>
-        <textarea class="form-control" rows="2" placeholder="Obligatorio si alguna inspección es No"
-                  [class.is-invalid]="isInvalidObservaciones()"
-                  [ngModel]="observaciones()" (ngModelChange)="observaciones.set($event)"></textarea>
-        @if (isInvalidObservaciones()) {
-          <div class="invalid-feedback d-block">Requerido</div>
-        }
-      </div>
-      <div class="mb-2">
-        <label class="form-label fw-bold text-danger">Medida correctiva <span class="text-danger">*</span></label>
-        <textarea class="form-control" rows="2" placeholder="Obligatorio si alguna inspección es No"
-                  [class.is-invalid]="isInvalidMedida()"
-                  [ngModel]="medidaCorrectiva()" (ngModelChange)="medidaCorrectiva.set($event)"></textarea>
-        @if (isInvalidMedida()) {
-          <div class="invalid-feedback d-block">Requerido</div>
-        }
+      <div class="mt-3 space-y-3">
+        <label class="form-control">
+          <span class="mb-1 text-sm font-bold text-error">Observaciones <span>*</span></span>
+          <textarea class="textarea textarea-bordered w-full" [class.textarea-error]="invalidObservaciones()" rows="2" placeholder="Obligatorio si alguna inspección es No" [ngModel]="observaciones()" (ngModelChange)="observaciones.set($event)"></textarea>
+          @if (invalidObservaciones()) { <small class="text-error">Requerido</small> }
+        </label>
+        <label class="form-control">
+          <span class="mb-1 text-sm font-bold text-error">Medida correctiva <span>*</span></span>
+          <textarea class="textarea textarea-bordered w-full" [class.textarea-error]="invalidMedida()" rows="2" placeholder="Obligatorio si alguna inspección es No" [ngModel]="medidaCorrectiva()" (ngModelChange)="medidaCorrectiva.set($event)"></textarea>
+          @if (invalidMedida()) { <small class="text-error">Requerido</small> }
+        </label>
       </div>
     }
-  </div>
 
-  <div class="modal-footer-custom">
-    <div class="footer-actions inspection-actions">
-      <button type="button" class="btn inspection-btn inspection-btn-back" [disabled]="guardando" (click)="onAtras()">
-        <i class="bi bi-arrow-left"></i> Atrás
-      </button>
-      <button type="button" class="btn inspection-btn inspection-btn-cancel" [disabled]="guardando" (click)="onCerrar()">Cancelar</button>
-      <button type="button" class="btn inspection-btn inspection-btn-confirm" [disabled]="guardando" (click)="onConfirmar()">
-        <i class="bi" [class.bi-hourglass-split]="guardando" [class.bi-file-earmark-plus]="!guardando"></i>
-        {{ guardando ? 'Creando...' : 'Confirmar y Crear Guía' }}
+    <div class="modal-action flex-col-reverse gap-2 sm:flex-row">
+      <button type="button" class="btn btn-ghost" [disabled]="guardando()" (click)="onAtras()"><svg lucideArrowLeft class="size-4"></svg> Atrás</button>
+      <button type="button" class="btn btn-ghost" [disabled]="guardando()" (click)="onCerrar()">Cancelar</button>
+      <button type="button" class="btn btn-primary" [disabled]="guardando()" (click)="onConfirmar()">
+        @if (guardando()) { <svg lucideLoader class="size-4 animate-spin"></svg> Creando... } @else { <svg lucideFilePlus class="size-4"></svg> Confirmar y crear guía }
       </button>
     </div>
   </div>
+  <div class="modal-backdrop bg-black/40" (click)="onCerrar()"></div>
 </div>

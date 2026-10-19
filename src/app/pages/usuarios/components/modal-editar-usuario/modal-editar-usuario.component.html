@@ -1,0 +1,57 @@
+<div class="modal modal-open" role="dialog" aria-modal="true">
+  <div class="modal-box flex w-full !max-h-full !max-w-xl flex-col gap-0 overflow-hidden p-0">
+
+    <!-- Cabecera -->
+    <div class="flex items-center justify-between gap-3 border-b border-app-border2 px-4 py-1.5 sm:px-5">
+      <div class="flex min-w-0 items-center gap-3">
+        <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md">
+          <svg lucideUser class="size-5"></svg>
+        </span>
+        <div class="min-w-0">
+          <span class="text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Editar usuario</span>
+          <h3 class="truncate text-base font-extrabold leading-tight text-app-heading sm:text-lg">{{ usuario().nombre }}</h3>
+        </div>
+      </div>
+      <button type="button" class="btn btn-circle btn-ghost size-10 min-h-10 sm:size-8 sm:min-h-8" aria-label="Cerrar" (click)="closed.emit()"><svg lucideX class="size-4"></svg></button>
+    </div>
+
+    <!-- Cuerpo (con scroll) -->
+    <div class="min-h-0 flex-1 space-y-3 overflow-y-auto bg-app-surface2 px-3 pb-3 pt-2 sm:px-5 sm:pb-5 sm:pt-2.5">
+
+      <!-- Franja del usuario -->
+      <section class="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-app-border2 bg-app-surface3 px-4 py-2.5 text-sm">
+        <span class="text-app-muted">Usuario <strong class="ml-1 text-app-heading">{{ usuario().usuario }}</strong></span>
+        <span class="text-app-muted">Documento <strong class="ml-1 text-app-heading">{{ usuario().documentoIdentidad }}</strong></span>
+        <span class="text-app-muted">Perfil <span class="badge badge-soft badge-info ml-1">{{ perfil() }}</span></span>
+        @if (hayCambios()) { <span class="badge badge-soft badge-warning">Cambios sin guardar</span> }
+      </section>
+
+      <!-- Acopio -->
+      <section class="rounded-2xl border border-tint-emerald-border bg-tint-emerald px-4 py-3">
+        <h4 class="mb-2 text-xs font-bold uppercase tracking-wide text-emerald-800 dark:text-emerald-300">Acopio asignado</h4>
+        <app-search-select placeholder="— Sin acopio —" [options]="opcionesAcopio()" [value]="codigoAcopio()" (selected)="codigoAcopio.set($event.value)" />
+        @if (!cargando() && acopios().length === 0) {
+          <p class="mt-2 text-xs text-amber-700 dark:text-amber-300">No hay acopios disponibles para la campaña elegida.</p>
+        }
+      </section>
+
+      <!-- Serie de guía (la define el acopio) -->
+      <section class="rounded-2xl border border-tint-sky-border bg-tint-sky px-4 py-3">
+        <h4 class="mb-2 text-xs font-bold uppercase tracking-wide text-sky-800 dark:text-sky-300">Serie de guía</h4>
+        @if (acopioElegido()?.serie) {
+          <span class="badge badge-soft badge-neutral font-mono">{{ acopioElegido()?.serie }}</span>
+        } @else {
+          <p class="text-sm text-app-muted">{{ acopioElegido() ? 'El acopio elegido no tiene serie configurada.' : 'Sin acopio no hay serie.' }}</p>
+        }
+        <p class="mt-2 text-xs text-app-muted">La serie sale de la configuración del acopio (Acopio configuración).</p>
+      </section>
+    </div>
+
+    <!-- Pie -->
+    <div class="flex justify-end gap-2 border-t border-app-border2 bg-app-surface px-4 py-2.5 sm:px-5">
+      <button type="button" class="btn btn-sm btn-ghost" (click)="closed.emit()">Cancelar</button>
+      <button type="button" class="btn btn-sm btn-primary" [disabled]="!hayCambios() || cargando()" (click)="guardar()"><svg lucideSave class="size-4"></svg> Guardar cambios</button>
+    </div>
+  </div>
+  <div class="modal-backdrop bg-black/40" (click)="closed.emit()"></div>
+</div>

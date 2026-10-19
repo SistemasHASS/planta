@@ -1,0 +1,56 @@
+@if (confirm.state().visible) {
+  <div
+    class="modal modal-open confirm-modal"
+    [class.is-danger]="confirm.state().tone === 'danger'"
+    [class.is-warning]="confirm.state().tone === 'warning'"
+    role="dialog"
+    aria-modal="true"
+    (click)="confirm.cancel()"
+  >
+    <div class="modal-box confirm-box" (click)="$event.stopPropagation()">
+      <button
+        type="button"
+        class="close-button"
+        aria-label="Cerrar"
+        (click)="confirm.cancel()"
+      >
+        <svg lucideX></svg>
+      </button>
+
+      <div class="icon-orbit" aria-hidden="true">
+        <span class="icon-halo"></span>
+        @if (confirm.state().tone === "danger") {
+          <svg lucideTrash2 class="confirm-icon"></svg>
+        } @else {
+          <svg lucideAlertTriangle class="confirm-icon"></svg>
+        }
+      </div>
+
+      <div class="confirm-copy">
+        <p class="eyebrow">{{ confirm.state().eyebrow }}</p>
+        <h2>{{ confirm.state().title }}</h2>
+        <p>{{ confirm.state().message }}</p>
+        @if (confirm.state().detail) {
+          <div class="detail-box">{{ confirm.state().detail }}</div>
+        }
+      </div>
+
+      <div class="confirm-actions">
+        <button
+          type="button"
+          class="btn cancel-button"
+          (click)="confirm.cancel()"
+        >
+          {{ confirm.state().cancelText }}
+        </button>
+        <button
+          type="button"
+          class="btn confirm-button"
+          (click)="confirm.accept()"
+        >
+          {{ confirm.state().confirmText }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

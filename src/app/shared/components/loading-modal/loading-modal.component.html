@@ -1,0 +1,24 @@
+@if (loading.state().visible) {
+  <div
+    class="modal modal-open loading-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-live="polite"
+  >
+    <div class="modal-box loading-box">
+      <div class="loading-brand" aria-hidden="true">
+        <span class="loading-ring"></span>
+        <img src="assets/logo.svg" alt="" />
+      </div>
+
+      <div class="loading-copy">
+        <p>{{ loading.state().message }}</p>
+        <span>Preparando informacion local</span>
+      </div>
+
+      <div class="loading-progress" aria-hidden="true">
+        <span></span>
+      </div>
+    </div>
+  </div>
+}

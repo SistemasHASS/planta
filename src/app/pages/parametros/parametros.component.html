@@ -1,122 +1,60 @@
-<div class="page-title-area">
-    <h2><i class="bi bi-sliders" style="color:var(--color-primary)"></i> Parametros</h2>
-    <p class="page-subtitle">Bienvenido, <strong>{{ nombreCompleto() }}</strong>
-        @if (usuario()?.acopioNombre) {
-        — {{ usuario()?.acopioNombre }} ({{ usuario()?.serieGuia }})
-        }
-    </p>
-</div>
+<section class="w-full space-y-5 p-4 sm:p-6">
+  <header class="flex items-center gap-3">
+    <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md">
+      <svg lucideSettings class="size-6"></svg>
+    </span>
+    <div class="min-w-0">
+      <h1 class="text-xl font-extrabold leading-tight text-app-heading sm:text-2xl">Parametros</h1>
+      <p class="text-sm text-app-muted">
+        Bienvenido, <strong>{{ usuario()?.nombre || usuario()?.usuario }}</strong>
+        @if (usuario()?.acopioNombre) { — {{ usuario()?.acopioNombre }} ({{ usuario()?.serieGuia }}) }
+      </p>
+    </div>
+  </header>
 
-<div class="sp-card" style="margin-bottom: 20px">
-  <div class="sp-card-body" style="padding:16px 20px">
-    <div class="row g-3 mt-2">
-      <div class="col-12 col-md-6">
-        <label class="form-label"><strong>Campaña</strong></label>
-        <app-advanced-select
-          table="campanias"
-          source="dexie"
-          placeholder="— Seleccionar campaña —"
-          idField="idproyecto"
-          [labelFields]="['idproyecto','descripcion']"
-          [disabled]="campanias().length === 0"
-          [value]="selectedCampaniaId()"
-          (valueChange)="onCampaniaChange($event)"
-        ></app-advanced-select>
-
-        @if (campanias().length === 0) {
-          <div class="text-muted mt-2" style="font-size:12px">
-            Primero sincroniza los catálogos con el botón <strong>Sincronizar</strong> para poder seleccionar una campaña.
-          </div>
-        }
-      </div>
+  <div class="space-y-4 rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm sm:p-5">
+    <div class="max-w-xl">
+      <app-search-select
+        label="Campaña"
+        placeholder="— Seleccionar campaña —"
+        [options]="opcionesCampania()"
+        [value]="campaniaId()"
+        (selected)="onCampania($event)"
+      />
+      @if (campanias().length === 0) {
+        <p class="mt-2 text-xs text-app-muted">Primero sincroniza con el botón <strong>Sincronizar</strong> para poder seleccionar una campaña.</p>
+      }
     </div>
 
-    @if (selectedCampania()) {
-      <div class="mt-3 p-3 rounded-3 border" style="background:#f8fbff; border-color:#d7e7ff !important">
-        <div class="d-flex align-items-center gap-2 mb-2">
-          <i class="bi bi-card-text" style="color:var(--color-primary)"></i>
-          <div style="font-weight:700">Detalle de campaña</div>
-        </div>
-        <div class="row g-3" style="font-size:13px">
-          <div class="col-12 col-md-6">
-            <div class="text-muted">Fundo</div>
-            <div><strong>{{ currentFundoLabel() }}</strong></div>
-          </div>
-          <div class="col-12 col-md-6">
-            <div class="text-muted">Cultivo</div>
-            <div><strong>{{ currentCultivoLabel() }}</strong></div>
-          </div>
-
-          <!-- <div class="col-12 col-md-3">
-            <div class="text-muted">Fruta</div>
-            <div><strong>{{ selectedCampania()?.fruta || '—' }}</strong></div>
-          </div> -->
-          <div class="col-12 col-md-6">
-            <div class="text-muted">Fecha inicio</div>
-            <div><strong>{{ formatDate(selectedCampania()?.fecha_inicio) }}</strong></div>
-          </div>
-          <div class="col-12 col-md-6">
-            <div class="text-muted">Fecha fin</div>
-            <div><strong>{{ formatDate(selectedCampania()?.fecha_fin) }}</strong></div>
-          </div>
-          <div class="col-12 col-md-6">
-            <div class="text-muted">Aplicación</div>
-            <div><strong>{{ selectedCampania()?.aplicacion || '—' }}</strong></div>
-          </div>
-
-          <!-- <div class="col-12 col-md-3">
-            <div class="text-muted">RUC</div>
-            <div><strong>{{ selectedCampania()?.ruc || '—' }}</strong></div>
-          </div> -->
-        </div>
+    @if (campaniaSeleccionada(); as c) {
+      <div class="rounded-xl border border-tint-sky-border bg-tint-sky p-4">
+        <h2 class="mb-3 text-sm font-bold text-app-heading">Detalle de campaña</h2>
+        <dl class="grid gap-3 text-sm sm:grid-cols-2">
+          <div><dt class="text-app-muted">Fundo</dt><dd class="font-bold text-app-heading">{{ etiquetaFundo() }}</dd></div>
+          <div><dt class="text-app-muted">Cultivo</dt><dd class="font-bold text-app-heading">{{ etiquetaCultivo() }}</dd></div>
+          <div><dt class="text-app-muted">Fecha inicio</dt><dd class="font-bold text-app-heading">{{ periodo(c.fecha_inicio) }}</dd></div>
+          <div><dt class="text-app-muted">Fecha fin</dt><dd class="font-bold text-app-heading">{{ periodo(c.fecha_fin) }}</dd></div>
+          <div><dt class="text-app-muted">Aplicación</dt><dd class="font-bold text-app-heading">{{ c.aplicacion || '—' }}</dd></div>
+        </dl>
       </div>
     }
 
-    <div class="row g-2 justify-content-center mt-3">
-      <div class="col-12 col-sm-auto">
-        <button type="button" class="btn btn-primary w-100" (click)="sincronizarAsync()">
-          <i class="bi bi-arrow-clockwise"></i> Sincronizar
-        </button>
-      </div>
-      <div class="col-12 col-sm-auto">
-        <button type="button" class="btn btn-success w-100" (click)="guardarConfiguracion()">
-          <i class="bi bi-save"></i> Guardar
-        </button>
-      </div>
+    <div class="flex flex-wrap justify-center gap-2">
+      <button type="button" class="btn btn-info text-white dark:text-info-content" (click)="sincronizar()"><svg lucideRefreshCcw class="size-4"></svg> Sincronizar</button>
+      <button type="button" class="btn btn-success text-white dark:text-success-content" (click)="guardar()"><svg lucideSave class="size-4"></svg> Guardar</button>
     </div>
   </div>
-</div>
 
-<div class="sp-card" style="margin-bottom: 20px">
-  <div class="sp-card-header">
-    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Configuración guardada</h5>
-  </div>
-  <div class="sp-card-body" style="padding:16px 20px">
-    <div class="row g-2" style="font-size:13px">
-      <div class="col-12 col-md-3">
-        <div class="text-muted">Nro documento</div>
-        <div><strong>{{ savedConfig()?.nrodocumento || '—' }}</strong></div>
-      </div>
-      <div class="col-12 col-md-3">
-        <div class="text-muted">Fundo</div>
-        <div><strong>{{ savedFundoLabel() }}</strong></div>
-      </div>
-      <div class="col-12 col-md-3">
-        <div class="text-muted">Cultivo</div>
-        <div><strong>{{ savedCultivoLabel() }}</strong></div>
-      </div>
-      <div class="col-12 col-md-3">
-        <div class="text-muted">Campaña</div>
-        <div><strong>{{ savedCampaniaLabel() }}</strong></div>
-      </div>
-    </div>
-
-    <div class="row g-2 justify-content-center mt-3">
-      <div class="col-12 col-sm-auto">
-        <button type="button" class="btn btn-outline-danger w-100" (click)="eliminarConfiguracion()" [disabled]="!savedConfig()">
-          <i class="bi bi-trash"></i> Eliminar
-        </button>
-      </div>
+  <div class="space-y-4 rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm sm:p-5">
+    <h2 class="text-sm font-bold text-app-heading">Configuración guardada</h2>
+    <dl class="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+      <div><dt class="text-app-muted">Nro documento</dt><dd class="font-bold text-app-heading">{{ guardada()?.nrodocumento || '—' }}</dd></div>
+      <div><dt class="text-app-muted">Fundo</dt><dd class="font-bold text-app-heading">{{ etiquetaGuardada()?.fundo || '—' }}</dd></div>
+      <div><dt class="text-app-muted">Cultivo</dt><dd class="font-bold text-app-heading">{{ etiquetaGuardada()?.cultivo || '—' }}</dd></div>
+      <div><dt class="text-app-muted">Campaña</dt><dd class="font-bold text-app-heading">{{ etiquetaGuardada()?.campania || '—' }}</dd></div>
+    </dl>
+    <div class="flex justify-center">
+      <button type="button" class="btn btn-error btn-outline" [disabled]="!guardada()" (click)="eliminar()"><svg lucideTrash2 class="size-4"></svg> Eliminar</button>
     </div>
   </div>
-</div>
+</section>

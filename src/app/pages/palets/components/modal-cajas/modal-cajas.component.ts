@@ -1,10 +1,11 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, Input, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Palet, DPalet } from '../../../../shared/interfaces/palet.interface';
-import { AdvancedSelectComponent } from '../../../../shared/components/advanced-select/advanced-select.component';
+import { LucideCircleCheck, LucideLayers, LucidePackage, LucideRefreshCcw, LucideX } from '@lucide/angular';
+import { SearchSelectComponent, SearchSelectOption } from '../../../../shared/components/search-select/search-select.component';
+import { DPalet, Palet } from '../../../../shared/interfaces/palet.interface';
+import { portalToBody } from '../../../../shared/utils/portal';
 
-interface FormCajas {
+export interface FormCajas {
   consignatarioId: string | number;
   destinoId: number | string;
   formatoId: number;
@@ -26,70 +27,101 @@ interface FormCajas {
   esEnsayo: boolean;
 }
 
+type Fila = Record<string, any>;
+
+/** Convierte filas de un catalogo en opciones del buscador: valor = campo id, texto = primer campo con contenido. */
+function opciones(filas: Fila[] | null | undefined, idField: string, labelFields: string[] = ['descripcion', 'nombre']): SearchSelectOption[] {
+  return (filas ?? []).map((f) => {
+    const partes = labelFields.map((c) => String(f?.[c] ?? '').trim()).filter(Boolean);
+    const label = partes[0] ? partes.join(' — ') : String(f?.[idField] ?? '').trim();
+    return { label, value: String(f?.[idField] ?? '').trim() };
+  });
+}
+
+const valorTexto = (v: unknown): string | null => {
+  const t = String(v ?? '').trim();
+  return t && t !== '0' ? t : null;
+};
+
+/**
+ * Formulario para agregar o editar una linea de cajas de un palet. Solo muestra y avisa: la cascada de la matriz
+ * de compatibilidad (consignatario → destino → formato → empaque → caja → clamshell) la maneja la pantalla Palets.
+ */
 @Component({
   selector: 'app-modal-cajas',
-  standalone: true,
-  imports: [CommonModule, FormsModule, AdvancedSelectComponent],
+  imports: [FormsModule, SearchSelectComponent, LucideCircleCheck, LucideLayers, LucidePackage, LucideRefreshCcw, LucideX],
   templateUrl: './modal-cajas.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  encapsulation: ViewEncapsulation.None
 })
 export class ModalCajasComponent {
-  @Input() visible = false;
-  @Input() palet: Palet | null = null;
-  @Input() composiciones: DPalet[] = [];
-  @Input() formCajas!: FormCajas;
-  @Input() modoEdicion = false;
-
-  // Catalogs
-  @Input() tiposProcesoEmpacadoModal: any[] = [];
-  @Input() consignatarios: any[] = [];
-  @Input() filteredDestinos: any[] = [];
-  @Input() filteredFormatos: any[] = [];
-  @Input() filteredTiposEmpaqueGuia: any[] = [];
-  @Input() filteredPresentaciones: any[] = [];
-  @Input() filteredTiposCaja: any[] = [];
-  @Input() filteredTiposClamshell: any[] = [];
-  @Input() filteredVariedades: any[] = [];
-  @Input() filteredCodigosRancho: any[] = [];
-  @Input() lugaresProduccion: any[] = [];
-  @Input() transportes: any[] = [];
-  @Input() variedades: any[] = [];
-
-  // Disabled states
-  @Input() tipoProcesoEmpacadoDisabled = false;
-  @Input() formatoDisabled = false;
-  @Input() tipoEmpaqueGuiaDisabled = false;
-  @Input() presentacionDisabled = false;
-  @Input() tipoCajaDisabled = false;
-  @Input() tipoClamshellDisabled = false;
-  @Input() codigoRanchoDisabled = false;
-
-  @Output() cerrar = new EventEmitter<void>();
-  @Output() submit = new EventEmitter<void>();
-  @Output() campoChange = new EventEmitter<{ campo: string; valor: any }>();
-
-  get titulo(): string {
-    return this.modoEdicion ? 'Editar Cajas del Palet' : 'Agregar Cajas al Palet';
+  constructor() {
+    portalToBody();
   }
 
-  get textoSubmit(): string {
-    return this.modoEdicion ? 'Guardar Cambios' : 'Agregar Cajas';
+  readonly visible = input(false);
+  readonly palet = input<Palet | null>(null);
+  readonly composiciones = input<DPalet[]>([]);
+  readonly formCajas = input.required<FormCajas>();
+  readonly modoEdicion = input(false);
+
+  readonly tiposProcesoEmpacadoModal = input<Fila[]>([]);
+  readonly consignatarios = input<Fila[]>([]);
+  readonly filteredDestinos = input<Fila[]>([]);
+  readonly filteredFormatos = input<Fila[]>([]);
+  readonly filteredTiposEmpaqueGuia = input<Fila[]>([]);
+  readonly filteredPresentaciones = input<Fila[]>([]);
+  readonly filteredTiposCaja = input<Fila[]>([]);
+  readonly filteredTiposClamshell = input<Fila[]>([]);
+  readonly filteredVariedades = input<Fila[]>([]);
+  readonly filteredCodigosRancho = input<Fila[]>([]);
+  readonly lugaresProduccion = input<Fila[]>([]);
+  readonly transportes = input<Fila[]>([]);
+  readonly variedades = input<Fila[]>([]);
+
+  readonly tipoProcesoEmpacadoDisabled = input(false);
+  readonly formatoDisabled = input(false);
+  readonly tipoEmpaqueGuiaDisabled = input(false);
+  readonly presentacionDisabled = input(false);
+  readonly tipoCajaDisabled = input(false);
+  readonly tipoClamshellDisabled = input(false);
+  readonly codigoRanchoDisabled = input(false);
+
+  readonly cerrar = output<void>();
+  readonly guardar = output<void>();
+  readonly campoChange = output<{ campo: string; valor: any }>();
+
+  readonly titulo = computed(() => (this.modoEdicion() ? 'Editar cajas del palet' : 'Agregar cajas al palet'));
+  readonly textoGuardar = computed(() => (this.modoEdicion() ? 'Guardar cambios' : 'Agregar cajas'));
+  readonly numeroPalet = computed(() => {
+    const p = this.palet();
+    return p ? (p.numeroPalet == 0 ? p.id : p.numeroPalet) : '';
+  });
+  readonly faltantes = computed(() => {
+    const p = this.palet();
+    return Math.max(0, (p?.limiteCajasPorPalet ?? 0) - (p?.cantidadCajas ?? 0));
+  });
+
+  readonly optTiposProceso = computed(() => opciones(this.tiposProcesoEmpacadoModal(), 'id'));
+  readonly optConsignatarios = computed(() => opciones(this.consignatarios(), 'documento'));
+  readonly optDestinos = computed(() => opciones(this.filteredDestinos(), 'id', ['pais']));
+  readonly optFormatos = computed(() => opciones(this.filteredFormatos(), 'id', ['nombre']));
+  readonly optTiposEmpaqueGuia = computed(() => opciones(this.filteredTiposEmpaqueGuia(), 'id'));
+  readonly optPresentaciones = computed(() => opciones(this.filteredPresentaciones(), 'id'));
+  readonly optTiposCaja = computed(() => opciones(this.filteredTiposCaja(), 'id'));
+  readonly optTiposClamshell = computed(() => opciones(this.filteredTiposClamshell(), 'id'));
+  readonly optVariedades = computed(() => opciones(this.filteredVariedades(), 'codigo', ['variedad']));
+  readonly optVariedadesGuia = computed(() => opciones((this.variedades() ?? []).filter((v) => !v['esEnsayo']), 'codigo', ['variedad']));
+  readonly optLugares = computed(() => opciones(this.lugaresProduccion(), 'id'));
+  readonly optRanchos = computed(() => opciones(this.filteredCodigosRancho(), 'id', ['codigo']));
+  readonly optTransportes = computed(() => opciones(this.transportes(), 'id', ['transporte']));
+
+  readonly v = valorTexto;
+
+  elegido(campo: string, opcion: SearchSelectOption): void {
+    this.campoChange.emit({ campo, valor: opcion.value });
   }
 
-  get variedadesNoEnsayo(): any[] {
-    return (this.variedades ?? []).filter((v: any) => !v.esEnsayo);
-  }
-
-  onCampoChange(campo: string, valor: any): void {
+  cambio(campo: string, valor: unknown): void {
     this.campoChange.emit({ campo, valor });
-  }
-
-  onCerrar(): void {
-    this.cerrar.emit();
-  }
-
-  onSubmit(): void {
-    this.submit.emit();
   }
 }

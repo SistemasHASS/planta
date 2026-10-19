@@ -1,447 +1,66 @@
-import { Component, ChangeDetectionStrategy, signal, computed, inject } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
-import { liveQuery } from 'dexie';
-import { AuthService } from '../shared/services/auth.service';
-import { PermissionService } from '../shared/services/permission.service';
+import { ChangeDetectionStrategy, Component, HostListener, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { LucideWifiOff } from '@lucide/angular';
+import { filter, map, startWith } from 'rxjs';
 import { ConnectivityService } from '../shared/services/connectivity.service';
-import { AlertService } from '../shared/services/alert.service';
-import { GlobalErrorService } from '../shared/services/global-error.service';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { switchMap } from 'rxjs/operators';
-import { firstValueFrom, from, of } from 'rxjs';
-import { CatalogoService } from '../shared/services/catalogo.service';
-import { CatalogosRepository } from '../shared/dexiedb/repository/catalogos.repository';
-import { Campania } from '../shared/interfaces/catalogo.interface';
-import { Configuracion } from '../shared/interfaces/administracion.interface';
-import { formatDate } from '../shared/utils/datetime.utils';
-import { APP_VERSION } from '../version';
-
-
-interface NavItem {
-  label: string;
-  path: string;
-  icon: string;
-  roles?: string[];
-  submenu?: NavItem[];
-}
+import { SidebarComponent } from './components/sidebar/sidebar.component';
+import { TopbarComponent } from './components/topbar/topbar.component';
 
 @Component({
   selector: 'app-layout',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, LucideWifiOff, SidebarComponent, TopbarComponent],
   templateUrl: './layout.component.html',
-  styleUrl: './layout.component.scss'
+  styleUrl: './layout.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LayoutComponent {
-  private readonly auth = inject(AuthService);
-  private readonly permissions = inject(PermissionService);
+  private readonly router = inject(Router);
   private readonly connectivity = inject(ConnectivityService);
-  private readonly alertService = inject(AlertService);
-  private readonly globalError = inject(GlobalErrorService);
-  private readonly catalogoService = inject(CatalogoService);
-  private readonly catalogosRepo = inject(CatalogosRepository);
-  readonly appVersion = APP_VERSION;
+
+  /** true si la pantalla actual se marco con `data: { requiresInternet: true }` en app.routes.ts. */
+  private readonly pageRequiresInternet = toSignal(
+    this.router.events.pipe(
+      filter((event) => event instanceof NavigationEnd),
+      startWith(null),
+      map(() => {
+        let route = this.router.routerState.snapshot.root;
+        while (route.firstChild) route = route.firstChild;
+        return route.data['requiresInternet'] === true;
+      }),
+    ),
+    { initialValue: false },
+  );
+
+  /** Pantalla solo online abierta sin conexion: se muestra el aviso en lugar de la pantalla. */
+  readonly offlineBlocked = () => this.pageRequiresInternet() && !this.connectivity.online();
 
   readonly currentYear = new Date().getFullYear();
-
-  readonly sidebarOpen = signal(false);
-  readonly sidebarCollapsed = signal(false);
-  readonly sidebarExpanded = computed(() => {
-    const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 991.98px)').matches;
-    return isMobile ? this.sidebarOpen() : !this.sidebarCollapsed();
-  });
-  readonly perfil = this.auth.perfil;
-  readonly perfilName = computed(() => {
-    return this.perfil() === 'ADMINISTRADOR' ? 'Administrador' :
-      this.perfil() === 'LOGISTICA' ? 'Logística' :
-        this.perfil() === 'GUIAS_MANUALES' ? 'Guías Manuales' :
-        this.perfil() === 'COORDINACION' ? 'Coordinación' :
-          this.perfil() === 'OPERACIONES' ? 'Operaciones' :
-            (this.perfil() ?? '');
-  })
-  readonly nombreCompleto = this.auth.nombreCompleto;
-  readonly inicialUsuario = this.auth.inicialUsuario;
-  readonly usuario = this.auth.usuario;
-  readonly userDropdownOpen = signal(false);
-  readonly submenuOpen = signal<string | null>(null);
-
-  readonly savedConfig = signal<Configuracion | null>(null);
-  readonly selectedCampania = signal<Campania | null>(null);
-  readonly reporteBhActivo = signal(false);
-
-  readonly topbarInfoModalAbierto = signal(false);
-  readonly topbarInfoModalTab = signal<'CAMPANIA' | 'ACOPIO' | 'EMPRESA'>('CAMPANIA');
-
-  readonly campaniaFrutaLabel = computed(() => {
-    const fruta = String(this.selectedCampania()?.fruta ?? '').trim();
-    return fruta ? fruta : null;
-  });
-
-  readonly razonSocialLabel = computed(() => {
-    const razonSocial = String((this.usuario() as any)?.razonSocial ?? '').trim();
-    return razonSocial ? razonSocial : null;
-  });
-
-  fmtDate(value: unknown): string {
-    return formatDate(value) ?? '—';
-  }
-
-  getCampaniaResumen(maxWords = 2): string {
-    const fruta = String(this.campaniaFrutaLabel() ?? '').trim();
-    const parts = fruta.split(/\s+/).filter(Boolean);
-    if (parts.length <= maxWords) return fruta;
-    return `${parts.slice(0, maxWords).join(' ')}...`;
-  }
-
-  getAcopioResumen(maxWords = 2): string {
-    const nombre = String((this.usuario() as any)?.acopioNombre ?? '').trim();
-    const parts = nombre.split(/\s+/).filter(Boolean);
-    if (parts.length <= maxWords) return nombre;
-    return `${parts.slice(0, maxWords).join(' ')}...`;
-  }
-
-  getRazonSocialResumen(maxWords = 2): string {
-    const razonSocial = String(this.razonSocialLabel() ?? '').trim();
-    const parts = razonSocial.split(/\s+/).filter(Boolean);
-    if (parts.length <= maxWords) return razonSocial;
-    return `${parts.slice(0, maxWords).join(' ')}...`;
-  }
-
-  abrirTopbarModal(tab: 'CAMPANIA' | 'ACOPIO' | 'EMPRESA'): void {
-    this.topbarInfoModalTab.set(tab);
-    this.topbarInfoModalAbierto.set(true);
-  }
-
-  cerrarTopbarModal(): void {
-    this.topbarInfoModalAbierto.set(false);
-  }
-
-  constructor() {
-    void this.cargarAccesoReporteBh();
-
-    this.globalError.forbidden$
-      .pipe(takeUntilDestroyed())
-      .subscribe((message) => {
-        const m = (message ?? '').toString().trim();
-        if (!m) return;
-        this.alertService.showAlert('Sin permisos', m, 'warning');
-      });
-
-    from(liveQuery(async () => {
-      const u: any = this.auth.usuario();
-      const nro = String(u?.nrodocumento ?? u?.documentoidentidad ?? u?.documentoIdentidad ?? u?.documento ?? '').trim();
-      if (!nro) return null;
-      return await this.catalogosRepo.configuracionRepo.getByField('nrodocumento', nro) ?? null;
-    }))
-      .pipe(
-        takeUntilDestroyed(),
-        switchMap((cfg) => {
-          this.savedConfig.set(cfg as any);
-          const idProyecto = String((cfg as any)?.idProyecto ?? (cfg as any)?.idCampania ?? '').trim();
-          if (!idProyecto) return of(null);
-          return from(liveQuery(async () => {
-            return await this.catalogosRepo.campaniaRepo.getByField('idproyecto', idProyecto) ?? null;
-          }));
-        })
-      )
-      .subscribe((camp: Campania | null) => {
-        this.selectedCampania.set(camp as any);
-      });
-  }
-
-  private async cargarAccesoReporteBh(): Promise<void> {
-    try {
-      const response: any = await firstValueFrom(this.catalogoService.listarParametros());
-      const data = Array.isArray(response) ? response[0]?.data : response?.data;
-      const activo = Array.isArray(data) && data.some((parametro: any) =>
-        String(parametro?.idparametro ?? '').trim().toUpperCase() === 'REPORTE_BH' && parametro?.activo === true
-      );
-      this.reporteBhActivo.set(activo);
-    } catch {
-      this.reporteBhActivo.set(false);
-    }
-  }
-
-  get online(): boolean {
-    return this.connectivity.isOnline();
-  }
-
-  readonly navSections = computed(() => {
-    const p = this.perfil();
-    const sections: { title?: string; items: NavItem[] }[] = [];
-    if (p === 'ADMINISTRADOR') { //Administrador
-      sections.push({
-        title: 'Configuraciones',
-        items: [{ label: 'Parametros', path: '/parametros', icon: 'bi bi-sliders' }]
-      });
-      // sections.push({
-      //   items: [{ label: 'Dashboard', path: '/dashboard', icon: 'bi-grid-1x2-fill' }]
-      // });
-      sections.push({
-        title: 'Gestión',
-        items: [
-          { label: 'Gestión de Palets', path: '/palets', icon: 'bi-box-seam-fill' },
-          { label: 'Gestión de Procesos', path: '/procesos', icon: 'bi-calendar-event-fill' },
-          { label: 'Despachos / Guías', path: '/guias', icon: 'bi-truck' },
-          { label: 'Guías Manuales', path: '/guias-manuales', icon: 'bi bi-pencil-square' },
-          // { label: 'Alertas Despacho', path: '/alertas-despacho', icon: 'bi-alarm-fill' },
-        ]
-      });
-      sections.push({
-        title: 'Administración',
-        items: [
-          { label: 'Campañas', path: '/admin/campanias', icon: 'bi-calendar-range-fill' },
-          { label: 'Acopio Configuración', path: '/admin/acopio_configuracion', icon: 'bi-building-gear' },
-          { label: 'Gestión de Usuarios', path: '/admin/usuarios', icon: 'bi-people-fill' },
-          { label: 'Gestión de Destinatarios', path: '/admin/destinatarios', icon: 'bi-geo-alt-fill' },
-          { label: 'Matriz Compatibilidad', path: '/admin/matriz', icon: 'bi-diagram-3-fill' },
-          { label: 'Reglas Sobrepeso', path: '/admin/sobrepeso', icon: 'bi-speedometer2' },
-          { label: 'Series GRE', path: '/admin/correlativos-documentos', icon: 'bi-file-earmark-text-fill' },
-          {
-            label: 'Catálogos',
-            path: '#catalogos',
-            icon: 'bi-collection-fill',
-            submenu: [
-              { label: 'Tipo Proceso Empacado', path: '/admin/catalogos/tipoProcesoEmpacado', icon: 'bi-dot' },
-              { label: 'Grupo Clientes', path: '/admin/catalogos/clientes', icon: 'bi-dot' },
-              { label: 'Consignatarios - Maestro', path: '/admin/catalogos-consignatarios', icon: 'bi-dot' },
-              { label: 'Destinos - Maestro', path: '/admin/catalogos/destinos', icon: 'bi-dot' },
-              { label: 'Formatos', path: '/admin/catalogos/formatos', icon: 'bi-dot' },
-              { label: 'Calibres - Maestro', path: '/admin/catalogos/calibres', icon: 'bi-dot' },
-              { label: 'Categorías', path: '/admin/catalogos-categorias', icon: 'bi-dot' },
-              { label: 'Tipos de Empaque', path: '/admin/catalogos-tipos-empaque', icon: 'bi-dot' },
-              { label: 'Tipos Empaque Guía', path: '/admin/catalogos-tipos-empaque-guia', icon: 'bi-dot' },
-              { label: 'Presentaciones', path: '/admin/catalogos/presentaciones', icon: 'bi-dot' },
-              { label: 'Tipos de Caja', path: '/admin/catalogos/tiposCaja', icon: 'bi-dot' },
-              { label: 'Tipos de Clamshell', path: '/admin/catalogos/tiposClamshell', icon: 'bi-dot' },
-              { label: 'Variedades - Maestro', path: '/admin/catalogos-variedades-maestro', icon: 'bi-dot' },
-              { label: 'Lugares de Producción', path: '/admin/catalogos/lugaresProduccion', icon: 'bi-dot' },
-              { label: 'Transportes - Maestro', path: '/admin/catalogos/transportes', icon: 'bi-dot' },
-              { label: 'Códigos Rancho', path: '/admin/catalogos/codigosRancho', icon: 'bi-dot' },
-            ]
-          },
-          {
-            label: 'Catálogos Operativos',
-            path: '#catalogos-operativos',
-            icon: 'bi-gear-fill',
-            submenu: [
-              { label: 'Conductores', path: '/admin/catalogos/conductores', icon: 'bi-dot' },
-              { label: 'Vehículos', path: '/admin/catalogos/vehiculos', icon: 'bi-dot' },
-              { label: 'Transportistas', path: '/admin/catalogos/transportistas', icon: 'bi-dot' },
-              { label: 'Supervisores', path: '/admin/catalogos/supervisores', icon: 'bi-dot' },
-              { label: 'Personal Logística', path: '/admin/catalogos/personalLogistica', icon: 'bi-dot' },
-              // { label: 'Acopios - Maestro', path: '/admin/catalogos/acopios', icon: 'bi-dot' },
-            ]
-          },
-        ]
-      });
-      sections.push({
-        title: 'Reportes',
-        items: [
-          // { label: 'Generar Excel', path: '/excel-export', icon: 'bi-file-earmark-spreadsheet-fill' },
-          { label: 'Reporte Diario', path: '/reportes-dashboard-diario', icon: 'bi-bar-chart-line-fill' },
-          { label: 'KG Ingresados Acopio', path: '/reporte-kg-ingresados-acopio', icon: 'bi-box-arrow-in-down' },
-          {
-            label: 'Reportes Generales',
-            path: '#reportes-generales',
-            icon: 'bi-file-earmark-bar-graph-fill',
-            submenu: [
-              { label: 'Semana', path: '/reporte-semanal', icon: 'bi-dot' },
-              { label: 'Campaña', path: '/reporte-campania', icon: 'bi-dot' },
-              // { label: 'Comparativo', path: '/reportes-secundarios#tabComparativo', icon: 'bi-dot' },
-            ]
-          },
-          // {
-          //   label: 'Reportes Detallados',
-          //   path: '#reportes-detallados',
-          //   icon: 'bi-clipboard-data-fill',
-          //   submenu: [
-          //     { label: 'Producción por Día', path: '/reportes-detallados#tabProdDia', icon: 'bi-dot' },
-          //     { label: 'Producción por Acopio', path: '/reportes-detallados#tabProdAcopio', icon: 'bi-dot' },
-          //     { label: 'KG por Destino', path: '/reportes-detallados#tabKgDestino', icon: 'bi-dot' },
-          //     { label: 'Despachos (Guías)', path: '/reportes-detallados#tabDespachos', icon: 'bi-dot' },
-          //     { label: 'Formatos x Consignatario', path: '/reportes-detallados#tabFormatos', icon: 'bi-dot' },
-          //     { label: 'Sobrepeso', path: '/reportes-detallados#tabSobrepeso', icon: 'bi-dot' },
-          //     { label: 'Reposiciones', path: '/reportes-detallados#tabReposiciones', icon: 'bi-dot' },
-          //   ]
-          // }
-        ]
-      });
-      if (this.reporteBhActivo()) {
-        sections.push({
-          title: 'REPORTES BH / CAO',
-          items: [
-            { label: 'Reporte Diario', path: '/reportes-dashboard-diario-propio-externo', icon: 'bi-bar-chart-line-fill' },
-          ]
-        });
-      }
-    } else if (p === 'LOGISTICA') { //Logistica
-      sections.push({
-        title: 'Configuraciones',
-        items: [{ label: 'Parametros', path: '/parametros', icon: 'bi bi-sliders' }]
-      });
-      sections.push({
-        title: 'Gestión',
-        items: [
-          // { label: 'Dashboard', path: '/dashboard', icon: 'bi-grid-1x2-fill' },
-          { label: 'Procesos', path: '/procesos', icon: 'bi-calendar-event-fill' },
-          { label: 'Palets', path: '/palets', icon: 'bi-box-seam-fill' },
-          { label: 'Guías', path: '/guias', icon: 'bi-truck' },
-          { label: 'Guías Manuales', path: '/guias-manuales', icon: 'bi bi-pencil-square' },
-          // { label: 'Reporte Producción', path: '/reporte-logistica', icon: 'bi-clipboard-data-fill' },
-          // { label: 'Documentación', path: '/despacho', icon: 'bi-clipboard-check-fill' },
-        ]
-      });
-    } else if (p === 'GUIAS_MANUALES') {
-      sections.push({
-        title: 'Configuraciones',
-        items: [{ label: 'Parametros', path: '/parametros', icon: 'bi bi-sliders' }]
-      });
-      sections.push({
-        title: 'Gestión',
-        items: [
-          { label: 'Guías Manuales', path: '/guias-manuales', icon: 'bi bi-pencil-square' },
-        ]
-      });
-    } else if (p === 'COORDINACION') { //Coordinacion
-      // sections.push({
-      //   title: 'Configuraciones',
-      //   items: [{ label: 'Parametros', path: '/parametros', icon: 'bi bi-sliders' }]
-      // });
-      // sections.push({
-      //   items: [
-      //     // { label: 'Dashboard', path: '/dashboard', icon: 'bi-grid-1x2-fill' },
-      //     { label: 'Procesos', path: '/procesos', icon: 'bi-calendar-event-fill' },
-      //     // { label: 'Documentación', path: '/despacho', icon: 'bi-clipboard-check-fill' },
-      //     // { label: 'Alertas Despacho', path: '/alertas-despacho', icon: 'bi-alarm-fill' },
-      //     // { label: 'Generar Excel', path: '/excel-export', icon: 'bi-file-earmark-spreadsheet-fill' },
-      //     // { label: 'Reporte Diario', path: '/reportes-dashboard', icon: 'bi-bar-chart-line-fill' },
-      //     // {
-      //     //   label: 'Reportes Generales',
-      //     //   path: '#reportes-generales',
-      //     //   icon: 'bi-file-earmark-bar-graph-fill',
-      //     //   submenu: [
-      //     //     { label: 'Semana', path: '/reportes-secundarios#tabSemana', icon: 'bi-dot' },
-      //     //     { label: 'Campaña', path: '/reportes-secundarios#tabCampania', icon: 'bi-dot' },
-      //     //     { label: 'Comparativo', path: '/reportes-secundarios#tabComparativo', icon: 'bi-dot' },
-      //     //   ]
-      //     // },
-      //     // {
-      //     //   label: 'Reportes Detallados',
-      //     //   path: '#reportes-detallados',
-      //     //   icon: 'bi-clipboard-data-fill',
-      //     //   submenu: [
-      //     //     { label: 'Producción por Día', path: '/reportes-detallados#tabProdDia', icon: 'bi-dot' },
-      //     //     { label: 'Producción por Acopio', path: '/reportes-detallados#tabProdAcopio', icon: 'bi-dot' },
-      //     //     { label: 'KG por Destino', path: '/reportes-detallados#tabKgDestino', icon: 'bi-dot' },
-      //     //     { label: 'Despachos (Guías)', path: '/reportes-detallados#tabDespachos', icon: 'bi-dot' },
-      //     //     { label: 'Formatos x Consignatario', path: '/reportes-detallados#tabFormatos', icon: 'bi-dot' },
-      //     //     { label: 'Sobrepeso', path: '/reportes-detallados#tabSobrepeso', icon: 'bi-dot' },
-      //     //     { label: 'Reposiciones', path: '/reportes-detallados#tabReposiciones', icon: 'bi-dot' },
-      //     //   ]
-      //     // },
-      //   ]
-      // });
-    } else if (p === 'OPERACIONES') { //Operaciones
-      // sections.push({
-      //   title: 'Configuraciones',
-      //   items: [{ label: 'Parametros', path: '/parametros', icon: 'bi bi-sliders' }]
-      // });
-      // sections.push({
-      //   title: 'Reportes',
-      //   items: [
-      //     { label: 'Reporte Diario', path: '/reportes-dashboard', icon: 'bi-bar-chart-line-fill' },
-      //     {
-      //       label: 'Reportes Generales',
-      //       path: '#reportes-generales',
-      //       icon: 'bi-file-earmark-bar-graph-fill',
-      //       submenu: [
-      //         { label: 'Semana', path: '/reportes-secundarios#tabSemana', icon: 'bi-dot' },
-      //         { label: 'Campaña', path: '/reportes-secundarios#tabCampania', icon: 'bi-dot' },
-      //         { label: 'Comparativo', path: '/reportes-secundarios#tabComparativo', icon: 'bi-dot' },
-      //       ]
-      //     },
-      //     { label: 'Generar Excel', path: '/excel-export', icon: 'bi-file-earmark-spreadsheet-fill' },
-      //   ]
-      // });
-    } else if (p === 'MONITOR') {
-      sections.push({
-        title: 'Configuraciones',
-        items: [{ label: 'Parametros', path: '/parametros', icon: 'bi bi-sliders' }]
-      });
-      sections.push({
-        title: 'Gestión',
-        items: [
-          { label: 'Despachos / Guías', path: '/guias', icon: 'bi-truck' },
-          { label: 'Guías Manuales', path: '/guias-manuales', icon: 'bi bi-pencil-square' },
-        ]
-      });
-      sections.push({
-        title: 'Reportes',
-        items: [
-          { label: 'Reporte Diario', path: '/reportes-dashboard-diario', icon: 'bi-bar-chart-line-fill' },
-          { label: 'KG Ingresados Acopio', path: '/reporte-kg-ingresados-acopio', icon: 'bi-box-arrow-in-down' },
-          {
-            label: 'Reportes Generales',
-            path: '#reportes-generales',
-            icon: 'bi-file-earmark-bar-graph-fill',
-            submenu: [
-              { label: 'Semana', path: '/reporte-semanal', icon: 'bi-dot' },
-              { label: 'Campaña', path: '/reporte-campania', icon: 'bi-dot' },
-            ]
-          }
-        ]
-      });
-      if (this.reporteBhActivo()) {
-        sections.push({
-          title: 'REPORTES BH / CAO',
-          items: [
-            { label: 'Reporte Diario', path: '/reportes-dashboard-diario-propio-externo', icon: 'bi-bar-chart-line-fill' },
-          ]
-        });
-      }
-    } else {
-      // sections.push({
-      //   title: 'Configuraciones',
-      //   items: [{ label: 'Parametros', path: '/parametros', icon: 'bi bi-sliders' }]
-      // });
-      // sections.push({
-      //   items: [
-      //     { label: 'Dashboard', path: '/dashboard', icon: 'bi-grid-1x2-fill' },
-      //     { label: 'Procesos', path: '/procesos', icon: 'bi-calendar-event-fill' },
-      //     { label: 'Palets', path: '/palets', icon: 'bi-box-seam-fill' },
-      //     { label: 'Guías', path: '/guias', icon: 'bi-truck' },
-      //     { label: 'Catálogos', path: '/catalogos', icon: 'bi-collection-fill' },
-      //   ]
-      // });
-    }
-
-    return sections;
-  });
+  // En escritorio el menú inicia expandido; en pantallas pequeñas se conserva
+  // como panel lateral cerrado para no cubrir el contenido al cargar.
+  readonly sidebarOpen = signal(
+    typeof window !== 'undefined' && window.innerWidth > 1024,
+  );
+  private wasDesktop = typeof window !== 'undefined' && window.innerWidth > 1024;
 
   toggleSidebar(): void {
-    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 991.98px)').matches) {
-      this.sidebarCollapsed.set(false);
-      this.sidebarOpen.update(value => !value);
-      return;
-    }
-
-    this.sidebarCollapsed.update(value => !value);
+    this.sidebarOpen.update((value) => !value);
   }
 
   closeSidebar(): void {
-    this.sidebarOpen.set(false);
+    // En escritorio los enlaces no deben contraer el menú; el cierre al
+    // seleccionar una opción solo aplica al panel superpuesto de móvil.
+    if (typeof window !== 'undefined' && window.innerWidth <= 1024) {
+      this.sidebarOpen.set(false);
+    }
   }
 
-  toggleUserDropdown(): void {
-    this.userDropdownOpen.update(v => !v);
-  }
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    const isDesktop = window.innerWidth > 1024;
+    if (isDesktop === this.wasDesktop) return;
 
-  toggleSubmenu(key: string): void {
-    this.submenuOpen.update(current => current === key ? null : key);
-  }
-
-  async logout(): Promise<void> {
-    await this.auth.logout();
+    this.wasDesktop = isDesktop;
+    this.sidebarOpen.set(isDesktop);
   }
 }

@@ -1,0 +1,263 @@
+<section class="w-full space-y-4 p-3 sm:p-5">
+  @if (!online()) {
+    <div class="flex flex-col items-center gap-3 rounded-2xl border border-app-border2 bg-app-surface p-10 text-center shadow-sm">
+      <svg lucideWifiOff class="size-10 text-app-subtle"></svg>
+      <h2 class="text-lg font-bold text-app-text">Sin conexión a internet</h2>
+      <p class="max-w-md text-sm text-app-muted">El Reporte BH / CAO solo está disponible en modo online. Conéctate a internet para continuar.</p>
+    </div>
+  } @else {
+    <div #reportPage class="space-y-5">
+      <!-- Filtros -->
+      <div class="space-y-3 rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div class="min-w-0">
+            <h1 class="text-lg font-extrabold leading-tight text-app-heading">Producción de Empaque BH / CAO</h1>
+            <p class="text-xs text-app-muted">Vista consolidada del reporte diario por origen · <span class="capitalize">{{ fechaFormateada() }}</span></p>
+          </div>
+          <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            @if (reporteData()) {
+              <span class="badge badge-soft" [class.badge-success]="hayProcesosAbiertos()" [class.badge-warning]="!hayProcesosAbiertos()">
+                {{ hayProcesosAbiertos() ? 'Procesos abiertos' : 'Sin procesos abiertos' }}
+              </span>
+            }
+            <div class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+              <button type="button" class="btn h-[38px] min-h-[38px] rounded-[7px] border-0 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700" (click)="actualizar()" [disabled]="isLoading()">
+                <svg lucideRefreshCcw class="size-4"></svg> Actualizar
+              </button>
+              <button type="button" class="btn h-[38px] min-h-[38px] rounded-[7px] border-0 bg-slate-700 text-white shadow-sm hover:bg-slate-800" (click)="capturarDashboard()" [disabled]="isLoading()">
+                <svg lucideCamera class="size-4"></svg> Capturar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid items-end gap-3 border-t border-app-border pt-3 sm:grid-cols-2 lg:flex">
+          <label class="block w-full lg:w-44 lg:shrink-0">
+            <span class="mb-[7px] block text-[11px] font-extrabold uppercase text-app-text2">Fecha</span>
+            <input type="date" class="input input-bordered h-[38px] min-h-[38px] w-full rounded-[7px] border-app-border bg-app-surface px-4 text-[16px] font-semibold text-app-heading sm:text-[13px]" [ngModel]="fechaConsulta()" (ngModelChange)="fechaConsulta.set($event)" />
+          </label>
+          <div class="w-full min-w-0 lg:flex-1">
+            <app-search-multi-select label="Acopio" placeholder="Todos los acopios" [showSelectAll]="true" [options]="acopiosOptions()" [values]="acopiosSeleccionados()" (valuesChange)="acopiosSeleccionados.set($event)" />
+          </div>
+          <div class="w-full min-w-0 lg:w-56 lg:shrink-0">
+            <app-search-multi-select label="Empresa" placeholder="BH y CAO" [showSelectAll]="true" [options]="empresaOptions" [values]="empresasSeleccionadas()" (valuesChange)="empresasSeleccionadas.set($event)" />
+          </div>
+          <button type="button" class="btn btn-primary h-[38px] min-h-[38px] w-full rounded-[7px] sm:col-span-2 lg:w-auto lg:shrink-0" (click)="aplicarFiltros()" [disabled]="isLoading()">Filtrar</button>
+        </div>
+      </div>
+
+      @if (errorMensaje()) {
+        <p class="rounded-xl border border-red-200 dark:border-red-500/35 bg-red-50 dark:bg-red-500/15 p-3 text-sm text-red-700 dark:text-red-300">{{ errorMensaje() }}</p>
+      }
+
+      @if (kpis(); as k) {
+        <!-- KPIs -->
+        <div class="flex gap-2 overflow-x-auto pb-1 lg:grid lg:grid-cols-7 lg:overflow-visible lg:pb-0">
+          <div class="min-w-[8.5rem] shrink-0 rounded-xl border border-tint-amber-border bg-amber-50 dark:bg-amber-500/15 px-3 py-2 lg:min-w-0">
+            <span class="block text-[10px] font-bold uppercase leading-tight tracking-wide text-amber-700 dark:text-amber-300">Pallets en proceso</span>
+            <p class="truncate text-lg font-extrabold leading-tight text-app-heading">{{ k.palletsEnProceso | number }}</p>
+            <span class="block truncate text-[11px] text-app-muted">Pendientes de cierre</span>
+          </div>
+          <div class="min-w-[8.5rem] shrink-0 rounded-xl border border-sky-200 dark:border-sky-500/35 bg-sky-50 dark:bg-sky-500/15 px-3 py-2 lg:min-w-0">
+            <span class="block text-[10px] font-bold uppercase leading-tight tracking-wide text-sky-700 dark:text-sky-300">Pallets completos</span>
+            <p class="truncate text-lg font-extrabold leading-tight text-app-heading">{{ k.palletsCompletos | number }}</p>
+            <span class="block truncate text-[11px] text-app-muted">Procesados en el día</span>
+          </div>
+          <div class="min-w-[8.5rem] shrink-0 rounded-xl border border-tint-emerald-border bg-emerald-50 dark:bg-emerald-500/15 px-3 py-2 lg:min-w-0">
+            <span class="block text-[10px] font-bold uppercase leading-tight tracking-wide text-emerald-700 dark:text-emerald-300">Pallets despachados</span>
+            <p class="truncate text-lg font-extrabold leading-tight text-app-heading">{{ k.palletsDespachados | number }}</p>
+            <span class="block truncate text-[11px] text-app-muted">Listos para entrega</span>
+          </div>
+          <div class="min-w-[8.5rem] shrink-0 rounded-xl border border-violet-200 dark:border-violet-500/35 bg-violet-50 dark:bg-violet-500/15 px-3 py-2 lg:min-w-0">
+            <span class="block text-[10px] font-bold uppercase leading-tight tracking-wide text-violet-700 dark:text-violet-300">Cajas despachadas</span>
+            <p class="truncate text-lg font-extrabold leading-tight text-app-heading">{{ k.cajasDespachadas | number }}</p>
+            <span class="block truncate text-[11px] text-app-muted">Unidades enviadas</span>
+          </div>
+          <div class="min-w-[8.5rem] shrink-0 rounded-xl border border-cyan-200 dark:border-cyan-500/35 bg-cyan-50 dark:bg-cyan-500/15 px-3 py-2 lg:min-w-0">
+            <span class="block text-[10px] font-bold uppercase leading-tight tracking-wide text-cyan-700 dark:text-cyan-300">Cajas totales</span>
+            <p class="truncate text-lg font-extrabold leading-tight text-app-heading">{{ k.cajasTotales | number }}</p>
+            <span class="block truncate text-[11px] text-app-muted">Unidades procesadas</span>
+          </div>
+          <div class="min-w-[8.5rem] shrink-0 rounded-xl border border-tint-emerald-border bg-emerald-50 dark:bg-emerald-500/15 px-3 py-2 lg:min-w-0">
+            <span class="block text-[10px] font-bold uppercase leading-tight tracking-wide text-emerald-700 dark:text-emerald-300">KG despachados</span>
+            <p class="truncate text-lg font-extrabold leading-tight text-app-heading">{{ k.kgDespachados | number: '1.2-2' }}</p>
+            <span class="block truncate text-[11px] text-app-muted">Peso enviado</span>
+          </div>
+          <div class="min-w-[8.5rem] shrink-0 rounded-xl border border-rose-200 dark:border-rose-500/35 bg-rose-50 dark:bg-rose-500/15 px-3 py-2 lg:min-w-0">
+            <span class="block text-[10px] font-bold uppercase leading-tight tracking-wide text-rose-700 dark:text-rose-300">KG totales</span>
+            <p class="truncate text-lg font-extrabold leading-tight text-app-heading">{{ k.kgTotales | number: '1.2-2' }}</p>
+            <span class="block truncate text-[11px] text-app-muted">Peso acumulado</span>
+          </div>
+        </div>
+
+        <!-- Resumen por origen -->
+        @if (muestraAmbos()) {
+          <div class="rounded-2xl border border-app-border2 bg-app-surface p-3 shadow-sm sm:p-5">
+            <h2 class="mb-3 text-sm font-bold text-app-text">Resumen por origen</h2>
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div class="rounded-xl border border-blue-200 dark:border-blue-500/35 bg-blue-50 dark:bg-blue-500/15 px-4 py-3">
+                <span class="block text-xs font-bold text-blue-700 dark:text-blue-300">Producción BH</span>
+                <p class="text-xl font-extrabold text-app-heading">{{ propio()?.kgTotales ?? 0 | number: '1.2-2' }} kg</p>
+                <span class="text-[11px] text-app-muted">Peso producido</span>
+              </div>
+              <div class="rounded-xl border border-blue-200 dark:border-blue-500/35 bg-blue-50 dark:bg-blue-500/15 px-4 py-3">
+                <span class="block text-xs font-bold text-blue-700 dark:text-blue-300">Cajas BH</span>
+                <p class="text-xl font-extrabold text-app-heading">{{ propio()?.cajasTotales ?? 0 | number }}</p>
+                <span class="text-[11px] text-app-muted">Unidades procesadas</span>
+              </div>
+              <div class="rounded-xl border border-orange-200 dark:border-orange-500/35 bg-orange-50 dark:bg-orange-500/15 px-4 py-3">
+                <span class="block text-xs font-bold text-orange-700 dark:text-orange-300">Producción CAO</span>
+                <p class="text-xl font-extrabold text-app-heading">{{ externo()?.kgTotales ?? 0 | number: '1.2-2' }} kg</p>
+                <span class="text-[11px] text-app-muted">Peso producido</span>
+              </div>
+              <div class="rounded-xl border border-orange-200 dark:border-orange-500/35 bg-orange-50 dark:bg-orange-500/15 px-4 py-3">
+                <span class="block text-xs font-bold text-orange-700 dark:text-orange-300">Cajas CAO</span>
+                <p class="text-xl font-extrabold text-app-heading">{{ externo()?.cajasTotales ?? 0 | number }}</p>
+                <span class="text-[11px] text-app-muted">Unidades procesadas</span>
+              </div>
+              @if (sinClasificar(); as pendiente) {
+                <div class="rounded-xl border border-app-border2 bg-app-surface3 px-4 py-3 sm:col-span-2 lg:col-span-4">
+                  <span class="block text-xs font-bold text-app-text2">Sin clasificar</span>
+                  <p class="text-xl font-extrabold text-app-heading">{{ pendiente.kgTotales | number: '1.2-2' }} kg · {{ pendiente.cajasTotales | number }} cajas</p>
+                  <span class="text-[11px] text-app-muted">Lugar de producción no relacionado con BH ni CAO</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <div class="grid gap-4 xl:grid-cols-2">
+          <!-- Detalle por variedad -->
+          <div class="min-w-0 rounded-2xl border border-app-border2 bg-app-surface p-3 shadow-sm sm:p-5">
+            <h2 class="mb-3 text-sm font-bold text-app-text">Detalle Producción por Variedad</h2>
+            <div class="tabla-scroll !max-h-96">
+              <table class="table table-sm whitespace-nowrap">
+                <thead>
+                  <tr><th>Variedad</th>
+                    @if (muestraBh()) {
+                      <th class="text-right !bg-blue-100 !text-blue-700 dark:!bg-[#182c50] dark:!text-blue-300">BH cajas</th>
+                      <th class="text-right !bg-blue-100 !text-blue-700 dark:!bg-[#182c50] dark:!text-blue-300">BH KG</th>
+                    }
+                    @if (muestraCao()) {
+                      <th class="text-right !bg-orange-100 !text-orange-700 dark:!bg-[#3e2923] dark:!text-orange-300">CAO cajas</th>
+                      <th class="text-right !bg-orange-100 !text-orange-700 dark:!bg-[#3e2923] dark:!text-orange-300">CAO KG</th>
+                    }
+                    @if (muestraAmbos()) {
+                      <th class="text-right !bg-app-surface3 !text-app-text">Total cajas</th>
+                      <th class="text-right !bg-app-surface3 !text-app-text">Total KG</th>
+                    }
+                    <th class="text-right">%</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (v of variedades(); track v.key) {
+                    <tr>
+                      <td class="font-semibold">{{ v.nombre }}</td>
+                      @if (muestraBh()) {
+                        <td class="bg-blue-500/10 text-right text-blue-700 dark:text-blue-300">{{ v.bhCajas | number }}</td>
+                        <td class="bg-blue-500/10 text-right text-blue-700 dark:text-blue-300">{{ v.bhKg | number: '1.2-2' }}</td>
+                      }
+                      @if (muestraCao()) {
+                        <td class="bg-orange-500/10 text-right text-orange-700 dark:text-orange-300">{{ v.caoCajas | number }}</td>
+                        <td class="bg-orange-500/10 text-right text-orange-700 dark:text-orange-300">{{ v.caoKg | number: '1.2-2' }}</td>
+                      }
+                      @if (muestraAmbos()) {
+                        <td class="bg-slate-500/10 text-right font-semibold">{{ v.totalCajas | number }}</td>
+                        <td class="bg-slate-500/10 text-right font-semibold">{{ v.totalKg | number: '1.2-2' }}</td>
+                      }
+                      <td class="text-right"><span class="badge badge-soft badge-primary">{{ v.porcentaje | number: '1.1-1' }}%</span></td>
+                    </tr>
+                  }
+                  @if (variedades().length === 0) {
+                    <tr><td [attr.colspan]="columnasVariedad()" class="text-center text-app-subtle">Sin datos</td></tr>
+                  }
+                </tbody>
+                @if (variedades().length > 0) {
+                  <tfoot>
+                    <tr class="font-bold">
+                      <td>Total</td>
+                      @if (muestraBh()) {
+                        <td class="text-right">{{ propio()?.cajasTotales ?? 0 | number }}</td>
+                        <td class="text-right">{{ propio()?.kgTotales ?? 0 | number: '1.2-2' }} kg</td>
+                      }
+                      @if (muestraCao()) {
+                        <td class="text-right">{{ externo()?.cajasTotales ?? 0 | number }}</td>
+                        <td class="text-right">{{ externo()?.kgTotales ?? 0 | number: '1.2-2' }} kg</td>
+                      }
+                      @if (muestraAmbos()) {
+                        <td class="text-right">{{ totalCajas() | number }}</td>
+                        <td class="text-right">{{ totalKg() | number: '1.2-2' }} kg</td>
+                      }
+                      <td class="text-right">100.00%</td>
+                    </tr>
+                  </tfoot>
+                }
+              </table>
+            </div>
+          </div>
+
+          <div class="min-w-0 rounded-2xl border border-app-border2 bg-app-surface p-3 shadow-sm sm:p-5">
+            <h2 class="mb-3 text-sm font-bold text-app-text">KG por Planta de Empaque</h2>
+            <div #chartAcopio class="h-80 w-full"></div>
+          </div>
+        </div>
+
+        <!-- Avance por consignatario -->
+        <div class="min-w-0 rounded-2xl border border-app-border2 bg-app-surface p-3 shadow-sm sm:p-5">
+          <h2 class="mb-3 text-sm font-bold text-app-text">Avance por Consignatario</h2>
+          <div class="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+            <div #chartConsignatario class="h-80 w-full min-w-0"></div>
+            <div class="tabla-scroll !max-h-80 min-w-0">
+              <table class="table table-sm whitespace-nowrap">
+                <thead>
+                  <tr><th>Consignatario</th>
+                    <th>Destino</th>
+                    <th>Formato</th>
+                    @if (muestraBh()) {
+                      <th class="text-right !bg-blue-100 !text-blue-700 dark:!bg-[#182c50] dark:!text-blue-300">BH cajas</th>
+                      <th class="text-right !bg-blue-100 !text-blue-700 dark:!bg-[#182c50] dark:!text-blue-300">BH KG</th>
+                    }
+                    @if (muestraCao()) {
+                      <th class="text-right !bg-orange-100 !text-orange-700 dark:!bg-[#3e2923] dark:!text-orange-300">CAO cajas</th>
+                      <th class="text-right !bg-orange-100 !text-orange-700 dark:!bg-[#3e2923] dark:!text-orange-300">CAO KG</th>
+                    }
+                    @if (muestraAmbos()) {
+                      <th class="text-right !bg-app-surface3 !text-app-text">Total cajas</th>
+                      <th class="text-right !bg-app-surface3 !text-app-text">Total KG</th>
+                    }
+                    <th class="text-right">%</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (c of consignatarios(); track c.key) {
+                    <tr>
+                      <td class="font-semibold">{{ c.nombre }}</td>
+                      <td>{{ c.destino }}</td>
+                      <td>{{ c.formato }}</td>
+                      @if (muestraBh()) {
+                        <td class="bg-blue-500/10 text-right text-blue-700 dark:text-blue-300">{{ c.bhCajas | number }}</td>
+                        <td class="bg-blue-500/10 text-right text-blue-700 dark:text-blue-300">{{ c.bhKg | number: '1.2-2' }}</td>
+                      }
+                      @if (muestraCao()) {
+                        <td class="bg-orange-500/10 text-right text-orange-700 dark:text-orange-300">{{ c.caoCajas | number }}</td>
+                        <td class="bg-orange-500/10 text-right text-orange-700 dark:text-orange-300">{{ c.caoKg | number: '1.2-2' }}</td>
+                      }
+                      @if (muestraAmbos()) {
+                        <td class="bg-slate-500/10 text-right font-semibold">{{ c.totalCajas | number }}</td>
+                        <td class="bg-slate-500/10 text-right font-semibold">{{ c.totalKg | number: '1.2-2' }}</td>
+                      }
+                      <td class="text-right"><span class="badge badge-soft badge-success">{{ c.porcentaje | number: '1.1-1' }}%</span></td>
+                    </tr>
+                  }
+                  @if (consignatarios().length === 0) {
+                    <tr><td [attr.colspan]="columnasConsignatario()" class="text-center text-app-subtle">Sin datos</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</section>

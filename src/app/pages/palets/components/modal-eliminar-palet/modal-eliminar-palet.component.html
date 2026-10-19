@@ -1,0 +1,57 @@
+@if (info(); as i) {
+  <div class="modal modal-open" role="dialog" aria-modal="true">
+    <div class="modal-box flex w-full !max-h-full !max-w-lg flex-col gap-0 overflow-hidden p-0">
+
+      <div class="flex items-center justify-between gap-3 border-b border-app-border2 bg-gradient-to-r from-rose-50 via-white to-white px-4 py-2 sm:px-5 dark:from-rose-500/15 dark:via-transparent dark:to-transparent">
+        <div class="flex min-w-0 items-center gap-3">
+          <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-rose-500 to-red-600 text-white shadow"><svg lucideTrash2 class="size-5"></svg></span>
+          <div class="min-w-0">
+            <span class="text-[11px] font-bold uppercase tracking-widest text-rose-700 dark:text-rose-300">Confirma la acción</span>
+            <h3 class="text-base font-extrabold leading-tight text-app-heading sm:text-lg">{{ i.titulo }}</h3>
+          </div>
+        </div>
+        <button type="button" class="btn btn-circle btn-ghost size-10 min-h-10 sm:size-8 sm:min-h-8" aria-label="Cerrar" (click)="cancelar.emit()"><svg lucideX class="size-4"></svg></button>
+      </div>
+
+      <div class="min-h-0 flex-1 space-y-3 overflow-y-auto bg-app-surface2 px-3 pb-3 pt-3 sm:px-5 sm:pb-5">
+        <section class="grid grid-cols-2 gap-2 rounded-2xl border border-rose-100 dark:border-rose-500/35 bg-rose-50/50 dark:bg-rose-500/15 px-4 py-3">
+          @for (d of i.resumen; track d.etiqueta) {
+            <div class="min-w-0">
+              <span class="block text-[11px] font-bold uppercase tracking-wide text-rose-700 dark:text-rose-300">{{ d.etiqueta }}</span>
+              <span class="block truncate text-sm font-semibold text-app-heading" [attr.title]="d.valor">{{ d.valor }}</span>
+            </div>
+          }
+        </section>
+
+        @if (i.listaTitulo) {
+          <section class="rounded-2xl border border-app-border2 bg-app-surface px-4 py-3">
+            <h4 class="mb-2 text-[11px] font-bold uppercase tracking-widest text-app-text2">{{ i.listaTitulo }}</h4>
+            @if (i.lista?.length) {
+              <div class="max-h-44 space-y-1.5 overflow-y-auto">
+                @for (l of i.lista; track $index) {
+                  <div class="rounded-xl border border-app-border bg-app-surface2 px-3 py-2">
+                    <p class="text-sm font-bold text-app-heading">{{ l.titulo }}</p>
+                    <p class="text-xs text-app-muted">{{ l.detalle }}</p>
+                  </div>
+                }
+              </div>
+            } @else {
+              <p class="text-sm text-app-muted">{{ i.listaVacia || 'Sin elementos' }}</p>
+            }
+          </section>
+        }
+
+        <p class="flex items-start gap-2 rounded-xl border border-tint-amber-border bg-amber-50 dark:bg-amber-500/15 px-3 py-2 text-xs text-amber-900 dark:text-amber-300">
+          <svg lucideCircleAlert class="mt-0.5 size-4 shrink-0"></svg>
+          Después se te pedirá una última confirmación porque esta acción no se puede deshacer.
+        </p>
+      </div>
+
+      <div class="flex flex-col-reverse justify-end gap-2 border-t border-app-border2 bg-app-surface px-4 py-2.5 sm:flex-row sm:px-5">
+        <button type="button" class="btn btn-sm btn-ghost" (click)="cancelar.emit()">Cancelar</button>
+        <button type="button" class="btn btn-sm btn-error" (click)="confirmar.emit()"><svg lucideTrash2 class="size-4"></svg> Eliminar</button>
+      </div>
+    </div>
+    <div class="modal-backdrop bg-black/40" (click)="cancelar.emit()"></div>
+  </div>
+}

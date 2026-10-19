@@ -1,26 +1,8 @@
-
+/**
+ * Nombres de las tablas de autenticacion (IndexedDB).
+ * Las tablas de negocio (catalogos, procesos, palets, guias...) se declaran en schema/ y sus repositorios usan el mismo nombre.
+ */
 export const DB_TABLES = {
-  fundo: 'fundo',
-  clientes: 'clientes',
-  consignatarios: 'consignatarios',
-  destinos: 'destinos',
-  formatos: 'formatos',
-  calibres: 'calibres',
-  categorias: 'categorias',
-  tiposEmpaque: 'tiposEmpaque',
-  tiposEmpaqueGuia: 'tiposEmpaqueGuia',
-  presentaciones: 'presentaciones',
-  tiposCaja: 'tiposCaja',
-  tiposClamshell: 'tiposClamshell',
-  variedades: 'variedades',
-  lugaresProduccion: 'lugaresProduccion',
-  transportes: 'transportes',
-  codigosCaja: 'codigosCaja',
-
-  conductores: 'conductores',
-  vehiculos: 'vehiculos',
-  transportistas: 'transportistas',
-  supervisores: 'supervisores',
-  personalLogistico: 'personalLogistico',
-  acopios: 'acopios'
+  sessions: 'sessions',
+  offlineOwner: 'offlineOwner',
 } as const;

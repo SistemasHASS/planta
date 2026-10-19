@@ -1,197 +1,291 @@
-import { Routes } from '@angular/router';
-import { authGuard } from './shared/guards/auth.guard';
-import { parametrosConfigChildGuard } from './shared/guards/parametros-config.guard';
-import { roleAccessChildGuard } from './shared/guards/role-access.guard';
+import { Routes } from "@angular/router";
+import { authGuard } from "./shared/guards/auth.guard";
+import { parametrosConfigChildGuard } from "./shared/guards/parametros-config.guard";
+import { ROLES, roleChildGuard, roleGuard } from "./shared/guards/role.guard";
 
-const childRoutes: Routes = [
-  { path: '', redirectTo: 'parametros', pathMatch: 'full' },
+/**
+ * Rutas de la aplicacion. Todas las pantallas cargan "lazy" (loadComponent) para que el
+ * bundle inicial sea pequeño.
+ *
+ * Para agregar una pantalla: crear pages/<modulo>/<modulo>.component.ts, agregar su ruta en
+ * `children` y su enlace en layout/components/sidebar/sidebar.component.ts (NAV_SECTIONS).
+ * Para restringirla por rol: canActivate: [roleGuard(ROLES.admin)] (ver shared/guards/role.guard.ts).
+ * Para pantallas que solo funcionan online: data: { requiresInternet: true }.
+ */
+export const routes: Routes = [
   {
-    path: 'parametros/setup',
+    path: "login",
     loadComponent: () =>
-      import('./pages/parametros-setup/parametros-setup.component').then((m) => m.ParametrosSetupComponent),
+      import("./auth/login/login.component").then((m) => m.LoginComponent),
   },
   {
-    path: 'parametros',
+    path: "",
     loadComponent: () =>
-      import('./pages/parametros/parametros.component').then((m) => m.ParametrosComponent),
-  },
-  {
-    path: 'dashboard',
-    loadComponent: () =>
-      import('./pages/dashboard/dashboard.component').then((m) => m.DashboardComponent),
-  },
-  {
-    path: 'documentacion',
-    loadComponent: () =>
-      import('./pages/placeholder/placeholder.component').then((m) => m.PlaceholderComponent),
-    data: { title: 'Documentación', subtitle: 'Gestión de documentos', icon: 'bi-clipboard-check-fill' }
-  },
-  {
-    path: 'despacho',
-    loadComponent: () =>
-      import('./pages/placeholder/placeholder.component').then((m) => m.PlaceholderComponent),
-    data: { title: 'Documentación', subtitle: 'Gestión de documentos', icon: 'bi-clipboard-check-fill' }
-  },
-  {
-    path: 'reporte-logistica',
-    loadComponent: () =>
-      import('./pages/placeholder/placeholder.component').then((m) => m.PlaceholderComponent),
-    data: { title: 'Reporte Producción', subtitle: 'Reporte de producción logística', icon: 'bi-clipboard-data-fill' }
-  },
-  {
-    path: 'reportes-dashboard-diario',
-    loadComponent: () =>
-      import('./pages/dashboard/administrador/reporte-diario/reporte-diario.component').then((m) => m.ReporteDiarioComponent),
-  },
-  {
-    path: 'reportes-dashboard-diario-propio-externo',
-    loadComponent: () =>
-      import('./pages/dashboard/administrador/reporte-diario-propio-externo/reporte-diario-propio-externo.component').then((m) => m.ReporteDiarioPropioExternoComponent),
-  },
-  {
-    path: 'reporte-kg-ingresados-acopio',
-    loadComponent: () =>
-      import('./pages/dashboard/administrador/reporte-kg-ingresados-acopio/reporte-kg-ingresados-acopio.component').then((m) => m.ReporteKgIngresadosAcopioComponent),
-  },
-  {
-    path: 'reporte-semanal',
-    loadComponent: () =>
-      import('./pages/dashboard/administrador/reporte-semanal/reporte-semanal.component').then((m) => m.ReporteSemanalComponent),
-  },
-  {
-    path: 'reporte-campania',
-    loadComponent: () =>
-      import('./pages/dashboard/administrador/reporte-campania/reporte-campania.component').then((m) => m.ReporteCampaniaComponent),
-  },
-  {
-    path: 'reportes-secundarios',
-    loadComponent: () =>
-      import('./pages/placeholder/placeholder.component').then((m) => m.PlaceholderComponent),
-    data: { title: 'Reportes Generales', subtitle: 'Reportes semanales, campaña y comparativos', icon: 'bi-file-earmark-bar-graph-fill' }
-  },
-  {
-    path: 'reportes-detallados',
-    loadComponent: () =>
-      import('./pages/placeholder/placeholder.component').then((m) => m.PlaceholderComponent),
-    data: { title: 'Reportes Detallados', subtitle: 'Reportes detallados de producción', icon: 'bi-clipboard-data-fill' }
-  },
-  {
-    path: 'admin/campanias',
-    loadComponent: () =>
-      import('./pages/admin-campanias/admin-campanias.component').then((m) => m.AdminCampaniasComponent),
-  },
-  {
-    path: 'admin/usuarios',
-    loadComponent: () =>
-      import('./pages/usuarios/usuarios.component').then((m) => m.UsuariosComponent),
-    data: { title: 'Gestión de Usuarios', subtitle: 'Administrar usuarios del sistema', icon: 'bi-people-fill' }
-  },
-  {
-    path: 'admin/destinatarios',
-    loadComponent: () =>
-      import('./pages/destinatarios/destinatarios.component').then((m) => m.DestinatariosComponent),
-    data: { title: 'Gestión de Destinatarios', subtitle: 'Administrar destinatarios de guías', icon: 'bi-geo-alt-fill' }
-  },
-  {
-    path: 'admin/matriz',
-    loadComponent: () =>
-      import('./pages/matriz-compatibilidad/matriz-compatibilidad.component').then((m) => m.MatrizCompatibilidadComponent),
-    data: { title: 'Matriz Compatibilidad', subtitle: 'Configurar compatibilidad de productos', icon: 'bi-diagram-3-fill' }
-  },
-  {
-    path: 'admin/sobrepeso',
-    loadComponent: () =>
-      import('./pages/sobrepeso/sobrepeso.component').then((m) => m.SobrepesoComponent),
-    data: { title: 'Reglas Sobrepeso', subtitle: 'Configurar reglas de sobrepeso', icon: 'bi-speedometer2' }
-  },
-  {
-    path: 'admin/correlativos-documentos',
-    loadComponent: () =>
-      import('./pages/correlativos-documentos/correlativos-documentos.component').then((m) => m.CorrelativosDocumentosComponent),
-    data: { title: 'Series GRE', subtitle: 'Administrar series de guías', icon: 'bi-file-earmark-text-fill' }
-  },
-  {
-    path: 'admin/acopio_configuracion',
-    loadComponent: () =>
-      import('./pages/acopios-config/acopios-config.component').then((m) => m.AcopiosConfigComponent),
-    data: { title: 'Acopio Configuración', subtitle: 'Configurar acopio', icon: 'bi-building-gear' }
-  },
-  {
-    path: 'admin/catalogos/:tipo',
-    loadComponent: () =>
-      import('./pages/catalogos/catalogos.component').then((m) => m.CatalogosComponent),
-    data: { title: 'Catálogo', subtitle: 'Gestión de catálogo', icon: 'bi-collection-fill' }
-  },
-  {
-    path: 'admin/catalogos-categorias',
-    loadComponent: () =>
-      import('./pages/catalogos-categorias/catalogo-catagorias.component').then((m) => m.CatalogoCategoriasComponent),
-    data: { title: 'Catálogo de Categorías', subtitle: 'Gestión de categorías', icon: 'bi-collection-fill' }
-  },
-  {
-    path: 'admin/catalogos-tipos-empaque',
-    loadComponent: () =>
-      import('./pages/catalogos-tipos-empaque/catalogo-tipos-empaque.component').then((m) => m.CatalogoTiposEmpaqueComponent),
-    data: { title: 'Tipos de Empaque', subtitle: 'Gestión de tipos de empaque', icon: 'bi-collection-fill' }
-  },
-  {
-    path: 'admin/catalogos-tipos-empaque-guia',
-    loadComponent: () =>
-      import('./pages/catalogos-tipos-empaque-guia/catalogo-tipos-empaque-guia.component').then((m) => m.CatalogoTiposEmpaqueGuiaComponent),
-    data: { title: 'Tipos Empaque Guía', subtitle: 'Gestión de tipos empaque guía', icon: 'bi-collection-fill' }
-  },
-  {
-    path: 'admin/catalogos-consignatarios',
-    loadComponent: () =>
-      import('./pages/catalogos-consignatarios/catalogo-consignatarios.component').then((m) => m.CatalogoConsignatariosComponent),
-    data: { title: 'Consignatarios', subtitle: 'Gestión de consignatarios', icon: 'bi-person-vcard' }
-  },
-  {
-    path: 'admin/catalogos-variedades-maestro',
-    loadComponent: () =>
-      import('./pages/catalogos-variedades-maestro/catalogo-variedades-maestro.component').then((m) => m.CatalogoVariedadesMaestroComponent),
-    data: { title: 'Variedades - Maestro', subtitle: 'Gestión de variedades', icon: 'bi-flower1' }
-  },
-  {
-    path: 'procesos',
-    loadComponent: () =>
-      import('./pages/procesos/procesos.component').then((m) => m.ProcesosComponent),
-  },
-  {
-    path: 'palets',
-    loadComponent: () =>
-      import('./pages/palets/palets.component').then((m) => m.PaletsComponent),
-  },
-  {
-    path: 'guias',
-    loadComponent: () =>
-      import('./pages/guias/guias.component').then((m) => m.GuiasComponent),
-  },
-  {
-    path: 'guias-manuales',
-    loadComponent: () =>
-      import('./pages/guias-manuales/guias-manuales.component').then((m) => m.GuiasManualesComponent),
-  },
-  {
-    path: 'catalogos',
-    loadComponent: () =>
-      import('./pages/catalogos/catalogos.component').then((m) => m.CatalogosComponent),
-  },
-];
-
-export const appRoutes: Routes = [
-  {
-    path: 'login',
-    loadComponent: () =>
-      import('./auth/login/login.component').then((m) => m.LoginComponent),
-  },
-  {
-    path: '',
-    loadComponent: () =>
-      import('./layout/layout.component').then((m) => m.LayoutComponent),
+      import("./layout/layout.component").then((m) => m.LayoutComponent),
     canActivate: [authGuard],
-    canActivateChild: [parametrosConfigChildGuard, roleAccessChildGuard],
-    children: childRoutes,
+    canActivateChild: [roleChildGuard, parametrosConfigChildGuard],
+    children: [
+      { path: "", redirectTo: "parametros", pathMatch: "full" },
+      {
+        path: "inicio",
+        loadComponent: () =>
+          import("./pages/inicio/inicio.component").then((m) => m.InicioComponent),
+      },
+      {
+        path: "palets",
+        canActivate: [roleGuard(ROLES.logistica, ROLES.admin)],
+        loadComponent: () =>
+          import("./pages/palets/palets.component").then((m) => m.PaletsComponent),
+      },
+      {
+        path: "guias",
+        canActivate: [roleGuard(ROLES.logistica, ROLES.admin, ROLES.monitor)],
+        loadComponent: () =>
+          import("./pages/guias/guias.component").then((m) => m.GuiasComponent),
+      },
+      {
+        path: "guias-manuales",
+        canActivate: [roleGuard(ROLES.logistica, ROLES.admin, ROLES.monitor, ROLES.guiasManuales)],
+        loadComponent: () =>
+          import("./pages/guias-manuales/guias-manuales.component").then((m) => m.GuiasManualesComponent),
+      },
+      {
+        path: "procesos",
+        canActivate: [roleGuard(ROLES.logistica, ROLES.admin)],
+        loadComponent: () =>
+          import("./pages/procesos/procesos.component").then((m) => m.ProcesosComponent),
+      },
+      {
+        path: "parametros",
+        canActivate: [roleGuard(ROLES.logistica, ROLES.admin, ROLES.monitor, ROLES.guiasManuales)],
+        loadComponent: () =>
+          import("./pages/parametros/parametros.component").then((m) => m.ParametrosComponent),
+      },
+      // Administrador (ADPLA): pantallas pendientes de portar; por ahora muestran el aviso de que se están migrando.
+      {
+        path: "admin/campanias",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Campañas" },
+        loadComponent: () => import("./pages/proximamente/proximamente.component").then((m) => m.ProximamenteComponent),
+      },
+      {
+        path: "admin/acopio_configuracion",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Acopio Configuración" },
+        loadComponent: () =>
+          import("./pages/acopios-config/acopios-config.component").then((m) => m.AcopiosConfigComponent),
+      },
+      {
+        path: "admin/usuarios",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Gestión de Usuarios" },
+        loadComponent: () => import("./pages/usuarios/usuarios.component").then((m) => m.UsuariosComponent),
+      },
+      {
+        path: "admin/destinatarios",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Gestión de Destinatarios" },
+        loadComponent: () => import("./pages/destinatarios/destinatarios.component").then((m) => m.DestinatariosComponent),
+      },
+      {
+        path: "admin/matriz",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Matriz Compatibilidad" },
+        loadComponent: () => import("./pages/matriz-compatibilidad/matriz-compatibilidad.component").then((m) => m.MatrizCompatibilidadComponent),
+      },
+      {
+        path: "admin/sobrepeso",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Reglas Sobrepeso" },
+        loadComponent: () => import("./pages/sobrepeso/sobrepeso.component").then((m) => m.SobrepesoComponent),
+      },
+      {
+        path: "admin/correlativos-documentos",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Series GRE" },
+        loadComponent: () => import("./pages/series-gre/series-gre.component").then((m) => m.SeriesGreComponent),
+      },
+      {
+        path: "admin/catalogos/conductores",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Conductores", catalogo: "conductores" },
+        loadComponent: () => import("./pages/catalogos/catalogo.component").then((m) => m.CatalogoComponent),
+      },
+      {
+        path: "admin/catalogos/vehiculos",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Vehículos", catalogo: "vehiculos" },
+        loadComponent: () => import("./pages/catalogos/catalogo.component").then((m) => m.CatalogoComponent),
+      },
+      {
+        path: "admin/catalogos/transportistas",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Transportistas", catalogo: "transportistas" },
+        loadComponent: () => import("./pages/catalogos/catalogo.component").then((m) => m.CatalogoComponent),
+      },
+      {
+        path: "admin/catalogos/supervisores",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Supervisores", catalogo: "supervisores" },
+        loadComponent: () => import("./pages/catalogos/catalogo.component").then((m) => m.CatalogoComponent),
+      },
+      {
+        path: "admin/catalogos/personalLogistica",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Personal Logística", catalogo: "personalLogistica" },
+        loadComponent: () => import("./pages/catalogos/catalogo.component").then((m) => m.CatalogoComponent),
+      },
+      {
+        path: "admin/catalogos/tipoProcesoEmpacado",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Tipo Proceso Empacado", catalogo: "tipoProcesoEmpacado" },
+        loadComponent: () => import("./pages/catalogos/catalogo.component").then((m) => m.CatalogoComponent),
+      },
+      {
+        path: "admin/catalogos/clientes",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Grupo Clientes", catalogo: "clientes" },
+        loadComponent: () => import("./pages/catalogos/catalogo.component").then((m) => m.CatalogoComponent),
+      },
+      {
+        path: "admin/catalogos/formatos",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Formatos", catalogo: "formatos" },
+        loadComponent: () => import("./pages/catalogos/catalogo.component").then((m) => m.CatalogoComponent),
+      },
+      {
+        path: "admin/catalogos/presentaciones",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Presentaciones", catalogo: "presentaciones" },
+        loadComponent: () => import("./pages/catalogos/catalogo.component").then((m) => m.CatalogoComponent),
+      },
+      {
+        path: "admin/catalogos/tiposCaja",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Tipos de Caja", catalogo: "tiposCaja" },
+        loadComponent: () => import("./pages/catalogos/catalogo.component").then((m) => m.CatalogoComponent),
+      },
+      {
+        path: "admin/catalogos/tiposClamshell",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Tipos de Clamshell", catalogo: "tiposClamshell" },
+        loadComponent: () => import("./pages/catalogos/catalogo.component").then((m) => m.CatalogoComponent),
+      },
+      {
+        path: "admin/catalogos/lugaresProduccion",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Lugares de Producción", catalogo: "lugaresProduccion" },
+        loadComponent: () => import("./pages/catalogos/catalogo.component").then((m) => m.CatalogoComponent),
+      },
+      {
+        path: "admin/catalogos/codigosRancho",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Códigos Rancho", catalogo: "codigosRancho" },
+        loadComponent: () => import("./pages/catalogos/catalogo.component").then((m) => m.CatalogoComponent),
+      },
+      {
+        path: "admin/catalogos/categorias",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Categorías", catalogo: "categorias" },
+        loadComponent: () => import("./pages/catalogos/catalogo.component").then((m) => m.CatalogoComponent),
+      },
+      {
+        path: "admin/catalogos/tiposEmpaque",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Tipos de Empaque", catalogo: "tiposEmpaque" },
+        loadComponent: () => import("./pages/catalogos/catalogo.component").then((m) => m.CatalogoComponent),
+      },
+      {
+        path: "admin/catalogos/tiposEmpaqueGuia",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Tipos Empaque Guía", catalogo: "tiposEmpaqueGuia" },
+        loadComponent: () => import("./pages/catalogos/catalogo.component").then((m) => m.CatalogoComponent),
+      },
+      {
+        path: "admin/catalogos/destinos",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Destinos - Maestro", catalogo: "destinos" },
+        loadComponent: () => import("./pages/catalogos/catalogo.component").then((m) => m.CatalogoComponent),
+      },
+      {
+        path: "admin/catalogos/calibres",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Calibres - Maestro", catalogo: "calibres" },
+        loadComponent: () => import("./pages/catalogos/catalogo.component").then((m) => m.CatalogoComponent),
+      },
+      {
+        path: "admin/catalogos/transportes",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Transportes - Maestro", catalogo: "transportes" },
+        loadComponent: () => import("./pages/catalogos/catalogo.component").then((m) => m.CatalogoComponent),
+      },
+      {
+        path: "admin/catalogos/:catalogo",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Catálogos" },
+        loadComponent: () => import("./pages/proximamente/proximamente.component").then((m) => m.ProximamenteComponent),
+      },
+      {
+        path: "admin/catalogos-consignatarios",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Consignatarios - Maestro" },
+        loadComponent: () => import("./pages/consignatarios/consignatarios.component").then((m) => m.ConsignatariosComponent),
+      },
+      {
+        path: "admin/catalogos-categorias",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Categorías" },
+        loadComponent: () => import("./pages/proximamente/proximamente.component").then((m) => m.ProximamenteComponent),
+      },
+      {
+        path: "admin/catalogos-tipos-empaque",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Tipos de Empaque" },
+        loadComponent: () => import("./pages/proximamente/proximamente.component").then((m) => m.ProximamenteComponent),
+      },
+      {
+        path: "admin/catalogos-tipos-empaque-guia",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Tipos Empaque Guía" },
+        loadComponent: () => import("./pages/proximamente/proximamente.component").then((m) => m.ProximamenteComponent),
+      },
+      {
+        path: "admin/catalogos-variedades-maestro",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Variedades - Maestro" },
+        loadComponent: () => import("./pages/variedades/variedades.component").then((m) => m.VariedadesComponent),
+      },
+      {
+        path: "reportes-dashboard-diario",
+        canActivate: [roleGuard(ROLES.admin, ROLES.monitor)],
+        loadComponent: () =>
+          import("./pages/reportes/reporte-diario/reporte-diario.component").then((m) => m.ReporteDiarioComponent),
+      },
+      {
+        path: "reporte-kg-ingresados-acopio",
+        canActivate: [roleGuard(ROLES.admin, ROLES.monitor)],
+        loadComponent: () =>
+          import("./pages/reportes/reporte-kg-acopio/reporte-kg-acopio.component").then((m) => m.ReporteKgAcopioComponent),
+      },
+      {
+        path: "reportes-dashboard-diario-propio-externo",
+        canActivate: [roleGuard(ROLES.admin, ROLES.monitor)],
+        loadComponent: () =>
+          import("./pages/reportes/reporte-bh/reporte-bh.component").then((m) => m.ReporteBhComponent),
+      },
+      {
+        path: "reporte-semanal",
+        canActivate: [roleGuard(ROLES.admin, ROLES.monitor)],
+        loadComponent: () =>
+          import("./pages/reportes/reporte-semanal/reporte-semanal.component").then((m) => m.ReporteSemanalComponent),
+      },
+      {
+        path: "reporte-campania",
+        canActivate: [roleGuard(ROLES.admin, ROLES.monitor)],
+        loadComponent: () =>
+          import("./pages/reportes/reporte-campania/reporte-campania.component").then((m) => m.ReporteCampaniaComponent),
+      },
+    ],
   },
-  { path: '**', redirectTo: '' },
+  { path: "**", redirectTo: "" },
 ];

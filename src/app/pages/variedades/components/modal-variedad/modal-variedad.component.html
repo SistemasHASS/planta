@@ -1,0 +1,44 @@
+<div class="modal modal-open" role="dialog" aria-modal="true">
+  <div class="modal-box flex w-full !max-h-full !max-w-xl flex-col gap-0 overflow-hidden p-0">
+
+    <div class="flex items-center justify-between gap-3 border-b border-app-border2 px-4 py-1.5 sm:px-5">
+      <div class="min-w-0">
+        <span class="text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Variedades - Maestro</span>
+        <h3 class="truncate text-base font-extrabold leading-tight text-app-heading sm:text-lg">{{ esNuevo() ? 'Nueva variedad de ensayo' : 'Editar variedad' }}</h3>
+      </div>
+      <button type="button" class="btn btn-circle btn-ghost size-10 min-h-10 sm:size-8 sm:min-h-8" aria-label="Cerrar" (click)="closed.emit()"><svg lucideX class="size-4"></svg></button>
+    </div>
+
+    <div class="min-h-0 flex-1 space-y-3 overflow-y-auto bg-app-surface2 px-3 pb-3 pt-2 sm:px-5 sm:pb-5 sm:pt-2.5">
+      <section class="rounded-2xl border border-tint-emerald-border bg-tint-emerald px-4 py-3">
+        <div class="grid gap-3 sm:grid-cols-2">
+          @if (!esNuevo()) {
+            <div>
+              <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Código</span>
+              <div class="flex h-[42px] items-center rounded-[9px] border border-app-border2 bg-app-surface3 px-3 font-mono text-[16px] text-app-text2 sm:text-[14px]">{{ registro()?.codigo }}</div>
+            </div>
+          }
+          <div [class.sm:col-span-2]="esNuevo()">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Cultivo</span>
+            <div class="flex h-[42px] items-center rounded-[9px] border border-app-border2 bg-app-surface3 px-3 text-[16px] uppercase text-app-text2 sm:text-[14px]">{{ registro()?.cultivo || campania()?.fruta }}</div>
+          </div>
+          <label class="block sm:col-span-2">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Variedad <span class="text-rose-600 dark:text-rose-300">*</span></span>
+            <input type="text" maxlength="100" class="h-[42px] w-full rounded-[9px] border bg-app-surface px-3 text-[16px] outline-none placeholder:text-app-subtle focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/25 disabled:bg-app-surface3 disabled:text-app-text2 sm:text-[14px]" [class.border-app-border2]="!(intento() && !valido())" [class.border-rose-400]="intento() && !valido()" [disabled]="!nombreEditable()" [ngModel]="variedad()" (ngModelChange)="variedad.set($event)" />
+            @if (intento() && !valido()) { <span class="mt-1 block text-xs text-rose-600 dark:text-rose-300">Requerido</span> }
+          </label>
+          <label class="block sm:col-span-2">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Procedencia</span>
+            <input type="text" maxlength="100" class="h-[42px] w-full rounded-[9px] border border-app-border2 bg-app-surface px-3 text-[16px] outline-none placeholder:text-app-subtle focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/25 sm:text-[14px]" [ngModel]="procedencia()" (ngModelChange)="procedencia.set($event)" />
+          </label>
+        </div>
+      </section>
+    </div>
+
+    <div class="flex justify-end gap-2 border-t border-app-border2 bg-app-surface px-4 py-2.5 sm:px-5">
+      <button type="button" class="btn btn-sm btn-ghost" (click)="closed.emit()">Cancelar</button>
+      <button type="button" class="btn btn-sm btn-primary" [disabled]="!hayCambios()" (click)="guardar()"><svg lucideSave class="size-4"></svg> {{ esNuevo() ? 'Crear' : 'Guardar cambios' }}</button>
+    </div>
+  </div>
+  <div class="modal-backdrop bg-black/40" (click)="closed.emit()"></div>
+</div>

@@ -1,0 +1,48 @@
+<div [class]="enDosColumnas() ? 'grid gap-4 md:grid-cols-2' : 'space-y-4'">
+  <section class="rounded-2xl border border-l-4 border-tint-sky-border border-l-sky-500 bg-tint-sky p-4">
+    <div class="mb-3 flex items-center justify-between gap-2">
+      <h4 class="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-sky-800 dark:text-sky-300"><svg lucideUsers class="size-4"></svg>Supervisores <span class="font-medium normal-case text-app-muted">(1 a {{ maxSupervisores }})</span></h4>
+      <span class="badge badge-soft" [class.badge-success]="supervisoresSel().length > 0" [class.badge-ghost]="supervisoresSel().length === 0">{{ supervisoresSel().length }}/{{ maxSupervisores }}</span>
+    </div>
+    @if (cargando()) {
+      <p class="rounded-xl bg-app-surface p-3 text-sm text-app-muted">Cargando...</p>
+    } @else if (mensajeInicial()) {
+      <p class="rounded-xl bg-app-surface p-3 text-sm text-app-muted">{{ mensajeInicial() }}</p>
+    } @else if (supervisores().length === 0) {
+      <p class="rounded-xl bg-app-surface p-3 text-sm text-app-muted">No hay supervisores disponibles.</p>
+    } @else {
+      <div class="max-h-[11.75rem] space-y-1.5 overflow-y-auto rounded-xl bg-app-surface p-2">
+        @for (s of supervisores(); track s.id) {
+          @let marcado = estaMarcadoSupervisor(s);
+          <label class="flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors" [class.border-tint-emerald-border]="marcado" [class.bg-tint-emerald]="marcado" [class.border-app-border]="!marcado" [class.hover:bg-app-surface2]="!marcado" [class.opacity-60]="s.ocupado && !marcado">
+            <input type="checkbox" class="checkbox checkbox-success checkbox-sm" [disabled]="s.ocupado && !marcado" [checked]="marcado" (change)="cambiarSupervisor(s, $event)" />
+            <span class="min-w-0 text-app-heading" [class.font-semibold]="marcado">{{ s.nombreCompleto }}<span class="text-xs text-app-muted">{{ conDni(s) }}</span>{{ s.ocupado && !marcado ? ' — asignado' : '' }}</span>
+          </label>
+        }
+      </div>
+    }
+  </section>
+  <section class="rounded-2xl border border-l-4 border-violet-200 border-l-violet-500 bg-violet-50/50 p-4 dark:border-violet-500/30 dark:border-l-violet-500 dark:bg-violet-500/10">
+    <div class="mb-3 flex items-center justify-between gap-2">
+      <h4 class="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-violet-800 dark:text-violet-300"><svg lucideUsers class="size-4"></svg>Personal de logística <span class="font-medium normal-case text-app-muted">(1 a {{ maxLogisticos }})</span></h4>
+      <span class="badge badge-soft" [class.badge-success]="logisticosSel().length > 0" [class.badge-ghost]="logisticosSel().length === 0">{{ logisticosSel().length }}/{{ maxLogisticos }}</span>
+    </div>
+    @if (cargando()) {
+      <p class="rounded-xl bg-app-surface p-3 text-sm text-app-muted">Cargando...</p>
+    } @else if (mensajeInicial()) {
+      <p class="rounded-xl bg-app-surface p-3 text-sm text-app-muted">{{ mensajeInicial() }}</p>
+    } @else if (logisticos().length === 0) {
+      <p class="rounded-xl bg-app-surface p-3 text-sm text-app-muted">No hay personal logístico disponible.</p>
+    } @else {
+      <div class="max-h-[11.75rem] space-y-1.5 overflow-y-auto rounded-xl bg-app-surface p-2">
+        @for (l of logisticos(); track l.id) {
+          @let marcado = estaMarcadoLogistico(l);
+          <label class="flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors" [class.border-tint-emerald-border]="marcado" [class.bg-tint-emerald]="marcado" [class.border-app-border]="!marcado" [class.hover:bg-app-surface2]="!marcado" [class.opacity-60]="l.ocupado && !marcado">
+            <input type="checkbox" class="checkbox checkbox-success checkbox-sm" [disabled]="l.ocupado && !marcado" [checked]="marcado" (change)="cambiarLogistico(l, $event)" />
+            <span class="min-w-0 text-app-heading" [class.font-semibold]="marcado">{{ l.nombreCompleto }}<span class="text-xs text-app-muted">{{ conDni(l) }}</span>{{ l.ocupado && !marcado ? ' — asignado' : '' }}</span>
+          </label>
+        }
+      </div>
+    }
+  </section>
+</div>

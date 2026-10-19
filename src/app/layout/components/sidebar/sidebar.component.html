@@ -1,0 +1,96 @@
+<div class="sidebar-overlay" [class.show]="open" (click)="close()"></div>
+
+<aside class="app-sidebar" [class.show]="open" [attr.aria-hidden]="!open" aria-label="Menu principal">
+  <div class="sidebar-header">
+    <button type="button" class="sidebar-mobile-close" aria-label="Cerrar menu" (click)="close()">
+      <svg lucideX class="icon-size"></svg>
+    </button>
+
+    <img class="sidebar-profile-image" src="assets/logo.svg" alt="Logo" />
+    <div class="sidebar-profile-greeting">Hola</div>
+    <div class="sidebar-profile-name" [attr.title]="displayName()">{{ displayName() }}</div>
+    <div class="sidebar-profile-role">{{ roleName() }}</div>
+    <div class="sidebar-app-version">v{{ appVersion }}</div>
+  </div>
+
+  <div class="sidebar-body">
+    <nav class="sidebar-nav">
+      @for (section of navSections(); track section.key) {
+        <section class="sidebar-section">
+          <button type="button" class="sidebar-section-title" [attr.aria-expanded]="isSectionOpen(section.key)" (click)="toggleSection(section.key)">
+            <span>{{ section.title }}</span><svg lucideChevronDown class="section-chevron" [class.open]="isSectionOpen(section.key)"></svg>
+          </button>
+          <div class="sidebar-section-content" [class.show]="isSectionOpen(section.key)">
+            @for (item of section.items; track item.path) {
+              @if (item.children) {
+                <button type="button" class="sidebar-link sidebar-submenu-toggle" [class.active]="isSubmenuOpen(item.path)" [attr.aria-expanded]="isSubmenuOpen(item.path)" (click)="toggleSubmenu(item.path)">
+                  <ng-container *ngTemplateOutlet="icon; context: { $implicit: item.icon }" />
+                  <span>{{ item.label }}</span>
+                  <svg lucideChevronDown class="chevron-icon"></svg>
+                </button>
+                <div class="sidebar-submenu" [class.show]="isSubmenuOpen(item.path)">
+                  @for (sub of item.children; track sub.path) {
+                    @if (sub.requiresInternet && !online()) {
+                      <button type="button" class="sidebar-link offline-link" (click)="avisarSoloOnline()">
+                        <span class="submenu-dot"></span>
+                        <span>{{ sub.label }}</span>
+                      </button>
+                    } @else {
+                      <a [routerLink]="sub.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="sidebar-link" (click)="close()">
+                        <span class="submenu-dot"></span>
+                        <span>{{ sub.label }}</span>
+                      </a>
+                    }
+                  }
+                </div>
+              } @else if (item.requiresInternet && !online()) {
+                <button type="button" class="sidebar-link offline-link" (click)="avisarSoloOnline()">
+                  <ng-container *ngTemplateOutlet="icon; context: { $implicit: item.icon }" />
+                  <span>{{ item.label }}</span>
+                </button>
+              } @else {
+                <a [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="sidebar-link" (click)="close()">
+                  <ng-container *ngTemplateOutlet="icon; context: { $implicit: item.icon }" />
+                  <span>{{ item.label }}</span>
+                </a>
+              }
+            }
+          </div>
+        </section>
+      }
+    </nav>
+  </div>
+
+  <div class="sidebar-footer">
+    <button type="button" class="sidebar-logout" (click)="logout()" [disabled]="loadingLogout()">
+      <svg lucideLogOut class="icon-size"></svg>
+      Cerrar sesion
+    </button>
+  </div>
+</aside>
+
+<!-- Iconos del menu: para un icono nuevo importar su Lucide* en el .ts y agregar un @case aqui. -->
+<!-- Iconos del menu: para un icono nuevo importar su Lucide* en el .ts y agregar un @case aqui. -->
+<ng-template #icon let-name>
+  @switch (name) {
+    @case ('layout') { <svg lucideLayoutDashboard class="icon-size"></svg> }
+    @case ('sliders') { <svg lucideSlidersHorizontal class="icon-size"></svg> }
+    @case ('calendar') { <svg lucideCalendarDays class="icon-size"></svg> }
+    @case ('package') { <svg lucidePackage class="icon-size"></svg> }
+    @case ('truck') { <svg lucideTruck class="icon-size"></svg> }
+    @case ('calendar-range') { <svg lucideCalendarRange class="icon-size"></svg> }
+    @case ('building') { <svg lucideBuilding2 class="icon-size"></svg> }
+    @case ('users') { <svg lucideUsers class="icon-size"></svg> }
+    @case ('map-pin') { <svg lucideMapPin class="icon-size"></svg> }
+    @case ('network') { <svg lucideNetwork class="icon-size"></svg> }
+    @case ('gauge') { <svg lucideGauge class="icon-size"></svg> }
+    @case ('file-text') { <svg lucideFileText class="icon-size"></svg> }
+    @case ('library') { <svg lucideLibrary class="icon-size"></svg> }
+    @case ('settings') { <svg lucideSettings class="icon-size"></svg> }
+    @case ('chart') { <svg lucideChartColumn class="icon-size"></svg> }
+    @case ('download') { <svg lucideDownload class="icon-size"></svg> }
+    @case ('file-chart') { <svg lucideFileChartColumn class="icon-size"></svg> }
+    @case ('pencil') { <svg lucideSquarePen class="icon-size"></svg> }
+    @default { <svg lucideLeaf class="icon-size"></svg> }
+  }
+</ng-template>

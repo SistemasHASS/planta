@@ -1,1087 +1,563 @@
-import { Component, ChangeDetectionStrategy, inject, signal, OnInit, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { ProcesoService } from '../../shared/services/proceso.service';
-import { CatalogoService } from '../../shared/services/catalogo.service';
-import { AuthService } from '../../shared/services/auth.service';
-import { AlertService } from '../../shared/services/alert.service';
-import { PermissionService } from '../../shared/services/permission.service';
-import { DProcesoLogistico, DProcesoSupervisor, Proceso } from '../../shared/interfaces/proceso.interface';
-import moment from 'moment';
-import 'moment/locale/es';
-import { formatDate, formatDateStandar, formatDateTime } from '../../shared/utils/datetime.utils';
+import {
+  LucideBox,
+  LucideCalendarClock,
+  LucideCircleStop,
+  LucideFunnel,
+  LucideMoon,
+  LucidePencil,
+  LucidePlay,
+  LucideRefreshCcw,
+  LucideRotateCcw,
+  LucideSettings,
+  LucideSun,
+  LucideX,
+} from '@lucide/angular';
+import { SearchSelectComponent, SearchSelectOption } from '../../shared/components/search-select/search-select.component';
+import { EditarPersonalModalComponent } from './components/editar-personal-modal/editar-personal-modal.component';
+import { PersonalListaModalComponent } from './components/personal-lista-modal/personal-lista-modal.component';
+import { MAX_LOGISTICOS, MAX_SUPERVISORES, SelectorPersonalComponent } from './components/selector-personal/selector-personal.component';
+import { PaginatorComponent } from '../../shared/components/paginator/paginator.component';
+import { CatalogosOperativosRepository } from '../../shared/dexiedb/repository/catalogos-operacionales.repository';
 import { CatalogosRepository } from '../../shared/dexiedb/repository/catalogos.repository';
 import { Configuracion } from '../../shared/interfaces/administracion.interface';
+import { Campania, Cultivo, Fundo, PersonalLogistico, Supervisor } from '../../shared/interfaces/catalogo.interface';
+import { Proceso } from '../../shared/interfaces/proceso.interface';
+import { Usuario } from '../../shared/interfaces/auth.interface';
+import { AuthService } from '../../shared/services/auth.service';
+import { ConfirmModalService } from '../../shared/services/confirm-modal.service';
 import { ConnectivityService } from '../../shared/services/connectivity.service';
-import { CatalogosOperativosRepository } from '../../shared/dexiedb/repository/catalogos-operacionales.repository';
-import { firstValueFrom } from 'rxjs';
-import { PersonalLogistico, Supervisor } from '../../shared/interfaces/catalogo.interface';
-import { ProcesoRepository } from '../../shared/dexiedb/repository/proceso.repository';
-import { ProcesosHistorialTablaComponent } from './components/procesos-historial-tabla/procesos-historial-tabla.component';
+import { FeedbackModalService } from '../../shared/services/feedback-modal.service';
+import { LoadingService } from '../../shared/services/loading.service';
+import { ProcesosApiService } from '../../shared/services/procesos-api.service';
+import { ProcesosSyncService } from '../../shared/services/procesos-sync.service';
+import { nowPeruDate, nowPeruDateTime } from '../../shared/utils/date-time.util';
+import { crearPaginacion } from '../../shared/utils/paginacion';
+import { permisos } from '../../shared/utils/permisos';
 
+const texto = (v: unknown): string => String(v ?? '').trim();
+
+interface NuevoProceso {
+  fechaProceso: string;
+  turno: string;
+  supervisores: Supervisor[];
+  logisticos: PersonalLogistico[];
+}
+
+/** Lunes y domingo (yyyy-MM-dd) de la semana de la fecha dada. */
+const semanaActual = (hoy: string): { desde: string; hasta: string } => {
+  const base = new Date(`${hoy}T00:00:00Z`);
+  const dia = base.getUTCDay() === 0 ? 7 : base.getUTCDay();
+  const fmt = (d: Date): string => d.toISOString().slice(0, 10);
+  const lunes = new Date(base);
+  lunes.setUTCDate(base.getUTCDate() - (dia - 1));
+  const domingo = new Date(lunes);
+  domingo.setUTCDate(lunes.getUTCDate() + 6);
+  return { desde: fmt(lunes), hasta: fmt(domingo) };
+};
+
+const nuevoVacio = (): NuevoProceso => ({ fechaProceso: nowPeruDate(), turno: '', supervisores: [], logisticos: [] });
+
+/**
+ * Procesos (rol Logistica / Administrador): un proceso es un turno (DIA o NOCHE) de un acopio en una fecha.
+ * Solo en línea: crea, cierra, reabre y edita de frente en el servidor; no se guarda nada en el equipo.
+ */
 @Component({
   selector: 'app-procesos',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, ProcesosHistorialTablaComponent],
+  imports: [
+    FormsModule,
+    SearchSelectComponent,
+    SelectorPersonalComponent,
+    EditarPersonalModalComponent,
+    PersonalListaModalComponent,
+    RouterLink,
+    PaginatorComponent,
+    LucideBox,
+    LucideCalendarClock,
+    LucideCircleStop,
+    LucideFunnel,
+    LucideMoon,
+    LucidePencil,
+    LucidePlay,
+    LucideRefreshCcw,
+    LucideRotateCcw,
+      LucideSettings,
+    LucideSun,
+    LucideX,
+  ],
   templateUrl: './procesos.component.html',
-  styleUrl: './procesos.component.scss'
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProcesosComponent implements OnInit {
-  private readonly procesoService = inject(ProcesoService);
-  private readonly catalogoService = inject(CatalogoService);
   private readonly auth = inject(AuthService);
-  private readonly alertService = inject(AlertService);
-  readonly permissions = inject(PermissionService);
-  private readonly catalogosRepo = inject(CatalogosRepository);
-  private readonly catalogosOperariosRepo = inject(CatalogosOperativosRepository);
-  private readonly procesoRepo = inject(ProcesoRepository);
+  private readonly api = inject(ProcesosApiService);
+  private readonly sync = inject(ProcesosSyncService);
+  private readonly catalogos = inject(CatalogosRepository);
+  private readonly operativos = inject(CatalogosOperativosRepository);
   private readonly connectivity = inject(ConnectivityService);
-  readonly savedConfig = signal<Configuracion | null>(null);
+  private readonly loading = inject(LoadingService);
+  private readonly feedback = inject(FeedbackModalService);
+  private readonly confirm = inject(ConfirmModalService);
 
-  procesos = signal<Proceso[]>([]);
-  procesosActivos = signal<Proceso[]>([]);
-  acopios = signal<any[]>([]);
-  campania = signal<any>({});
-  isLoading = signal(true);
-  isCreating = signal(false);
+  readonly usuario = signal<Usuario | null>(null);
+  readonly cfg = signal<Configuracion | null>(null);
+  readonly campania = signal<Campania | null>(null);
+  readonly fundo = signal<Fundo | null>(null);
+  readonly cultivo = signal<Cultivo | null>(null);
 
-  sincronizadoLabel(db?: number): string {
-    return db === 1 ? 'Sincronizado' : 'No sincronizado';
-  }
+  readonly procesos = signal<Proceso[]>([]);
+  readonly cargando = signal(true);
+  readonly creando = signal(false);
 
-  sincronizadoClass(db?: number): string {
-    return db === 1 ? 'sp-badge sp-badge-success' : 'sp-badge sp-badge-danger';
-  }
-  filterFecha = signal('');
-  acopioSeleccionado = signal<string | null>(null);
+  // Filtros del listado: se envían al SP (la búsqueda se hace en el servidor). El acopio solo lo elige el administrador.
+  readonly fDesde = signal('');
+  readonly fHasta = signal('');
+  readonly fTurno = signal('');
+  readonly fAcopio = signal('');
+  readonly fEstado = signal('');
+  readonly acopioNombres = signal<Record<string, string>>({});
+  readonly acopioOpciones = computed<SearchSelectOption[]>(() => [
+    { value: '', label: 'Todos los acopios' },
+    // "Todos" va primero; los acopios, ordenados por nombre.
+    ...Object.entries(this.acopioNombres())
+      .map(([value, label]) => ({ value, label: `${label} (${value})` }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'es')),
+  ]);
+  readonly turnoOpciones: SearchSelectOption[] = [
+    { value: '', label: 'Todos los turnos' },
+    { value: 'DIA', label: '☀️ DIA' },
+    { value: 'NOCHE', label: '🌙 NOCHE' },
+  ];
+  /** Turno al abrir un proceso nuevo (sin la opcion "Todos" del filtro). */
+  readonly turnoNuevoOpciones: SearchSelectOption[] = [
+    { value: 'DIA', label: '☀️ DIA' },
+    { value: 'NOCHE', label: '🌙 NOCHE' },
+  ];
+  readonly estadoOpciones: SearchSelectOption[] = [
+    { value: '', label: 'Todos los estados' },
+    { value: 'ABIERTO', label: 'ABIERTO' },
+    { value: 'CERRADO', label: 'CERRADO' },
+  ];
 
-  supNombresByProceso = signal<Record<string, string>>({});
-  logNombresByProceso = signal<Record<string, string>>({});
-  supPersonalByProceso = signal<Record<string, Supervisor[]>>({});
-  logPersonalByProceso = signal<Record<string, PersonalLogistico[]>>({});
+  readonly nuevo = signal<NuevoProceso>(nuevoVacio());
+  readonly supervisoresDisponibles = signal<Supervisor[]>([]);
+  readonly logisticosDisponibles = signal<PersonalLogistico[]>([]);
+  readonly cargandoPersonal = signal(false);
 
-  // Personal disponible signals
-  supervisoresDisponibles = signal<Supervisor[]>([]);
-  logisticosDisponibles = signal<PersonalLogistico[]>([]);
-  cargandoPersonal = signal(false);
+  readonly supPorProceso = signal<Record<string, Supervisor[]>>({});
+  readonly logPorProceso = signal<Record<string, PersonalLogistico[]>>({});
 
-  readonly perfil = this.auth.perfil;
-  readonly usuario = this.auth.usuario;
-  readonly activeCampaniaId = signal<string | null>(null);
+  readonly editando = signal<Proceso | null>(null);
+  readonly personalModal = signal<{ titulo: string; filas: { nombreCompleto: string; dni: string }[] } | null>(null);
 
-  // Modal edición signals
-  modalEdicionAbierto = signal(false);
-  procesoEditando = signal<Proceso | null>(null);
+  readonly rol = computed(() => texto(this.usuario()?.idRol).toUpperCase());
+  readonly esLogistica = computed(() => permisos.esLogistica(this.rol()));
+  readonly esAdmin = computed(() => permisos.esAdmin(this.rol()));
+  readonly puedeCrear = computed(() => permisos.puedeCrearProceso(this.rol()));
+  readonly puedeReabrir = computed(() => permisos.puedeReabrirProceso(this.rol()));
+  readonly online = this.connectivity.online;
 
-  get online(): boolean {
-    return this.connectivity.isOnline();
-  }
-  readonly activeLabel = computed(() => {
+  readonly activos = computed(() => this.procesos().filter((p) => p.estado === 'ABIERTO'));
+  readonly historial = computed(() => this.procesos());
+  readonly paginacion = crearPaginacion(() => this.historial(), 10);
+
+  readonly etiquetaFundo = computed(() => {
+    const f = this.fundo();
+    return f ? `${texto(f.nombreFundo)}` : texto(this.cfg()?.idFundo) || '—';
+  });
+
+  readonly etiquetaCultivo = computed(() => {
+    const c = this.cultivo();
+    return c ? `${texto(c.descripcion)}` : texto(this.cfg()?.codigoCultivo) || '—';
+  });
+
+  /** Periodo de la campaña: fecha de inicio y de fin (dd/MM/yyyy). */
+  readonly periodoCampania = computed(() => {
+    const f = (v: unknown): string => {
+      const [y, m, d] = texto(v).split('T')[0].split('-');
+      return y && m && d ? `${d}/${m}/${y}` : '—';
+    };
     const c = this.campania();
-    if (!c) return '—';
-    const left = String(c.idproyecto ?? '').trim();
-    const right = String(c.descripcion ?? '').trim();
-    if (left && right && left !== right) return `${left} — ${right}`;
-    return left || right || '—';
+    return `${f(c?.fecha_inicio)} al ${f(c?.fecha_fin)}`;
   });
 
-  readonly campaniaActiva = computed(() => {
-    const lista = this.campania();
-    const activa = lista.find((c: any) => c.Activa) ?? lista[0] ?? null;
-    return activa;
+  readonly etiquetaCampania = computed(() => {
+    const id = texto(this.cfg()?.idProyecto);
+    const desc = texto(this.campania()?.descripcion);
+    return id && desc && id !== desc ? ` ${desc}` : id || desc || '—';
   });
-
-  readonly historial = computed(() => {
-    const fecha = this.filterFecha();
-    const lista = this.procesos();
-    if (!fecha) return lista;
-    return lista.filter((p: any) => {
-      if (!p.fechaProceso) return false;
-      const fechaProceso = p.fechaProceso.split('T')[0];
-      return fechaProceso === fecha;
-    });
-  });
-
-  nuevoProceso = signal<{ fechaProceso: string; turno: string; supervisores: Supervisor[]; logisticos: PersonalLogistico[] }>({
-    fechaProceso: new Date().toISOString().split('T')[0],
-    turno: '',
-    supervisores: [],
-    logisticos: []
-  });
-
-  private syncProcesosActivosFromLista(lista: Proceso[]): void {
-    // Para ADMIN/COORDINACION la pantalla muestra procesos abiertos en una grilla
-    // usando la data del listado completo.
-    if (this.perfil() === 'ADMINISTRADOR' || this.perfil() === 'COORDINACION') {
-      const abiertos = (lista ?? []).filter(p => p.estado === 'ABIERTO');
-      this.procesosActivos.set(abiertos);
-    }
-  }
 
   async ngOnInit(): Promise<void> {
-    await this.cargarConfiguracion();
-    await this.cargarDesdeDexieCampania();
-    await this.cargarPersonalDisponible();
-    await this.cargarProcesos()
+    const session = await this.auth.getSession();
+    this.usuario.set(session?.user ?? null);
+    this.loading.show('Cargando procesos...');
+    try {
+      await this.cargarConfiguracion();
+      const semana = semanaActual(nowPeruDate());
+      this.fDesde.set(semana.desde);
+      this.fHasta.set(semana.hasta);
+      if (this.esAdmin()) await this.cargarAcopiosLocales();
+      // Todo es en línea y no se guarda nada en el equipo (solo se lee la campaña elegida en Parámetros).
+      // El personal no se pide al entrar: Logística lo pide al elegir fecha y turno (para que esté actualizado) y el administrador al editar.
+      await this.cargarProcesos();
+    } finally {
+      await this.loading.hideAfterMinimum();
+    }
   }
 
+  // ───────── Carga ─────────
 
   private async cargarConfiguracion(): Promise<void> {
-    try {
-      const nro = this.getNroDocumentoFromUsuario();
-      const cfg = await this.catalogosRepo.configuracionRepo.getByField('nrodocumento', nro);
-      this.savedConfig.set(cfg ?? null);
-    } catch (error) {
-      console.log('Error cargando configuracion desde Dexie', error);
-      this.activeCampaniaId.set(null);
+    const nro = texto(this.usuario()?.documentoIdentidad);
+    const cfg = nro ? ((await this.catalogos.configuracionRepo.getByField('nrodocumento', nro)) ?? null) : null;
+    this.cfg.set(cfg);
+    if (cfg) {
+      this.campania.set((await this.catalogos.campaniaRepo.getByField('idproyecto', cfg.idProyecto)) ?? null);
+      // Fundo y cultivo se muestran con su nombre, tomado de los catálogos guardados.
+      this.fundo.set((await this.catalogos.fundoRepo.getByField('id', cfg.idFundo as any)) ?? null);
+      this.cultivo.set((await this.catalogos.cultivoRepo.getByField('codigo', cfg.codigoCultivo)) ?? null);
     }
   }
 
-  private getNroDocumentoFromUsuario(): string {
-    const u: any = this.auth.usuario();
-    const v = u?.nrodocumento ?? u?.documentoidentidad ?? u?.documentoIdentidad ?? u?.documento ?? '';
-    return String(v ?? '').trim();
-  }
-
-  private async cargarDesdeDexieCampania(): Promise<void> {
-    try {
-      const campania = await this.catalogosRepo.campaniaRepo.getByField('idproyecto', this.savedConfig()?.idProyecto || '');
-      this.campania.set(campania);
-    } catch (error) {
-      console.log('Error cargando campanias desde Dexie', error);
-      this.campania.set([]);
-    }
-  }
-
-  fmtDateRange(inicio: unknown, fin: unknown): string {
-    const a = formatDate(inicio);
-    const b = formatDate(fin);
-    if (a && b) return `${a} — ${b}`;
-    return a ?? b ?? '—';
-  }
-
-  normalizarProceso(proceso: any): {
-    proceso: Proceso;
-    dProcesoLogisticos: DProcesoLogistico[];
-    dProcesoSupervisores: DProcesoSupervisor[];
-  } {
-    const p: Proceso = {
-      id: proceso?.id ?? undefined,
-      idProceso: String(proceso?.idProceso ?? '').trim(),
-      idProyecto: String(proceso?.idProyecto ?? '').trim(),
-      codigoAcopio: String(proceso?.codigoAcopio ?? '').trim(),
-      acopioNombre: String(proceso?.acopioNombre ?? '').trim(),
-      fechaProceso: String(proceso?.fechaProceso ?? '').trim(),
-      estado: String(proceso?.estado ?? '').trim(),
-      fechaApertura: String(proceso?.fechaApertura ?? '').trim(),
-      fechaCierre: proceso?.fechaCierre ?? null,
-      turno: String(proceso?.turno ?? '').trim(),
-      idUsuarioApertura: proceso?.idUsuarioApertura ?? undefined,
-      idRolApertura: proceso?.idRolApertura ?? undefined,
-      idUsuarioCierre: proceso?.idUsuarioCierre ?? undefined,
-      idRolCierre: proceso?.idRolCierre ?? undefined,
-      db: 1
-    };
-
-    const dProcesoLogisticos: DProcesoLogistico[] = (Array.isArray(proceso?.logisticos) ? proceso.logisticos : []).map((it: any) => ({
-      id: it?.id ?? undefined,
-      idProceso: String(it?.idProceso ?? p.idProceso ?? '').trim(),
-      idLogistico: Number(it?.idLogistico ?? 0),
-      fechaCreacion: it?.fechaCreacion ?? undefined,
-      db: 1,
-      eliminado: Number(it?.eliminado ?? 0)
-    }));
-
-    const dProcesoSupervisores: DProcesoSupervisor[] = (Array.isArray(proceso?.supervisores) ? proceso.supervisores : []).map((it: any) => ({
-      id: it?.id ?? undefined,
-      idProceso: String(it?.idProceso ?? p.idProceso ?? '').trim(),
-      idSupervisor: Number(it?.idSupervisor ?? 0),
-      fechaCreacion: it?.fechaCreacion ?? undefined,
-      db: 1,
-      eliminado: Number(it?.eliminado ?? 0)
-    }));
-
-    return { proceso: p, dProcesoLogisticos, dProcesoSupervisores };
-  }
-
-  private async cargarNombresPersonalParaProcesos(lista: Proceso[]): Promise<void> {
-    const supervisores = await this.catalogosOperariosRepo.supervisoresRepo.getAll();
-    const logisticos = await this.catalogosOperariosRepo.personalLogisticoRepo.getAll();
-
-    const supById = new Map<number, Supervisor>((supervisores ?? []).map((s) => [Number((s as any).id), s as Supervisor]));
-    const logById = new Map<number, PersonalLogistico>((logisticos ?? []).map((l) => [Number((l as any).id), l as PersonalLogistico]));
-
-    const supNombres: Record<string, string> = {};
-    const logNombres: Record<string, string> = {};
-    const supPersonal: Record<string, Supervisor[]> = {};
-    const logPersonal: Record<string, PersonalLogistico[]> = {};
-
-    for (const p of lista ?? []) {
-      const idProceso = String(p?.idProceso ?? '').trim();
-      if (!idProceso) continue;
-
-      const relSup = (await this.procesoRepo.dProcesoSupervisoresRepo.getByFields({ idProceso }))
-        .filter(r => Number((r as any).eliminado ?? 0) !== 1);
-      const relLog = (await this.procesoRepo.dProcesoLogisticosRepo.getByFields({ idProceso }))
-        .filter(r => Number((r as any).eliminado ?? 0) !== 1);
-
-      const supList = (relSup ?? [])
-        .map((r) => supById.get(Number((r as any).idSupervisor)))
-        .filter((x): x is Supervisor => !!x);
-      const logList = (relLog ?? [])
-        .map((r) => logById.get(Number((r as any).idLogistico)))
-        .filter((x): x is PersonalLogistico => !!x);
-
-      const supUnique = Array.from(new Map(supList.map(s => [Number((s as any).id), s])).values());
-      const logUnique = Array.from(new Map(logList.map(l => [Number((l as any).id), l])).values());
-
-      supPersonal[idProceso] = supUnique;
-      logPersonal[idProceso] = logUnique;
-
-      supNombres[idProceso] = supUnique.map(s => String((s as any).nombreCompleto ?? '').trim()).filter(x => x.length > 0).join(', ');
-      logNombres[idProceso] = logUnique.map(l => String((l as any).nombreCompleto ?? '').trim()).filter(x => x.length > 0).join(', ');
-    }
-
-    this.supNombresByProceso.set(supNombres);
-    this.logNombresByProceso.set(logNombres);
-    this.supPersonalByProceso.set(supPersonal);
-    this.logPersonalByProceso.set(logPersonal);
-  }
-
-  getSupervisoresTexto(idProceso: string): string {
-    return this.supNombresByProceso()[String(idProceso ?? '').trim()] ?? '';
-  }
-
-  getLogisticosTexto(idProceso: string): string {
-    return this.logNombresByProceso()[String(idProceso ?? '').trim()] ?? '';
-  }
-
-  getSupervisoresLista(idProceso: string): Supervisor[] {
-    return this.supPersonalByProceso()[String(idProceso ?? '').trim()] ?? [];
-  }
-
-  getLogisticosLista(idProceso: string): PersonalLogistico[] {
-    return this.logPersonalByProceso()[String(idProceso ?? '').trim()] ?? [];
-  }
-
-  async listarProcesosApi(): Promise<void> {
-    this.isLoading.set(true);
-    let resp = await firstValueFrom(this.procesoService.listarProcesoForAcopio(this.savedConfig()?.codigoCultivo || '', this.savedConfig()?.idProyecto || ''));
-    if (resp.length == 0) {
-      this.alertService.showAlert('Error', 'No se encontraron procesos para la campaña activa.', 'error');
-      this.isLoading.set(false);
-      return;
-    } else {
-      if (resp[0].error) {
-        this.alertService.showAlert('Error', resp[0].mensaje, 'error');
-        this.isLoading.set(false);
-        return;
-      } else {
-        const data = Array.isArray(resp?.[0]?.data) ? resp[0].data : [];
-        await this.procesoRepo.procesosRepo.clear();
-        await this.procesoRepo.dProcesoLogisticosRepo.clear();
-        await this.procesoRepo.dProcesoSupervisoresRepo.clear();
-        await this.procesoRepo.paletsRepo.clear();
-        const normalizados: {
-          proceso: Proceso;
-          dProcesoLogisticos: DProcesoLogistico[];
-          dProcesoSupervisores: DProcesoSupervisor[];
-        }[] = data.map((x: any) => this.normalizarProceso(x));
-
-        const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
-
-        const localesNoSync = await this.procesoRepo.procesosRepo.getNoSincronizados();
-        const localNoSyncById = new Map<string, Proceso>(
-          (localesNoSync ?? []).map((p) => [String((p as any)?.idProceso ?? '').trim(), p])
-        );
-
-        const conflictos = Array.from(
-          new Set(
-            normalizados
-              .map((n) => String((n.proceso as any)?.idProceso ?? '').trim())
-              .filter((id) => id.length > 0 && localNoSyncById.has(id))
-          )
-        );
-
-        let normalizadosFiltrados = normalizados;
-        if (conflictos.length > 0) {
-          const msg =
-            `Se encontraron procesos locales NO sincronizados con el mismo idProceso que viene del servidor (ej: ${conflictos.slice(0, 3).join(', ')}${conflictos.length > 3 ? '...' : ''}).\n\n` +
-            '¿Deseas reemplazar el/los procesos locales por los del servidor?\n' +
-            '- Aceptar: elimina los locales NO sincronizados en conflicto y guarda los del servidor.\n' +
-            '- Cancelar: mantiene los locales y omite los del servidor con ese idProceso.';
-
-          const reemplazar = await this.alertService.showConfirm('Conflicto de procesos', msg, 'warning');
-
-          if (reemplazar) {
-            for (const idProceso of conflictos) {
-              await this.procesoRepo.procesosRepo.deleteByIdProceso(idProceso);
-              await this.procesoRepo.dProcesoLogisticosRepo.deleteByIdProceso(idProceso);
-              await this.procesoRepo.dProcesoSupervisoresRepo.deleteByIdProceso(idProceso);
-            }
-          } else {
-            normalizadosFiltrados = normalizados.filter(
-              (n) => !conflictos.includes(String((n.proceso as any)?.idProceso ?? '').trim())
-            );
-          }
-        }
-
-        if (idProyecto) {
-          const idsEliminados = await this.procesoRepo.procesosRepo.clearSincronizadosByProyecto(idProyecto);
-          await this.procesoRepo.dProcesoLogisticosRepo.clearSincronizadosByIdProcesos(idsEliminados);
-          await this.procesoRepo.dProcesoSupervisoresRepo.clearSincronizadosByIdProcesos(idsEliminados);
-        }
-
-        for (const n of normalizadosFiltrados) {
-          await this.procesoRepo.procesosRepo.saveFordec(n.proceso as any);
-          for (const d of n.dProcesoLogisticos) {
-            await this.procesoRepo.dProcesoLogisticosRepo.saveByCompoundId(d as any);
-          }
-          for (const d of n.dProcesoSupervisores) {
-            await this.procesoRepo.dProcesoSupervisoresRepo.saveByCompoundId(d as any);
-          }
-        }
-        const listaProcesos = await this.procesoRepo.procesosRepo.getAll();
-        this.procesos.set(listaProcesos);
-        this.procesosActivos.set((listaProcesos ?? []).filter((p: Proceso) => p.estado === 'ABIERTO'));
-        await this.cargarNombresPersonalParaProcesos(listaProcesos);
-        this.isLoading.set(false);
-        return;
-      }
-    }
-  }
-
-  updateNuevoProceso(field: string, value: unknown): void {
-    this.nuevoProceso.update(prev => ({ ...prev, [field]: value }));
-    if (field === 'fechaProceso' || field === 'turno') {
-      if (field === 'turno') {
-        this.nuevoProceso.update(prev => ({ ...prev, supervisores: [], logisticos: [] }));
-      }
-      this.cargarPersonalDisponible();
-    }
-    if (field === 'acopioId') {
-      this.acopioSeleccionado.set(value as string);
-      this.cargarProcesosPorAcopio(value as string);
-    }
-  }
-
-  cargarProcesosPorAcopio(codigoAcopio: string): void {
-    // if (!codigoAcopio) {
-    //   this.procesos.set([]);
-    //   return;
-    // }
-    // this.isLoading.set(true);
-    // this.procesoService.listarPorAcopio(codigoAcopio).subscribe({
-    //   next: (res: any) => {
-    //     const raw = res?.data ?? res;
-    //     const data = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : Array.isArray(raw?.items) ? raw.items : [];
-    //     this.procesosActivos.set(data);
-    //     this.isLoading.set(false);
-    //   },
-    //   error: (err: any) => {
-    //     this.procesosActivos.set([]);
-    //     this.isLoading.set(false);
-    //     this.alertService.showAlert('Error', 'Error al cargar procesos por acopio', 'error');
-    //   }
-    // });
-  }
-
-  async sincronizarSupervisores(): Promise<void> {
-    // Sincronizar Supervisores
-    let respDisponiblesSuper: any = await firstValueFrom(this.catalogoService.listarSupervisoresDisponibles(this.savedConfig()?.idProyecto, this.nuevoProceso().fechaProceso))
-    if (respDisponiblesSuper.length > 0) {
-      let respSuper = respDisponiblesSuper[0]
-      if (!respSuper.error) {
-        if (respSuper.data.length > 0) {
-          let dexiedb = await this.catalogosOperariosRepo.supervisoresRepo.getAll()
-          if (dexiedb.length > 0) {
-            await this.catalogosOperariosRepo.supervisoresRepo.clear()
-          }
-          for (const supervisor of respSuper.data) {
-            supervisor.bd = 1
-            await this.catalogosOperariosRepo.supervisoresRepo.save(supervisor);
-          }
-          let supervisores: any = await this.catalogosOperariosRepo.supervisoresRepo.getActivos();
-          this.supervisoresDisponibles.set(Array.isArray(supervisores) ? supervisores : []);
-        }
-      }
-    }
-  }
-  async sincronizarPersonalLogistica(): Promise<void> {
-    let respDisponibles = await firstValueFrom(this.catalogoService.listarPersonaLogisticoDisponibles(this.savedConfig()?.idProyecto, this.nuevoProceso().fechaProceso))
-    if (respDisponibles.length > 0) {
-      let resp = respDisponibles[0]
-      if (!resp.error) {
-        if (resp.data.length > 0) {
-          let dexiedb = await this.catalogosOperariosRepo.personalLogisticoRepo.getAll()
-          if (dexiedb.length > 0) {
-            await this.catalogosOperariosRepo.personalLogisticoRepo.clear()
-          }
-          for (const personalLogistico of resp.data) {
-            personalLogistico.bd = 1
-            await this.catalogosOperariosRepo.personalLogisticoRepo.save(personalLogistico);
-          }
-          let logisticos: any = await this.catalogosOperariosRepo.personalLogisticoRepo.getActivos();
-          this.logisticosDisponibles.set(Array.isArray(logisticos) ? logisticos : []);
-        }
-      }
-    }
-  }
-
+  /** Solo en línea: lista los procesos del servidor y los muestra sin guardar nada en el equipo. */
   async cargarProcesos(): Promise<void> {
-    this.isLoading.set(true);
-    this.procesos.set([]);
-    this.procesosActivos.set([])
-    if (this.online) {
-      await this.listarProcesosApi()
-    } else {
-      const listaProcesos = await this.procesoRepo.procesosRepo.getAll();
-      this.procesos.set(listaProcesos);
-      this.procesosActivos.set((listaProcesos ?? []).filter((p: Proceso) => p.estado === 'ABIERTO'));
-      await this.cargarNombresPersonalParaProcesos(listaProcesos);
-      this.isLoading.set(false);
-      return
+    return this.cargarProcesosEnLinea();
+  }
+
+  /** Administrador: nombres de acopio desde el catálogo guardado (solo lectura). */
+  private async cargarAcopiosLocales(): Promise<void> {
+    const lista = await this.operativos.acopiosRepo.getAll();
+    const mapa: Record<string, string> = {};
+    for (const a of lista) {
+      const codigo = texto(a.codigoAcopio);
+      if (codigo) mapa[codigo] = texto(a.acopioNombre) || codigo;
+    }
+    this.acopioNombres.set(mapa);
+  }
+
+  nombreAcopio(codigo: string | null | undefined): string {
+    const c = texto(codigo);
+    return this.acopioNombres()[c] ?? c;
+  }
+
+  async filtrarAdmin(): Promise<void> {
+    if (this.fDesde() && this.fHasta() && this.fDesde() > this.fHasta()) {
+      this.feedback.warning('La fecha "Desde" no puede ser mayor que "Hasta".', 'Validación');
+      return;
+    }
+    this.paginacion.page.set(1);
+    this.loading.show('Buscando procesos...');
+    await this.cargarProcesos();
+    await this.loading.hideAfterMinimum();
+  }
+
+  async limpiarFiltrosAdmin(): Promise<void> {
+    const semana = semanaActual(nowPeruDate());
+    this.fDesde.set(semana.desde);
+    this.fHasta.set(semana.hasta);
+    this.fTurno.set('');
+    this.fAcopio.set('');
+    this.fEstado.set('');
+    await this.filtrarAdmin();
+  }
+
+  /** Lista los procesos del servidor (el administrador con sus filtros; Logística, los de su acopio). Nada se guarda en el equipo. */
+  private async cargarProcesosEnLinea(): Promise<void> {
+    this.cargando.set(true);
+    try {
+      const cfg = this.cfg();
+      if (!cfg) {
+        this.procesos.set([]);
+        return;
+      }
+      if (!this.online()) {
+        this.procesos.set([]);
+        this.feedback.error('Error de conexión: necesitas internet para ver los procesos.', 'Sin conexión');
+        return;
+      }
+      // Logística filtra igual que el administrador, pero el acopio siempre es el suyo (lo fija el servidor).
+      const filtros = { fechaDesde: this.fDesde(), fechaHasta: this.fHasta(), turno: this.fTurno(), codigoAcopio: this.esAdmin() ? this.fAcopio() : '', estado: this.fEstado() };
+      const sobre = await this.api.listar(cfg.idProyecto, cfg.codigoCultivo, filtros);
+      if (sobre?.error) {
+        this.procesos.set([]);
+        this.feedback.error(sobre.mensaje || 'No se pudieron obtener los procesos.');
+        return;
+      }
+      const filas = Array.isArray(sobre?.data) ? sobre.data : [];
+      const sup: Record<string, Supervisor[]> = {};
+      const log: Record<string, PersonalLogistico[]> = {};
+      const lista: Proceso[] = [];
+      for (const fila of filas) {
+        const { proceso } = this.sync.normalizar(fila);
+        proceso.acopioNombre = this.acopioNombres()[texto(proceso.codigoAcopio)] ?? proceso.acopioNombre;
+        const id = texto(proceso.idProceso);
+        lista.push(proceso);
+        sup[id] = this.unicos((Array.isArray(fila['supervisores']) ? fila['supervisores'] : []).map((x: any) => ({ id: Number(x.idSupervisor), nombreCompleto: texto(x.nombreCompleto), dni: texto(x.dni) }) as Supervisor));
+        log[id] = this.unicos((Array.isArray(fila['logisticos']) ? fila['logisticos'] : []).map((x: any) => ({ id: Number(x.idLogistico), nombreCompleto: texto(x.nombreCompleto), dni: texto(x.dni) }) as PersonalLogistico));
+      }
+      this.procesos.set(lista);
+      this.supPorProceso.set(sup);
+      this.logPorProceso.set(log);
+    } catch {
+      this.procesos.set([]);
+      this.feedback.error('Error de conexión: no se pudieron obtener los procesos.', 'Sin conexión');
+    } finally {
+      this.cargando.set(false);
     }
   }
 
-  async cargarPersonalDisponible(): Promise<void> {
+  private unicos<T extends { id: number }>(items: (T | undefined)[]): T[] {
+    return Array.from(new Map(items.filter((x): x is T => !!x).map((x) => [Number(x.id), x])).values());
+  }
+
+  /** Personal disponible para la fecha del formulario (se pide al servidor; no se guarda en el equipo). */
+  async cargarPersonal(): Promise<void> {
+    // El administrador no usa este formulario: el personal lo pide la ventana de edición.
+    if (this.esAdmin()) return;
     this.supervisoresDisponibles.set([]);
     this.logisticosDisponibles.set([]);
-    if (this.online) {
-      await this.sincronizarSupervisores()
-      await this.sincronizarPersonalLogistica()
-    } else {
-      let supervisores: any = await this.catalogosOperariosRepo.supervisoresRepo.getActivos();
-      let logisticos: any = await this.catalogosOperariosRepo.personalLogisticoRepo.getActivos();
-      this.supervisoresDisponibles.set(Array.isArray(supervisores) ? supervisores : []);
-      this.logisticosDisponibles.set(Array.isArray(logisticos) ? logisticos : []);
+    const cfg = this.cfg();
+    // Solo se pide cuando ya hay fecha y turno.
+    if (!cfg || !this.nuevo().fechaProceso || !this.nuevo().turno) return;
+    if (!this.online()) {
+      this.feedback.error('Error de conexión: necesitas internet para cargar el personal.', 'Sin conexión');
       return;
     }
-  }
-
-  toggleSupervisor(sup: any, checked: boolean, event?: Event): void {
-    const current = this.nuevoProceso().supervisores;
-    const next = checked
-      ? [...current, sup]
-      : current.filter(x => x.id !== sup.id);
-    if (next.length > 2) {
-      this.alertService.showAlert('Validación', 'Máximo 2 supervisores permitidos', 'warning');
-      const input = event?.target as HTMLInputElement | undefined;
-      if (input) input.checked = false;
-      this.nuevoProceso.update(prev => ({ ...prev }));
-      return;
-    }
-    this.nuevoProceso.update(prev => ({ ...prev, supervisores: next }));
-  }
-
-  isSupervisorSeleccionado(sup: Supervisor): boolean {
-    return this.nuevoProceso().supervisores.some(s => s.id === sup.id);
-  }
-
-  async sincronizar() {
+    this.cargandoPersonal.set(true);
+    this.loading.show('Cargando personal disponible...');
     try {
-      if (!this.online) {
-        this.alertService.showAlert('Sin conexión', 'Necesitas internet para sincronizar.', 'warning')
-        return;
-      }
-
-      const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
-      const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
-      if (!idProyecto || !codigoCultivo) {
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlertAcept('Error', 'No hay campaña/configuración activa para sincronizar.', 'error');
-        return;
-      }
-
-      const pendientes = (await this.procesoRepo.procesosRepo.getNoSincronizados())
-        .filter((p: any) => String(p?.idProyecto ?? '').trim() === idProyecto);
-
-      if (pendientes.length > 0) {
-        const confirmar = await this.alertService.showConfirm(
-          'Confirmar sincronización',
-          `Se sincronizarán ${pendientes.length} proceso(s) pendientes. ¿Deseas continuar?`,
-          'question'
-        );
-        if (!confirmar) {
-          return;
-        }
-      }
-
-      this.alertService.mostrarModalCarga();
-
-      let mensajeFinal: { title: string; message: string; type: 'success' | 'warning' | 'error' } | null = null;
-
-      if (pendientes.length > 0) {
-        for (const p of pendientes) {
-          const idProceso = String((p as any)?.idProceso ?? '').trim();
-          if (!idProceso) continue;
-
-          const proceso: Proceso = {
-            ...(p as any),
-            db: 0,
-          } as any;
-
-          const dLog = await this.procesoRepo.dProcesoLogisticosRepo.getNoSincronizadosByIdProceso(idProceso);
-          const dSup = await this.procesoRepo.dProcesoSupervisoresRepo.getNoSincronizadosByIdProceso(idProceso);
-
-          if (!dSup.length || dSup.length > 2) {
-            this.alertService.cerrarModalCarga();
-            this.alertService.showAlertAcept('Validación', `El proceso ${idProceso} tiene supervisores inválidos (debe tener 1 a 2).`, 'warning');
-            return;
-          }
-          if (!dLog.length || dLog.length > 5) {
-            this.alertService.cerrarModalCarga();
-            this.alertService.showAlertAcept('Validación', `El proceso ${idProceso} tiene logística inválida (debe tener 1 a 5).`, 'warning');
-            return;
-          }
-
-          const resp = await firstValueFrom(this.procesoService.sincronizar(
-            proceso,
-            dLog as any,
-            dSup as any,
-            codigoCultivo,
-            idProyecto
-          )
-          );
-
-          if (!Array.isArray(resp) || resp.length === 0) {
-            this.alertService.cerrarModalCarga();
-            this.alertService.showAlertAcept('Error', `No se pudo sincronizar el proceso ${idProceso}.`, 'error');
-            return;
-          }
-
-          if (resp[0]?.error) {
-            this.alertService.cerrarModalCarga();
-            this.alertService.showAlertAcept('Error', resp[0]?.mensaje ?? `Error al sincronizar el proceso ${idProceso}.`, 'error');
-            return;
-          }
-
-          (proceso as any).db = 1;
-          await this.procesoRepo.procesosRepo.saveByIdProceso(proceso as any);
-
-          for (const d of dLog) {
-            (d as any).db = 1;
-            await this.procesoRepo.dProcesoLogisticosRepo.saveByCompoundId(d as any);
-          }
-          for (const d of dSup) {
-            (d as any).db = 1;
-            await this.procesoRepo.dProcesoSupervisoresRepo.saveByCompoundId(d as any);
-          }
-        }
-
-        mensajeFinal = {
-          title: 'Éxito',
-          message: `Sincronización completada (${pendientes.length} proceso(s)).`,
-          type: 'success'
-        };
-      } else {
-        mensajeFinal = {
-          title: 'Info',
-          message: 'No hay procesos pendientes de sincronización.',
-          type: 'success'
-        };
-      }
-
-      await this.sincronizarSupervisores();
-      await this.sincronizarPersonalLogistica();
-      await this.listarProcesosApi();
-
-      this.alertService.cerrarModalCarga();
-
-      if (mensajeFinal) {
-        this.alertService.showAlert(mensajeFinal.title, mensajeFinal.message, mensajeFinal.type);
-      }
-      return;
-    } catch (e: any) {
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlertAcept('Error', `Error al sincronizar: ${e?.message ?? e}`, 'error');
-      return;
+      const fecha = this.nuevo().fechaProceso;
+      const [respSup, respLog] = await Promise.all([
+        this.api.supervisoresDisponibles(cfg.idProyecto, fecha),
+        this.api.personalLogisticoDisponible(cfg.idProyecto, fecha),
+      ]);
+      this.supervisoresDisponibles.set(this.soloActivos<Supervisor>(respSup?.error ? [] : respSup?.data));
+      this.logisticosDisponibles.set(this.soloActivos<PersonalLogistico>(respLog?.error ? [] : respLog?.data));
+    } catch {
+      this.feedback.error('Error de conexión: no se pudo cargar el personal disponible.', 'Sin conexión');
+    } finally {
+      this.cargandoPersonal.set(false);
+      await this.loading.hideAfterMinimum();
     }
   }
 
-  toggleLogistico(log: PersonalLogistico, checked: boolean, event?: Event): void {
-    const current = this.nuevoProceso().logisticos;
-    const next = checked
-      ? [...current, log]
-      : current.filter(x => x.id !== log.id);
-    if (next.length > 5) {
-      this.alertService.showAlert('Validación', 'Máximo 5 personal de logística permitidos', 'warning');
-      const input = event?.target as HTMLInputElement | undefined;
-      if (input) input.checked = false;
-      this.nuevoProceso.update(prev => ({ ...prev }));
-      return;
+  private soloActivos<T extends { activo?: unknown }>(filas: unknown): T[] {
+    if (!Array.isArray(filas)) return [];
+    return (filas as T[]).filter((fila) => fila.activo === true || Number(fila.activo) === 1);
+  }
+
+  // ───────── Formulario ─────────
+
+  cambiarFecha(valor: string): void {
+    this.nuevo.update((n) => ({ ...n, fechaProceso: valor }));
+    void this.cargarPersonal();
+  }
+
+  cambiarTurno(valor: string): void {
+    this.nuevo.update((n) => ({ ...n, turno: valor, supervisores: [], logisticos: [] }));
+    void this.cargarPersonal();
+  }
+
+  // ───────── Crear ─────────
+
+  private crearIdProceso(fecha: string, turno: string): string {
+    const partes = {
+      idProyecto: texto(this.cfg()?.idProyecto),
+      idEmpresa: texto(this.usuario()?.idEmpresa),
+      codigoCultivo: texto(this.cfg()?.codigoCultivo),
+      codigoAcopio: texto(this.usuario()?.codigoAcopio),
+      fecha: texto(fecha).replaceAll('-', ''),
+      turno: texto(turno),
+    };
+    const faltantes = Object.entries(partes).filter(([, v]) => !v).map(([k]) => k);
+    if (faltantes.length > 0) {
+      this.feedback.error(`Faltan datos para generar el idProceso: ${faltantes.join(', ')}. Vuelva a iniciar sesión.`);
+      throw new Error('idProceso incompleto');
     }
-    this.nuevoProceso.update(prev => ({ ...prev, logisticos: next }));
-  }
-
-  isLogisticoSeleccionado(log: PersonalLogistico): boolean {
-    return this.nuevoProceso().logisticos.some(l => l.id === log.id);
-  }
-
-  limpiarNewProceso() {
-    this.nuevoProceso.set({
-      fechaProceso: new Date().toISOString().split('T')[0],
-      turno: '',
-      supervisores: [],
-      logisticos: []
-    });
-
+    return Object.values(partes).join('');
   }
 
   async crearProceso(): Promise<void> {
-    const newProceso = this.nuevoProceso();
-    const usr = this.usuario();
-    const codigoAcopio = usr?.codigoAcopio ?? '';
+    const n = this.nuevo();
+    const cfg = this.cfg();
+    const codigoAcopio = texto(this.usuario()?.codigoAcopio);
+    if (!cfg) return this.feedback.warning('Primero configura la campaña en Parámetros.', 'Validación');
     if (!codigoAcopio || codigoAcopio === '0') {
-      this.alertService.showAlertAcept('Validación', 'Su usuario no tiene un acopio asignado. Por favor, comuníquese con el administrador del sistema para solicitar la configuración correspondiente.', 'warning');
-      return;
+      return this.feedback.warning('Su usuario no tiene un acopio asignado. Comuníquese con el administrador del sistema.', 'Validación');
     }
-    if (!newProceso.fechaProceso) {
-      this.alertService.showAlert('Validación', 'Complete la fecha.', 'warning');
-      return;
-    }
-    if (!newProceso.turno) {
-      this.alertService.showAlert('Validación', 'Complete el turno.', 'warning');
-      return;
-    }
-    if (!newProceso.supervisores || newProceso.supervisores.length < 1 || newProceso.supervisores.length > 2) {
-      this.alertService.showAlert('Validación', 'Seleccione entre 1 y 2 supervisores.', 'warning');
-      return;
-    }
-    if (!newProceso.logisticos || newProceso.logisticos.length < 1 || newProceso.logisticos.length > 5) {
-      this.alertService.showAlert('Validación', 'Seleccione entre 1 y 5 personal de logística.', 'warning');
-      return;
-    }
-    this.isCreating.set(true);
-    this.alertService.mostrarModalCarga();
+    if (!n.fechaProceso) return this.feedback.warning('Complete la fecha.', 'Validación');
+    if (!n.turno) return this.feedback.warning('Complete el turno.', 'Validación');
+    if (n.supervisores.length < 1 || n.supervisores.length > MAX_SUPERVISORES) return this.feedback.warning('Seleccione entre 1 y 2 supervisores.', 'Validación');
+    if (n.logisticos.length < 1 || n.logisticos.length > MAX_LOGISTICOS) return this.feedback.warning('Seleccione entre 1 y 5 personas de logística.', 'Validación');
+
+    if (!this.online()) return this.feedback.warning('Necesitas internet para abrir un proceso.', 'Sin conexión');
+
+    this.creando.set(true);
+    this.loading.show('Abriendo proceso...');
     try {
-      if (this.online) {
-        let respValidacion = await firstValueFrom(this.procesoService.buscar(this.savedConfig()?.codigoCultivo || '', newProceso.turno, this.savedConfig()?.idProyecto || '', newProceso.fechaProceso || ''))
-        if (respValidacion.length > 0) {
-          if (respValidacion[0].error) {
-            this.alertService.showAlertAcept('Error', respValidacion[0].mensaje, 'error');
-            this.limpiarNewProceso()
-            return;
-          } else {
-            if (respValidacion[0].data.length > 0) {
-              this.alertService.showAlertAcept('Error', `Este acopio ya tiene un proceso para la fecha ${newProceso.fechaProceso} en el turno ${newProceso.turno} y ${this.campania().descripcion}.`, 'error');
-              this.limpiarNewProceso()
-              return;
-            }
-          }
-        }
+      const idProceso = this.crearIdProceso(n.fechaProceso, n.turno);
+      const mismoTurno = `Este acopio ya tiene un proceso para la fecha ${n.fechaProceso} en el turno ${n.turno} y ${texto(this.campania()?.descripcion)}.`;
 
-        const idProceso = this.crearIdProceso(newProceso.fechaProceso, newProceso.turno)
+      const validacion = await this.api.buscar(cfg.idProyecto, cfg.codigoCultivo, n.turno, n.fechaProceso);
+      if (validacion.error) return this.terminarConError(validacion.mensaje ?? 'No se pudo validar el turno.');
+      if (Array.isArray(validacion.data) && validacion.data.length > 0) return this.terminarConError(mismoTurno);
 
-        const existente = await this.procesoRepo.procesosRepo.getByField('idProceso', idProceso);
-        if (existente && (existente as any)?.db !== 1) {
-          if (existente.db == 1) {
-            this.alertService.cerrarModalCarga();
-            this.alertService.showAlertAcept(
-              'Conflicto',
-              `Este acopio ya tiene un proceso para la fecha ${newProceso.fechaProceso} en el turno ${newProceso.turno} y ${this.campania().descripcion}.`,
-              'warning'
-            );
-            this.limpiarNewProceso()
-            this.isCreating.set(false);
-            return;
-          } else {
-            this.alertService.cerrarModalCarga();
-            this.alertService.showAlertAcept(
-              'Conflicto',
-              `Ya existe un proceso creado para el turno ${newProceso.turno} y fecha ${newProceso.fechaProceso}, POR FAVOR SINCRONICE.`,
-              'warning'
-            );
-            this.limpiarNewProceso()
-            this.isCreating.set(false);
-            return;
-          }
-        }
+      const proceso: Proceso = {
+        idProceso,
+        idProyecto: texto(cfg.idProyecto),
+        codigoAcopio,
+        acopioNombre: texto(this.usuario()?.acopioNombre),
+        fechaProceso: n.fechaProceso,
+        estado: 'ABIERTO',
+        fechaApertura: nowPeruDateTime(),
+        turno: n.turno,
+      };
+      const dLog = n.logisticos.map((l) => ({ idProceso, idLogistico: l.id }));
+      const dSup = n.supervisores.map((s) => ({ idProceso, idSupervisor: s.id }));
+      const r = await this.api.sincronizarProceso(proceso, dLog, dSup, cfg.codigoCultivo, cfg.idProyecto);
+      if (r.error) return this.terminarConError(r.mensaje ?? 'Error al sincronizar.');
 
-        let fecha = new Date();
-        let fechaApertura = formatDateTime(fecha);
-        const proceso: Proceso = {
-          idProceso: idProceso,
-          idProyecto: this.savedConfig()?.idProyecto || '',
-          codigoAcopio: this.usuario()?.codigoAcopio || '',
-          acopioNombre: this.usuario()?.acopioNombre || '',
-          fechaProceso: newProceso.fechaProceso,
-          estado: 'ABIERTO',
-          fechaApertura: fechaApertura ? fechaApertura : '',
-          turno: newProceso.turno
-        }
-
-        const procesoLogistico: DProcesoLogistico[] = newProceso.logisticos.map((logistico, index) => ({
-          // id: index + 1,
-          idProceso: idProceso,
-          idLogistico: logistico.id,
-        }))
-
-        const procesoSupervisor: DProcesoSupervisor[] = newProceso.supervisores.map((supervisor, index) => ({
-          // id: index + 1,
-          idProceso: idProceso,
-          idSupervisor: supervisor.id,
-        }))
-
-        let resp = await firstValueFrom(this.procesoService.sincronizar(proceso, procesoLogistico, procesoSupervisor, this.savedConfig()?.codigoCultivo || '', this.savedConfig()?.idProyecto || ''))
-        if (resp.length > 0) {
-          if (resp[0].error) {
-            this.alertService.showAlertAcept('Error', resp[0].mensaje, 'error');
-            this.limpiarNewProceso()
-            this.isCreating.set(false);
-            this.alertService.cerrarModalCarga();
-            return
-          } else {
-            this.alertService.showAlert('Éxito', `${resp[0].mensaje} - Sincronizado`, 'success');
-            this.listarProcesosApi()
-            this.limpiarNewProceso()
-            this.isCreating.set(false);
-            this.alertService.cerrarModalCarga();
-            return
-          }
-        } else {
-          this.alertService.showAlertAcept('Error', 'Error al sincronizar', 'error');
-          this.limpiarNewProceso()
-          this.isCreating.set(false);
-          this.alertService.cerrarModalCarga();
-          return
-        }
-      } else {
-        const idProceso = this.crearIdProceso(newProceso.fechaProceso, newProceso.turno);
-
-        const existente = await this.procesoRepo.procesosRepo.getByField('idProceso', idProceso);
-        if (existente && (existente as any)?.db !== 1) {
-          this.alertService.cerrarModalCarga();
-          this.alertService.showAlertAcept(
-            'Conflicto',
-            `Este acopio ya tiene un proceso para la fecha ${newProceso.fechaProceso} en el turno ${newProceso.turno} y ${this.campania().descripcion}.`,
-            'warning'
-          );
-          this.isCreating.set(false);
-          return;
-        }
-
-        const fecha = new Date();
-        const fechaApertura = formatDateTime(fecha) ?? '';
-
-        const proceso: Proceso = {
-          idProceso,
-          idProyecto: this.savedConfig()?.idProyecto || '',
-          codigoAcopio: this.usuario()?.codigoAcopio || '',
-          acopioNombre: this.usuario()?.acopioNombre || '',
-          fechaProceso: newProceso.fechaProceso,
-          estado: 'ABIERTO',
-          fechaApertura,
-          turno: newProceso.turno,
-          db: 0
-        } as any;
-
-        const procesoLogistico: DProcesoLogistico[] = newProceso.logisticos.map((logistico) => ({
-          id: logistico.id,
-          idProceso,
-          idLogistico: logistico.id,
-          fechaCreacion: fechaApertura,
-          db: 0
-        } as any));
-
-        const procesoSupervisor: DProcesoSupervisor[] = newProceso.supervisores.map((supervisor) => ({
-          id: supervisor.id,
-          idProceso,
-          idSupervisor: supervisor.id,
-          fechaCreacion: fechaApertura,
-          db: 0
-        } as any));
-
-        await this.procesoRepo.procesosRepo.saveByIdProceso(proceso as any);
-
-        await this.procesoRepo.dProcesoLogisticosRepo.deleteByIdProceso(idProceso);
-        await this.procesoRepo.dProcesoSupervisoresRepo.deleteByIdProceso(idProceso);
-
-        for (const d of procesoLogistico) {
-          await this.procesoRepo.dProcesoLogisticosRepo.saveByCompoundId(d as any);
-        }
-        for (const d of procesoSupervisor) {
-          await this.procesoRepo.dProcesoSupervisoresRepo.saveByCompoundId(d as any);
-        }
-
-        const listaProcesos = await this.procesoRepo.procesosRepo.getAll();
-        this.procesos.set(listaProcesos);
-        this.procesosActivos.set((listaProcesos ?? []).filter((p: Proceso) => p.estado === 'ABIERTO'));
-        await this.cargarNombresPersonalParaProcesos(listaProcesos);
-
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Guardado', 'Proceso guardado localmente (pendiente de sincronización).', 'success');
-        this.limpiarNewProceso();
-        this.isCreating.set(false);
-        return;
-      }
-    } catch (error) {
-      console.error('Error al crear proceso', error)
-      this.isCreating.set(false);
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlertAcept('Error', `Error: ${error}, vuelva a iniciar sesión`, 'error');
-      return;
+      this.nuevo.set(nuevoVacio());
+      await this.cargarProcesos();
+      await this.cargarPersonal();
+      await this.loading.hideAfterMinimum();
+      this.feedback.success(r.mensaje ?? 'Proceso abierto.');
+    } catch (e) {
+      this.loading.hide();
+      if ((e as Error)?.message !== 'idProceso incompleto') this.feedback.error('No se pudo crear el proceso. Intenta nuevamente.');
+    } finally {
+      this.creando.set(false);
     }
   }
 
-  crearIdProceso(fechaProceso: string, turno: string) {
-    const idProyecto = this.savedConfig()?.idProyecto?.trim();
-    const idEmpresa = this.usuario()?.idempresa?.trim();
-    const codigoCultivo = this.savedConfig()?.codigoCultivo?.trim();
-    const codigoAcopio = this.usuario()?.codigoAcopio?.trim();
-    const fecha = formatDateStandar(fechaProceso)?.trim();
-    const turnoValue = turno?.trim();
-
-    const campos = [
-      { nombre: 'idProyecto', valor: idProyecto },
-      { nombre: 'idEmpresa', valor: idEmpresa },
-      { nombre: 'codigoCultivo', valor: codigoCultivo },
-      { nombre: 'codigoAcopio', valor: codigoAcopio },
-      { nombre: 'fecha', valor: fecha },
-      { nombre: 'turno', valor: turnoValue }
-    ];
-
-    const faltantes = campos
-      .filter(c => !c.valor)
-      .map(c => c.nombre);
-
-    if (faltantes.length > 0) {
-      this.alertService.showAlertAcept('Error', `Faltan datos para generar el idProceso: ${faltantes.join(', ')}, vuelva a iniciar sesión`, 'error');
-      throw new Error(`Faltan datos para generar el idProceso: ${faltantes.join(', ')}`);
-
-    }
-
-    return [
-      idProyecto,
-      idEmpresa,
-      codigoCultivo,
-      codigoAcopio,
-      fecha,
-      turnoValue
-    ].join('');
+  /** Cierra la carga y avisa el motivo; lo ya elegido (fecha, turno y personal) se conserva para que la persona lo corrija. */
+  private async terminarConError(mensaje: string): Promise<void> {
+    await this.loading.hideAfterMinimum();
+    this.feedback.error(mensaje);
   }
+
+  // ───────── Cerrar / reabrir ─────────
 
   async cerrarProceso(p: Proceso): Promise<void> {
-    const confirmar = await this.alertService.showConfirm(
-      'Confirmar',
-      `Esta seguro de cerrar el proceso. ¿Deseas continuar?`,
-      'question'
-    );
-    if (!confirmar) {
-      return;
-    }
-    const idProceso = String((p as any)?.idProceso ?? '').trim();
-    const proceso: Proceso = {
-      ...(p as any),
-      db: 0,
-    } as any;
-
-    const dLog = await this.procesoRepo.dProcesoLogisticosRepo.getSincronizadosByIdProceso(idProceso);
-    const dSup = await this.procesoRepo.dProcesoSupervisoresRepo.getSincronizadosByIdProceso(idProceso);
-
-    const resp = await firstValueFrom(this.procesoService.sincronizar(proceso,dLog as any,dSup as any,this.savedConfig()?.codigoCultivo ?? '',this.savedConfig()?.idProyecto ?? '',"cerrar"));
-    if (!Array.isArray(resp) || resp.length === 0) {
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlertAcept('Error', `No se pudo sincronizar el proceso ${idProceso}.`, 'error');
-      return;
-    }
-
-    if (resp[0]?.error) {
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlertAcept('Error', resp[0]?.mensaje ?? `Error al sincronizar el proceso ${idProceso}.`, 'error');
-      return;
-    }else{
-      await this.sincronizarSupervisores();
-      await this.sincronizarPersonalLogistica();
-      await this.listarProcesosApi();
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Éxito', resp[0].mensaje, 'success');
-    }
-
+    const ok = await this.confirm.confirm({
+      title: 'Cerrar proceso',
+      eyebrow: 'Confirmar',
+      message: `¿Cerrar el turno ${p.turno} del ${this.fechaCorta(p.fechaProceso)}?`,
+      confirmText: 'Sí, cerrar',
+      tone: 'warning',
+    });
+    if (ok) await this.cambiarEstado(p, 'cerrar');
   }
 
   async reabrirProceso(p: Proceso): Promise<void> {
-    const ok = await this.alertService.showConfirm('Confirmación', '¿Reabrir este proceso? Se volverá a estado ABIERTO.', 'warning');
-    if (!ok) return;
+    const ok = await this.confirm.confirm({
+      title: 'Reabrir proceso',
+      eyebrow: 'Confirmar',
+      message: '¿Reabrir este proceso? Volverá a estado ABIERTO.',
+      confirmText: 'Sí, reabrir',
+      tone: 'warning',
+    });
+    if (ok) await this.cambiarEstado(p, 'reabrir');
+  }
 
-    const idProceso = String((p as any)?.idProceso ?? '').trim();
-    const proceso: Proceso = {
-      ...(p as any),
-      db: 0,
-    } as any;
-
-    const dLog = await this.procesoRepo.dProcesoLogisticosRepo.getSincronizadosByIdProceso(idProceso);
-    const dSup = await this.procesoRepo.dProcesoSupervisoresRepo.getSincronizadosByIdProceso(idProceso);
-
-    const resp = await firstValueFrom(this.procesoService.sincronizar(proceso,dLog as any,dSup as any,this.savedConfig()?.codigoCultivo ?? '',this.savedConfig()?.idProyecto ?? '',"reabrir"));
-    if (!Array.isArray(resp) || resp.length === 0) {
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlertAcept('Error', `No se pudo sincronizar el proceso ${idProceso}.`, 'error');
+  private async cambiarEstado(p: Proceso, modo: 'cerrar' | 'reabrir'): Promise<void> {
+    const cfg = this.cfg();
+    if (!cfg) return;
+    if (!this.online()) {
+      this.feedback.warning('Necesitas internet para esta acción.', 'Sin conexión');
       return;
     }
-
-    if (resp[0]?.error) {
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlertAcept('Error', resp[0]?.mensaje ?? `Error al sincronizar el proceso ${idProceso}.`, 'error');
-      return;
-    }else{
-      await this.sincronizarSupervisores();
-      await this.sincronizarPersonalLogistica();
-      await this.listarProcesosApi();
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Éxito', resp[0].mensaje, 'success');
-    }
-
-  }
-
-  async editarProceso(p: Proceso): Promise<void> {
-    const idProceso = String(p?.idProceso ?? '').trim();
-    if (!idProceso) return;
-
-    // Cargar personal actual del proceso en el formulario
-    const sups = this.supPersonalByProceso()[idProceso] ?? [];
-    const logs = this.logPersonalByProceso()[idProceso] ?? [];
-
-    this.nuevoProceso.set({
-      fechaProceso: p.fechaProceso.split('T')[0],
-      turno: p.turno,
-      supervisores: [...sups],
-      logisticos: [...logs]
-    });
-
-    this.procesoEditando.set(p);
-    this.modalEdicionAbierto.set(true);
-
-    // Cargar personal disponible para esa fecha y turno
-    await this.cargarPersonalDisponible();
-
-    // Desbloquear al personal que ya pertenece a este proceso (match por ID)
-    const currentSupsIds = sups.map(s => s.id);
-    this.supervisoresDisponibles.update(list => list.map(s => ({
-      ...s,
-      ocupado: currentSupsIds.includes(s.id) ? false : s.ocupado
-    })));
-
-    const currentLogsIds = logs.map(l => l.id);
-    this.logisticosDisponibles.update(list => list.map(l => ({
-      ...l,
-      ocupado: currentLogsIds.includes(l.id) ? false : l.ocupado
-    })));
-  }
-
-  cerrarModalEdicion(): void {
-    this.modalEdicionAbierto.set(false);
-    this.procesoEditando.set(null);
-    this.limpiarNewProceso();
-  }
-
-  async guardarEdicion(): Promise<void> {
-    const original = this.procesoEditando();
-    if (!original) return;
-
-    const current = this.nuevoProceso();
-    const idProceso = String(original.idProceso ?? '').trim();
-
-    // Obtener los IDs originales
-    const originalSups = this.supPersonalByProceso()[idProceso] ?? [];
-    const originalLogs = this.logPersonalByProceso()[idProceso] ?? [];
-
-    // Construir lista de supervisores para enviar
-    // 1. Los que están seleccionados ahora (eliminado: 0)
-    // 2. Los que estaban antes pero ya no (eliminado: 1)
-    const supsParaEnviar = [
-      ...current.supervisores.map(s => ({
-        idProceso: idProceso,
-        idSupervisor: s.id,
-        eliminado: 0
-      })),
-      ...originalSups
-        .filter(os => !current.supervisores.some(s => s.id === os.id))
-        .map(os => ({
-          idProceso: idProceso,
-          idSupervisor: os.id,
-          eliminado: 1
-        }))
-    ];
-
-    // Construir lista de logísticos para enviar
-    const logsParaEnviar = [
-      ...current.logisticos.map(l => ({
-        idProceso: idProceso,
-        idLogistico: l.id,
-        eliminado: 0
-      })),
-      ...originalLogs
-        .filter(ol => !current.logisticos.some(l => l.id === ol.id))
-        .map(ol => ({
-          idProceso: idProceso,
-          idLogistico: ol.id,
-          eliminado: 1
-        }))
-    ];
-
-    const procesoParaSinc = {
-      ...original,
-      fechaProceso: current.fechaProceso,
-      turno: current.turno,
-      db: 0
-    };
-
-    console.log('DATOS PARA GUARDAR EDICIÓN:', {
-      proceso: procesoParaSinc,
-      logisticos: logsParaEnviar,
-      supervisores: supsParaEnviar
-    });
-
-    this.alertService.mostrarModalCarga();
-
+    const idProceso = texto(p.idProceso);
+    this.loading.show(modo === 'cerrar' ? 'Cerrando proceso...' : 'Reabriendo proceso...');
     try {
-      const resp = await firstValueFrom(
-        this.procesoService.sincronizar(
-          procesoParaSinc,
-          logsParaEnviar,
-          supsParaEnviar,
-          this.savedConfig()?.codigoCultivo ?? '',
-          this.savedConfig()?.idProyecto ?? '',
-          'editar'
-        )
-      );
-
-      if (resp && resp.length > 0 && !resp[0].error) {
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Éxito', 'Proceso actualizado correctamente.', 'success');
-        this.cerrarModalEdicion();
-        await this.listarProcesosApi(); // Recargar lista
-      } else {
-        this.alertService.cerrarModalCarga();
-        this.alertService.showAlert('Error', resp?.[0]?.mensaje ?? 'Error al actualizar el proceso.', 'error');
+      const dLog = (this.logPorProceso()[idProceso] ?? []).map((l) => ({ idProceso, idLogistico: l.id, eliminado: 0 }));
+      const dSup = (this.supPorProceso()[idProceso] ?? []).map((s) => ({ idProceso, idSupervisor: s.id, eliminado: 0 }));
+      const r = await this.api.sincronizarProceso({ ...p, db: 0 }, dLog, dSup, cfg.codigoCultivo, cfg.idProyecto, modo);
+      if (r.error) {
+        this.loading.hide();
+        this.feedback.error(r.mensaje ?? `Error al sincronizar el proceso ${idProceso}.`);
+        return;
       }
-    } catch (error) {
-      console.error('Error al guardar edición de proceso', error);
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Error', 'Ocurrió un error inesperado al guardar.', 'error');
+      await this.cargarPersonal();
+      await this.cargarProcesos();
+      await this.loading.hideAfterMinimum();
+      this.feedback.success(r.mensaje ?? 'Listo.');
+    } catch {
+      this.loading.hide();
+      this.feedback.error('No se pudo completar la acción. Intenta nuevamente.');
     }
   }
 
-  formatearFechaLarga(fecha: string): string {
-    if (!fecha) return '';
-    const d = moment(fecha);
-    return d.format('dddd, D [de] MMMM [de] YYYY');
+  // ───────── Editar personal ─────────
+
+  /** Supervisores y logística que tiene un proceso (lista vacía si no tiene). */
+  supervisoresDe(p: Proceso): Supervisor[] {
+    return this.supPorProceso()[texto(p.idProceso)] ?? [];
   }
 
-  formatearFechaCorta(fecha: string): string {
-    if (!fecha) return '';
-    const d = moment(fecha);
-    return d.format('DD/MM/YYYY');
+  logisticosDe(p: Proceso): PersonalLogistico[] {
+    return this.logPorProceso()[texto(p.idProceso)] ?? [];
   }
 
-  formatearFechaHora(fecha: string | null): string {
-    if (!fecha) return '—';
-    const d = moment(fecha);
-    return d.format('DD/MM/YYYY, HH:mm');
+  /** Abre la ventana de edición (solo administrador). */
+  editarProceso(p: Proceso): void {
+    if (!texto(p.idProceso) || !this.cfg()) return;
+    this.editando.set(p);
   }
 
-  limpiarFiltroFecha(): void {
-    this.filterFecha.set('');
+  /** La ventana guardó los cambios: se cierra, se vuelve a listar y se avisa. */
+  async edicionGuardada(mensaje: string): Promise<void> {
+    this.editando.set(null);
+    this.loading.show('Actualizando procesos...');
+    await this.cargarProcesos();
+    await this.loading.hideAfterMinimum();
+    this.feedback.success(mensaje);
   }
+
+  // ───────── Actualizar ─────────
+
+  /** Todo es en línea: no hay nada pendiente, solo se vuelve a listar. */
+  async sincronizar(): Promise<void> {
+    this.loading.show('Actualizando procesos...');
+    await this.cargarProcesos();
+    await this.loading.hideAfterMinimum();
+  }
+
+  // ───────── Presentacion ─────────
+
+  nombres(lista: { nombreCompleto: string }[] | undefined, max = 2): { texto: string; hayMas: boolean } {
+    const nombres = (lista ?? []).map((x) => texto(x.nombreCompleto)).filter((x) => x);
+    return { texto: nombres.slice(0, max).join(', ') || '—', hayMas: nombres.length > max };
+  }
+
+  verPersonal(tipo: 'SUP' | 'LOG', p: Proceso): void {
+    const id = texto(p.idProceso);
+    const filas = tipo === 'SUP' ? (this.supPorProceso()[id] ?? []) : (this.logPorProceso()[id] ?? []);
+    this.personalModal.set({ titulo: tipo === 'SUP' ? 'Supervisores' : 'Logísticos', filas: filas.map((f) => ({ nombreCompleto: f.nombreCompleto, dni: f.dni })) });
+  }
+
+  fechaCorta(f: string | null | undefined): string {
+    const [y, m, d] = texto(f).split('T')[0].split('-');
+    return y && m && d ? `${d}/${m}/${y}` : '—';
+  }
+
+  fechaHora(f: string | null | undefined): string {
+    const v = texto(f);
+    if (!v) return '—';
+    const [fecha, hora = ''] = v.split('T');
+    return `${this.fechaCorta(fecha)}, ${hora.slice(0, 5)}`;
+  }
+
+  fechaLarga(f: string): string {
+    const d = new Date(`${texto(f).split('T')[0]}T12:00:00`);
+    return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  esDia(p: Proceso): boolean {
+    return p.turno === 'DIA';
+  }
+
+  trackProceso = (p: Proceso): string => p.idProceso;
 }

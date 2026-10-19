@@ -1,0 +1,95 @@
+<section class="w-full space-y-5 p-4 sm:p-6">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex items-center gap-3">
+      <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md">
+        <svg lucideLayoutDashboard class="size-6"></svg>
+      </span>
+      <div class="min-w-0">
+        <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Base nueva</span>
+        <h1 class="text-xl font-extrabold leading-tight text-app-heading sm:text-2xl">Inicio</h1>
+        <p class="text-sm text-app-muted">Componentes comunes del sistema: tabla, filtros y avisos.</p>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <button type="button" class="btn btn-outline btn-sm flex-1 sm:btn-md sm:flex-none" (click)="probarCarga()">
+        <svg lucideRefreshCcw class="size-4"></svg>
+        Probar carga
+      </button>
+      <button type="button" class="btn btn-primary btn-sm flex-1 sm:btn-md sm:flex-none" (click)="avisoExito()">
+        <svg lucidePlus class="size-4"></svg>
+        Nuevo
+      </button>
+    </div>
+  </header>
+
+  <div class="flex flex-wrap gap-2">
+    <button type="button" class="btn btn-sm btn-success btn-outline" (click)="avisoExito()">Aviso correcto</button>
+    <button type="button" class="btn btn-sm btn-warning btn-outline" (click)="avisoAdvertencia()">Aviso de advertencia</button>
+    <button type="button" class="btn btn-sm btn-error btn-outline" (click)="avisoError()">Aviso de error</button>
+    <button type="button" class="btn btn-sm btn-neutral btn-outline" (click)="verTexto()">Ver texto largo</button>
+  </div>
+
+  <div class="flex flex-col gap-3 rounded-2xl border border-app-border2 bg-app-surface p-3 shadow-sm sm:flex-row sm:flex-wrap sm:items-end sm:p-4">
+    <div class="flex min-w-0 flex-1 flex-col gap-[7px] sm:min-w-64">
+      <span class="text-[11px] font-bold uppercase tracking-wide text-app-text2">Buscar</span>
+      <label class="flex h-[38px] items-center gap-2 rounded-[7px] border border-app-border bg-app-surface px-3 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100 dark:focus-within:ring-emerald-500/25">
+        <svg lucideSearch class="size-4 shrink-0 text-app-subtle"></svg>
+        <input type="text" class="min-w-0 grow bg-transparent text-sm outline-none placeholder:text-app-subtle" placeholder="Buscar por nombre..." autocomplete="off" [value]="buscar()" (input)="onBuscar($event)" />
+        @if (buscar()) {
+          <button type="button" class="text-app-subtle hover:text-app-text2" aria-label="Limpiar busqueda" (click)="limpiarBusqueda()">
+            <svg lucideX class="size-4"></svg>
+          </button>
+        }
+      </label>
+    </div>
+  </div>
+
+  @if (filas().length === 0) {
+    <div class="rounded-2xl border border-dashed border-app-border2 bg-app-surface p-10 text-center text-app-muted">
+      No hay registros que coincidan con la busqueda.
+    </div>
+  } @else {
+    <div class="overflow-hidden rounded-2xl border border-app-border2 bg-app-surface shadow-sm">
+      <div class="tabla-scroll">
+        <table class="table table-zebra w-full whitespace-nowrap">
+          <thead class="bg-emerald-50 dark:bg-[#133931] text-xs uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+            <tr>
+              <th class="w-12">#</th>
+              <th>Nombre</th>
+              <th>Clasificacion</th>
+              <th class="text-center">Estado</th>
+              <th class="text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (fila of pag.paged(); track fila.id; let i = $index) {
+              <tr class="hover">
+                <td class="text-app-subtle">{{ pag.offset() + i + 1 }}</td>
+                <td class="font-bold text-app-heading">{{ fila.nombre }}</td>
+                <td class="text-app-muted">{{ fila.detalle }}</td>
+                <td class="text-center">
+                  <span class="badge badge-sm badge-soft font-semibold" [class.badge-success]="fila.estado" [class.badge-neutral]="!fila.estado">
+                    {{ fila.estado ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </td>
+                <td class="whitespace-nowrap text-right">
+                  <div class="tooltip" data-tip="Editar">
+                    <button type="button" class="btn btn-ghost btn-sm btn-square" aria-label="Editar" (click)="avisoAdvertencia()">
+                      <svg lucidePencil class="size-4"></svg>
+                    </button>
+                  </div>
+                  <div class="tooltip tooltip-left" data-tip="Eliminar">
+                    <button type="button" class="btn btn-ghost btn-sm btn-square text-error" aria-label="Eliminar" (click)="eliminar(fila)">
+                      <svg lucideTrash2 class="size-4"></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-paginator [total]="filas().length" [(page)]="pag.page" [(pageSize)]="pag.pageSize" />
+    </div>
+  }
+</section>

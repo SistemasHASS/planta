@@ -1,0 +1,256 @@
+.confirm-modal {
+  background: var(--modal-overlay);
+  backdrop-filter: blur(5px) saturate(1.05);
+}
+
+.confirm-box {
+  --modal-accent: #d97706;
+  --modal-soft: #fef3c7;
+  --modal-ink: #854d0e;
+  position: relative;
+  width: min(500px, calc(100vw - 28px));
+  overflow: hidden;
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--modal-accent) 24%, var(--app-surface));
+  background: var(--app-surface);
+  box-shadow: 0 30px 90px rgba(15, 23, 42, 0.32);
+  text-align: center;
+  animation: confirm-in 180ms ease-out;
+}
+
+.confirm-modal.is-danger .confirm-box {
+  --modal-accent: #dc2626;
+  --modal-soft: #fee2e2;
+  --modal-ink: #991b1b;
+}
+
+.confirm-box::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--modal-accent),
+    color-mix(in srgb, var(--modal-accent) 38%, var(--app-surface)),
+    var(--modal-accent)
+  );
+}
+
+.close-button {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--app-border-2);
+  border-radius: 999px;
+  background: var(--app-surface-2);
+  color: var(--app-muted);
+  transition:
+    background 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+}
+
+.close-button:hover {
+  background: var(--app-surface-3);
+  color: var(--app-text);
+}
+
+.close-button:active {
+  transform: scale(0.96);
+}
+
+.close-button svg {
+  width: 17px;
+  height: 17px;
+}
+
+.icon-orbit {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  display: grid;
+  place-items: center;
+  color: var(--modal-accent);
+}
+
+.icon-halo {
+  position: absolute;
+  inset: 5px;
+  border-radius: 999px;
+  background: radial-gradient(circle, var(--modal-soft) 0 48%, transparent 49%);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--modal-accent) 9%, transparent);
+  animation: halo-pulse 1.7s ease-in-out infinite;
+}
+
+.confirm-icon {
+  position: relative;
+  width: 54px;
+  height: 54px;
+  stroke-width: 2.2;
+  filter: drop-shadow(
+    0 10px 18px color-mix(in srgb, var(--modal-accent) 22%, transparent)
+  );
+}
+
+.confirm-copy {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+  padding: 0 22px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--modal-ink);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.confirm-copy h2 {
+  margin: 0;
+  color: var(--app-heading);
+  font-size: 23px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.confirm-copy p:not(.eyebrow) {
+  margin: 0;
+  color: var(--app-muted);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.45;
+  white-space: pre-line;
+}
+
+.detail-box {
+  margin-top: 6px;
+  width: 100%;
+  max-height: 140px;
+  white-space: pre-line;
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--modal-accent) 18%, var(--app-border-2));
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--modal-soft) 45%, var(--app-surface));
+  color: var(--app-text);
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.confirm-actions {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 6px;
+}
+
+.cancel-button,
+.confirm-button {
+  min-width: 128px;
+  height: 42px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.cancel-button {
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  color: var(--app-text);
+}
+
+.cancel-button:hover {
+  background: var(--app-surface-2);
+}
+
+.confirm-button {
+  border: 0;
+  background: var(--modal-accent);
+  color: #ffffff;
+  box-shadow: 0 14px 28px
+    color-mix(in srgb, var(--modal-accent) 24%, transparent);
+}
+
+.confirm-button:hover {
+  filter: brightness(0.95);
+}
+
+@keyframes confirm-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes halo-pulse {
+  0%,
+  100% {
+    transform: scale(0.96);
+    opacity: 0.82;
+  }
+
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 520px) {
+  .confirm-box {
+    gap: 16px;
+    padding: 28px 18px 20px;
+  }
+
+  .confirm-copy {
+    padding: 0;
+  }
+
+  .confirm-copy h2 {
+    font-size: 20px;
+  }
+
+  .confirm-actions {
+    flex-direction: column-reverse;
+  }
+
+  .cancel-button,
+  .confirm-button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confirm-box,
+  .icon-halo {
+    animation: none;
+  }
+}
+
+/* Tema oscuro: colores suaves del icono y del detalle */
+:host-context([data-theme='dark']) .confirm-box {
+  --modal-soft: rgba(217, 119, 6, 0.22);
+  --modal-ink: #fcd34d;
+}
+:host-context([data-theme='dark']) .confirm-modal.is-danger .confirm-box {
+  --modal-soft: rgba(220, 38, 38, 0.22);
+  --modal-ink: #fca5a5;
+}

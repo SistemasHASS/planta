@@ -1,0 +1,76 @@
+@if (feedback.state().visible) {
+  <div
+    class="modal modal-open feedback-modal"
+    [class.is-success]="feedback.state().type === 'success'"
+    [class.is-error]="feedback.state().type === 'error'"
+    [class.is-warning]="feedback.state().type === 'warning'"
+    role="dialog"
+    aria-modal="true"
+    (click)="feedback.close()"
+  >
+    <div class="modal-box feedback-box" (click)="$event.stopPropagation()">
+      <button
+        type="button"
+        class="close-button"
+        aria-label="Cerrar"
+        (click)="feedback.close()"
+      >
+        <svg lucideX></svg>
+      </button>
+
+      <div class="icon-orbit" aria-hidden="true">
+        <span class="icon-halo"></span>
+        @switch (feedback.state().type) {
+          @case ("success") {
+            <svg lucideCircleCheck class="feedback-icon"></svg>
+          }
+          @case ("error") {
+            <svg lucideCircleX class="feedback-icon"></svg>
+          }
+          @case ("warning") {
+            <svg lucideTriangleAlert class="feedback-icon"></svg>
+          }
+        }
+      </div>
+
+      <div class="feedback-copy">
+        <h2>{{ feedback.state().title }}</h2>
+        <p>{{ feedback.state().message }}</p>
+      </div>
+
+      @if (feedback.state().sections.length > 0) {
+        <div class="feedback-sections">
+          @for (section of feedback.state().sections; track section.title) {
+            <section
+              class="feedback-section"
+              [class.is-success]="section.type === 'success'"
+              [class.is-error]="section.type === 'error'"
+              [class.is-warning]="section.type === 'warning'"
+            >
+              <h3>
+                {{ section.title }} <span>{{ section.items.length }}</span>
+              </h3>
+              <ul>
+                @for (item of section.items; track item) {
+                  <li>{{ item }}</li>
+                }
+              </ul>
+            </section>
+          }
+        </div>
+      }
+
+      <div class="feedback-actions">
+        @if (feedback.state().secondaryAction; as secundaria) {
+          <button type="button" class="secondary-button" (click)="feedback.runSecondary()">
+            <svg lucideShare2></svg>
+            {{ secundaria.text }}
+          </button>
+        }
+        <button type="button" class="action-button" (click)="feedback.close()">
+          {{ feedback.state().actionText }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

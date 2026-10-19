@@ -1,393 +1,205 @@
-<div class="modal-backdrop-custom" (click)="onBackdrop()"></div>
+<div class="modal modal-open" role="dialog" aria-modal="true">
+  <div class="modal-box w-full max-w-4xl p-0">
+    <!-- Cabecera -->
+    <div class="flex items-center justify-between gap-2 border-b border-app-border2 px-4 py-3 sm:px-6">
+      <h3 class="flex items-center gap-2 text-lg font-extrabold text-app-heading">
+        <svg lucideTruck class="size-5 text-primary"></svg>
+        {{ modoEdicion ? 'Editar guía de remisión' : 'Nueva guía de remisión' }}
+      </h3>
+      <button type="button" class="btn btn-sm btn-circle btn-ghost" aria-label="Cerrar" (click)="onCerrar()"><svg lucideX class="size-4"></svg></button>
+    </div>
 
-<div class="modal-custom modal-guia-form" role="dialog" aria-modal="true">
-  <div class="modal-header-custom" style="background: linear-gradient(135deg, var(--color-primary) 0%, #5a4ad1 100%);">
-    <h3 class="modal-title"><i class="bi" [class.bi-pencil-square]="modoEdicion" [class.bi-plus-circle-fill]="!modoEdicion"></i> {{ modoEdicion ? 'Editar Guía de Remisión' : 'Nueva Guía de Remisión' }}</h3>
-    <button type="button" class="modal-close" (click)="onCerrar()" aria-label="Cerrar">×</button>
-  </div>
+    <div class="max-h-[70dvh] space-y-5 overflow-y-auto px-4 py-4 sm:px-6">
+      <!-- Datos del traslado -->
+      <section class="space-y-3">
+        <h4 class="text-xs font-bold uppercase tracking-wide text-app-muted">Datos del traslado</h4>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <app-search-select label="Motivo de traslado" [required]="true" placeholder="— Seleccionar —" [options]="optMotivos()" [value]="form().motivoTraslado" [disabled]="modoEdicion" [invalid]="isInvalid('motivoTraslado')" (selected)="elegido('motivoTraslado', $event)" />
 
-  <div class="modal-body-custom">
-    <div class="sp-card" style="margin:0">
-      <div class="sp-card-body" style="padding:14px">
-        <div class="row g-2">
-          <!-- Datos del traslado -->
-          <div class="col-12">
-            <div class="form-section-title-modal"><i class="bi bi-clipboard-check"></i> Datos del traslado</div>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Motivo Traslado <span class="text-danger">*</span></label>
-            <div [class.select-invalid]="isInvalid('motivoTraslado')">
-              <app-advanced-select
-                [itemsInput]="motivosTraslado"
-                idField="codigo"
-                [labelFields]="['codigo', 'descripcion']"
-                placeholder="— Seleccionar —"
-                [required]="true"
-                [value]="form().motivoTraslado"
-                [disabled]="modoEdicion"
-                (valueChange)="updateField('motivoTraslado', $event)">
-              </app-advanced-select>
-            </div>
-          </div>
           @if (esMotivoOtros()) {
-          <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Descripción Motivo Traslado <span class="text-danger">*</span></label>
-            <input type="text" class="form-control form-control-sm" [class.is-invalid]="isInvalidDescripcionMotivoTraslado()" [ngModel]="form().descripcionMotivoTraslado" (ngModelChange)="updateField('descripcionMotivoTraslado', $event)" placeholder="Ej: Servicio de frío">
-          </div>
+            <label class="form-control">
+              <span class="mb-1 text-sm font-semibold text-app-text">Descripción del motivo de traslado <span class="text-error">*</span></span>
+              <input type="text" class="input input-bordered w-full" [class.input-error]="isInvalidDescripcionMotivoTraslado()" [ngModel]="form().descripcionMotivoTraslado" (ngModelChange)="updateField('descripcionMotivoTraslado', $event)" placeholder="Ej: Servicio de frío" />
+            </label>
           }
-          <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Fecha Entrega Bienes <span class="text-danger">*</span></label>
-            <input type="date" class="form-control form-control-sm" [class.is-invalid]="isInvalid('fechaEntregaBienes')" [ngModel]="form().fechaEntregaBienes" (ngModelChange)="updateField('fechaEntregaBienes', $event)">
-          </div>
+
+          <label class="form-control">
+            <span class="mb-1 text-sm font-semibold text-app-text">Fecha de entrega de bienes <span class="text-error">*</span></span>
+            <input type="date" class="input input-bordered w-full" [class.input-error]="isInvalid('fechaEntregaBienes')" [ngModel]="form().fechaEntregaBienes" (ngModelChange)="updateField('fechaEntregaBienes', $event)" />
+          </label>
+
           @if (esTrasladoEntreEstablecimientos()) {
-          <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Establecimiento partida <span class="text-danger">*</span></label>
-            <div [class.select-invalid]="isInvalidEstablecimientoPartida()">
-              <app-advanced-select
-                placeholder="Seleccione establecimiento..."
-                [itemsInput]="getEstablecimientosPartida()"
-                idField="idEstablecimiento"
-                [labelFields]="['idEstablecimiento','descripcion','direccion']"
-                [value]="form().idEstablecimientoPartida"
-                (valueChange)="updateField('establecimientoPartidaId', $event)" />
-            </div>
-          </div>
+            <app-search-select label="Establecimiento de partida" [required]="true" placeholder="Seleccione establecimiento..." [options]="optEstablecimientosPartida()" [value]="form().idEstablecimientoPartida" [invalid]="isInvalidEstablecimientoPartida()" (selected)="elegido('establecimientoPartidaId', $event)" />
           }
-          <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Punto Partida <span class="text-danger">*</span></label>
-            <input type="text" class="form-control form-control-sm" [class.is-invalid]="isInvalid('puntoPartida')" [ngModel]="form().puntoPartida" (ngModelChange)="updateField('puntoPartida', $event)" placeholder="Punto de partida" [readonly]="esTrasladoEntreEstablecimientos()">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Ubigeo Partida <span class="text-danger">*</span></label>
-            <div class="row g-1" [class.ubigeo-invalid]="isInvalidUbigeoPartida()">
-              <div class="col-4">
-                <app-advanced-select
-                  [itemsInput]="departamentos()"
-                  idField="codigoDepartamento"
-                  [labelFields]="['nombreDepartamento']"
-                  placeholder="Dep."
-                  [value]="form().departamentoPartida"
-                  [disabled]="esTrasladoEntreEstablecimientos()"
-                  (valueChange)="updateField('departamentoPartida', $event)">
-                </app-advanced-select>
-              </div>
-              <div class="col-4">
-                <app-advanced-select
-                  [itemsInput]="provinciasPartida()"
-                  idField="codigoProvincia"
-                  [labelFields]="['nombreProvincia']"
-                  placeholder="Prov."
-                  [value]="form().provinciaPartida"
-                  [disabled]="esTrasladoEntreEstablecimientos()"
-                  (valueChange)="updateField('provinciaPartida', $event)">
-                </app-advanced-select>
-              </div>
-              <div class="col-4">
-                <app-advanced-select
-                  [itemsInput]="distritosPartida()"
-                  idField="codigoUbigeo"
-                  [labelFields]="['nombreDistrito']"
-                  placeholder="Dist."
-                  [value]="form().distritoPartida"
-                  [disabled]="esTrasladoEntreEstablecimientos()"
-                  (valueChange)="updateField('distritoPartida', $event)">
-                </app-advanced-select>
-              </div>
-            </div>
-          </div>
 
-          <!-- Destino -->
-          <div class="col-12 mt-1">
-            <div class="form-section-title-modal"><i class="bi bi-geo-alt"></i> Destino</div>
-          </div>
-          @if (esTrasladoEntreEstablecimientos()) {
-          <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Establecimiento destino <span class="text-danger">*</span></label>
-            <div [class.select-invalid]="isInvalidEstablecimientoDestino()">
-              <app-advanced-select
-                placeholder="Seleccione establecimiento..."
-                [itemsInput]="getEstablecimientosDestino()"
-                idField="idEstablecimiento"
-                [labelFields]="['idEstablecimiento','descripcion','direccion']"
-                [value]="establecimientoDestinoId()"
-                (valueChange)="updateField('establecimientoDestinoId', $event)" />
-            </div>
-          </div>
-          } @else {
-          <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Destinatario <span class="text-danger">*</span></label>
-            <div [class.select-invalid]="isInvalid('destinatarioId')">
-              <app-advanced-select
-                placeholder="Seleccione..."
-                [itemsInput]="destinatariosActivos()"
-                idField="id"
-                [labelFields]="['nombre','documentoFiscal']"
-                [value]="form().destinatarioId"
-                (valueChange)="updateField('destinatarioId', $event)" />
-            </div>
-          </div>
-          }
-          <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Punto Llegada <span class="text-danger">*</span></label>
-            <input type="text" class="form-control form-control-sm" [class.is-invalid]="isInvalid('puntoLlegada')" [ngModel]="form().puntoLlegada" (ngModelChange)="updateField('puntoLlegada', $event)" placeholder="Punto de llegada" [readonly]="esTrasladoEntreEstablecimientos()">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Ubigeo Llegada <span class="text-danger">*</span></label>
-            <div class="row g-1" [class.ubigeo-invalid]="isInvalidUbigeoLlegada()">
-              <div class="col-4">
-                <app-advanced-select
-                  [itemsInput]="departamentos()"
-                  idField="codigoDepartamento"
-                  [labelFields]="['nombreDepartamento']"
-                  placeholder="Dep."
-                  [value]="form().departamentoLlegada"
-                  [disabled]="esTrasladoEntreEstablecimientos()"
-                  (valueChange)="updateField('departamentoLlegada', $event)">
-                </app-advanced-select>
-              </div>
-              <div class="col-4">
-                <app-advanced-select
-                  [itemsInput]="provinciasLlegada()"
-                  idField="codigoProvincia"
-                  [labelFields]="['nombreProvincia']"
-                  placeholder="Prov."
-                  [value]="form().provinciaLlegada"
-                  [disabled]="esTrasladoEntreEstablecimientos()"
-                  (valueChange)="updateField('provinciaLlegada', $event)">
-                </app-advanced-select>
-              </div>
-              <div class="col-4">
-                <app-advanced-select
-                  [itemsInput]="distritosLlegada()"
-                  idField="codigoUbigeo"
-                  [labelFields]="['nombreDistrito']"
-                  placeholder="Dist."
-                  [value]="form().distritoLlegada"
-                  [disabled]="esTrasladoEntreEstablecimientos()"
-                  (valueChange)="updateField('distritoLlegada', $event)">
-                </app-advanced-select>
-              </div>
-            </div>
-          </div>
+          <label class="form-control">
+            <span class="mb-1 text-sm font-semibold text-app-text">Punto de partida <span class="text-error">*</span></span>
+            <input type="text" class="input input-bordered w-full" [class.input-error]="isInvalid('puntoPartida')" [ngModel]="form().puntoPartida" (ngModelChange)="updateField('puntoPartida', $event)" placeholder="Punto de partida" [readOnly]="esTrasladoEntreEstablecimientos()" />
+          </label>
 
-          <!-- Proceso -->
-          <div class="col-12 mt-1">
-            <div class="form-section-title-modal"><i class="bi bi-boxes"></i> Proceso y palets</div>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Proceso <span class="text-danger">*</span></label>
-            <app-advanced-select
-              table="procesos"
-              placeholder="Seleccione un proceso..."
-              [itemsInput]="procesos"
-              idField="id"
-              [labelFields]="['label']"
-              [value]="form().procesoId"
-              (valueChange)="updateField('procesoId', $event)" />
-          </div>
-
-          <!-- Transporte -->
-          <div class="col-12 mt-1">
-            <div class="form-section-title-modal"><i class="bi bi-truck"></i> Transporte</div>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Transporte <span class="text-danger">*</span></label>
-            <div [class.select-invalid]="isInvalid('transportistaId')">
-              <app-advanced-select
-                table="transportistas"
-                placeholder="Seleccione..."
-                [itemsInput]="transportistas"
-                idField="id"
-                [labelFields]="['razonSocial']"
-                [value]="form().transportistaId"
-                (valueChange)="updateField('transportistaId', $event)" />
+          <div class="sm:col-span-2">
+            <span class="mb-1 block text-sm font-semibold text-app-text">Ubigeo de partida <span class="text-error">*</span></span>
+            <div class="grid gap-2 sm:grid-cols-3" [class.rounded-lg]="isInvalidUbigeoPartida()" [class.ring-1]="isInvalidUbigeoPartida()" [class.ring-error]="isInvalidUbigeoPartida()">
+              <app-search-select placeholder="Departamento" [options]="optDepartamentos()" [value]="form().departamentoPartida" [disabled]="esTrasladoEntreEstablecimientos()" (selected)="elegido('departamentoPartida', $event)" />
+              <app-search-select placeholder="Provincia" [options]="optProvinciasPartida()" [value]="form().provinciaPartida" [disabled]="esTrasladoEntreEstablecimientos()" (selected)="elegido('provinciaPartida', $event)" />
+              <app-search-select placeholder="Distrito" [options]="optDistritosPartida()" [value]="form().distritoPartida" [disabled]="esTrasladoEntreEstablecimientos()" (selected)="elegido('distritoPartida', $event)" />
             </div>
           </div>
-          <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Conductor <span class="text-danger">*</span></label>
-            <div [class.select-invalid]="isInvalid('conductorId')">
-              <app-advanced-select
-                table="conductores"
-                placeholder="Seleccione..."
-                [itemsInput]="conductores"
-                idField="id"
-                [labelFields]="['documentoIdentidad','apellidos','nombres']"
-                [value]="form().conductorId"
-                (valueChange)="updateField('conductorId', $event)" />
-            </div>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Vehículo <span class="text-danger">*</span></label>
-            <div [class.select-invalid]="isInvalid('vehiculoId')">
-              <app-advanced-select
-                table="vehiculos"
-                placeholder="Seleccione..."
-                [itemsInput]="vehiculos"
-                idField="id"
-                [labelFields]="['placaPrincipal','marca']"
-                [value]="form().vehiculoId"
-                (valueChange)="updateField('vehiculoId', $event)" />
-            </div>
-          </div>
-
-          <!-- Control -->
-          <div class="col-12 mt-1">
-            <div class="form-section-title-modal"><i class="bi bi-shield-check"></i> Control</div>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label" style="font-size:11px;font-weight:700">Precinto <span class="text-danger">*</span></label>
-            <input type="text" class="form-control form-control-sm" [class.is-invalid]="isInvalid('precinto')" [ngModel]="form().precinto" (ngModelChange)="updateField('precinto', $event)" placeholder="Ej: 017373">
-          </div>
-          <div class="col-12">
-            <div class="d-flex align-items-center justify-content-between mb-1">
-              <label class="form-label mb-0" style="font-size:11px;font-weight:700">Palets Cerrados <span class="text-danger">*</span>
-                @if (tienePalets()) {
-                  <span class="ms-1 badge" style="font-size:10px;background:rgba(0,0,0,0.05);color:var(--color-text);font-weight:600">{{ nroPaletsSeleccionados() }} de {{ palets().length }}</span>
-                }
-              </label>
-              @if (tienePalets()) {
-                <button type="button" class="btn btn-link p-0" style="font-size:11px;text-decoration:none;font-weight:600;" (click)="todosSeleccionados() ? deseleccionarTodos() : seleccionarTodos()">
-                  <i class="bi" [class.bi-square]="!todosSeleccionados()" [class.bi-check-square]="todosSeleccionados()"></i>
-                  {{ todosSeleccionados() ? 'Deseleccionar todos' : 'Seleccionar todos' }}
-                </button>
-              }
-            </div>
-            <div id="listaPaletsGuia" class="palets-box-modal" [class.is-invalid-palets]="isInvalidPalets()" style="min-height:152px;max-height:200px;overflow-y:auto;padding:6px;border-radius:8px;background:#fafafb;border:1px solid #e4e6ef;">
-              @if (!tienePalets()) {
-                <div class="d-flex flex-column align-items-center justify-content-center h-100 text-muted" style="gap:4px;padding:12px 0;">
-                  <i class="bi bi-box-seam" style="font-size:20px;opacity:0.5"></i>
-                  <span style="font-size:11px">Seleccione un proceso para ver palets</span>
-                </div>
-              } @else {
-                <div class="d-flex flex-column" style="gap:4px">
-                  @for (p of palets(); track p.idPalet) {
-                    <label class="d-flex align-items-center gap-2 rounded" [class.palet-selected]="paletsSeleccionados().has(p.idPalet)" style="cursor:pointer;font-size:12px;padding:8px 10px;background:#fff;border:1px solid #e9eaf0;transition:all .15s ease;">
-                      <input type="checkbox" class="form-check-input m-0" style="width:16px;height:16px;cursor:pointer;accent-color:var(--color-primary);flex-shrink:0;"
-                             [checked]="paletsSeleccionados().has(p.idPalet)"
-                             (change)="togglePaletSeleccionado(p.idPalet)" />
-                      <span style="font-weight:700;color:var(--color-primary);white-space:nowrap;min-width:55px">#{{ p.numeroPalet ?? p.idPalet }}</span>
-                      <span class="text-muted" style="white-space:nowrap;font-size:11px">{{ p.cantidadCajas || 0 }} caj</span>
-                      <span class="text-muted" style="white-space:nowrap;font-size:11px">{{ ((p.pesoTotal || 0)).toFixed(2) }} kg</span>
-                      <span class="ms-auto rounded-pill px-2 py-1" style="font-size:10px;font-weight:600;"
-                            [style.background]="p.estado === 'CERRADO_COMPLETO' ? '#e6f4ea' : '#fff7e0'"
-                            [style.color]="p.estado === 'CERRADO_COMPLETO' ? '#1a7f37' : '#b06000'">
-                        {{ p.estado === 'CERRADO_COMPLETO' ? 'Completo' : 'Saldo' }}
-                      </span>
-                    </label>
-                  }
-                </div>
-              }
-            </div>
-            @if (isInvalidPalets()) {
-              <div class="invalid-feedback d-block" style="font-size:11px">Debe seleccionar al menos un palet.</div>
-            }
-          </div>
-          <div class="col-md-4">
-            <label class="form-label" style="font-size:11px;font-weight:700">Parihuelas <span class="text-danger">*</span></label>
-            <input type="number" class="form-control form-control-sm" [class.is-invalid]="isInvalidParihuelas()"
-                   [ngModel]="form().parihuelas" (ngModelChange)="updateField('parihuelas', $event)"
-                   min="1" max="99" placeholder=""
-                   (keydown)="$event.key === 'e' || $event.key === 'E' || $event.key === '-' || $event.key === '+' || $event.key === '.' ? $event.preventDefault() : null">
-            @if (isInvalidParihuelas()) {
-              <div class="invalid-feedback d-block" style="font-size:11px">Ingrese un número entre 1 y 99.</div>
-            }
-          </div>
-          <div class="col-md-8">
-            <label class="form-label" style="font-size:11px;font-weight:700">Observaciones <small class="text-muted">(máx 1000)</small></label>
-            <input type="text" class="form-control form-control-sm" [ngModel]="form().observacionesUsuario" (ngModelChange)="updateField('observacionesUsuario', $event)" maxlength="1000" placeholder="Opcional">
-          </div>
-
-          <!-- Parámetros de Inspección (solo edición) -->
-          @if (modoEdicion) {
-            <div class="col-12 mt-2">
-              <div class="form-section-title-modal"><i class="bi bi-clipboard-check"></i> Parámetros de Inspección</div>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label" style="font-size:11px;font-weight:700">Temperatura (°C)</label>
-              <input type="number" step="0.1" class="form-control form-control-sm" [ngModel]="form().inspeccionTemperatura" (ngModelChange)="updateField('inspeccionTemperatura', $event)" placeholder="Ej: 18.4"
-                     (keydown)="$event.key === 'e' || $event.key === 'E' || $event.key === '+' ? $event.preventDefault() : null">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label" style="font-size:11px;font-weight:700">N° de Viaje</label>
-              <input type="number" min="1" class="form-control form-control-sm" [ngModel]="form().numeroViaje" (ngModelChange)="updateField('numeroViaje', $event)" placeholder="Ej: 1, 2, 3..."
-                     (keydown)="$event.key === 'e' || $event.key === 'E' || $event.key === '-' || $event.key === '+' || $event.key === '.' ? $event.preventDefault() : null">
-            </div>
-            <div class="col-12 mt-1">
-              <div class="d-flex flex-wrap gap-4 mt-1" style="font-size:12px">
-                <div>
-                  <label class="form-label mb-0" style="font-size:12px">¿Libre de olores extraños?</label>
-                  <div class="d-flex gap-2">
-                    <div class="form-check form-check-inline m-0">
-                      <input class="form-check-input" type="radio" name="libreOloresEdit" value="si" [ngModel]="form().inspeccionLibreOlores" (ngModelChange)="updateField('inspeccionLibreOlores', $event)">
-                      <label class="form-check-label">Sí</label>
-                    </div>
-                    <div class="form-check form-check-inline m-0">
-                      <input class="form-check-input" type="radio" name="libreOloresEdit" value="no" [ngModel]="form().inspeccionLibreOlores" (ngModelChange)="updateField('inspeccionLibreOlores', $event)">
-                      <label class="form-check-label">No</label>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label class="form-label mb-0" style="font-size:12px">¿Libre de insectos/plagas?</label>
-                  <div class="d-flex gap-2">
-                    <div class="form-check form-check-inline m-0">
-                      <input class="form-check-input" type="radio" name="libreInsectosEdit" value="si" [ngModel]="form().inspeccionLibreInsectos" (ngModelChange)="updateField('inspeccionLibreInsectos', $event)">
-                      <label class="form-check-label">Sí</label>
-                    </div>
-                    <div class="form-check form-check-inline m-0">
-                      <input class="form-check-input" type="radio" name="libreInsectosEdit" value="no" [ngModel]="form().inspeccionLibreInsectos" (ngModelChange)="updateField('inspeccionLibreInsectos', $event)">
-                      <label class="form-check-label">No</label>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label class="form-label mb-0" style="font-size:12px">¿Libre de materias extrañas?</label>
-                  <div class="d-flex gap-2">
-                    <div class="form-check form-check-inline m-0">
-                      <input class="form-check-input" type="radio" name="libreMateriasEdit" value="si" [ngModel]="form().inspeccionLibreMateriasExtranas" (ngModelChange)="updateField('inspeccionLibreMateriasExtranas', $event)">
-                      <label class="form-check-label">Sí</label>
-                    </div>
-                    <div class="form-check form-check-inline m-0">
-                      <input class="form-check-input" type="radio" name="libreMateriasEdit" value="no" [ngModel]="form().inspeccionLibreMateriasExtranas" (ngModelChange)="updateField('inspeccionLibreMateriasExtranas', $event)">
-                      <label class="form-check-label">No</label>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label class="form-label mb-0" style="font-size:12px">¿Unidad limpia / buen estado?</label>
-                  <div class="d-flex gap-2">
-                    <div class="form-check form-check-inline m-0">
-                      <input class="form-check-input" type="radio" name="unidadLimpiaEdit" value="si" [ngModel]="form().inspeccionUnidadLimpia" (ngModelChange)="updateField('inspeccionUnidadLimpia', $event)">
-                      <label class="form-check-label">Sí</label>
-                    </div>
-                    <div class="form-check form-check-inline m-0">
-                      <input class="form-check-input" type="radio" name="unidadLimpiaEdit" value="no" [ngModel]="form().inspeccionUnidadLimpia" (ngModelChange)="updateField('inspeccionUnidadLimpia', $event)">
-                      <label class="form-check-label">No</label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label" style="font-size:12px;font-weight:700">Observaciones inspección</label>
-              <textarea class="form-control form-control-sm" rows="4" placeholder="Obligatorio si alguna inspección es No"
-                        [ngModel]="form().inspeccionObservaciones" (ngModelChange)="updateField('inspeccionObservaciones', $event)"></textarea>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label" style="font-size:12px;font-weight:700">Medida correctiva</label>
-              <textarea class="form-control form-control-sm" rows="4" placeholder="Obligatorio si alguna inspección es No"
-                        [ngModel]="form().inspeccionMedidaCorrectiva" (ngModelChange)="updateField('inspeccionMedidaCorrectiva', $event)"></textarea>
-            </div>
-          }
         </div>
-      </div>
-    </div>
-  </div>
+      </section>
 
-  <div class="modal-footer-custom">
-    <div class="footer-actions">
-      <button type="button" class="btn btn-sp-outline btn-cancel" [disabled]="creando()" (click)="onCerrar()">Cancelar</button>
-      <button type="button" class="btn btn-sp-primary btn-save" [disabled]="creando() || (modoEdicion && !hasChanges())" (click)="onCrear()"><i class="bi" [class.bi-hourglass-split]="creando()" [class.bi-check-lg]="!creando() && modoEdicion" [class.bi-file-earmark-plus]="!creando() && !modoEdicion"></i> {{ creando() ? 'Continuando...' : (modoEdicion ? 'Guardar Cambios' : 'Crear Guía') }}</button>
+      <!-- Destino -->
+      <section class="space-y-3">
+        <h4 class="text-xs font-bold uppercase tracking-wide text-app-muted">Destino</h4>
+        <div class="grid gap-3 sm:grid-cols-2">
+          @if (esTrasladoEntreEstablecimientos()) {
+            <app-search-select label="Establecimiento de destino" [required]="true" placeholder="Seleccione establecimiento..." [options]="optEstablecimientosDestino()" [value]="establecimientoDestinoId()" [invalid]="isInvalidEstablecimientoDestino()" (selected)="elegido('establecimientoDestinoId', $event)" />
+          } @else {
+            <app-search-select label="Destinatario" [required]="true" placeholder="Seleccione..." [options]="optDestinatarios()" [value]="form().destinatarioId" [invalid]="isInvalid('destinatarioId')" (selected)="elegido('destinatarioId', $event)" />
+          }
+
+          <label class="form-control">
+            <span class="mb-1 text-sm font-semibold text-app-text">Punto de llegada <span class="text-error">*</span></span>
+            <input type="text" class="input input-bordered w-full" [class.input-error]="isInvalid('puntoLlegada')" [ngModel]="form().puntoLlegada" (ngModelChange)="updateField('puntoLlegada', $event)" placeholder="Punto de llegada" [readOnly]="esTrasladoEntreEstablecimientos()" />
+          </label>
+
+          <div class="sm:col-span-2">
+            <span class="mb-1 block text-sm font-semibold text-app-text">Ubigeo de llegada <span class="text-error">*</span></span>
+            <div class="grid gap-2 sm:grid-cols-3" [class.rounded-lg]="isInvalidUbigeoLlegada()" [class.ring-1]="isInvalidUbigeoLlegada()" [class.ring-error]="isInvalidUbigeoLlegada()">
+              <app-search-select placeholder="Departamento" [options]="optDepartamentos()" [value]="form().departamentoLlegada" [disabled]="esTrasladoEntreEstablecimientos()" (selected)="elegido('departamentoLlegada', $event)" />
+              <app-search-select placeholder="Provincia" [options]="optProvinciasLlegada()" [value]="form().provinciaLlegada" [disabled]="esTrasladoEntreEstablecimientos()" (selected)="elegido('provinciaLlegada', $event)" />
+              <app-search-select placeholder="Distrito" [options]="optDistritosLlegada()" [value]="form().distritoLlegada" [disabled]="esTrasladoEntreEstablecimientos()" (selected)="elegido('distritoLlegada', $event)" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Proceso y palets -->
+      <section class="space-y-3">
+        <h4 class="flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-app-muted"><svg lucidePackage class="size-4"></svg> Proceso y palets</h4>
+        <app-search-select label="Proceso" [required]="true" placeholder="Seleccione un proceso..." [options]="optProcesos()" [value]="form().procesoId" [invalid]="isInvalid('procesoId')" (selected)="elegido('procesoId', $event)" />
+
+        <div>
+          <div class="mb-1 flex items-center justify-between gap-2">
+            <span class="text-sm font-semibold text-app-text">
+              Palets cerrados <span class="text-error">*</span>
+              @if (tienePalets()) { <span class="badge badge-sm badge-ghost ml-1">{{ nroPaletsSeleccionados() }} de {{ palets().length }}</span> }
+            </span>
+            @if (tienePalets()) {
+              <button type="button" class="btn btn-ghost btn-xs" (click)="todosSeleccionados() ? deseleccionarTodos() : seleccionarTodos()">
+                @if (todosSeleccionados()) { <svg lucideSquareCheck class="size-4"></svg> Deseleccionar todos } @else { <svg lucideSquare class="size-4"></svg> Seleccionar todos }
+              </button>
+            }
+          </div>
+          <div class="max-h-52 min-h-28 overflow-y-auto rounded-xl border bg-app-surface2 p-2" [class.border-error]="isInvalidPalets()" [class.border-app-border2]="!isInvalidPalets()">
+            @if (!tienePalets()) {
+              <div class="grid place-items-center gap-1 py-6 text-xs text-app-muted">
+                <svg lucidePackage class="size-5 opacity-50"></svg>
+                Seleccione un proceso para ver palets
+              </div>
+            } @else {
+              <div class="space-y-1.5">
+                @for (p of palets(); track p.idPalet) {
+                  <label class="flex cursor-pointer items-center gap-2 rounded-lg border bg-app-surface px-3 py-2 text-sm" [class.border-emerald-400]="paletsSeleccionados().has(p.idPalet)" [class.bg-tint-emerald]="paletsSeleccionados().has(p.idPalet)" [class.border-app-border2]="!paletsSeleccionados().has(p.idPalet)">
+                    <input type="checkbox" class="checkbox checkbox-sm checkbox-success" [checked]="paletsSeleccionados().has(p.idPalet)" (change)="togglePaletSeleccionado(p.idPalet)" />
+                    <span class="min-w-14 font-bold text-primary">#{{ p.numeroPalet ?? p.idPalet }}</span>
+                    <span class="whitespace-nowrap text-xs text-app-muted">{{ p.cantidadCajas || 0 }} caj</span>
+                    <span class="whitespace-nowrap text-xs text-app-muted">{{ (p.pesoTotal || 0).toFixed(2) }} kg</span>
+                    <span class="badge badge-sm badge-soft ml-auto" [class.badge-success]="p.estado === 'CERRADO_COMPLETO'" [class.badge-warning]="p.estado !== 'CERRADO_COMPLETO'">{{ p.estado === 'CERRADO_COMPLETO' ? 'Completo' : 'Saldo' }}</span>
+                  </label>
+                }
+              </div>
+            }
+          </div>
+          @if (isInvalidPalets()) { <small class="text-error">Debe seleccionar al menos un palet.</small> }
+        </div>
+      </section>
+
+      <!-- Transporte -->
+      <section class="space-y-3">
+        <h4 class="flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-app-muted"><svg lucideTruck class="size-4"></svg> Transporte</h4>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <app-search-select label="Transporte" [required]="true" placeholder="Seleccione..." [options]="optTransportistas()" [value]="form().transportistaId" [invalid]="isInvalid('transportistaId')" (selected)="elegido('transportistaId', $event)" />
+          <app-search-select label="Conductor" [required]="true" placeholder="Seleccione..." [options]="optConductores()" [value]="form().conductorId" [invalid]="isInvalid('conductorId')" (selected)="elegido('conductorId', $event)" />
+          <app-search-select label="Vehículo" [required]="true" placeholder="Seleccione..." [options]="optVehiculos()" [value]="form().vehiculoId" [invalid]="isInvalid('vehiculoId')" (selected)="elegido('vehiculoId', $event)" />
+        </div>
+      </section>
+
+      <!-- Control -->
+      <section class="space-y-3">
+        <h4 class="text-xs font-bold uppercase tracking-wide text-app-muted">Control</h4>
+        <div class="grid gap-3 sm:grid-cols-3">
+          <label class="form-control">
+            <span class="mb-1 text-sm font-semibold text-app-text">Precinto <span class="text-error">*</span></span>
+            <input type="text" class="input input-bordered w-full" [class.input-error]="isInvalid('precinto')" [ngModel]="form().precinto" (ngModelChange)="updateField('precinto', $event)" placeholder="Ej: 017373" />
+          </label>
+          <label class="form-control">
+            <span class="mb-1 text-sm font-semibold text-app-text">Parihuelas <span class="text-error">*</span></span>
+            <input type="number" inputmode="numeric" min="1" max="99" class="input input-bordered w-full" [class.input-error]="isInvalidParihuelas()" [ngModel]="form().parihuelas" (ngModelChange)="updateField('parihuelas', $event)"
+                   (keydown)="$event.key === 'e' || $event.key === 'E' || $event.key === '-' || $event.key === '+' || $event.key === '.' ? $event.preventDefault() : null" />
+            @if (isInvalidParihuelas()) { <small class="text-error">Ingrese un número entre 1 y 99.</small> }
+          </label>
+          <label class="form-control sm:col-span-3">
+            <span class="mb-1 text-sm font-semibold text-app-text">Observaciones <small class="text-app-subtle">(máx. 1000)</small></span>
+            <input type="text" class="input input-bordered w-full" maxlength="1000" placeholder="Opcional" [ngModel]="form().observacionesUsuario" (ngModelChange)="updateField('observacionesUsuario', $event)" />
+          </label>
+        </div>
+      </section>
+
+      <!-- Parámetros de inspección (solo al editar) -->
+      @if (modoEdicion) {
+        <section class="space-y-3">
+          <h4 class="flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-app-muted"><svg lucideClipboardCheck class="size-4"></svg> Parámetros de inspección</h4>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <label class="form-control">
+              <span class="mb-1 text-sm font-semibold text-app-text">Temperatura (°C)</span>
+              <input type="number" inputmode="decimal" step="0.1" class="input input-bordered w-full" [ngModel]="form().inspeccionTemperatura" (ngModelChange)="updateField('inspeccionTemperatura', $event)" placeholder="Ej: 18.4"
+                     (keydown)="$event.key === 'e' || $event.key === 'E' || $event.key === '+' ? $event.preventDefault() : null" />
+            </label>
+            <label class="form-control">
+              <span class="mb-1 text-sm font-semibold text-app-text">N° de viaje</span>
+              <input type="number" inputmode="numeric" min="1" class="input input-bordered w-full" [ngModel]="form().numeroViaje" (ngModelChange)="updateField('numeroViaje', $event)" placeholder="Ej: 1, 2, 3..."
+                     (keydown)="$event.key === 'e' || $event.key === 'E' || $event.key === '-' || $event.key === '+' || $event.key === '.' ? $event.preventDefault() : null" />
+            </label>
+          </div>
+          <div class="space-y-2">
+            @for (p of preguntasInspeccion; track p.campo) {
+              <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-app-surface2 px-3 py-2">
+                <span class="text-sm text-app-text">{{ p.texto }}</span>
+                <div class="flex gap-4">
+                  <label class="flex cursor-pointer items-center gap-1.5 text-sm font-semibold">
+                    <input type="radio" class="radio radio-sm radio-success" [name]="p.campo + 'Edit'" [checked]="valorInspeccion(p.campo) === 'si'" (change)="updateField(p.campo, 'si')" /> Sí
+                  </label>
+                  <label class="flex cursor-pointer items-center gap-1.5 text-sm font-semibold">
+                    <input type="radio" class="radio radio-sm radio-error" [name]="p.campo + 'Edit'" [checked]="valorInspeccion(p.campo) === 'no'" (change)="updateField(p.campo, 'no')" /> No
+                  </label>
+                </div>
+              </div>
+            }
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <label class="form-control">
+              <span class="mb-1 text-sm font-semibold text-app-text">Observaciones de inspección</span>
+              <textarea class="textarea textarea-bordered w-full" rows="3" placeholder="Obligatorio si alguna inspección es No" [ngModel]="form().inspeccionObservaciones" (ngModelChange)="updateField('inspeccionObservaciones', $event)"></textarea>
+            </label>
+            <label class="form-control">
+              <span class="mb-1 text-sm font-semibold text-app-text">Medida correctiva</span>
+              <textarea class="textarea textarea-bordered w-full" rows="3" placeholder="Obligatorio si alguna inspección es No" [ngModel]="form().inspeccionMedidaCorrectiva" (ngModelChange)="updateField('inspeccionMedidaCorrectiva', $event)"></textarea>
+            </label>
+          </div>
+        </section>
+      }
+    </div>
+
+    <!-- Pie -->
+    <div class="flex flex-col-reverse gap-2 border-t border-app-border2 px-4 py-3 sm:flex-row sm:justify-end sm:px-6">
+      <button type="button" class="btn btn-ghost" [disabled]="creando()" (click)="onCerrar()">Cancelar</button>
+      <button type="button" class="btn btn-primary" [disabled]="creando() || (modoEdicion && !hasChanges())" (click)="onCrear()">
+        @if (creando()) { <svg lucideLoader class="size-4 animate-spin"></svg> Continuando... }
+        @else if (modoEdicion) { <svg lucideCheck class="size-4"></svg> Guardar cambios }
+        @else { <svg lucideFilePlus class="size-4"></svg> Crear guía }
+      </button>
     </div>
   </div>
+  <div class="modal-backdrop bg-black/40" (click)="onBackdrop()"></div>
 </div>

@@ -1,70 +1,144 @@
-<div class="page-title-area">
-  <h2><i class="bi bi-diagram-3-fill" style="color:var(--color-primary)"></i> Matriz de Compatibilidad</h2>
-  <p class="page-subtitle">Gestión de combinaciones permitidas — {{ totalRegistros() }} registros</p>
-</div>
-
-<div class="sp-card catalogos-card">
-  <div class="sp-card-body" style="padding:16px">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-      <div style="min-width:210px;flex:1">
-        <input
-          class="form-control"
-          placeholder="Buscar cliente, destino, formato..."
-          [ngModel]="searchTerm()"
-          (ngModelChange)="onSearchChange($event)"
-        />
-      </div>
-
-       <button type="button" class="btn btn-success" (click)="onSincronizar()">
-        <i class="bi bi-arrow-repeat"></i> Sincronizar
-      </button>
-
-      <div class="d-flex align-items-center gap-2 flex-wrap" style="justify-content:flex-end">
-        <div class="btn-group catalogos-filtro-group" role="group">
-          <button type="button" class="btn-sp-outline" [class.active-tab]="estadoFiltro() === 'activos'" (click)="setEstadoFiltro('activos')">
-            Activos
-          </button>
-          <button type="button" class="btn-sp-outline" [class.active-tab]="estadoFiltro() === 'inactivos'" (click)="setEstadoFiltro('inactivos')">
-            Inactivos
-          </button>
-          <button type="button" class="btn-sp-outline" [class.active-tab]="estadoFiltro() === 'todos'" (click)="setEstadoFiltro('todos')">
-            Todos
-          </button>
-        </div>
-
-        <button type="button" class="btn-sp-primary" (click)="abrirNuevo()">
-          <i class="bi bi-plus-lg"></i> Nuevo
-        </button>
-      </div>
+<section class="w-full space-y-4 p-4 sm:p-6">
+  <header class="flex items-center gap-3">
+    <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md">
+      <svg lucideNetwork class="size-6"></svg>
+    </span>
+    <div class="min-w-0">
+      <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Administración</span>
+      <h1 class="text-xl font-extrabold leading-tight text-app-heading sm:text-2xl">Matriz de compatibilidad</h1>
+      <p class="text-sm text-app-muted">Combinaciones válidas de cliente, consignatario, destino, formato y empaque.</p>
     </div>
-  </div>
+  </header>
 
-  <div class="sp-card-body" style="padding:0">
-    @if (isLoading()) {
-      <div class="text-center py-4">
-        <span class="spinner-border text-primary"></span>
-        <p class="mt-2" style="color:var(--color-text-muted);font-size:13px">Cargando matriz de compatibilidad...</p>
+  @if (online()) {
+    <div class="rounded-2xl border border-app-border2 bg-app-surface shadow-sm">
+      <!-- Título, contador y acciones -->
+      <div class="flex flex-wrap items-center justify-between gap-3 px-4 pt-4">
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 class="text-sm font-bold uppercase tracking-wide text-app-text2">Combinaciones</h2>
+          <span class="badge badge-soft badge-success">{{ matricesFiltradas().length }} {{ matricesFiltradas().length === 1 ? 'registro' : 'registros' }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          @if (cfg()) { <button type="button" class="btn btn-sm btn-success text-white" (click)="nueva()"><svg lucidePlus class="size-4"></svg> Nueva combinación</button> }
+          <button type="button" class="btn btn-primary btn-sm" (click)="cargar()"><svg lucideRefreshCcw class="size-4"></svg> Actualizar</button>
+        </div>
       </div>
-    } @else {
-      <app-matriz-compatibilidad-tabla
-        [items]="filteredItems()"
-        [estadoFiltro]="estadoFiltro()"
-        (editar)="abrirEditar($event)"
-        (desactivar)="onDesactivar($event)"
-      />
-    }
-  </div>
-</div>
 
-@if (modalAbierto()) {
-  <app-matriz-compatibilidad-modal
-    [modo]="modalModo()"
-    [value]="modalValue()"
-    [tiposEmpaqueGuiaList]="tiposEmpaqueGuiaList()"
-    [tiposEmpaqueList]="tiposEmpaqueList()"
-    [categoriasList]="categoriasList()"
-    [calibresList]="calibresList()"
-    (cerrar)="cerrarModal()"
-    (guardar)="guardarModal($event)"
+      <!-- Filtros -->
+      <div class="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_14rem_auto] lg:items-end">
+        <label class="block min-w-0">
+          <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Buscar</span>
+          <span class="flex h-[42px] items-center gap-2 rounded-[9px] border border-app-border2 bg-app-surface px-3 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100 dark:focus-within:ring-emerald-500/25">
+            <svg lucideSearch class="size-4 shrink-0 text-app-subtle"></svg>
+            <input type="text" class="min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-app-subtle sm:text-[14px]" placeholder="Cliente, consignatario, destino, formato, empaque..." aria-label="Buscar" [ngModel]="filtroTexto()" (ngModelChange)="filtroTexto.set($event)" />
+            @if (filtroTexto()) {
+              <button type="button" class="grid size-5 shrink-0 place-items-center rounded-full text-app-subtle hover:bg-app-surface3 hover:text-app-text2" aria-label="Borrar texto" (click)="filtroTexto.set('')"><svg lucideX class="size-3.5"></svg></button>
+            }
+          </span>
+        </label>
+        <div class="min-w-0">
+          <app-search-select label="Estado" placeholder="Todos los estados" sortOrder="none" [options]="estadoOpciones" [value]="filtroEstado()" (selected)="filtroEstado.set($any($event.value)); paginacion.page.set(1)" />
+        </div>
+        <div class="flex items-end gap-2">
+          <button type="button" class="btn h-[42px] min-h-[42px] border-app-border2 bg-app-surface font-semibold text-app-text hover:bg-app-surface2" (click)="panelFiltros.set(!panelFiltros())">
+            <svg lucideListFilter class="size-4"></svg> Filtros por columna
+            <svg lucideChevronDown class="size-4 transition-transform" [class.rotate-180]="panelFiltros()"></svg>
+            @if (cantidadFiltros() > 0) { <span class="badge badge-success badge-sm text-white">{{ cantidadFiltros() }}</span> }
+          </button>
+          @if (columnas.hayFiltros()) {
+            <button type="button" class="btn btn-ghost h-[42px] min-h-[42px]" aria-label="Limpiar filtros" title="Limpiar filtros" (click)="columnas.limpiar(); paginacion.page.set(1)"><svg lucideX class="size-4"></svg></button>
+          }
+        </div>
+      </div>
+
+      @if (panelFiltros()) {
+        <!-- Filtros por columna (varios a la vez, solo sobre lo listado) -->
+        <div class="grid grid-cols-1 gap-3 px-4 pb-4 sm:grid-cols-2 lg:grid-cols-4">
+          @for (c of columnas.columnas; track c.clave) {
+            <div class="min-w-0">
+              <app-search-multi-select [label]="c.etiqueta" [placeholder]="c.placeholder" [showSelectAll]="true" sortOrder="none" [options]="columnas.opciones()[c.clave]" [values]="columnas.marcados(c.clave)" (valuesChange)="columnas.elegir(c.clave, $event); paginacion.page.set(1)" />
+            </div>
+          }
+        </div>
+      }
+
+      @if (!cfg()) {
+        <p class="m-4 mt-0 rounded-xl border border-dashed border-amber-300 dark:border-amber-500/35 bg-amber-50 dark:bg-amber-500/15 p-3 text-sm text-amber-800 dark:text-amber-300">
+          Aún no hay una campaña configurada en este equipo. Ve a <strong>Parámetros</strong> para elegirla.
+        </p>
+      } @else if (matricesFiltradas().length > 0) {
+        <div class="tabla-scroll border-t border-app-border2">
+          <table class="table table-sm table-pin-rows [&_td]:align-middle [&_td]:py-3 [&_thead_th]:!py-3 [&_thead_th]:!text-app-text2 [&_thead_th]:!shadow-[inset_0_-2px_0_var(--tint-emerald-border)]">
+            <thead>
+              <tr class="text-[11px] font-bold uppercase tracking-wide">
+                <th>Cliente</th>
+                <th>Consignatario</th>
+                <th>Destino</th>
+                <th>Formato</th>
+                <th>Empaque</th>
+                <th>Empaque guía</th>
+                <th>Calibre</th>
+                <th>Caja</th>
+                <th>Clamshell</th>
+                <th>Presentación</th>
+                <th>Categoría</th>
+                <th>Estado</th>
+                <th class="text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (m of paginacion.paged(); track m.id) {
+                <!-- Doble clic (o un toque en celular) = editar -->
+                <tr class="cursor-pointer border-t border-app-border hover:bg-app-surface2" title="Doble clic (o un toque en celular) para editar" (click)="alTocarFila(m)" (dblclick)="alHacerDobleClicFila(m)">
+                  <td class="min-w-[10rem] text-app-heading">{{ m.clienteNombre }}</td>
+                  <td class="min-w-[14rem] text-app-heading">{{ m.consignatarioNombre }}</td>
+                  <td class="whitespace-nowrap text-app-heading">{{ m.destinoNombre }}</td>
+                  <td class="min-w-[9rem] text-app-heading">{{ m.formatoNombre }}</td>
+                  <td class="min-w-[9rem] text-app-heading">{{ m.tipoEmpaqueNombre }}</td>
+                  <td class="min-w-[10rem] text-app-heading">{{ m.tipoEmpaqueGuiaNombre }}</td>
+                  <td class="whitespace-nowrap text-app-heading">{{ m.calibreNombre }}</td>
+                  <td class="min-w-[8rem] text-app-heading">{{ m.tipoCajaNombre }}</td>
+                  <td class="min-w-[8rem] text-app-heading">{{ m.tipoClamshellNombre }}</td>
+                  <td class="min-w-[8rem] text-app-heading">{{ m.presentacionNombre }}</td>
+                  <td class="min-w-[8rem] text-app-heading">{{ m.categoriaNombre }}</td>
+                  <td>
+                    @if (m.activo) { <span class="badge badge-soft badge-success">Activo</span> } @else { <span class="badge badge-soft badge-neutral">Inactivo</span> }
+                  </td>
+                  <td (click)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()">
+                    <div class="flex items-center justify-end gap-1">
+                      <button type="button" class="btn btn-xs btn-square btn-warning" title="Editar" aria-label="Editar" (click)="editar(m)"><svg lucidePencil class="size-3.5"></svg></button>
+                      <button type="button" class="btn btn-xs btn-square" [class.btn-error]="m.activo" [class.btn-success]="!m.activo" [title]="m.activo ? 'Desactivar' : 'Activar'" [attr.aria-label]="m.activo ? 'Desactivar' : 'Activar'" (click)="cambiarEstado(m)"><svg lucidePower class="size-3.5"></svg></button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <app-paginator [total]="matricesFiltradas().length" [(page)]="paginacion.page" [(pageSize)]="paginacion.pageSize" />
+      } @else {
+        <div class="grid place-items-center gap-2 border-t border-app-border2 p-10 text-center text-app-muted">
+          <svg lucideInbox class="size-10 opacity-40"></svg>
+          <p>No se encontraron combinaciones</p>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="grid place-items-center gap-2 rounded-2xl border border-app-border2 bg-app-surface p-12 text-center shadow-sm">
+      <svg lucideWifiOff class="size-12 text-amber-500"></svg>
+      <p class="text-base font-bold text-app-text2">Sin conexión a internet</p>
+      <p class="max-w-md text-sm text-app-muted">La matriz de compatibilidad solo está disponible en modo online. Conéctate a internet para continuar.</p>
+    </div>
+  }
+</section>
+
+@if (modal(); as m) {
+  <app-modal-matriz
+    [matriz]="m.matriz"
+    [matrices]="matrices()"
+    [idProyecto]="cfg()?.idProyecto ?? ''"
+    [codigoCultivo]="cfg()?.codigoCultivo ?? ''"
+    (saved)="alGuardar($event)"
+    (closed)="modal.set(null)"
   />
 }

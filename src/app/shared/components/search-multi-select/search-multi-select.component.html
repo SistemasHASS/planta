@@ -1,0 +1,95 @@
+<div
+  class="field-shell"
+  [class.is-disabled]="disabled"
+  [class.is-open]="opened()"
+>
+  @if (label) {
+    <label class="field-label">{{ label }}</label>
+  }
+
+  <div class="select-anchor">
+    <button
+      type="button"
+      class="select-control"
+      [class.is-open]="opened()"
+      [class.has-value]="hasValue()"
+      [disabled]="disabled"
+      [attr.aria-expanded]="opened()"
+      aria-haspopup="listbox"
+      (click)="toggle()"
+      (keydown)="onKeydown($event)"
+    >
+      <span class="select-value">{{ displayLabel() }}</span>
+      <span class="select-actions">
+        @if (hasValue()) {
+          <span
+            type="button"
+            class="clear-button"
+            role="button"
+            tabindex="-1"
+            aria-label="Limpiar filtros"
+            (click)="clear($event)"
+          >
+            <svg lucideX></svg>
+          </span>
+        }
+        <svg lucideChevronDown class="select-chevron"></svg>
+      </span>
+    </button>
+
+    @if (opened() && !disabled) {
+      <div
+        class="select-panel"
+        (click)="$event.stopPropagation()"
+        (keydown)="onKeydown($event)"
+      >
+        <div class="search-box">
+          <svg lucideSearch class="search-icon"></svg>
+          <input
+            #searchInput
+            type="text"
+            class="search-input"
+            placeholder="Buscar..."
+            [value]="search()"
+            (input)="updateSearch($any($event.target).value)"
+            (keydown)="$event.stopPropagation()"
+            autocomplete="off"
+          />
+        </div>
+
+        @if (showSelectAll) {
+          <button type="button" class="select-all-option" (click)="toggleAll()">
+            <span>Todos</span>
+            <span class="check-shell" [class.checked]="allOptionsSelected()">
+              @if (allOptionsSelected()) { <svg lucideCheck class="check-icon"></svg> }
+            </span>
+          </button>
+        }
+
+        <div #optionListElement class="option-list" role="listbox" aria-multiselectable="true">
+          @for (option of filteredOptions(); track option.value) {
+            <button
+              type="button"
+              class="option-item"
+              [attr.data-option-index]="$index"
+              [class.selected]="isSelected(option)"
+              [class.active]="isActive($index)"
+              [attr.aria-selected]="isSelected(option)"
+              (mouseenter)="activeIndex.set($index)"
+              (click)="toggleOption(option)"
+            >
+              <span>{{ option.label }}</span>
+              <span class="check-shell" [class.checked]="isSelected(option)">
+                @if (isSelected(option)) {
+                  <svg lucideCheck class="check-icon"></svg>
+                }
+              </span>
+            </button>
+          } @empty {
+            <div class="empty-state">Sin resultados</div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>

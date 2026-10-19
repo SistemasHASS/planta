@@ -1,0 +1,108 @@
+<div class="modal modal-open" role="dialog" aria-modal="true">
+  <div class="modal-box flex w-full !max-h-full !max-w-3xl flex-col gap-0 overflow-hidden p-0">
+
+    <!-- Cabecera -->
+    <div class="flex items-center justify-between gap-3 border-b border-app-border2 px-4 py-1.5 sm:px-5">
+      <div class="flex min-w-0 items-center gap-3">
+        <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md">
+          <svg lucideNetwork class="size-5"></svg>
+        </span>
+        <div class="min-w-0">
+          <span class="text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Matriz de compatibilidad</span>
+          <h3 class="truncate text-base font-extrabold leading-tight text-app-heading sm:text-lg">{{ esNueva() ? 'Nueva combinación' : 'Editar combinación' }}</h3>
+        </div>
+      </div>
+      <button type="button" class="btn btn-circle btn-ghost size-10 min-h-10 sm:size-8 sm:min-h-8" aria-label="Cerrar" (click)="closed.emit()"><svg lucideX class="size-4"></svg></button>
+    </div>
+
+    <!-- Cuerpo (con scroll) -->
+    <div class="min-h-0 flex-1 space-y-3 overflow-y-auto bg-app-surface2 px-3 pb-3 pt-2 sm:px-5 sm:pb-5 sm:pt-2.5">
+
+      @if (repetida()) {
+        <p class="rounded-xl border border-rose-200 dark:border-rose-500/35 bg-rose-50 dark:bg-rose-500/15 px-3 py-2 text-sm text-rose-700 dark:text-rose-300">Ya existe una combinación igual a esta.</p>
+      }
+
+      <!-- Cliente y destino -->
+      <section class="rounded-2xl border border-tint-sky-border bg-tint-sky px-4 py-3">
+        <h4 class="mb-2 text-xs font-bold uppercase tracking-wide text-sky-800 dark:text-sky-300">Cliente y destino</h4>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div class="min-w-0">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Cliente <span class="text-rose-600 dark:text-rose-300">*</span></span>
+            <app-search-select placeholder="— Seleccionar cliente —" [options]="optClientes()" [value]="documentoCliente()" (selected)="elegirCliente($event.value)" />
+            @if (intento() && !documentoCliente()) { <span class="mt-1 block text-xs text-rose-600 dark:text-rose-300">Requerido</span> }
+          </div>
+          <div class="min-w-0">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Consignatario <span class="text-rose-600 dark:text-rose-300">*</span></span>
+            <app-search-select [placeholder]="documentoCliente() ? '— Seleccionar consignatario —' : 'Primero elige el cliente'" [options]="optConsignatarios()" [value]="documentoConsignatario()" (selected)="documentoConsignatario.set($event.value)" />
+            @if (intento() && !documentoConsignatario()) { <span class="mt-1 block text-xs text-rose-600 dark:text-rose-300">Requerido</span> }
+          </div>
+          <div class="min-w-0">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Destino <span class="text-rose-600 dark:text-rose-300">*</span></span>
+            <app-search-select placeholder="— Seleccionar destino —" [options]="optDestinos()" [value]="destinoId()" (selected)="destinoId.set($event.value)" />
+            @if (intento() && !destinoId()) { <span class="mt-1 block text-xs text-rose-600 dark:text-rose-300">Requerido</span> }
+          </div>
+          <div class="min-w-0">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Formato <span class="text-rose-600 dark:text-rose-300">*</span></span>
+            <app-search-select placeholder="— Seleccionar formato —" [options]="optFormatos()" [value]="formatoId()" (selected)="formatoId.set($event.value)" />
+            @if (intento() && !formatoId()) { <span class="mt-1 block text-xs text-rose-600 dark:text-rose-300">Requerido</span> }
+          </div>
+        </div>
+      </section>
+
+      <!-- Empaque -->
+      <section class="rounded-2xl border border-tint-emerald-border bg-tint-emerald px-4 py-3">
+        <h4 class="mb-2 text-xs font-bold uppercase tracking-wide text-emerald-800 dark:text-emerald-300">Empaque</h4>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div class="min-w-0 sm:col-span-2">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Tipo de empaque guía <span class="text-rose-600 dark:text-rose-300">*</span></span>
+            <app-search-select placeholder="— Seleccionar —" [options]="optGuias()" [value]="tipoEmpaqueGuiaId()" (selected)="tipoEmpaqueGuiaId.set($event.value)" />
+            @if (intento() && !tipoEmpaqueGuiaId()) { <span class="mt-1 block text-xs text-rose-600 dark:text-rose-300">Requerido</span> }
+            @else if (tipoEmpaqueGuiaId() && !derivado().tiposEmpaqueId) { <span class="mt-1 block text-xs text-rose-600 dark:text-rose-300">Este tipo de guía no tiene tipo de empaque o calibre asociado.</span> }
+          </div>
+          <!-- Salen del tipo de empaque guía (no se eligen) -->
+          <div>
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Tipo de empaque</span>
+            <div class="flex h-[42px] items-center rounded-[9px] border border-app-border2 bg-app-surface3 px-3 text-[16px] text-app-text2 sm:text-[14px]">{{ derivado().tipoEmpaqueNombre || '—' }}</div>
+          </div>
+          <div>
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Categoría</span>
+            <div class="flex h-[42px] items-center rounded-[9px] border border-app-border2 bg-app-surface3 px-3 text-[16px] text-app-text2 sm:text-[14px]">{{ derivado().categoriaNombre || '—' }}</div>
+          </div>
+          <div>
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Calibre</span>
+            <div class="flex h-[42px] items-center rounded-[9px] border border-app-border2 bg-app-surface3 px-3 text-[16px] text-app-text2 sm:text-[14px]">{{ derivado().calibreNombre || '—' }}</div>
+          </div>
+          <div class="min-w-0">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Tipo de caja <span class="text-rose-600 dark:text-rose-300">*</span></span>
+            <app-search-select placeholder="— Seleccionar —" [options]="optCajas()" [value]="tipoCajaId()" (selected)="tipoCajaId.set($event.value)" />
+            @if (intento() && !tipoCajaId()) { <span class="mt-1 block text-xs text-rose-600 dark:text-rose-300">Requerido</span> }
+          </div>
+          <div class="min-w-0">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Tipo de clamshell <span class="text-rose-600 dark:text-rose-300">*</span></span>
+            <app-search-select placeholder="— Seleccionar —" [options]="optClamshells()" [value]="tipoClamshellId()" (selected)="tipoClamshellId.set($event.value)" />
+            @if (intento() && !tipoClamshellId()) { <span class="mt-1 block text-xs text-rose-600 dark:text-rose-300">Requerido</span> }
+          </div>
+          <div class="min-w-0">
+            <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Presentación (opcional)</span>
+            <app-search-select sortOrder="none" placeholder="— Sin presentación —" [options]="optPresentaciones()" [value]="presentacionId()" (selected)="presentacionId.set($event.value)" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Estado -->
+      <section class="rounded-2xl border border-violet-200 bg-violet-50/50 dark:border-violet-500/30 dark:bg-violet-500/10 px-4 py-3">
+        <label class="flex cursor-pointer items-center gap-3">
+          <input type="checkbox" class="checkbox checkbox-success checkbox-sm" [checked]="activo()" (change)="activo.set($any($event.target).checked)" />
+          <span class="text-sm font-semibold text-app-heading">Combinación activa</span>
+        </label>
+      </section>
+    </div>
+
+    <!-- Pie -->
+    <div class="flex justify-end gap-2 border-t border-app-border2 bg-app-surface px-4 py-2.5 sm:px-5">
+      <button type="button" class="btn btn-sm btn-ghost" (click)="closed.emit()">Cancelar</button>
+      <button type="button" class="btn btn-sm btn-primary" [disabled]="!hayCambios() || cargando()" (click)="guardar()"><svg lucideSave class="size-4"></svg> {{ esNueva() ? 'Crear combinación' : 'Guardar cambios' }}</button>
+    </div>
+  </div>
+  <div class="modal-backdrop bg-black/40" (click)="closed.emit()"></div>
+</div>
