@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LucideCircleCheck, LucideLayers, LucidePackage, LucideRefreshCcw, LucideX } from '@lucide/angular';
+import { LucideBoxes, LucideCircleCheck, LucideCirclePlus, LucideLayers, LucidePencilLine, LucideX } from '@lucide/angular';
 import { SearchSelectComponent, SearchSelectOption } from '../../../../shared/components/search-select/search-select.component';
 import { DPalet, Palet } from '../../../../shared/interfaces/palet.interface';
 import { portalToBody } from '../../../../shared/utils/portal';
@@ -10,7 +10,7 @@ export interface FormCajas {
   destinoId: number | string;
   formatoId: number;
   tipoEmpaqueId: number;
-  calibreId: number;
+  calibreId: string;
   categoriaId: number;
   tipoEmpaqueGuiaId: number;
   tipoCajaId: number;
@@ -49,8 +49,9 @@ const valorTexto = (v: unknown): string | null => {
  */
 @Component({
   selector: 'app-modal-cajas',
-  imports: [FormsModule, SearchSelectComponent, LucideCircleCheck, LucideLayers, LucidePackage, LucideRefreshCcw, LucideX],
+  imports: [FormsModule, SearchSelectComponent, LucideBoxes, LucideCircleCheck, LucideCirclePlus, LucideLayers, LucidePencilLine, LucideX],
   templateUrl: './modal-cajas.component.html',
+  styleUrl: './modal-cajas.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ModalCajasComponent {
@@ -90,8 +91,8 @@ export class ModalCajasComponent {
   readonly guardar = output<void>();
   readonly campoChange = output<{ campo: string; valor: any }>();
 
-  readonly titulo = computed(() => (this.modoEdicion() ? 'Editar cajas del palet' : 'Agregar cajas al palet'));
-  readonly textoGuardar = computed(() => (this.modoEdicion() ? 'Guardar cambios' : 'Agregar cajas'));
+  readonly titulo = computed(() => (this.modoEdicion() ? 'Editar Cajas del Palet' : 'Agregar Cajas al Palet'));
+  readonly textoGuardar = computed(() => (this.modoEdicion() ? 'Guardar Cambios' : 'Agregar Cajas'));
   readonly numeroPalet = computed(() => {
     const p = this.palet();
     return p ? (p.numeroPalet == 0 ? p.id : p.numeroPalet) : '';
@@ -104,7 +105,7 @@ export class ModalCajasComponent {
   readonly optTiposProceso = computed(() => opciones(this.tiposProcesoEmpacadoModal(), 'id'));
   readonly optConsignatarios = computed(() => opciones(this.consignatarios(), 'documento'));
   readonly optDestinos = computed(() => opciones(this.filteredDestinos(), 'id', ['pais']));
-  readonly optFormatos = computed(() => opciones(this.filteredFormatos(), 'id', ['nombre']));
+  readonly optFormatos = computed(() => opciones(this.filteredFormatos(), 'id', ['descripcion']));
   readonly optTiposEmpaqueGuia = computed(() => opciones(this.filteredTiposEmpaqueGuia(), 'id'));
   readonly optPresentaciones = computed(() => opciones(this.filteredPresentaciones(), 'id'));
   readonly optTiposCaja = computed(() => opciones(this.filteredTiposCaja(), 'id'));

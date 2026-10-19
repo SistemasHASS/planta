@@ -20,10 +20,8 @@ import {
   LucideTruck,
   LucideWeight,
 } from '@lucide/angular';
-import { AdministracionRepository } from '../../shared/dexiedb/repository/administracion.repository';
 import { CatalogosOperativosRepository } from '../../shared/dexiedb/repository/catalogos-operacionales.repository';
 import { CatalogosRepository } from '../../shared/dexiedb/repository/catalogos.repository';
-import { ProcesoRepository } from '../../shared/dexiedb/repository/proceso.repository';
 import { Usuario } from '../../shared/interfaces/auth.interface';
 import { Configuracion } from '../../shared/interfaces/administracion.interface';
 import {
@@ -51,7 +49,7 @@ import { CatalogosApiService } from '../../shared/services/catalogos-api.service
 import { ConnectivityService } from '../../shared/services/connectivity.service';
 import { FeedbackModalService } from '../../shared/services/feedback-modal.service';
 import { MaestrosApiService } from '../../shared/services/maestros-api.service';
-import { PaletsApiService } from '../../shared/services/palets-api.service';
+import { ConsultaMatriz, PaletsApiService } from '../../shared/services/palets-api.service';
 import { LoadingService } from '../../shared/services/loading.service';
 import { PaletsSyncService } from '../../shared/services/palets-sync.service';
 import { ProcesosApiService } from '../../shared/services/procesos-api.service';
@@ -67,7 +65,7 @@ const texto = (v: unknown): string => String(v ?? '').trim();
 
 /**
  * Palets de un proceso: crear, agregar cajas (composiciones), cerrar, reabrir, eliminar, ficha de composicion y
- * sincronizacion con el servidor. Trabaja con y sin internet (Dexie). La logica es la de la aplicacion anterior; solo cambian
+ * sincronizacion con el servidor. Todo es en linea: solo se usan de Dexie la configuracion y la campania guardadas, y los catalogos sincronizados para cruzar nombres. La logica es la de la aplicacion anterior; solo cambian
  * la forma de llamar a la API (api/palets) y la pantalla.
  */
 @Component({
@@ -105,10 +103,8 @@ export class PaletsComponent implements OnInit {
   private readonly maestros = inject(MaestrosApiService);
   private readonly procesosSync = inject(ProcesosSyncService);
   private readonly paletsSync = inject(PaletsSyncService);
-  private readonly procesoRepo = inject(ProcesoRepository);
   private readonly catalogosRepo = inject(CatalogosRepository);
-  private readonly catalogosOperativosRepo = inject(CatalogosOperativosRepository);
-  private readonly administracionRepo = inject(AdministracionRepository);
+  private readonly operativosRepo = inject(CatalogosOperativosRepository);
   private readonly auth = inject(AuthService);
   private readonly loading = inject(LoadingService);
   private readonly connectivity = inject(ConnectivityService);
@@ -158,6 +154,7 @@ export class PaletsComponent implements OnInit {
           })
           .then((s) => [s]),
       ),
+    getCalibreEmpaquePorMatriz: (c: ConsultaMatriz) => from(this.api.calibreEmpaquePorMatriz(c).then((s) => [s])),
     getDPaletsPorAcopio: () => from(this.api.dPaletsPorAcopio().then((s) => [s])),
     getDPaletsPorPalet: (idPalet: string) => from(this.api.dPaletsPorPalet(idPalet).then((s) => [s])),
     sincronizar: (palets: unknown) => from(this.api.sincronizar(palets).then((s) => [s])),
@@ -227,7 +224,7 @@ export class PaletsComponent implements OnInit {
     destinoId: 0,
     formatoId: 0,
     tipoEmpaqueId: 0,
-    calibreId: 0,
+    calibreId: '',
     categoriaId: 0,
     tipoEmpaqueGuiaId: 0,
     tipoCajaId: 0,
@@ -266,14 +263,6 @@ export class PaletsComponent implements OnInit {
     this.palets().filter(p => p.estado === 'DESPACHADO')
   );
 
-  sincronizadoLabel(db?: number): string {
-    return db === 1 ? 'Sincronizado' : 'No sincronizado';
-  }
-
-  sincronizadoClass(db?: number): string {
-    return db === 1 ? 'badge-success' : 'badge-error';
-  }
-
   formatPeso(valor: number | undefined | null): string {
     const n = Number(valor ?? 0);
     return String(Math.ceil(n * 1000) / 1000);
@@ -290,10 +279,33 @@ export class PaletsComponent implements OnInit {
       this.usuario.set(session?.user ?? null);
       await this.cargarConfiguracion();
       await this.cargarDesdeDexieCampania();
+      await this.cargarNombresAcopio();
       await this.cargarProcesos();
     } finally {
       await this.loading.hideAfterMinimum();
     }
+  }
+
+  /** Nombres de acopio del catálogo de acopios sincronizado (solo lectura) para mostrar el nombre en lugar del código. */
+  private readonly acopioNombres = signal<Record<string, string>>({});
+
+  private async cargarNombresAcopio(): Promise<void> {
+    try {
+      const mapa: Record<string, string> = {};
+      for (const a of await this.operativosRepo.acopiosRepo.getAll()) {
+        const codigo = texto(a.codigoAcopio);
+        if (codigo) mapa[codigo] = texto(a.acopioNombre) || codigo;
+      }
+      this.acopioNombres.set(mapa);
+    } catch (error) {
+      console.error('Error cargando nombres de acopio desde Dexie', error);
+    }
+  }
+
+  /** Nombre del acopio; si no se conoce, el que traiga el proceso y, en último caso, el código. */
+  nombreAcopio(codigo: string | null | undefined, alternativo?: string | null): string {
+    const c = texto(codigo);
+    return this.acopioNombres()[c] || texto(alternativo) || c;
   }
 
   private async cargarDesdeDexieCampania(): Promise<void> {
@@ -317,29 +329,32 @@ export class PaletsComponent implements OnInit {
     }
   }
 
-  /** Con internet pide los procesos abiertos al servidor y los muestra sin guardarlos en Dexie; sin internet usa los que ya hubiera en el equipo. */
+  /** Pide los procesos abiertos al servidor y los muestra tal cual llegan; no usa Dexie. */
   async cargarProcesos(): Promise<void> {
     this.procesosAbiertos.set([]);
+    if (!this.exigirInternet()) return;
     const cfg = this.savedConfig();
-    if (this.online && cfg) {
-      try {
-        const sobre = await this.procesosApi.listar(cfg.idProyecto, cfg.codigoCultivo, { estado: 'ABIERTO' });
-        if (sobre?.error) {
-          this.alertService.showAlert('Error', sobre.mensaje || 'No se pudieron obtener los procesos.', 'error');
-          return;
-        }
-        const data = Array.isArray(sobre?.data) ? sobre.data : [];
-        const procesos = data.map((x) => this.procesosSync.normalizar(x).proceso as Proceso);
-        this.procesosAbiertos.set(procesos.filter((p) => p.estado === 'ABIERTO'));
-        return;
-      } catch (error) {
-        console.error('Error obteniendo procesos', error);
-        this.alertService.showAlert('Error', 'No se pudieron obtener los procesos.', 'error');
+    if (!cfg) {
+      this.alertService.showAlert('Información', 'Configure la campaña en Parámetros para ver los procesos.', 'warning');
+      return;
+    }
+    try {
+      const sobre = await this.procesosApi.listar(cfg.idProyecto, cfg.codigoCultivo, { estado: 'ABIERTO' });
+      if (sobre?.error) {
+        this.alertService.showAlert('Error', sobre.mensaje || 'No se pudieron obtener los procesos.', 'error');
         return;
       }
+      const data = Array.isArray(sobre?.data) ? sobre.data : [];
+      const procesos = data.map((x) => {
+        const proceso = this.procesosSync.normalizar(x).proceso as Proceso;
+        proceso.acopioNombre = this.nombreAcopio(proceso.codigoAcopio, proceso.acopioNombre);
+        return proceso;
+      });
+      this.procesosAbiertos.set(procesos.filter((p) => p.estado === 'ABIERTO'));
+    } catch (error) {
+      console.error('Error obteniendo procesos', error);
+      this.alertService.showAlert('Error', 'No se pudieron obtener los procesos.', 'error');
     }
-    const listaProcesos = await this.procesoRepo.procesosRepo.getAll();
-    this.procesosAbiertos.set(listaProcesos.filter((p: Proceso) => p.estado === 'ABIERTO'));
   }
 
   /** Pide los palets del proceso a la API y los muestra tal cual llegan; no usa Dexie. */
@@ -362,7 +377,7 @@ export class PaletsComponent implements OnInit {
         return;
       }
       const apiPalets = (Array.isArray(sobre?.data) ? sobre.data : []) as unknown as Palet[];
-      this.palets.set(apiPalets.filter((p: any) => !p?.eliminado).map((p) => ({ ...(p as any), bd: 1 }) as Palet));
+      this.palets.set(apiPalets.filter((p: any) => !p?.eliminado).map((p) => p as Palet));
     } catch (error: any) {
       console.error(error);
       this.palets.set([]);
@@ -479,6 +494,12 @@ export class PaletsComponent implements OnInit {
     return enriquecidos.filter((d: any) => !d?.eliminado);
   }
 
+  /** En celular el detalle queda debajo de la lista: al elegir un palet se baja hasta él. */
+  private irAlDetalle(): void {
+    if (typeof window === 'undefined' || !window.matchMedia('(max-width: 1023px)').matches) return;
+    setTimeout(() => document.getElementById('detalle-palet')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  }
+
   async verDetalle(p: Palet): Promise<void> {
     this.paletSeleccionado.set(p);
     if (!this.exigirInternet()) {
@@ -506,6 +527,7 @@ export class PaletsComponent implements OnInit {
       this.alertService.showAlert('Error', 'Error al obtener el detalle del palet', 'error');
     } finally {
       await this.loading.hideAfterMinimum();
+      this.irAlDetalle();
     }
   }
 
@@ -562,6 +584,8 @@ export class PaletsComponent implements OnInit {
   }
 
   async abrirModalAgregarCajas(palet: Palet): Promise<void> {
+    if (!this.exigirInternet()) return;
+
     const codigoAcopio = String(palet?.codigoAcopio ?? this.procesoSeleccionado()?.codigoAcopio ?? '').trim();
     if (!codigoAcopio) {
       this.alertService.showAlert('Validación', 'No se pudo determinar el acopio del palet.', 'warning');
@@ -574,31 +598,17 @@ export class PaletsComponent implements OnInit {
     let tipos: TipoProcesoEmpacado[] = [];
 
     try {
-      console.log(this.online)
-      if (this.online) {
-        const idproyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
-        const resp: any = await firstValueFrom(this.paletService.getTipoProcesoEmpacadoPorAcopio(idproyecto));
-        const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
-        tipos = (items[0]?.data ?? []).map((x: any) => ({
-          id: x?.id ?? x?.Id ?? 0,
-          codigo: String(x?.codigo ?? x?.Codigo ?? '').trim(),
-          nombre: String(x?.nombre ?? x?.Nombre ?? '').trim(),
-          idproyecto: idproyecto,
-          activo: true,
-          fechaCreacion: '',
-        }));
-      } else {
-        const detalles = await this.catalogosOperativosRepo.acopiosDetallesRepo.getAcopioDetalle(codigoAcopio);
-        const activos = (detalles ?? []).filter((d: any) => d?.activo === true);
-        for (const d of activos) {
-          const codigoTipo = String((d as any)?.codigoTipoProcesoEmpacado ?? '').trim();
-          if (!codigoTipo) continue;
-          const tipo = await this.catalogosRepo.tipoProcesoEmpacadoRepo.getByField('codigo', codigoTipo);
-          if (tipo) {
-            tipos.push(tipo);
-          }
-        }
-      }
+      const idproyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
+      const resp: any = await firstValueFrom(this.paletService.getTipoProcesoEmpacadoPorAcopio(idproyecto));
+      const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
+      tipos = (items[0]?.data ?? []).map((x: any) => ({
+        id: x?.id ?? x?.Id ?? 0,
+        codigo: String(x?.codigo ?? x?.Codigo ?? '').trim(),
+        nombre: String(x?.nombre ?? x?.Nombre ?? '').trim(),
+        idproyecto: idproyecto,
+        activo: true,
+        fechaCreacion: '',
+      }));
 
       await this.cargarConsignatarios();
       await this.cargarVariedadesYLugares();
@@ -606,11 +616,11 @@ export class PaletsComponent implements OnInit {
       await this.loadCodigosRancho();
     } catch (err) {
       console.error('Error cargando tipos proceso empacado:', err);
-    } finally {
-      await this.loading.hideAfterMinimum();
     }
 
+    // La carga sigue visible hasta que el modal esté listo: así no hay un hueco entre el loading y el formulario.
     if (tipos.length === 0) {
+      await this.loading.hideAfterMinimum();
       this.alertService.showAlert('Información', 'El acopio no tiene configurado el Tipo de Proceso Empacado.', 'warning');
       return;
     }
@@ -651,10 +661,12 @@ export class PaletsComponent implements OnInit {
 
     this.modoEdicionCajas.set(false);
     this.dpaletEditando.set(undefined);
+    await this.loading.hideAfterMinimum();
     this.modalAgregarCajasAbierto.set(true);
   }
 
   async abrirModalEditarCajas(dpalet: DPalet): Promise<void> {
+    if (!this.exigirInternet()) return;
     const palet = this.paletSeleccionado();
     if (!palet) return;
     this.paletSeleccionado.set(palet);
@@ -665,7 +677,7 @@ export class PaletsComponent implements OnInit {
       destinoId: (dpalet.destinoId as any) || 0,
       formatoId: dpalet.formatoId || 0,
       tipoEmpaqueId: dpalet.tiposEmpaqueId || 0,
-      calibreId: Number(dpalet.calibreId) || 0,
+      calibreId: String(dpalet.calibreId ?? '').trim(),
       categoriaId: 0,
       tipoEmpaqueGuiaId: dpalet.tipoEmpaqueGuiaId ?? 0,
       tipoCajaId: dpalet.tipoCajaId || 0,
@@ -681,39 +693,26 @@ export class PaletsComponent implements OnInit {
       esReposicion: dpalet.esReposicion ?? false,
       esEnsayo: dpalet.esEnsayo ?? false,
     });
-    const codigoAcopio = String(palet?.codigoAcopio ?? this.procesoSeleccionado()?.codigoAcopio ?? '').trim();
     this.loading.show('Cargando datos de la línea...');
     let tipos: TipoProcesoEmpacado[] = [];
     try {
-      if (this.online) {
-        const idproyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
-        const resp: any = await firstValueFrom(this.paletService.getTipoProcesoEmpacadoPorAcopio(idproyecto));
-        const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
-        tipos = (items[0]?.data ?? []).map((x: any) => ({
-          id: x?.id ?? x?.Id ?? 0,
-          codigo: String(x?.codigo ?? x?.Codigo ?? '').trim(),
-          nombre: String(x?.nombre ?? x?.Nombre ?? '').trim(),
-          idproyecto: idproyecto,
-          activo: true,
-          fechaCreacion: '',
-        }));
-      } else {
-        const detalles = await this.catalogosOperativosRepo.acopiosDetallesRepo.getAcopioDetalle(codigoAcopio);
-        for (const d of (detalles ?? []).filter((d: any) => d?.activo === true)) {
-          const codigoTipo = String((d as any)?.codigoTipoProcesoEmpacado ?? '').trim();
-          if (!codigoTipo) continue;
-          const tipo = await this.catalogosRepo.tipoProcesoEmpacadoRepo.getByField('codigo', codigoTipo);
-          if (tipo) tipos.push(tipo);
-        }
-      }
+      const idproyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
+      const resp: any = await firstValueFrom(this.paletService.getTipoProcesoEmpacadoPorAcopio(idproyecto));
+      const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
+      tipos = (items[0]?.data ?? []).map((x: any) => ({
+        id: x?.id ?? x?.Id ?? 0,
+        codigo: String(x?.codigo ?? x?.Codigo ?? '').trim(),
+        nombre: String(x?.nombre ?? x?.Nombre ?? '').trim(),
+        idproyecto: idproyecto,
+        activo: true,
+        fechaCreacion: '',
+      }));
       await this.cargarConsignatarios();
       await this.cargarVariedadesYLugares();
       await this.cargarTransportes();
       await this.loadCodigosRancho();
-    } catch (err) { 
-      console.error('Error cargando tipos proceso empacado:', err); 
-    }finally { 
-      await this.loading.hideAfterMinimum(); 
+    } catch (err) {
+      console.error('Error cargando tipos proceso empacado:', err);
     }
 
     this.tiposProcesoEmpacadoModal.set(tipos);
@@ -757,6 +756,8 @@ export class PaletsComponent implements OnInit {
       this._cargandoCascada = false;
     }
 
+    // La carga sigue visible hasta que el modal esté listo: se cierra y el modal aparece en el mismo instante.
+    await this.loading.hideAfterMinimum();
     this.modalAgregarCajasAbierto.set(true);
   }
 
@@ -764,16 +765,36 @@ export class PaletsComponent implements OnInit {
     const { campo, valor } = event;
     this.updateFormCajas(campo, valor);
     switch (campo) {
-      case 'consignatarioId': await this.onConsignatarioChange(String(valor)); break;
-      case 'destinoId': await this.onDestinoChange(String(valor)); break;
-      case 'formatoId': await this.onFormatoChange(String(valor)); break;
-      case 'tipoEmpaqueGuiaId': await this.onTipoEmpaqueGuiaChange(String(valor)); break;
-      case 'presentacionId': await this.onPresentacionChange(String(valor)); break;
-      case 'tipoCajaId': await this.onTipoCajaChange(String(valor)); break;
-      case 'tipoClamshellId': this.onTipoClamshellChange(String(valor)); break;
-      case 'variedadId': this.onVariedadChange(String(valor)); break;
-      case 'esEnsayo': this.onEsEnsayoChange(valor); break;
-      case 'esReposicion': this.onEsReposicionChange(valor); break;
+      case 'consignatarioId': 
+          await this.onConsignatarioChange(String(valor)); 
+          break;
+      case 'destinoId': 
+          await this.onDestinoChange(String(valor)); 
+          break;
+      case 'formatoId': 
+          await this.onFormatoChange(String(valor)); 
+          break;
+      case 'tipoEmpaqueGuiaId': 
+          await this.onTipoEmpaqueGuiaChange(String(valor)); 
+          break;
+      case 'presentacionId': 
+          await this.onPresentacionChange(String(valor)); 
+          break;
+      case 'tipoCajaId': 
+          await this.onTipoCajaChange(String(valor)); 
+          break;
+      case 'tipoClamshellId': 
+          await this.onTipoClamshellChange(String(valor)); 
+          break;
+      case 'variedadId': 
+          this.onVariedadChange(String(valor)); 
+          break;
+      case 'esEnsayo': 
+          this.onEsEnsayoChange(valor); 
+          break;
+      case 'esReposicion': 
+          this.onEsReposicionChange(valor); 
+          break;
     }
   }
 
@@ -788,6 +809,9 @@ export class PaletsComponent implements OnInit {
     }
     if (!f.tipoEmpaqueGuiaId || !f.tipoCajaId || !f.tipoClamshellId) {
       this.alertService.showAlert('Validacion', 'Complete la seleccion de empaque (Tipo Empaque Guia, Tipo Caja, Tipo Clamshell)', 'warning'); return;
+    }
+    if (!this.calibreValido(f.calibreId)) {
+      this.alertService.showAlert('Validacion', 'No se pudo determinar el calibre. Vuelva a seleccionar el Tipo Clamshell.', 'warning'); return;
     }
     if (!f.lugarProduccionId || !f.codigoRanchoId) {
       this.alertService.showAlert('Validacion', 'Seleccione Lugar de Produccion y Codigo de Rancho', 'warning'); return;
@@ -835,7 +859,7 @@ export class PaletsComponent implements OnInit {
       formatoId: f.formatoId,
       formatoNombre: formato?.descripcion ?? undefined,
       tiposEmpaqueId: f.tipoEmpaqueId || 1,
-      calibreId: f.calibreId?.toString() ?? undefined,
+      calibreId: String(f.calibreId ?? '').trim(),
       presentacionId: f.presentacionId ?? null,
       presentacionNombre: presentacion?.nombre ?? undefined,
       variedadId: String(f.variedadId ?? ''),
@@ -860,7 +884,6 @@ export class PaletsComponent implements OnInit {
       esEnsayo: f.esEnsayo ?? false,
       eliminado: false,
       fechaCreacion: dpaletOriginal.fechaCreacion ?? new Date().toISOString(),
-      bd:0
     };
 
     if (!this.exigirInternet()) return;
@@ -903,84 +926,40 @@ export class PaletsComponent implements OnInit {
 
   private async cargarConsignatarios(): Promise<void> {
     try {
-      if (this.online) {
-        const resp: any = await firstValueFrom(this.catalogoService.listarConsignatarios());
-        if (resp.length > 0) {
-          await this.catalogosRepo.consignatariosRepo.clear();
-          for (const c of (resp[0].data ?? [])) {
-            await this.catalogosRepo.consignatariosRepo.save(c);
-          }
-          let consignatarios= await this.catalogosRepo.consignatariosRepo.getAll();
-          this.consignatarios.set(consignatarios);
-        }
-      } else {
-        const consignatariosDexie = await this.catalogosRepo.consignatariosRepo.getAll();
-        this.consignatarios.set(consignatariosDexie ?? []);
+      const resp: any = await firstValueFrom(this.catalogoService.listarConsignatarios());
+      if (Array.isArray(resp) && resp.length > 0) {
+        this.consignatarios.set(resp[0]?.data ?? []);
       }
     } catch (error) {
       console.error('Error cargando consignatarios:', error);
-      const consignatariosDexie = await this.catalogosRepo.consignatariosRepo.getAll();
-      this.consignatarios.set(consignatariosDexie ?? []);
     }
   }
 
   private async cargarVariedadesYLugares(): Promise<void> {
-    try {
-      const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
-      const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
+    const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
+    const idProyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
 
-      // Variedades
-      if (this.online) {
-        const vResp: any = await firstValueFrom(this.catalogoService.listarVariedades());
-        if (!vResp.error) {
-          const dexiedb = await this.catalogosRepo.variedadesRepo.getAll();
-          if (dexiedb.length > 0) {
-            await this.catalogosRepo.variedadesRepo.clear();
-          }
-          const todasVariedades = (vResp.data ?? []);
-          const filtradasCultivo = todasVariedades.filter((v: any) => String(v?.idcultivo ?? '') === codigoCultivo);
-          for (const v of filtradasCultivo) {
-            v.bd = 1;
-            await this.catalogosRepo.variedadesRepo.save(v);
-          }
-          this.variedades.set(filtradasCultivo);
-        }
-      } else {
-        const variedadesDexie = await this.catalogosRepo.variedadesRepo.getAll();
-        const filtradasCultivo = (variedadesDexie ?? []).filter((v: Variedad) => String(v?.idcultivo ?? '') === codigoCultivo);
+    try {
+      const vResp: any = await firstValueFrom(this.catalogoService.listarVariedades());
+      if (!vResp?.error) {
+        const filtradasCultivo = (vResp?.data ?? []).filter((v: any) => String(v?.idcultivo ?? '') === codigoCultivo);
         this.variedades.set(filtradasCultivo);
       }
-
-      // Lugares de producción
-      if (this.online) {
-        const lResp: any = await firstValueFrom(this.catalogoService.listarLugaresProduccion(idProyecto));
-        if (!lResp.error) {
-          const dexiedb = await this.catalogosRepo.lugaresProduccionRepo.getAll();
-          if (dexiedb.length > 0) {
-            await this.catalogosRepo.lugaresProduccionRepo.clear();
-          }
-          for (const l of (lResp.data ?? [])) {
-            l.bd = 1;
-            await this.catalogosRepo.lugaresProduccionRepo.save(l);
-          }
-          this.lugaresProduccion.set(lResp.data ?? []);
-        }
-      } else {
-        const lugaresDexie = await this.catalogosRepo.lugaresProduccionRepo.getAll();
-        this.lugaresProduccion.set(lugaresDexie ?? []);
-      }
-
-      this._filtrarVariedadesPorEnsayo();
     } catch (error) {
-      console.error('Error cargando variedades/lugares:', error);
-      const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
-      const variedadesDexie = await this.catalogosRepo.variedadesRepo.getAll();
-      const filtradasCultivo = (variedadesDexie ?? []).filter((v: Variedad) => String(v?.idcultivo ?? '') === codigoCultivo);
-      this.variedades.set(filtradasCultivo);
-      const lugaresDexie = await this.catalogosRepo.lugaresProduccionRepo.getAll();
-      this.lugaresProduccion.set(lugaresDexie ?? []);
-      this._filtrarVariedadesPorEnsayo();
+      console.error('Error cargando variedades:', error);
     }
+
+    try {
+      const lResp: any = await firstValueFrom(this.catalogoService.listarLugaresProduccion(idProyecto));
+      if (!lResp?.error) {
+        const lugares = lResp?.data ?? [];
+        this.lugaresProduccion.set(lugares);
+      }
+    } catch (error) {
+      console.error('Error cargando lugares de producción:', error);
+    }
+
+    this._filtrarVariedadesPorEnsayo();
   }
 
   private _filtrarVariedadesPorEnsayo(): void {
@@ -996,28 +975,13 @@ export class PaletsComponent implements OnInit {
 
   private async cargarTransportes(): Promise<void> {
     try {
-      if (this.online) {
-        const resp: any = await firstValueFrom(this.catalogoService.listarTransporte());
-        const data = Array.isArray(resp) ? resp : (resp?.data ?? []);
-        if (data.length > 0) {
-          const dexiedb = await this.catalogosRepo.transportesRepo.getAll();
-          if (dexiedb.length > 0) {
-            await this.catalogosRepo.transportesRepo.clear();
-          }
-          for (const t of data) {
-            t.bd = 1;
-            await this.catalogosRepo.transportesRepo.save(t);
-          }
-          this.transportes.set(data);
-        }
-      } else {
-        const transportesDexie = await this.catalogosRepo.transportesRepo.getAll();
-        this.transportes.set(transportesDexie ?? []);
+      const resp: any = await firstValueFrom(this.catalogoService.listarTransporte());
+      const data = Array.isArray(resp) ? resp : (resp?.data ?? []);
+      if (data.length > 0) {
+        this.transportes.set(data);
       }
     } catch (error) {
       console.error('Error cargando transportes:', error);
-      const transportesDexie = await this.catalogosRepo.transportesRepo.getAll();
-      this.transportes.set(transportesDexie ?? []);
     }
   }
 
@@ -1037,13 +1001,13 @@ export class PaletsComponent implements OnInit {
     this.filteredCodigosRancho.set([]);
     this.filteredVariedades.set([]);
     this.transportes.set([]);
-    this._matrizResults = [];
+    this._catalogosCascada.clear();
     this.formCajas.set({
       consignatarioId: 0,
       destinoId: 0,
       formatoId: 0,
       tipoEmpaqueId: 0,
-      calibreId: 0,
+      calibreId: '',
       categoriaId: 0,
       tipoEmpaqueGuiaId: 0,
       tipoCajaId: 0,
@@ -1072,6 +1036,10 @@ export class PaletsComponent implements OnInit {
     }
     if (!f.tipoEmpaqueGuiaId || !f.tipoCajaId || !f.tipoClamshellId) {
       this.alertService.showAlert('Validación', 'Complete la selección de empaque (Tipo Empaque Guía, Tipo Caja, Tipo Clamshell)', 'warning');
+      return;
+    }
+    if (!this.calibreValido(f.calibreId)) {
+      this.alertService.showAlert('Validación', 'No se pudo determinar el calibre. Vuelva a seleccionar el Tipo Clamshell.', 'warning');
       return;
     }
     if (!f.lugarProduccionId || !f.codigoRanchoId) {
@@ -1139,7 +1107,7 @@ export class PaletsComponent implements OnInit {
       formatoId: f.formatoId,
       formatoNombre: formato?.descripcion ?? undefined,
       tiposEmpaqueId: f.tipoEmpaqueId || 1,
-      calibreId: f.calibreId?.toString() ?? undefined,
+      calibreId: String(f.calibreId ?? '').trim(),
       presentacionId: f.presentacionId ?? null,
       presentacionNombre: presentacion?.nombre ?? undefined,
       variedadId: String(f.variedadId ?? ''),
@@ -1163,7 +1131,6 @@ export class PaletsComponent implements OnInit {
       variedadGuiaId: f.esEnsayo && f.variedadGuiaId ? String(f.variedadGuiaId) : null,
       esEnsayo: f.esEnsayo ?? false,
       eliminado: false,
-      bd:0,
       fechaCreacion: new Date().toISOString()
     };
 
@@ -1444,6 +1411,42 @@ export class PaletsComponent implements OnInit {
     this.formCajas.update(f => ({ ...f, [field]: value }));
   }
 
+  /** Catálogos del modal pedidos a la API una sola vez por apertura (en memoria; no se guardan en el equipo). */
+  private readonly _catalogosCascada = new Map<string, any[]>();
+
+  private async catalogoCascada(clave: string, pedir: () => Promise<any>): Promise<any[]> {
+    const guardado = this._catalogosCascada.get(clave);
+    if (guardado) return guardado;
+    const resp: any = await pedir();
+    if (!Array.isArray(resp) && resp?.error) throw new Error(resp?.mensaje || 'Error al consultar el catálogo');
+    const lista = Array.isArray(resp) ? resp : (Array.isArray(resp?.data) ? resp.data : []);
+    this._catalogosCascada.set(clave, lista);
+    return lista;
+  }
+
+  /** Filas que devuelve el SP de la matriz ({ error, data, mensaje }). Si el servidor respondió con error, lanza para avisar del fallo. */
+  private filasDe(resp: any): any[] {
+    const sobre = Array.isArray(resp) ? resp[0] : resp;
+    if (sobre?.error) throw new Error(sobre?.mensaje || 'Error al consultar la matriz de compatibilidad');
+    return Array.isArray(sobre?.data) ? sobre.data : [];
+  }
+
+  private idsDe(filas: any[]): string[] {
+    return filas.map((x: any) => String(x?.id ?? x?.Id ?? '')).filter((id: string) => id);
+  }
+
+  /** El calibre es texto con ceros a la izquierda ('0002'); vacío o '0' significa que no se pudo determinar. */
+  private calibreValido(calibre: unknown): boolean {
+    const t = String(calibre ?? '').trim();
+    return t !== '' && t !== '0';
+  }
+
+  private falloCascada(err: unknown, contexto: string): void {
+    console.error(contexto, err);
+    this.alertService.cerrarModalCarga();
+    this.alertService.showAlert('Error', 'No se pudo cargar la información. Revise su conexión e intente nuevamente.', 'error');
+  }
+
   async onConsignatarioChange(value: string): Promise<void> {
     const consignatarioDocumento = value;
     this.updateFormCajas('consignatarioId', consignatarioDocumento);
@@ -1460,7 +1463,7 @@ export class PaletsComponent implements OnInit {
     this.updateFormCajas('presentacionId', 0);
     this.updateFormCajas('tipoCajaId', 0);
     this.updateFormCajas('tipoClamshellId', 0);
-    this.updateFormCajas('calibreId', 0);
+    this.updateFormCajas('calibreId', '');
     this.updateFormCajas('categoriaId', 0);
     this.updateFormCajas('tipoEmpaqueId', 0);
     this.updateFormCajas('codigoRanchoId', 0);
@@ -1489,56 +1492,24 @@ export class PaletsComponent implements OnInit {
     this.alertService.mostrarModalCarga();
 
     try {
-      let destinosIds: string[] = [];
+      const idproyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
+      const resp: any = await firstValueFrom(this.paletService.getDestinosPorMatrizCompatibilidad(idproyecto, documentoConsignatario));
+      const filas = this.filasDe(resp);
 
-      if (this.online) {
-        const idproyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
-        const resp: any = await firstValueFrom(this.paletService.getDestinosPorMatrizCompatibilidad(idproyecto, consignatarioDocumento.toString()));
-        const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
-
-        if (items[0].data.length === 0) {
-          this.alertService.cerrarModalCarga();
-          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este consignatario.', 'warning');
-          return;
-        }
-
-        destinosIds = items[0].data.map((x: any) => String(x?.destinoId ?? x?.destinoId ?? '')).filter((id: string) => id);
-
-        const paisesResp: any = await firstValueFrom(this.catalogoService.listarPaises());
-        if (paisesResp.length > 0) {
-          const dexiedb = await this.catalogosRepo.destinosRepo.getAll();
-          if (dexiedb.length > 0) {
-            await this.catalogosRepo.destinosRepo.clear();
-          }
-          for (const p of (paisesResp ?? [])) {
-            await this.catalogosRepo.destinosRepo.save(p);
-          }
-        }
-      } else {
-        const matrices = await this.administracionRepo.matricesCompatibilidadRepository.getAll();
-        const matricesFiltradas = (matrices ?? []).filter((m: any) =>
-          String(m?.documentoConsignatario ?? '').trim() === consignatarioDocumento.toString()
-        );
-        destinosIds = [...new Set(matricesFiltradas.map((m: any) => String(m?.destinoId ?? '')).filter((id: string) => id))];
-
-        if (destinosIds.length === 0) {
-          this.alertService.cerrarModalCarga();
-          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este consignatario.', 'warning');
-          return;
-        }
+      if (filas.length === 0) {
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este consignatario.', 'warning');
+        return;
       }
-      const todosDestinos = await this.catalogosRepo.destinosRepo.getAll();
-      const destinosFiltrados = (todosDestinos ?? []).filter((d: any) => destinosIds.includes(String(d?.id ?? '')));
-      this.filteredDestinos.set(destinosFiltrados);
-      this.alertService.cerrarModalCarga();
 
+      const destinosIds = [...new Set(filas.map((x: any) => String(x?.destinoId ?? '')).filter((id: string) => id))];
+      const paises = await this.catalogoCascada('destinos', () => firstValueFrom(this.catalogoService.listarPaises()));
+      this.filteredDestinos.set(paises.filter((d: any) => destinosIds.includes(String(d?.id ?? ''))));
+      this.alertService.cerrarModalCarga();
     } catch (err) {
-      console.error('Error cargando destinos por matriz compatibilidad:', err);
       this.filteredDestinos.set([]);
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este consignatario.', 'warning');
+      this.falloCascada(err, 'Error cargando destinos por matriz compatibilidad:');
     }
-
   }
 
   async onDestinoChange(value: string): Promise<void> {
@@ -1554,7 +1525,7 @@ export class PaletsComponent implements OnInit {
     this.updateFormCajas('presentacionId', 0);
     this.updateFormCajas('tipoCajaId', 0);
     this.updateFormCajas('tipoClamshellId', 0);
-    this.updateFormCajas('calibreId', 0);
+    this.updateFormCajas('calibreId', '');
     this.updateFormCajas('tipoEmpaqueId', 0);
 
     if (!destinoId) return;
@@ -1571,56 +1542,23 @@ export class PaletsComponent implements OnInit {
     this.alertService.mostrarModalCarga();
 
     try {
-      let formatosIds: string[] = [];
-      if (this.online) {
-        const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
-        const resp: any = await firstValueFrom(this.paletService.getFormatosPorMatriz(codigoCultivo, consignatarioDocumento.toString(), String(destinoId)));
-        const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
+      const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
+      const resp: any = await firstValueFrom(this.paletService.getFormatosPorMatriz(codigoCultivo, documentoConsignatario, String(destinoId)));
+      const filas = this.filasDe(resp);
 
-        if (items[0].data.length === 0) {
-          this.alertService.cerrarModalCarga();
-          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este destino.', 'warning');
-          return;
-        }
-
-        formatosIds = items[0].data.map((x: any) => String(x?.id ?? x?.Id ?? '')).filter((id: string) => id);
-
-        const formatosResp: any = await firstValueFrom(this.catalogoService.listarFormatos(codigoCultivo));
-        if (!formatosResp.error) {
-          const dexiedb = await this.catalogosRepo.formatosRepo.getAll();
-          if (dexiedb.length > 0) {
-            await this.catalogosRepo.formatosRepo.clear();
-          }
-          for (const f of (formatosResp.data ?? [])) {
-            f.bd = 1;
-            await this.catalogosRepo.formatosRepo.save(f);
-          }
-        }
-      } else {
-        const matrices = await this.administracionRepo.matricesCompatibilidadRepository.getAll();
-        const matricesFiltradas = (matrices ?? []).filter((m: any) =>
-          String(m?.documentoConsignatario ?? '').trim() === consignatarioDocumento.toString() &&
-          String(m?.destinoId ?? '').trim() === String(destinoId)
-        );
-        formatosIds = [...new Set(matricesFiltradas.map((m: any) => String(m?.formatoId ?? '')).filter((id: string) => id))];
-
-        if (formatosIds.length === 0) {
-          this.alertService.cerrarModalCarga();
-          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este destino.', 'warning');
-          return;
-        }
+      if (filas.length === 0) {
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este destino.', 'warning');
+        return;
       }
 
-      const todosFormatos = await this.catalogosRepo.formatosRepo.getAll();
-      const formatosFiltrados = (todosFormatos ?? []).filter((f: any) => formatosIds.includes(String(f?.id ?? '')));
-      this.filteredFormatos.set(formatosFiltrados);
+      const formatosIds = this.idsDe(filas);
+      const formatos = await this.catalogoCascada('formatos', () => firstValueFrom(this.catalogoService.listarFormatos(codigoCultivo)));
+      this.filteredFormatos.set(formatos.filter((x: any) => formatosIds.includes(String(x?.id ?? ''))));
       this.alertService.cerrarModalCarga();
-
     } catch (err) {
-      console.error('Error cargando formatos por matriz compatibilidad:', err);
       this.filteredFormatos.set([]);
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este destino.', 'warning');
+      this.falloCascada(err, 'Error cargando formatos por matriz compatibilidad:');
     }
   }
 
@@ -1635,7 +1573,7 @@ export class PaletsComponent implements OnInit {
     this.updateFormCajas('presentacionId', 0);
     this.updateFormCajas('tipoCajaId', 0);
     this.updateFormCajas('tipoClamshellId', 0);
-    this.updateFormCajas('calibreId', 0);
+    this.updateFormCajas('calibreId', '');
     this.updateFormCajas('tipoEmpaqueId', 0);
 
     if (!formatoId) return;
@@ -1652,61 +1590,25 @@ export class PaletsComponent implements OnInit {
     this.alertService.mostrarModalCarga();
 
     try {
-      let tiposEmpaqueGuiaIds: string[] = [];
+      const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
+      const resp: any = await firstValueFrom(this.paletService.getTiposEmpaqueGuiaPorMatriz(codigoCultivo, f.consignatarioId.toString(), String(f.destinoId), formatoId));
+      const filas = this.filasDe(resp);
 
-      if (this.online) {
-        const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
-        const resp: any = await firstValueFrom(this.paletService.getTiposEmpaqueGuiaPorMatriz(codigoCultivo, f.consignatarioId.toString(), String(f.destinoId), formatoId));
-        const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
-
-        if (items[0].data.length === 0) {
-          this.alertService.cerrarModalCarga();
-          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este formato.', 'warning');
-          return;
-        }
-
-        tiposEmpaqueGuiaIds = items[0].data.map((x: any) => String(x?.id ?? x?.Id ?? '')).filter((id: string) => id);
-
-        const tegResp: any = await firstValueFrom(this.catalogoService.listarTiposEmpaqueGuia(codigoCultivo));
-        if (!tegResp.error) {
-          const dexiedb = await this.catalogosRepo.tiposEmpaqueGuiaRepo.getAll();
-          if (dexiedb.length > 0) {
-            await this.catalogosRepo.tiposEmpaqueGuiaRepo.clear();
-          }
-          for (const t of (tegResp.data ?? [])) {
-            t.bd = 1;
-            await this.catalogosRepo.tiposEmpaqueGuiaRepo.save(t);
-          }
-        }
-      } else {
-        const matrices = await this.administracionRepo.matricesCompatibilidadRepository.getAll();
-        const matricesFiltradas = (matrices ?? []).filter((m: any) =>
-          String(m?.documentoConsignatario ?? '').trim() === f.consignatarioId.toString() &&
-          String(m?.destinoId ?? '').trim() === String(f.destinoId) &&
-          String(m?.formatoId ?? '') === String(formatoId)
-        );
-        tiposEmpaqueGuiaIds = [...new Set(matricesFiltradas.map((m: any) => String(m?.tipoEmpaqueGuiaId ?? '')).filter((id: string) => id))];
-
-        if (tiposEmpaqueGuiaIds.length === 0) {
-          this.alertService.cerrarModalCarga();
-          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este formato.', 'warning');
-          return;
-        }
+      if (filas.length === 0) {
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este formato.', 'warning');
+        return;
       }
 
-      const todosTeg = await this.catalogosRepo.tiposEmpaqueGuiaRepo.getAll();
-      const tegFiltrados = (todosTeg ?? []).filter((t: any) => tiposEmpaqueGuiaIds.includes(String(t?.id ?? '')));
-      this.filteredTiposEmpaqueGuia.set(tegFiltrados);
+      const tiposEmpaqueGuiaIds = this.idsDe(filas);
+      const tipos = await this.catalogoCascada('tiposEmpaqueGuia', () => firstValueFrom(this.catalogoService.listarTiposEmpaqueGuia(codigoCultivo)));
+      this.filteredTiposEmpaqueGuia.set(tipos.filter((t: any) => tiposEmpaqueGuiaIds.includes(String(t?.id ?? ''))));
       this.alertService.cerrarModalCarga();
-
     } catch (err) {
-      console.error('Error cargando tipos empaque guía por matriz compatibilidad:', err);
       this.filteredTiposEmpaqueGuia.set([]);
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este formato.', 'warning');
+      this.falloCascada(err, 'Error cargando tipos de empaque guía por matriz compatibilidad:');
     }
   }
-
 
   async onTipoEmpaqueGuiaChange(value: string): Promise<void> {
     const tipoEmpaqueGuiaId = parseInt(value) || 0;
@@ -1717,7 +1619,7 @@ export class PaletsComponent implements OnInit {
     this.updateFormCajas('presentacionId', 0);
     this.updateFormCajas('tipoCajaId', 0);
     this.updateFormCajas('tipoClamshellId', 0);
-    this.updateFormCajas('calibreId', 0);
+    this.updateFormCajas('calibreId', '');
     this.updateFormCajas('tipoEmpaqueId', 0);
 
     if (!tipoEmpaqueGuiaId) return;
@@ -1734,73 +1636,24 @@ export class PaletsComponent implements OnInit {
     this.alertService.mostrarModalCarga();
 
     try {
-      let presentacionesIds: string[] = [];
-      let tiposCajaIds: string[] = [];
+      const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
+      const presResp: any = await firstValueFrom(this.paletService.getPresentacionesPorMatriz(codigoCultivo, f.consignatarioId.toString(), String(f.destinoId), f.formatoId, tipoEmpaqueGuiaId));
+      const presentacionesIds = this.idsDe(this.filasDe(presResp));
 
-      if (this.online) {
-        const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
-        const resp: any = await firstValueFrom(this.paletService.getPresentacionesPorMatriz(codigoCultivo, f.consignatarioId.toString(), String(f.destinoId), f.formatoId, tipoEmpaqueGuiaId));
-        const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
+      const tcResp: any = await firstValueFrom(this.paletService.getTiposCajaPorMatriz(codigoCultivo, f.consignatarioId.toString(), String(f.destinoId), f.formatoId, tipoEmpaqueGuiaId));
+      const tcFilas = this.filasDe(tcResp);
 
-        if (items[0]?.data?.length > 0) {
-          presentacionesIds = items[0].data.map((x: any) => String(x?.id ?? x?.Id ?? '')).filter((id: string) => id);
-        }
-
-        const presResp: any = await firstValueFrom(this.catalogoService.listarPresentaciones(codigoCultivo));
-        if (!presResp.error) {
-          const dexiedb = await this.catalogosRepo.presentacionesRepo.getAll();
-          if (dexiedb.length > 0) {
-            await this.catalogosRepo.presentacionesRepo.clear();
-          }
-          for (const p of (presResp.data ?? [])) {
-            p.bd = 1;
-            await this.catalogosRepo.presentacionesRepo.save(p);
-          }
-        }
-
-        const tcResp: any = await firstValueFrom(this.paletService.getTiposCajaPorMatriz(codigoCultivo, f.consignatarioId.toString(), String(f.destinoId), f.formatoId, tipoEmpaqueGuiaId));
-        const tcItems = Array.isArray(tcResp) ? tcResp : (tcResp?.data ?? []);
-
-        if (tcItems[0].data.length === 0) {
-          this.alertService.cerrarModalCarga();
-          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este tipo de empaque guía.', 'warning');
-          return;
-        }
-
-        tiposCajaIds = tcItems[0].data.map((x: any) => String(x?.id ?? x?.Id ?? '')).filter((id: string) => id);
-
-        const tcDexieResp: any = await firstValueFrom(this.catalogoService.listarTiposCaja(codigoCultivo));
-        if (!tcDexieResp.error) {
-          const dexiedb = await this.catalogosRepo.tiposCajaRepo.getAll();
-          if (dexiedb.length > 0) {
-            await this.catalogosRepo.tiposCajaRepo.clear();
-          }
-          for (const t of (tcDexieResp.data ?? [])) {
-            t.bd = 1;
-            await this.catalogosRepo.tiposCajaRepo.save(t);
-          }
-        }
-      } else {
-        const matrices = await this.administracionRepo.matricesCompatibilidadRepository.getAll();
-        const matricesFiltradas = (matrices ?? []).filter((m: any) =>
-          String(m?.documentoConsignatario ?? '').trim() === f.consignatarioId.toString() &&
-          String(m?.destinoId ?? '').trim() === String(f.destinoId) &&
-          String(m?.formatoId ?? '') === String(f.formatoId) &&
-          String(m?.tipoEmpaqueGuiaId ?? '') === String(tipoEmpaqueGuiaId)
-        );
-        presentacionesIds = [...new Set(matricesFiltradas.map((m: any) => String(m?.presentacionId ?? '')).filter((id: string) => id))];
-
-        tiposCajaIds = [...new Set(matricesFiltradas.map((m: any) => String(m?.tipoCajaId ?? '')).filter((id: string) => id))];
-
-        if (tiposCajaIds.length === 0) {
-          this.alertService.cerrarModalCarga();
-          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este tipo de empaque guía.', 'warning');
-          return;
-        }
+      if (tcFilas.length === 0) {
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este tipo de empaque guía.', 'warning');
+        return;
       }
 
-      const todosPres = await this.catalogosRepo.presentacionesRepo.getAll();
-      const presFiltrados = (todosPres ?? []).filter((p: any) => presentacionesIds.includes(String(p?.id ?? '')));
+      const tiposCajaIds = this.idsDe(tcFilas);
+      const todasPres = await this.catalogoCascada('presentaciones', () => firstValueFrom(this.catalogoService.listarPresentaciones(codigoCultivo)));
+      const todosTc = await this.catalogoCascada('tiposCaja', () => firstValueFrom(this.catalogoService.listarTiposCaja(codigoCultivo)));
+
+      const presFiltrados = todasPres.filter((p: any) => presentacionesIds.includes(String(p?.id ?? '')));
       this.filteredPresentaciones.set(presFiltrados);
 
       let presentacionAutoSeleccionada: number | null = null;
@@ -1812,26 +1665,16 @@ export class PaletsComponent implements OnInit {
       }
 
       if (presentacionAutoSeleccionada != null && presentacionAutoSeleccionada > 0) {
-        if (this.online) {
-          await this.cargarTiposCajaPorMatriz(presentacionAutoSeleccionada);
-        } else {
-          await this.filtrarTiposCajaDesdeDexie(presentacionAutoSeleccionada);
-        }
+        await this.cargarTiposCajaPorMatriz(presentacionAutoSeleccionada);
       } else {
-        const todosTc = await this.catalogosRepo.tiposCajaRepo.getAll();
-        const tcFiltrados = (todosTc ?? []).filter((t: any) => tiposCajaIds.includes(String(t?.id ?? '')));
-        this.filteredTiposCaja.set(tcFiltrados);
+        this.filteredTiposCaja.set(todosTc.filter((t: any) => tiposCajaIds.includes(String(t?.id ?? ''))));
       }
 
-      await this.cargarMatrizResults();
       this.alertService.cerrarModalCarga();
-
     } catch (err) {
-      console.error('Error cargando presentaciones/tiposCaja por matriz compatibilidad:', err);
       this.filteredPresentaciones.set([]);
       this.filteredTiposCaja.set([]);
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este tipo de empaque guía.', 'warning');
+      this.falloCascada(err, 'Error cargando presentaciones/tiposCaja por matriz compatibilidad:');
     }
   }
 
@@ -1841,16 +1684,12 @@ export class PaletsComponent implements OnInit {
     this.filteredTiposClamshell.set([]);
     this.updateFormCajas('tipoCajaId', 0);
     this.updateFormCajas('tipoClamshellId', 0);
-    this.updateFormCajas('calibreId', 0);
+    this.updateFormCajas('calibreId', '');
     this.updateFormCajas('tipoEmpaqueId', 0);
 
     this.alertService.mostrarModalCarga();
     try {
-      if (this.online) {
-        await this.cargarTiposCajaPorMatriz(presentacionId);
-      } else {
-        await this.filtrarTiposCajaDesdeDexie(presentacionId);
-      }
+      await this.cargarTiposCajaPorMatriz(presentacionId);
     } finally {
       this.alertService.cerrarModalCarga();
     }
@@ -1871,52 +1710,13 @@ export class PaletsComponent implements OnInit {
           presentacionId ?? undefined
         )
       );
-      const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
-      const tiposCajaIds = (items[0]?.data ?? []).map((x: any) => String(x?.id ?? x?.Id ?? '')).filter((id: string) => id);
-
-      const todosTc = await this.catalogosRepo.tiposCajaRepo.getAll();
-      const tcFiltrados = (todosTc ?? []).filter((t: any) => tiposCajaIds.includes(String(t?.id ?? '')));
-      this.filteredTiposCaja.set(tcFiltrados);
+      const tiposCajaIds = this.idsDe(this.filasDe(resp));
+      const todosTc = await this.catalogoCascada('tiposCaja', () => firstValueFrom(this.catalogoService.listarTiposCaja(codigoCultivo)));
+      this.filteredTiposCaja.set(todosTc.filter((t: any) => tiposCajaIds.includes(String(t?.id ?? ''))));
     } catch (err) {
       console.error('Error cargando tipos de caja por matriz:', err);
       this.filteredTiposCaja.set([]);
     }
-  }
-
-  private async filtrarTiposCajaDesdeDexie(presentacionId: number | null): Promise<void> {
-    const f = this.formCajas();
-    const matrices = await this.administracionRepo.matricesCompatibilidadRepository.getAll();
-    const matricesFiltradas = (matrices ?? []).filter((m: any) =>
-      String(m?.documentoConsignatario ?? '').trim() === f.consignatarioId.toString() &&
-      String(m?.destinoId ?? '').trim() === String(f.destinoId) &&
-      String(m?.formatoId ?? '') === String(f.formatoId) &&
-      String(m?.tipoEmpaqueGuiaId ?? '') === String(f.tipoEmpaqueGuiaId) &&
-      (presentacionId == null || String(m?.presentacionId ?? '') === String(presentacionId))
-    );
-    const tiposCajaIds = [...new Set(matricesFiltradas.map((m: any) => String(m?.tipoCajaId ?? '')).filter((id: string) => id))];
-
-    const todosTc = await this.catalogosRepo.tiposCajaRepo.getAll();
-    const tcFiltrados = (todosTc ?? []).filter((t: any) => tiposCajaIds.includes(String(t?.id ?? '')));
-    this.filteredTiposCaja.set(tcFiltrados);
-  }
-
-  private _matrizResults: any[] = [];
-
-  private async cargarMatrizResults(): Promise<void> {
-    const f = this.formCajas();
-    const matrices = await this.administracionRepo.matricesCompatibilidadRepository.getAll();
-    const matricesFiltradas = (matrices ?? []).filter((m: any) =>
-      String(m?.documentoConsignatario ?? '').trim() === f.consignatarioId.toString() &&
-      String(m?.destinoId ?? '').trim() === String(f.destinoId) &&
-      String(m?.formatoId ?? '') === String(f.formatoId) &&
-      String(m?.tipoEmpaqueGuiaId ?? '') === String(f.tipoEmpaqueGuiaId)
-    );
-    this._matrizResults = matricesFiltradas.map((m: any) => ({
-      TipoCajaId: m.tipoCajaId,
-      TipoClamshellId: m.tipoClamshellId,
-      CalibreId: m.calibreId,
-      TipoEmpaqueId: m.tiposEmpaqueId ?? m.tipoEmpaqueId
-    }));
   }
 
   async onTipoCajaChange(value: string): Promise<void> {
@@ -1924,7 +1724,7 @@ export class PaletsComponent implements OnInit {
     this.updateFormCajas('tipoCajaId', tipoCajaId);
     this.filteredTiposClamshell.set([]);
     this.updateFormCajas('tipoClamshellId', 0);
-    this.updateFormCajas('calibreId', 0);
+    this.updateFormCajas('calibreId', '');
     this.updateFormCajas('tipoEmpaqueId', 0);
 
     if (!tipoCajaId) return;
@@ -1941,81 +1741,71 @@ export class PaletsComponent implements OnInit {
     this.alertService.mostrarModalCarga();
 
     try {
-      let tiposClamshellIds: string[] = [];
-
+      const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
       const presentacionId = f.presentacionId > 0 ? f.presentacionId : undefined;
+      const resp: any = await firstValueFrom(this.paletService.getTiposClamshellPorMatriz(codigoCultivo, f.consignatarioId.toString(), String(f.destinoId), f.formatoId, f.tipoEmpaqueGuiaId || 0, f.tipoCajaId, presentacionId));
+      const filas = this.filasDe(resp);
 
-      if (this.online) {
-        const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
-        const resp: any = await firstValueFrom(this.paletService.getTiposClamshellPorMatriz(codigoCultivo, f.consignatarioId.toString(), String(f.destinoId), f.formatoId, f.tipoEmpaqueGuiaId || 0, f.tipoCajaId, presentacionId));
-        const items = Array.isArray(resp) ? resp : (resp?.data ?? []);
-
-        if (items[0].data.length === 0) {
-          this.alertService.cerrarModalCarga();
-          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este tipo de caja.', 'warning');
-          return;
-        }
-
-        tiposClamshellIds = items[0].data.map((x: any) => String(x?.id ?? x?.Id ?? '')).filter((id: string) => id);
-
-        const tcResp: any = await firstValueFrom(this.catalogoService.listarTiposClamshell(codigoCultivo));
-        if (!tcResp.error) {
-          const dexiedb = await this.catalogosRepo.tiposClamshellRepo.getAll();
-          if (dexiedb.length > 0) {
-            await this.catalogosRepo.tiposClamshellRepo.clear();
-          }
-          for (const t of (tcResp.data ?? [])) {
-            t.bd = 1;
-            await this.catalogosRepo.tiposClamshellRepo.save(t);
-          }
-        }
-      } else {
-        const matrices = await this.administracionRepo.matricesCompatibilidadRepository.getAll();
-        const matricesFiltradas = (matrices ?? []).filter((m: any) =>
-          String(m?.documentoConsignatario ?? '').trim() === f.consignatarioId.toString() &&
-          String(m?.destinoId ?? '').trim() === String(f.destinoId) &&
-          String(m?.formatoId ?? '') === String(f.formatoId) &&
-          String(m?.tipoEmpaqueGuiaId ?? '') === String(f.tipoEmpaqueGuiaId) &&
-          String(m?.tipoCajaId ?? '') === String(f.tipoCajaId) &&
-          (presentacionId == null || String(m?.presentacionId ?? '') === String(presentacionId))
-        );
-        tiposClamshellIds = [...new Set(matricesFiltradas.map((m: any) => String(m?.tipoClamshellId ?? '')).filter((id: string) => id))];
-
-        if (tiposClamshellIds.length === 0) {
-          this.alertService.cerrarModalCarga();
-          this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este tipo de caja.', 'warning');
-          return;
-        }
+      if (filas.length === 0) {
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este tipo de caja.', 'warning');
+        return;
       }
 
-      const todosTc = await this.catalogosRepo.tiposClamshellRepo.getAll();
-      const tcFiltrados = (todosTc ?? []).filter((t: any) => tiposClamshellIds.includes(String(t?.id ?? '')));
-      this.filteredTiposClamshell.set(tcFiltrados);
+      const tiposClamshellIds = this.idsDe(filas);
+      const todosTc = await this.catalogoCascada('tiposClamshell', () => firstValueFrom(this.catalogoService.listarTiposClamshell(codigoCultivo)));
+      this.filteredTiposClamshell.set(todosTc.filter((t: any) => tiposClamshellIds.includes(String(t?.id ?? ''))));
       this.alertService.cerrarModalCarga();
-
     } catch (err) {
-      console.error('Error cargando tipos clamshell por matriz compatibilidad:', err);
       this.filteredTiposClamshell.set([]);
-      this.alertService.cerrarModalCarga();
-      this.alertService.showAlert('Información', 'No existe matriz de compatibilidad para este tipo de caja.', 'warning');
+      this.falloCascada(err, 'Error cargando tipos clamshell por matriz compatibilidad:');
     }
   }
 
-  onTipoClamshellChange(value: string): void {
+  /** Al elegir el clamshell la matriz define el calibre (texto) y el tipo de empaque; se piden al servidor para la combinación completa. */
+  async onTipoClamshellChange(value: string): Promise<void> {
     const tipoClamshellId = parseInt(value) || 0;
     this.updateFormCajas('tipoClamshellId', tipoClamshellId);
+    // Nunca se arrastra el calibre de una selección anterior.
+    this.updateFormCajas('calibreId', '');
+    this.updateFormCajas('tipoEmpaqueId', 0);
 
     if (!tipoClamshellId) {
-      this.updateFormCajas('calibreId', 0);
       this.updateFormCajas('categoriaId', 0);
-      this.updateFormCajas('tipoEmpaqueId', 0);
       return;
     }
-    const tipoCajaId = this.formCajas().tipoCajaId;
-    const match = this._matrizResults.find((i: any) => i.TipoCajaId === tipoCajaId && i.TipoClamshellId === tipoClamshellId);
-    if (match) {
-      this.updateFormCajas('calibreId', match.CalibreId || 0);
-      this.updateFormCajas('tipoEmpaqueId', match.TipoEmpaqueId || 0);
+
+    const f = this.formCajas();
+    const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
+    this.alertService.mostrarModalCarga();
+    try {
+      const resp: any = await firstValueFrom(
+        this.paletService.getCalibreEmpaquePorMatriz({
+          codigoCultivo,
+          documentoConsignatario: String(f.consignatarioId ?? '').trim(),
+          destinoId: String(f.destinoId ?? ''),
+          formatoId: f.formatoId,
+          tipoEmpaqueGuiaId: f.tipoEmpaqueGuiaId,
+          tipoCajaId: f.tipoCajaId,
+          tipoClamshellId,
+          ...(f.presentacionId > 0 ? { presentacionId: f.presentacionId } : {}),
+        }),
+      );
+      const filas = this.filasDe(resp);
+      const calibre = String(filas[0]?.calibreId ?? filas[0]?.CalibreId ?? '').trim();
+      if (!this.calibreValido(calibre)) {
+        this.alertService.cerrarModalCarga();
+        this.alertService.showAlert('Información', 'No se encontró el calibre en la matriz de compatibilidad para esta combinación.', 'warning');
+        return;
+      }
+      if (filas.some((x: any) => String(x?.calibreId ?? x?.CalibreId ?? '').trim() !== calibre)) {
+        console.warn('La matriz devuelve más de un calibre para la combinación; se usa el primero:', filas);
+      }
+      this.updateFormCajas('calibreId', calibre);
+      this.updateFormCajas('tipoEmpaqueId', Number(filas[0]?.tiposEmpaqueId ?? filas[0]?.TiposEmpaqueId ?? 0) || 0);
+      this.alertService.cerrarModalCarga();
+    } catch (err) {
+      this.falloCascada(err, 'Error obteniendo calibre/tipo de empaque por matriz:');
     }
   }
 
@@ -2050,34 +1840,26 @@ export class PaletsComponent implements OnInit {
 
   async loadCodigosRancho(): Promise<void> {
     this.filteredCodigosRancho.set([]);
-    // this.updateFormCajas('codigoRanchoId', 0);
 
     try {
-      let codigosRancho: any[] = [];
-
-      if (this.online) {
-        const idproyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
-        const resp: any = await firstValueFrom(this.catalogoService.listarCodigosRanchoCatalogo(idproyecto));
-        let data: any[] = [];
-        if (Array.isArray(resp)) {
-          data = resp;
-        } else if (resp?.data !== undefined) {
-          data = resp.data ?? [];
-        } else {
-          data = resp ?? [];
-        }
-        codigosRancho = data
-          .map((c: any) => ({
-            id: c?.id ?? c?.Id ?? 0,
-            codigo: c?.codigo ?? c?.Codigo ?? '',
-            activo: c?.activo ?? c?.Activo ?? true,
-            fechaCreacion: c?.fechaCreacion ?? c?.FechaCreacion ?? '',
-          }))
-          .filter((c: any) => c.activo === true);
+      const idproyecto = String(this.savedConfig()?.idProyecto ?? '').trim();
+      const resp: any = await firstValueFrom(this.catalogoService.listarCodigosRanchoCatalogo(idproyecto));
+      let data: any[] = [];
+      if (Array.isArray(resp)) {
+        data = resp;
+      } else if (resp?.data !== undefined) {
+        data = resp.data ?? [];
       } else {
-        const todosCodigos = await this.catalogosRepo.codigosRanchoRepo.getAll();
-        codigosRancho = (todosCodigos ?? []).filter((c: any) => c.activo === true);
+        data = resp ?? [];
       }
+      const codigosRancho = data
+        .map((c: any) => ({
+          id: c?.id ?? c?.Id ?? 0,
+          codigo: c?.codigo ?? c?.Codigo ?? '',
+          activo: c?.activo ?? c?.Activo ?? true,
+          fechaCreacion: c?.fechaCreacion ?? c?.FechaCreacion ?? '',
+        }))
+        .filter((c: any) => c.activo === true);
 
       this.filteredCodigosRancho.set(codigosRancho);
     } catch (err) {

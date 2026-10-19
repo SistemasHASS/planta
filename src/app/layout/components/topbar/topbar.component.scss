@@ -141,23 +141,50 @@
     min-height: auto;
     align-items: stretch;
     flex-direction: column;
-    padding: 12px 14px;
+    gap: 8px;
+    padding: calc(env(safe-area-inset-top) + 10px) calc(env(safe-area-inset-right) + 14px) 10px calc(env(safe-area-inset-left) + 14px);
   }
 
-  .topbar-left,
-  .topbar-right {
+  .topbar-left {
     width: 100%;
   }
 
+  .topbar-toggle {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  /* Los datos (campaña, empresa, acopio, conexión) se desplazan de lado, empezando por la izquierda: nada queda cortado. */
   .topbar-right {
+    width: auto;
+    margin-inline: -14px;
+    padding: 0 14px 2px;
     gap: 8px;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .topbar-right::-webkit-scrollbar {
+    display: none;
   }
 
   .topbar-chip {
-    flex: 1 1 0;
+    flex: 0 0 auto;
     max-width: none;
+    min-height: 36px;
     justify-content: center;
-    padding: 7px 8px;
+    padding: 6px 12px;
+    scroll-snap-align: start;
+  }
+
+  .topbar-right .topbar-toggle {
+    flex: 0 0 auto;
+    margin-left: auto;
   }
 
   .chip-label {

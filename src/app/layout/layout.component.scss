@@ -25,6 +25,8 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 0 24px 18px;
 }
 
@@ -39,7 +41,7 @@
 
 @media (max-width: 720px) {
   .app-content {
-    padding: 0 14px 14px;
+    padding: 0 max(14px, env(safe-area-inset-right)) 14px max(14px, env(safe-area-inset-left));
   }
 }
 

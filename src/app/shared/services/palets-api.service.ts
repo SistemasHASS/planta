@@ -15,6 +15,7 @@ export interface ConsultaMatriz {
   tipoEmpaqueGuiaId?: number;
   presentacionId?: number;
   tipoCajaId?: number;
+  tipoClamshellId?: number;
 }
 
 /**
@@ -80,6 +81,11 @@ export class PaletsApiService {
 
   tiposClamshellPorMatriz(c: ConsultaMatriz): Promise<SobreSp<Fila[]>> {
     return this.post('matriz/tipos-clamshell', c);
+  }
+
+  /** Calibre (texto, con ceros a la izquierda) y tipo de empaque de la matriz para la combinación completa. */
+  calibreEmpaquePorMatriz(c: ConsultaMatriz): Promise<SobreSp<Fila[]>> {
+    return this.post('matriz/calibre-empaque', c);
   }
 
   private post(ruta: string, cuerpo: object): Promise<SobreSp<Fila[]>> {

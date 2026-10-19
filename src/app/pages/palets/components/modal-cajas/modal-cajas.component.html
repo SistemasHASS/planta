@@ -1,34 +1,40 @@
 @if (visible()) {
-  <div class="modal modal-open" role="dialog" aria-modal="true">
-    <div class="modal-box flex w-full !max-h-full !max-w-4xl flex-col gap-0 overflow-hidden p-0">
+  <div class="modal modal-open modal-bottom sm:modal-middle" role="dialog" aria-modal="true" [attr.aria-label]="titulo()">
+    <div class="modal-box modal-cajas-box flex w-full !max-h-[92dvh] flex-col gap-0 overflow-hidden !rounded-b-none !rounded-t-[28px] p-0 sm:!max-h-[90dvh] sm:!max-w-3xl sm:!rounded-[20px]">
 
-      <div class="flex items-center justify-between gap-3 border-b border-app-border2 bg-gradient-to-r from-emerald-50 via-white to-white px-4 py-2 sm:px-5 dark:from-emerald-500/15 dark:via-transparent dark:to-transparent">
-        <div class="flex min-w-0 items-center gap-3">
-          <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow"><svg lucidePackage class="size-5"></svg></span>
-          <div class="min-w-0">
-            <span class="text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Palets</span>
-            <h3 class="truncate text-base font-extrabold leading-tight text-app-heading sm:text-lg">{{ titulo() }}</h3>
-          </div>
+      <!-- Encabezado -->
+      <div class="relative flex shrink-0 items-center gap-3 border-b border-app-border2 bg-app-surface px-5 pb-3 pt-5 sm:py-3.5">
+        <span class="absolute left-1/2 top-2 h-1 w-9 -translate-x-1/2 rounded-full bg-slate-400/50 sm:hidden" aria-hidden="true"></span>
+        <span class="grid size-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm">
+          @if (modoEdicion()) {
+            <svg lucidePencilLine class="size-5"></svg>
+          } @else {
+            <svg lucideCirclePlus class="size-5"></svg>
+          }
+        </span>
+        <div class="min-w-0 flex-1">
+          @if (palet()) {
+            <p class="text-[11px] font-bold uppercase leading-none tracking-widest text-emerald-700 dark:text-emerald-300">Palet #{{ numeroPalet() }}</p>
+          }
+          <h3 class="mt-1 truncate text-[17px] font-extrabold leading-tight tracking-tight text-app-heading">{{ titulo() }}</h3>
         </div>
-        <button type="button" class="btn btn-circle btn-ghost size-10 min-h-10 sm:size-8 sm:min-h-8" aria-label="Cerrar" (click)="cerrar.emit()"><svg lucideX class="size-4"></svg></button>
+        <button type="button" class="grid size-8 shrink-0 place-items-center rounded-full bg-slate-500/15 text-app-text2 transition hover:bg-slate-500/25 active:scale-95" aria-label="Cerrar" (click)="cerrar.emit()"><svg lucideX class="size-4"></svg></button>
       </div>
 
-      <div class="min-h-0 flex-1 space-y-3 overflow-y-auto bg-app-surface2 px-3 pb-3 pt-3 sm:px-5 sm:pb-5">
+      <!-- Contenido -->
+      <div class="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-app-surface2 px-4 pb-6 pt-4 sm:px-6">
 
         @if (palet(); as p) {
-          <section class="rounded-2xl border px-4 py-3 text-sm"
-            [class.border-sky-200]="composiciones().length === 0" [class.bg-sky-50]="composiciones().length === 0"
-            [class.border-tint-amber-border]="composiciones().length > 0" [class.bg-amber-50]="composiciones().length > 0">
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="rounded-full bg-app-surface px-3 py-1 text-sm font-extrabold text-app-heading shadow-sm">Palet #{{ numeroPalet() }}</span>
-              <span class="inline-flex items-center gap-1 rounded-full bg-app-surface px-3 py-1 text-xs font-semibold text-app-text shadow-sm"><svg lucideLayers class="size-3.5"></svg> Cajas actuales: <strong>{{ p.cantidadCajas || 0 }}</strong></span>
+          <section class="space-y-2">
+            <div class="flex flex-wrap items-center gap-2 text-xs font-semibold text-app-text">
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-sky-500/12 px-3 py-1.5 text-sky-800 dark:text-sky-200"><svg lucideLayers class="size-3.5"></svg> Cajas actuales <strong>{{ p.cantidadCajas || 0 }}</strong></span>
               @if (p.limiteCajasPorPalet) {
-                <span class="rounded-full bg-app-surface px-3 py-1 text-xs font-semibold text-app-text shadow-sm">Límite: <strong>{{ p.limiteCajasPorPalet }}</strong></span>
-                <span class="rounded-full bg-app-surface px-3 py-1 text-xs font-semibold text-app-text shadow-sm">Faltantes: <strong>{{ faltantes() }}</strong></span>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-violet-500/12 px-3 py-1.5 text-violet-800 dark:text-violet-200"><svg lucideBoxes class="size-3.5"></svg> Límite <strong>{{ p.limiteCajasPorPalet }}</strong></span>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/12 px-3 py-1.5 text-emerald-800 dark:text-emerald-200"><svg lucideCirclePlus class="size-3.5"></svg> Faltan <strong>{{ faltantes() }}</strong></span>
               }
             </div>
             @if (composiciones().length > 0) {
-              <p class="mt-2 border-t border-tint-amber-border pt-2 text-xs text-amber-900 dark:text-amber-300">
+              <p class="rounded-xl border border-amber-500/35 bg-amber-500/10 px-3.5 py-2 text-xs text-amber-900 dark:text-amber-200">
                 Este palet ya tiene cajas registradas. Formato fijado a
                 <strong>{{ composiciones()[0].formatoNombre || ('Formato #' + composiciones()[0].formatoId) }}</strong>:
                 al agregar más cajas, el formato debe ser el mismo.
@@ -37,86 +43,121 @@
           </section>
         }
 
-        <section class="rounded-2xl border border-app-border2 bg-app-surface px-4 py-3">
-          <h4 class="mb-2 text-[11px] font-bold uppercase tracking-widest text-sky-700 dark:text-sky-300">Proceso y destino</h4>
-          <div class="grid gap-3 sm:grid-cols-2">
-            <app-search-select label="Tipo de proceso empacado" [required]="true" [options]="optTiposProceso()" [value]="v(formCajas().tipoProcesoEmpacadoId)" [disabled]="tipoProcesoEmpacadoDisabled()" (selected)="elegido('tipoProcesoEmpacadoId', $event)" />
-            <app-search-select label="Consignatario" [required]="true" [options]="optConsignatarios()" [value]="v(formCajas().consignatarioId)" (selected)="elegido('consignatarioId', $event)" />
-            <div class="sm:col-span-2">
-              <app-search-select label="Destino" [required]="true" [options]="optDestinos()" [value]="v(formCajas().destinoId)" [disabled]="filteredDestinos().length === 0" (selected)="elegido('destinoId', $event)" />
-            </div>
-          </div>
-        </section>
+        <div class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm sm:p-5">
+          <div class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
+          <app-search-select
+            label="Tipo Proceso Empacado"
+            [required]="true"
+            [options]="optTiposProceso()"
+            [value]="v(formCajas().tipoProcesoEmpacadoId)"
+            [disabled]="tipoProcesoEmpacadoDisabled()"
+            (selected)="elegido('tipoProcesoEmpacadoId', $event)"
+          />
+          <app-search-select
+            label="Consignatario"
+            [required]="true"
+            [options]="optConsignatarios()"
+            [value]="v(formCajas().consignatarioId)"
+            (selected)="elegido('consignatarioId', $event)"
+          />
 
-        <section class="rounded-2xl border border-app-border2 bg-app-surface px-4 py-3">
-          <h4 class="mb-2 text-[11px] font-bold uppercase tracking-widest text-violet-700 dark:text-violet-300">Empaque</h4>
-          <div class="grid gap-3 sm:grid-cols-2">
-            <app-search-select label="Formato" [required]="true" [options]="optFormatos()" [value]="v(formCajas().formatoId)" [disabled]="formatoDisabled()" (selected)="elegido('formatoId', $event)" />
-            <app-search-select label="Tipo de empaque guía" [required]="true" [options]="optTiposEmpaqueGuia()" [value]="v(formCajas().tipoEmpaqueGuiaId)" [disabled]="tipoEmpaqueGuiaDisabled()" (selected)="elegido('tipoEmpaqueGuiaId', $event)" />
-            <app-search-select label="Presentación" [options]="optPresentaciones()" [value]="v(formCajas().presentacionId)" [disabled]="presentacionDisabled()" (selected)="elegido('presentacionId', $event)" />
-            <app-search-select label="Tipo de caja" [required]="true" [options]="optTiposCaja()" [value]="v(formCajas().tipoCajaId)" [disabled]="tipoCajaDisabled()" (selected)="elegido('tipoCajaId', $event)" />
-            <div class="sm:col-span-2">
-              <app-search-select label="Tipo de clamshell" [required]="true" [options]="optTiposClamshell()" [value]="v(formCajas().tipoClamshellId)" [disabled]="tipoClamshellDisabled()" (selected)="elegido('tipoClamshellId', $event)" />
-            </div>
-          </div>
-        </section>
+          <app-search-select
+            label="Destino"
+            [required]="true"
+            [options]="optDestinos()"
+            [value]="v(formCajas().destinoId)"
+            [disabled]="filteredDestinos().length === 0"
+            (selected)="elegido('destinoId', $event)"
+          />
+          <app-search-select
+            label="Formato"
+            [required]="true"
+            [options]="optFormatos()"
+            [value]="v(formCajas().formatoId)"
+            [disabled]="formatoDisabled()"
+            (selected)="elegido('formatoId', $event)"
+          />
 
-        <section class="rounded-2xl border border-app-border2 bg-app-surface px-4 py-3">
-          <h4 class="mb-2 text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Origen y transporte</h4>
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div>
-              @if (!formCajas().esReposicion) {
-                <label class="mb-1 flex cursor-pointer items-center justify-end gap-2 text-xs font-semibold text-app-text2">
-                  ¿Es ensayo?
-                  <input type="checkbox" class="toggle toggle-sm toggle-primary" [checked]="formCajas().esEnsayo" (change)="cambio('esEnsayo', $any($event.target).checked)" />
-                </label>
-              }
-              <app-search-select label="Variedad" [required]="true" [options]="optVariedades()" [value]="v(formCajas().variedadId)" (selected)="elegido('variedadId', $event)" />
-            </div>
+          <app-search-select
+            label="Tipo de Empaque Guía"
+            [required]="true"
+            [options]="optTiposEmpaqueGuia()"
+            [value]="v(formCajas().tipoEmpaqueGuiaId)"
+            [disabled]="tipoEmpaqueGuiaDisabled()"
+            (selected)="elegido('tipoEmpaqueGuiaId', $event)"
+          />
+          <app-search-select
+            label="Presentación"
+            [options]="optPresentaciones()"
+            [value]="v(formCajas().presentacionId)"
+            [disabled]="presentacionDisabled()"
+            (selected)="elegido('presentacionId', $event)"
+          />
 
-            @if (formCajas().esEnsayo) {
-              <div>
-                <app-search-select label="Variedad en guía (ensayo)" [required]="true" [options]="optVariedadesGuia()" [value]="v(formCajas().variedadGuiaId)" (selected)="elegido('variedadGuiaId', $event)" />
-                <small class="text-amber-700 dark:text-amber-300">Esta variedad aparecerá en la guía de remisión.</small>
-              </div>
+          <app-search-select
+            label="Tipo de Caja"
+            [required]="true"
+            [options]="optTiposCaja()"
+            [value]="v(formCajas().tipoCajaId)"
+            [disabled]="tipoCajaDisabled()"
+            (selected)="elegido('tipoCajaId', $event)"
+          />
+          <app-search-select
+            label="Tipo de Clamshell"
+            [required]="true"
+            [options]="optTiposClamshell()"
+            [value]="v(formCajas().tipoClamshellId)"
+            [disabled]="tipoClamshellDisabled()"
+            (selected)="elegido('tipoClamshellId', $event)"
+          />
+
+          <div class="relative">
+            @if (!formCajas().esReposicion) {
+              <label class="absolute right-0 top-0 z-[1] flex cursor-pointer items-center gap-2 text-xs font-medium text-app-text2">
+                ¿Es ensayo?
+                <input type="checkbox" class="ios-switch is-sm" role="switch" [checked]="formCajas().esEnsayo" (change)="cambio('esEnsayo', $any($event.target).checked)" />
+              </label>
             }
-
-            <app-search-select label="Lugar de producción (LDP)" [required]="true" [options]="optLugares()" [value]="v(formCajas().lugarProduccionId)" (selected)="elegido('lugarProduccionId', $event)" />
-            <app-search-select label="Código de rancho" [required]="true" [options]="optRanchos()" [value]="v(formCajas().codigoRanchoId)" [disabled]="codigoRanchoDisabled()" (selected)="elegido('codigoRanchoId', $event)" />
-            <app-search-select label="Vía de transporte" [required]="true" [options]="optTransportes()" [value]="v(formCajas().transporteId)" (selected)="elegido('transporteId', $event)" />
+            <app-search-select label="Variedad" [required]="true" [options]="optVariedades()" [value]="v(formCajas().variedadId)" (selected)="elegido('variedadId', $event)" />
           </div>
-        </section>
+          <app-search-select label="Lugar de Producción (LDP)" [required]="true" [options]="optLugares()" [value]="v(formCajas().lugarProduccionId)" (selected)="elegido('lugarProduccionId', $event)" />
 
-        <section class="rounded-2xl border border-tint-emerald-border bg-tint-emerald px-4 py-3">
-          <h4 class="mb-2 text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Cantidad</h4>
-          <div class="grid items-end gap-3 sm:grid-cols-2">
-            <label class="block">
-              <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Cantidad de cajas <span class="text-error">*</span></span>
-              <input type="number" inputmode="numeric" min="1" class="h-[42px] w-full rounded-[9px] border border-app-border2 bg-app-surface px-3 text-[16px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/25 sm:text-[14px]" [ngModel]="formCajas().cantidadCajas || null" (ngModelChange)="cambio('cantidadCajas', +$event)" />
+          @if (formCajas().esEnsayo) {
+            <div class="sm:col-span-2">
+              <app-search-select label="Variedad en guía (ensayo)" [required]="true" [options]="optVariedadesGuia()" [value]="v(formCajas().variedadGuiaId)" (selected)="elegido('variedadGuiaId', $event)" />
+              <small class="mt-1 block text-xs text-amber-700 dark:text-amber-300">Esta variedad aparecerá en la guía de remisión.</small>
+            </div>
+          }
+
+          <app-search-select label="Código de Rancho" [required]="true" [options]="optRanchos()" [value]="v(formCajas().codigoRanchoId)" [disabled]="codigoRanchoDisabled()" (selected)="elegido('codigoRanchoId', $event)" />
+          <app-search-select label="Vía de Transporte" [required]="true" [options]="optTransportes()" [value]="v(formCajas().transporteId)" (selected)="elegido('transporteId', $event)" />
+
+          <label class="block">
+            <span class="campo-label">* Cantidad de Cajas</span>
+            <input type="number" inputmode="numeric" min="1" class="campo-num" placeholder="0" [ngModel]="formCajas().cantidadCajas || null" (ngModelChange)="cambio('cantidadCajas', +$event)" />
+          </label>
+          </div>
+        </div>
+
+        @if (!formCajas().esEnsayo) {
+          <div class="rounded-2xl border border-app-border2 bg-app-surface px-4 py-3 shadow-sm">
+            <label class="flex cursor-pointer items-center justify-between gap-4">
+              <span>
+                <span class="block text-sm font-semibold text-app-heading">¿Es reposición?</span>
+                <span class="block text-xs text-app-text2">Esta línea no contará como producción del día.</span>
+              </span>
+              <input type="checkbox" class="ios-switch is-warn" role="switch" [checked]="formCajas().esReposicion" (change)="cambio('esReposicion', $any($event.target).checked)" />
             </label>
-            @if (!formCajas().esEnsayo) {
-              <div class="rounded-[9px] border border-app-border2 bg-app-surface px-3 py-2">
-                <label class="flex cursor-pointer items-center gap-3 text-sm font-semibold text-app-text">
-                  <input type="checkbox" class="toggle toggle-warning" [checked]="formCajas().esReposicion" (change)="cambio('esReposicion', $any($event.target).checked)" />
-                  ¿Es reposición?
-                </label>
-                @if (formCajas().esReposicion) {
-                  <p class="mt-1.5 flex items-center gap-2 text-xs text-app-text2">
-                    <span class="badge badge-warning badge-sm gap-1"><svg lucideRefreshCcw class="size-3"></svg> REPOSICIÓN</span>
-                    Esta línea NO contará como producción del día.
-                  </p>
-                }
-              </div>
-            }
           </div>
-        </section>
+        }
       </div>
 
-      <div class="flex flex-col-reverse justify-end gap-2 border-t border-app-border2 bg-app-surface px-4 py-2.5 sm:flex-row sm:px-5">
-        <button type="button" class="btn btn-sm btn-ghost" (click)="cerrar.emit()">Cancelar</button>
-        <button type="button" class="btn btn-sm btn-primary" (click)="guardar.emit()"><svg lucideCircleCheck class="size-4"></svg> {{ textoGuardar() }}</button>
+      <!-- Acciones -->
+      <div class="flex shrink-0 flex-col-reverse gap-2 border-t border-app-border2 bg-app-surface px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6">
+        <button type="button" class="btn btn-ghost h-11 min-h-11 rounded-full px-6 normal-case text-app-text2 sm:h-10 sm:min-h-10" (click)="cerrar.emit()">Cancelar</button>
+        <button type="button" class="btn btn-primary h-11 min-h-11 rounded-full px-6 normal-case shadow-sm sm:h-10 sm:min-h-10" (click)="guardar.emit()"><svg lucideCircleCheck class="size-4"></svg> {{ textoGuardar() }}</button>
       </div>
     </div>
-    <div class="modal-backdrop bg-black/40" (click)="cerrar.emit()"></div>
+    <div class="modal-backdrop" (click)="cerrar.emit()"></div>
   </div>
 }

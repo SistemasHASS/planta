@@ -97,3 +97,14 @@ a,
   .tabla-scroll { max-height: calc(100dvh - 15rem); }
   .tabla-scroll .table :where(th, td) { padding: .55rem .6rem; font-size: .78rem; }
 }
+
+/* Móvil / iOS: sin destello gris al tocar, sin zoom al enfocar campos (iOS amplía si la letra es menor de 16px)
+   y sin el retraso del doble toque. */
+html { -webkit-text-size-adjust: 100%; }
+button, a, label, select, summary, [role='button'], [role='switch'] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+@media (max-width: 640px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']), select, textarea { font-size: 16px; }
+}
