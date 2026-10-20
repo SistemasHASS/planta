@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import Dexie, { Table } from 'dexie';
 import { AUTH_SCHEMA_V1, DB_SCHEMA } from './db-schema';
+import { ELIMINAR_TABLAS_V7, TABLAS_ELIMINADAS_V7 } from './schema/tablas-eliminadas-db-schema';
 
 /** Nombre de la base IndexedDB en el navegador. */
 const DB_NAME = 'PlantaApp';
@@ -34,7 +35,10 @@ export class DexieService extends Dexie {
     // Version 5 = se eliminan las tablas preliminares (cambian de llave primaria).
     this.version(5).stores({ ...AUTH_SCHEMA_V1, ...ELIMINAR_PRELIMINARES });
     // Version 6 = esquema definitivo: mismas tablas que la aplicacion anterior.
-    this.version(6).stores(DB_SCHEMA);
+    this.version(6).stores({ ...DB_SCHEMA, ...TABLAS_ELIMINADAS_V7 });
+    // Version 7 = se eliminan las tablas que la app nunca uso (codigosCaja, lugaresProduccionConfig, motivosTraslado,
+    // usuarios, dpalets, guiasRemision y guiasRemisionPalets). El resto del esquema no cambia.
+    this.version(7).stores({ ...DB_SCHEMA, ...ELIMINAR_TABLAS_V7 });
   }
 
   getTable<T, K = any>(tableName: string): Table<T, K> {

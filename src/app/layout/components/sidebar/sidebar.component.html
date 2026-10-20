@@ -1,6 +1,7 @@
 <div class="sidebar-overlay" [class.show]="open" (click)="close()"></div>
 
-<aside class="app-sidebar" [class.show]="open" [attr.aria-hidden]="!open" aria-label="Menu principal">
+<!-- inert (en vez de aria-hidden): al cerrarse, el menú deja de ser enfocable y el navegador suelta el foco solo; con aria-hidden el enlace pulsado conservaba el foco y salía la advertencia. -->
+<aside class="app-sidebar" [class.show]="open" [attr.inert]="open ? null : ''" aria-label="Menu principal">
   <div class="sidebar-header">
     <button type="button" class="sidebar-mobile-close" aria-label="Cerrar menu" (click)="close()">
       <svg lucideX class="icon-size"></svg>

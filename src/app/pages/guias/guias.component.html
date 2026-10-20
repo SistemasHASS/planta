@@ -132,9 +132,23 @@
                     </td>
                     <td class="acciones-fija acciones-fija-grupo" (click)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()">
                       <div class="flex items-stretch justify-end gap-2">
-                        <!-- Acciones del grupo: centradas verticalmente, abarcan las guías de al lado -->
+                        <!-- Acciones por guía (PDF, detalle...) y, al final como en las demás filas, las del grupo (centradas, abarcan todas las guías) -->
+                        <div>
+                          <div class="h-9"></div>
+                          @for (sg of g._guiasDelGrupo; track sg.codigoGuiaRemision; let first = $first) {
+                        <div class="flex h-9 items-center justify-end gap-1 rounded-sm px-1 transition-colors" [class.border-t]="!first" [class.border-tint-emerald-border]="!first" (mouseenter)="hoverSubGuia.set(sg.codigoGuiaRemision)" (mouseleave)="hoverSubGuia.set(null)" [class.bg-emerald-500/15]="hoverSubGuia() === sg.codigoGuiaRemision">
+                          @if (esAceptadaSunat(sg.estadoSunat)) {
+                            <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--danger" title="Ver PDF SUNAT" aria-label="Ver PDF SUNAT" (click)="abrirPdfModal(sg.pdfFileUrl)"><svg lucideFileText class="size-3.5"></svg></button>
+                          }
+                          <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--info" title="Ver detalle" aria-label="Ver detalle" (click)="abrirModalVerDetalle(sg)"><svg lucideEye class="size-3.5"></svg></button>
+                          @if (sg.estado?.toUpperCase() !== 'ANULADO' && sg.estadoSunat && sg.estadoSunat !== 'No Enviado' && !esAdmin()) {
+                            <button type="button" class="btn btn-xs btn-square btn-accion" title="Consultar estado SUNAT" aria-label="Consultar estado SUNAT" (click)="consultarEstadoSunat(sg)"><svg lucideRefreshCw class="size-3.5"></svg></button>
+                          }
+                        </div>
+                      }
+                        </div>
                         @if ((g.estado === 'ABIERTA' && !esAdmin()) || (g.estado === 'CERRADA' && esAdministrador() && g.codigoEstadoSunat === 'AC_03')) {
-                        <div class="flex items-center border-r border-tint-emerald-border pr-2">
+                        <div class="flex items-center border-l border-tint-emerald-border pl-2">
                           <div class="flex items-center gap-1">
                         @if (g.estado === 'ABIERTA' && !esAdmin()) {
                           <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--ok" title="Cerrar y numerar grupo" (click)="cerrarGrupo(g._guiasDelGrupo)"><svg lucideCircleCheck class="size-3.5"></svg></button>
@@ -146,20 +160,6 @@
                       </div>
                         </div>
                         }
-                        <div>
-                          <div class="h-9"></div>
-                          @for (sg of g._guiasDelGrupo; track sg.codigoGuiaRemision; let first = $first) {
-                        <div class="-mr-3 flex h-9 items-center justify-end gap-1 pl-2 pr-3 transition-colors" [class.border-t]="!first" [class.border-tint-emerald-border]="!first" (mouseenter)="hoverSubGuia.set(sg.codigoGuiaRemision)" (mouseleave)="hoverSubGuia.set(null)" [class.bg-emerald-500/15]="hoverSubGuia() === sg.codigoGuiaRemision">
-                          @if (esAceptadaSunat(sg.estadoSunat)) {
-                            <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--danger" title="Ver PDF SUNAT" aria-label="Ver PDF SUNAT" (click)="abrirPdfModal(sg.pdfFileUrl)"><svg lucideFileText class="size-3.5"></svg></button>
-                          }
-                          <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--info" title="Ver detalle" aria-label="Ver detalle" (click)="abrirModalVerDetalle(sg)"><svg lucideEye class="size-3.5"></svg></button>
-                          @if (sg.estado?.toUpperCase() !== 'ANULADO' && sg.estadoSunat && sg.estadoSunat !== 'No Enviado' && !esAdmin()) {
-                            <button type="button" class="btn btn-xs btn-square btn-accion" title="Consultar estado SUNAT" aria-label="Consultar estado SUNAT" (click)="consultarEstadoSunat(sg)"><svg lucideRefreshCw class="size-3.5"></svg></button>
-                          }
-                        </div>
-                      }
-                        </div>
                       </div>
                     </td>
                   </tr>

@@ -7,10 +7,12 @@
 .app-topbar {
   min-height: var(--topbar-height);
   display: flex;
+  /* Si los datos de la derecha no caben junto al menu, bajan a una segunda linea en vez de cortarse. */
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 0 22px;
+  gap: 6px 12px;
+  padding: 6px 22px;
   background: var(--app-surface);
   border-bottom: 1px solid var(--app-border);
   box-shadow: 0 2px 10px var(--app-shadow);
@@ -72,13 +74,27 @@
 }
 
 .topbar-right {
+  flex: 1 1 auto;
   min-width: 0;
+  align-items: flex-start;
   gap: 8px;
   justify-content: flex-end;
 }
 
+.topbar-chips {
+  display: flex;
+  flex: 0 1 auto;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  justify-content: flex-end;
+}
+
 .topbar-chip {
-  max-width: 320px;
+  /* min-width: 0 permite que el chip se achique y el texto largo termine en "..." en lugar de desbordar. */
+  min-width: 0;
+  max-width: min(320px, 100%);
   min-height: 32px;
   gap: 6px;
   border: 1px solid var(--chip-green-border);
@@ -132,20 +148,26 @@
 
 @media (max-width: 1024px) {
   .app-topbar {
-    padding: 0 14px;
+    padding: 6px 14px;
   }
 }
 
 @media (max-width: 720px) {
+  /* Celular: arriba van el menú, la ruta y el botón de tema en la misma línea; debajo, los datos (campaña, empresa, acopio, conexión). */
   .app-topbar {
-    min-height: auto;
-    align-items: stretch;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "left theme"
+      "chips chips";
+    align-items: center;
     gap: 8px;
+    min-height: auto;
     padding: calc(env(safe-area-inset-top) + 10px) calc(env(safe-area-inset-right) + 14px) 10px calc(env(safe-area-inset-left) + 14px);
   }
 
   .topbar-left {
+    grid-area: left;
     width: 100%;
   }
 
@@ -155,39 +177,37 @@
     border-radius: 12px;
   }
 
-  /* Los datos (campaña, empresa, acopio, conexión) se desplazan de lado, empezando por la izquierda: nada queda cortado. */
+  /* El contenedor derecho "desaparece": sus hijos (chips y botón de tema) se ubican directo en la cuadrícula. */
   .topbar-right {
-    width: auto;
-    margin-inline: -14px;
-    padding: 0 14px 2px;
-    gap: 8px;
-    justify-content: flex-start;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scroll-snap-type: x proximity;
-    scrollbar-width: none;
-  }
-
-  .topbar-right::-webkit-scrollbar {
-    display: none;
-  }
-
-  .topbar-chip {
-    flex: 0 0 auto;
-    max-width: none;
-    min-height: 36px;
-    justify-content: center;
-    padding: 6px 12px;
-    scroll-snap-align: start;
+    display: contents;
   }
 
   .topbar-right .topbar-toggle {
-    flex: 0 0 auto;
-    margin-left: auto;
+    grid-area: theme;
+  }
+
+  .topbar-chips {
+    grid-area: chips;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .topbar-chip {
+    flex: 0 1 auto;
+    max-width: 100%;
+    min-height: 34px;
+    justify-content: center;
+    padding: 5px 10px;
   }
 
   .chip-label {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  /* En celular el estado "Conectado" queda solo con el icono (verde); si no hay conexión sí muestra el texto en rojo. */
+  .topbar-chip.online .chip-value {
     display: none;
   }
 }
@@ -212,6 +232,14 @@
 
 .chip-short {
   display: none;
+}
+
+/* Con el menu lateral abierto (290px) el espacio real es menor al de la pantalla: en pantallas medianas se quita la palabra
+   "Campaña / Empresa / Acopio" (el icono y el valor bastan) para que los datos quepan en una sola linea. */
+@media (max-width: 1400px) {
+  .chip-label {
+    display: none;
+  }
 }
 
 @media (max-width: 1024px) {

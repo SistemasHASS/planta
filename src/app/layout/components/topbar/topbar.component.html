@@ -19,43 +19,45 @@
   </div>
 
   <div class="topbar-right">
-    @if (fruta()) {
-      <button type="button" class="topbar-chip topbar-campania" aria-label="Campaña activa" (click)="modal.set('CAMPANIA')">
-        <span class="chip-icon"><svg lucideTag class="chip-svg"></svg></span>
-        <span class="chip-label">Campaña</span>
-        <span class="chip-value chip-full">{{ fruta() }}</span>
-        <span class="chip-value chip-short">{{ frutaCorta() }}</span>
-      </button>
-    }
+    <div class="topbar-chips">
+      @if (fruta()) {
+        <button type="button" class="topbar-chip topbar-campania" aria-label="Campaña activa" (click)="modal.set('CAMPANIA')">
+          <span class="chip-icon"><svg lucideTag class="chip-svg"></svg></span>
+          <span class="chip-label">Campaña</span>
+          <span class="chip-value chip-full">{{ fruta() }}</span>
+          <span class="chip-value chip-short">{{ frutaCorta() }}</span>
+        </button>
+      }
 
-    @if (empresa()) {
-      <button type="button" class="topbar-chip topbar-company" aria-label="Razón social" (click)="modal.set('EMPRESA')">
-        <span class="chip-icon"><svg lucideBuilding2 class="chip-svg"></svg></span>
-        <span class="chip-label">Empresa</span>
-        <span class="chip-value chip-full">{{ empresa() }}</span>
-        <span class="chip-value chip-short">{{ empresaCorta() }}</span>
-      </button>
-    }
+      @if (empresa()) {
+        <button type="button" class="topbar-chip topbar-company" aria-label="Razón social" (click)="modal.set('EMPRESA')">
+          <span class="chip-icon"><svg lucideBuilding2 class="chip-svg"></svg></span>
+          <span class="chip-label">Empresa</span>
+          <span class="chip-value chip-full">{{ empresa() }}</span>
+          <span class="chip-value chip-short">{{ empresaCorta() }}</span>
+        </button>
+      }
 
-    @if (tieneAcopio()) {
-      <button type="button" class="topbar-chip topbar-acopio" aria-label="Acopio asignado" (click)="modal.set('ACOPIO')">
-        <span class="chip-icon"><svg lucideMapPin class="chip-svg"></svg></span>
-        <span class="chip-label">Acopio</span>
-        <span class="chip-value chip-full">{{ acopio() }}</span>
-        <span class="chip-value chip-short">{{ acopioCorto() }}</span>
-      </button>
-    }
+      @if (tieneAcopio()) {
+        <button type="button" class="topbar-chip topbar-acopio" aria-label="Acopio asignado" (click)="modal.set('ACOPIO')">
+          <span class="chip-icon"><svg lucideMapPin class="chip-svg"></svg></span>
+          <span class="chip-label">Acopio</span>
+          <span class="chip-value chip-full">{{ acopio() }}</span>
+          <span class="chip-value chip-short">{{ acopioCorto() }}</span>
+        </button>
+      }
 
-    <button type="button" class="topbar-chip" [class.online]="connectivity.online()" [class.offline]="!connectivity.online()">
-      <span class="chip-icon">
-        @if (connectivity.online()) {
-          <svg lucideWifi class="chip-svg"></svg>
-        } @else {
-          <svg lucideWifiOff class="chip-svg"></svg>
-        }
-      </span>
-      <span class="chip-value">{{ connectivity.label() }}</span>
-    </button>
+      <button type="button" class="topbar-chip" [class.online]="connectivity.online()" [class.offline]="!connectivity.online()" [attr.aria-label]="connectivity.label()" [attr.title]="connectivity.label()">
+        <span class="chip-icon">
+          @if (connectivity.online()) {
+            <svg lucideWifi class="chip-svg"></svg>
+          } @else {
+            <svg lucideWifiOff class="chip-svg"></svg>
+          }
+        </span>
+        <span class="chip-value">{{ connectivity.label() }}</span>
+      </button>
+    </div>
 
     <button type="button" class="topbar-toggle" [attr.aria-label]="tema.esOscuro() ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'" [attr.title]="tema.esOscuro() ? 'Tema claro' : 'Tema oscuro'" (click)="tema.alternar()">
       @if (tema.esOscuro()) {

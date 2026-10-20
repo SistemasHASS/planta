@@ -19,8 +19,5 @@ export const CATELOGO_SCHEMA_V1 = {
     lugaresProduccion: '++_pk,&id,idproyecto,codigo,descripcion,activo,fechaCreacion,bd',
     transportes: '++_pk,&id,transporte,factorTEUtoPallet',
     codigosRancho: '++_pk,&id,codigo,activo,fechaCreacion,bd',
-    lugaresProduccionConfig: '++_pk,&id,idproyecto,idCodigoRancho,idLugaresDeProduccion,activo,fechaCreacion,bd',
     destinatarios:'++_pk,id,idCliente,&documentoFiscal,documento,nombre,domicilioFiscal,puntoLlegada,domicilioFiscalDepartamento,domicilioFiscalProvincia,domicilioFiscalDistrito,puntoLlegadaDepartamento,puntoLlegadaProvincia,puntoLlegadaDistrito,activo,fechaCreacion,bd',
-    codigosCaja: '++_pk,id,codigoItem,documentoConsignatario,idDestino,codigoFormato,codigoVariedad,idTipoEmpaqueGuia,codigoRancho,idLugarProduccion,idPresentacion,pesoPorCaja,idTransporte,fechaCreacion,bd',
-    motivosTraslado: '++_pk,id,&codigo,descripcion'
 }
