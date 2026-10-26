@@ -26,7 +26,7 @@ export class AuthApiService {
   }
 
   revokeSession(sessionId: string): Promise<void> {
-    return firstValueFrom(this.http.delete<void>(`${this.baseUrl}/api/auth/sessions/${sessionId}`));
+    return firstValueFrom(this.http.get<void>(`${this.baseUrl}/api/auth/sessions/${sessionId}`));
   }
 
   logoutAll(): Promise<unknown> {

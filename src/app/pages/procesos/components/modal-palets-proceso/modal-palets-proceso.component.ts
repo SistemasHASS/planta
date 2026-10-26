@@ -80,6 +80,7 @@ export class ModalPaletsProcesoComponent implements OnInit {
   private async cargarPalets(): Promise<void> {
     const idProceso = String(this.proceso()?.idProceso ?? '').trim();
     this.cargando.set(true);
+    this.loading.show('Cargando palets del proceso...');
     try {
       if (!idProceso) { this.palets.set([]); return; }
       if (!this.online) {
@@ -98,6 +99,7 @@ export class ModalPaletsProcesoComponent implements OnInit {
       this.alertService.showAlert('Error', `${error?.error?.message ?? 'Error al obtener los palets del proceso'}`, 'error');
     } finally {
       this.cargando.set(false);
+      await this.loading.hideAfterMinimum();
     }
   }
 

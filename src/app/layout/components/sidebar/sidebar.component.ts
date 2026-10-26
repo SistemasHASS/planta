@@ -95,6 +95,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: 'Matriz Compatibilidad', path: '/admin/matriz', icon: 'network', adminOnly: true },
       { label: 'Reglas Sobrepeso', path: '/admin/sobrepeso', icon: 'gauge', adminOnly: true },
       { label: 'Series GRE', path: '/admin/correlativos-documentos', icon: 'file-text', adminOnly: true },
+      { label: 'Códigos Caja', path: '/admin/codigos-caja', icon: 'package', adminOnly: true },
       {
         label: 'Catálogos',
         path: '#catalogos',

@@ -1,6 +1,6 @@
 {
   "name": "planta-app",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "start": "ng serve --port 4200",

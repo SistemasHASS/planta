@@ -193,15 +193,15 @@
                 <td>{{ fechaHora(p.fechaApertura) }}</td>
                 <td>{{ fechaHora(p.fechaCierre) }}</td>
                 <td>{{ p.idUsuarioApertura || '—' }}</td>
-                <td (click)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()">
+                <td>
                   @let sup = nombres(supPorProceso()[p.idProceso]);
                   {{ sup.texto }}
-                  @if (sup.hayMas) { <button type="button" class="link link-primary text-xs" (click)="verPersonal('SUP', p)">… mostrar más</button> }
+                  @if (sup.hayMas) { <button type="button" class="link link-primary text-xs" (click)="$event.stopPropagation(); verPersonal('SUP', p)" (dblclick)="$event.stopPropagation()">… mostrar más</button> }
                 </td>
-                <td (click)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()">
+                <td>
                   @let log = nombres(logPorProceso()[p.idProceso]);
                   {{ log.texto }}
-                  @if (log.hayMas) { <button type="button" class="link link-primary text-xs" (click)="verPersonal('LOG', p)">… mostrar más</button> }
+                  @if (log.hayMas) { <button type="button" class="link link-primary text-xs" (click)="$event.stopPropagation(); verPersonal('LOG', p)" (dblclick)="$event.stopPropagation()">… mostrar más</button> }
                 </td>
                 <td class="whitespace-nowrap text-right" (click)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()">
                   <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--info mr-1" title="Ver palets" (click)="procesoPalets.set(p)"><svg lucideEye class="size-3.5"></svg></button>

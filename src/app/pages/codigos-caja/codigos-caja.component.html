@@ -1,0 +1,119 @@
+<section class="w-full min-w-0 max-w-full space-y-4 p-4 sm:p-6">
+  <header class="flex items-center gap-3">
+    <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md">
+      <svg lucidePackage class="size-6"></svg>
+    </span>
+    <div class="min-w-0">
+      <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Administración</span>
+      <h1 class="text-xl font-extrabold leading-tight text-app-heading sm:text-2xl">Códigos caja</h1>
+      <p class="text-sm text-app-muted">Combinaciones de códigos de caja de la empresa con el nombre de cada dato.</p>
+    </div>
+  </header>
+
+  @if (online()) {
+    <div class="min-w-0 rounded-2xl border border-app-border2 bg-app-surface shadow-sm">
+      <!-- Título, contador y acciones -->
+      <div class="flex flex-wrap items-center justify-between gap-3 px-4 pt-4">
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 class="text-sm font-bold uppercase tracking-wide text-app-text2">Combinaciones</h2>
+          <span class="badge badge-soft badge-success">{{ codigosFiltrados().length }} {{ codigosFiltrados().length === 1 ? 'registro' : 'registros' }}</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" class="btn btn-success btn-sm text-white" [disabled]="codigosFiltrados().length === 0" (click)="exportarExcel()"><svg lucideFileSpreadsheet class="size-4"></svg> Exportar Excel</button>
+          <button type="button" class="btn btn-primary btn-sm" (click)="cargar()"><svg lucideRefreshCcw class="size-4"></svg> Actualizar</button>
+        </div>
+      </div>
+
+      <!-- Filtros: se acomodan al ancho real disponible (no al de la pantalla) -->
+      <div class="flex flex-wrap items-end gap-3 p-4">
+        <label class="block min-w-[min(100%,18rem)] flex-[2_1_18rem]">
+          <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Buscar</span>
+          <span class="flex h-[42px] items-center gap-2 rounded-[9px] border border-app-border2 bg-app-surface px-3 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100 dark:focus-within:ring-emerald-500/25">
+            <svg lucideSearch class="size-4 shrink-0 text-app-subtle"></svg>
+            <input type="text" class="min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-app-subtle sm:text-[14px]" placeholder="Código, consignatario, destino, formato, variedad..." aria-label="Buscar" [ngModel]="filtroTexto()" (ngModelChange)="cambiarTexto($event)" />
+            @if (filtroTexto()) {
+              <button type="button" class="grid size-5 shrink-0 place-items-center rounded-full text-app-subtle hover:bg-app-surface3 hover:text-app-text2" aria-label="Borrar texto" (click)="cambiarTexto('')"><svg lucideX class="size-3.5"></svg></button>
+            }
+          </span>
+        </label>
+        <div class="min-w-[min(100%,13rem)] flex-[1_1_13rem]">
+          <app-search-select label="Cultivo" placeholder="Todos los cultivos" sortOrder="none" [options]="cultivoOpciones()" [value]="filtroCultivo()" (selected)="cambiarCultivo($event.value)" />
+        </div>
+        <div class="min-w-[min(100%,16rem)] flex-[1_1_16rem]">
+          <app-search-select label="Consignatario" placeholder="Todos los consignatarios" sortOrder="none" [options]="consignatarioOpciones()" [value]="filtroConsignatario()" (selected)="cambiarConsignatario($event.value)" />
+        </div>
+      </div>
+
+      @if (codigosFiltrados().length > 0) {
+        <div class="tabla-scroll border-t border-app-border2">
+          <table class="table table-sm table-pin-rows whitespace-nowrap [&_td]:align-top [&_td]:py-2.5 [&_thead_th]:!py-3 [&_thead_th]:!text-app-text2 [&_thead_th]:!shadow-[inset_0_-2px_0_var(--tint-emerald-border)]">
+            <thead>
+              <tr class="text-[11px] font-bold uppercase tracking-wide">
+                <th>Código</th>
+                <th>Cultivo</th>
+                <th>Consignatario</th>
+                <th>Destino</th>
+                <th>Presentación</th>
+                <th>Formato</th>
+                <th>Variedad</th>
+                <th class="text-right">Peso/caja</th>
+                <th>Tipo empaque guía</th>
+                <th>Rancho</th>
+                <th>Lugar de producción</th>
+                <th>Transporte</th>
+                <th class="min-w-[24rem]">Descripción</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of paginacion.paged(); track c.id) {
+                <tr class="border-t border-app-border hover:bg-app-surface2">
+                  <td><span class="badge badge-soft badge-neutral font-mono font-semibold">{{ c.codigoItem }}</span></td>
+                  <td class="text-app-heading">{{ c.fruta || c.codigoCultivo || '—' }}</td>
+                  <td><ng-container [ngTemplateOutlet]="celda" [ngTemplateOutletContext]="{ $implicit: c.consignatario }" /></td>
+                  <td><ng-container [ngTemplateOutlet]="celda" [ngTemplateOutletContext]="{ $implicit: c.destino }" /></td>
+                  <td><ng-container [ngTemplateOutlet]="celda" [ngTemplateOutletContext]="{ $implicit: c.presentacion }" /></td>
+                  <td><ng-container [ngTemplateOutlet]="celda" [ngTemplateOutletContext]="{ $implicit: c.formato }" /></td>
+                  <td><ng-container [ngTemplateOutlet]="celda" [ngTemplateOutletContext]="{ $implicit: c.variedad }" /></td>
+                  <td class="text-right tabular-nums text-app-heading">{{ c.pesoPorCaja ? c.pesoPorCaja + ' kg' : '—' }}</td>
+                  <td><ng-container [ngTemplateOutlet]="celda" [ngTemplateOutletContext]="{ $implicit: c.tipoEmpaqueGuia }" /></td>
+                  <td><ng-container [ngTemplateOutlet]="celda" [ngTemplateOutletContext]="{ $implicit: c.rancho }" /></td>
+                  <td>
+                    @if (c.lugarProduccion.codigo) {
+                      <span class="font-semibold text-app-heading">LDP {{ c.lugarProduccion.codigo }}</span>
+                      @if (c.lugarProduccion.nombre) { <span class="block text-xs text-app-muted">{{ c.lugarProduccion.nombre }}</span> }
+                    } @else { <span class="text-app-subtle">—</span> }
+                  </td>
+                  <td><ng-container [ngTemplateOutlet]="celda" [ngTemplateOutletContext]="{ $implicit: c.transporte }" /></td>
+                  <td class="min-w-[24rem] whitespace-normal text-app-text">{{ c.descripcion || '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <app-paginator [total]="codigosFiltrados().length" [(page)]="paginacion.page" [(pageSize)]="paginacion.pageSize" />
+      } @else {
+        <div class="grid place-items-center gap-2 border-t border-app-border2 p-10 text-center text-app-muted">
+          <svg lucideInbox class="size-10 opacity-40"></svg>
+          <p>No se encontraron códigos caja</p>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="grid place-items-center gap-2 rounded-2xl border border-app-border2 bg-app-surface p-12 text-center shadow-sm">
+      <svg lucideWifiOff class="size-12 text-amber-500"></svg>
+      <p class="text-base font-bold text-app-text2">Sin conexión a internet</p>
+      <p class="max-w-md text-sm text-app-muted">Los códigos caja solo están disponibles en modo online. Conéctate a internet para continuar.</p>
+    </div>
+  }
+</section>
+
+<!-- Celda de un dato: su nombre; si el maestro no lo tiene, el código en ámbar (al pasar el mouse se explica). -->
+<ng-template #celda let-d>
+  @if (d.nombre) {
+    <span class="text-app-heading">{{ d.nombre }}</span>
+  } @else if (d.codigo) {
+    <span class="font-mono text-amber-700 dark:text-amber-300" title="No se encontró el nombre en el maestro; se muestra el código.">{{ d.codigo }}</span>
+  } @else {
+    <span class="text-app-subtle">—</span>
+  }
+</ng-template>

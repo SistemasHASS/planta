@@ -95,6 +95,12 @@ export const routes: Routes = [
         loadComponent: () => import("./pages/series-gre/series-gre.component").then((m) => m.SeriesGreComponent),
       },
       {
+        path: "admin/codigos-caja",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Códigos Caja" },
+        loadComponent: () => import("./pages/codigos-caja/codigos-caja.component").then((m) => m.CodigosCajaComponent),
+      },
+      {
         path: "admin/catalogos/conductores",
         canActivate: [roleGuard(ROLES.admin)],
         data: { titulo: "Conductores", catalogo: "conductores" },

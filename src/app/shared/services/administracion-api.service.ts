@@ -27,6 +27,16 @@ export class AdministracionApiService {
     return this.post('correlativos-documentos', {});
   }
 
+  /** Reporte "Códigos caja": combinaciones de la empresa con el nombre de cada dato y la descripción completa (como el detalle de la guía). */
+  codigosCaja(): Promise<SobreSp<Fila[]>> {
+    return this.post('codigos-caja', {});
+  }
+
+  /** Excel de códigos caja que arma la API con solo las filas indicadas (los id de lo que se ve en la tabla). */
+  exportarCodigosCaja(ids: number[]): Promise<Blob> {
+    return firstValueFrom(this.http.post(`${this.baseUrl}/codigos-caja/exportar-excel`, { ids }, { responseType: 'blob' }));
+  }
+
   /**
    * Guarda la serie de guia y los tipos de proceso empacado de uno o varios acopios.
    * json = [{ codigoAcopio, acopioNombre, serieGuia }], jsonDetalle = [{ codigoAcopio, codigoTipoProcesoEmpacado, activo }] (texto JSON).
