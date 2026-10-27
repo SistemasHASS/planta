@@ -22,6 +22,7 @@ import {
   LucidePackage,
   LucideSlidersHorizontal,
   LucideSquarePen,
+  LucideTrendingUp,
   LucideTruck,
   LucideX
 } from '@lucide/angular';
@@ -152,6 +153,16 @@ const NAV_SECTIONS: NavSection[] = [
           { label: 'Campaña', path: '/reporte-campania', icon: 'dot', requiresInternet: true },
         ],
       },
+      {
+        label: 'Reportes Avances',
+        path: '#reportes-avances',
+        icon: 'trending-up',
+        roles: [ROLES.admin, ROLES.monitor],
+        children: [
+          { label: 'Avance por Cosechador', path: '/reporte-avance-cosechador', icon: 'dot', requiresInternet: true },
+          { label: 'Avance por Grupo', path: '/reporte-avance-grupo', icon: 'dot', requiresInternet: true },
+        ],
+      },
     ],
   },
   {
@@ -191,6 +202,7 @@ const NAV_SECTIONS: NavSection[] = [
     LucidePackage,
     LucideSlidersHorizontal,
     LucideSquarePen,
+    LucideTrendingUp,
     LucideTruck,
     LucideX
   ],

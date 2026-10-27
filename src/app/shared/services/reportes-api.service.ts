@@ -150,6 +150,133 @@ export interface ReporteKgAcopioPeticion {
   acopios: string;
 }
 
+/** Empresa de apimaestra (get_empresas). */
+export interface EmpresaMaestro {
+  id?: string;
+  empresa?: number | string;
+  idempresa?: string;
+  companyowner?: string;
+  ruc: string;
+  razonsocial?: string;
+  direccionfiscal?: string;
+}
+
+export interface ReporteAvanceCosechadorPeticion {
+  ruc: string;
+  idProyecto: string;
+  fechaDesde: string;
+  fechaHasta: string;
+  dniSupervisor?: string;
+  /** Grupos elegidos; vacio o ausente = todos. */
+  grupos?: string[];
+  codFundo?: string;
+  /** DNI de los cosechadores elegidos; vacio o ausente = todos. */
+  dniCosechadores?: string[];
+}
+
+export interface ReporteAvanceGrupoPeticion {
+  ruc: string;
+  idProyecto: string;
+  fechaDesde: string;
+  fechaHasta: string;
+  /** Grupos elegidos; vacio o ausente = todos. */
+  grupos?: string[];
+  /** DNI de los supervisores elegidos; vacio o ausente = todos. */
+  dniSupervisores?: string[];
+}
+
+export interface AvanceGrupoKpis {
+  grupos: number;
+  supervisores: number;
+  cosechadores: number;
+  jarraBlanca: number;
+  jarraVerde: number;
+  descarte: number;
+  total: number;
+  totalSinDescarte: number;
+  porcentajeDescarte: number;
+  promedioPorCosechador: number;
+  viajes: number;
+  registros: number;
+}
+
+export interface AvanceGrupoFila {
+  grupo: string;
+  lote: string;
+  dniSupervisor: string;
+  supervisor: string;
+  cosechadores: number;
+  jarraBlanca: number;
+  jarraVerde: number;
+  descarte: number;
+  total: number;
+  totalSinDescarte: number;
+  porcentajeDescarte: number;
+  promedioPorCosechador: number;
+  viajes: number;
+}
+
+export interface ReporteAvanceGrupoData {
+  kpis: AvanceGrupoKpis;
+  grupos: AvanceGrupoFila[];
+}
+
+export interface ReporteAvanceCosechadorFiltrosPeticion {
+  ruc: string;
+  idProyecto: string;
+  fechaDesde: string;
+  fechaHasta: string;
+  grupos?: string[];
+}
+
+export interface ReporteAvanceCosechadorFiltrosData {
+  grupos: { grupo: string }[];
+  supervisores: { dni: string; nombreCompleto: string; grupo: string }[];
+  cosechadores: { dni: string; nombreCompleto: string; grupo: string }[];
+}
+
+export interface AvanceCosechadorKpis {
+  cosechadores: number;
+  jarraBlanca: number;
+  jarraVerde: number;
+  descarte: number;
+  total: number;
+  totalSinDescarte: number;
+  porcentajeDescarte: number;
+  promedioPorCosechador: number;
+  viajes: number;
+  registros: number;
+}
+
+export interface AvanceCosechadorFila {
+  dni: string;
+  nombreCompleto: string;
+  grupo: string;
+  jarraBlanca: number;
+  jarraVerde: number;
+  descarte: number;
+  total: number;
+  totalSinDescarte: number;
+  porcentajeDescarte: number;
+  diasTrabajados: number;
+  viajes: number;
+}
+
+export interface AvanceCosechadorDia {
+  fecha: string;
+  jarraBlanca: number;
+  jarraVerde: number;
+  descarte: number;
+  total: number;
+  cosechadores: number;
+}
+
+export interface ReporteAvanceCosechadorData {
+  kpis: AvanceCosechadorKpis;
+  cosechadores: AvanceCosechadorFila[];
+  porDia: AvanceCosechadorDia[];
+}
+
 export type TipoOrigen = 'PROPIO' | 'EXTERNO' | 'SIN_CLASIFICAR';
 
 export interface BhResumenOrigen extends ReporteDiarioKpis {
@@ -246,6 +373,43 @@ export class ReportesApiService {
   /** KG de materia prima ingresada a los acopios en un dia. `acopios` vacio = todos. */
   reporteKgAcopio(peticion: ReporteKgAcopioPeticion): Promise<SobreSp<ReporteKgAcopioData>> {
     return this.post('reporte-kg-acopio', peticion);
+  }
+
+  /** Empresas de apimaestra (maestro externo, sin cuerpo). Solo administrador y monitor. */
+  async empresas(): Promise<EmpresaMaestro[]> {
+    const resp = await firstValueFrom(this.http.post<EmpresaMaestro[]>(`${environment.apiBaseUrl}/api/maestros/empresas`, {}));
+    return Array.isArray(resp) ? resp : [];
+  }
+
+  /** Campañas de la empresa elegida (RUC de apimaestra). */
+  async avanceCosechadorCampanias(ruc: string): Promise<Campania[]> {
+    const resp = await firstValueFrom(this.http.post<Campania[]>(`${this.baseUrl}/reporte-avance-cosechador/campanias`, { ruc }));
+    return Array.isArray(resp) ? resp : [];
+  }
+
+  /** Avance por cosechador: jarra blanca, jarra verde y descarte. El RUC es el de la empresa elegida, no el del token. */
+  reporteAvanceCosechador(peticion: ReporteAvanceCosechadorPeticion): Promise<SobreSp<ReporteAvanceCosechadorData>> {
+    return this.post('reporte-avance-cosechador', peticion);
+  }
+
+  /** Opciones de grupo y cosechador del rango de fechas (los cosechadores se limitan a los grupos enviados). */
+  reporteAvanceCosechadorFiltros(peticion: ReporteAvanceCosechadorFiltrosPeticion): Promise<SobreSp<ReporteAvanceCosechadorFiltrosData>> {
+    return this.post('reporte-avance-cosechador/filtros', peticion);
+  }
+
+  /** Avance por grupo y supervisor. El RUC es el de la empresa elegida, no el del token. */
+  reporteAvanceGrupo(peticion: ReporteAvanceGrupoPeticion): Promise<SobreSp<ReporteAvanceGrupoData>> {
+    return this.post('reporte-avance-grupo', peticion);
+  }
+
+  /** Excel (que arma la API) de la tabla "Detalle por grupo" con los mismos filtros del reporte. */
+  exportarAvanceGrupoExcel(peticion: ReporteAvanceGrupoPeticion): Promise<Blob> {
+    return firstValueFrom(this.http.post(`${this.baseUrl}/reporte-avance-grupo/exportar-excel`, peticion, { responseType: 'blob' }));
+  }
+
+  /** Excel (que arma la API) de la tabla "Detalle por cosechador" con los mismos filtros del reporte. */
+  exportarAvanceCosechadorExcel(peticion: ReporteAvanceCosechadorPeticion): Promise<Blob> {
+    return firstValueFrom(this.http.post(`${this.baseUrl}/reporte-avance-cosechador/exportar-excel`, peticion, { responseType: 'blob' }));
   }
 
   /** true si la empresa tiene habilitado el reporte BH / CAO (parametro REPORTE_BH): muestra el menu. */

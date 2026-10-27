@@ -1,0 +1,179 @@
+<section class="w-full space-y-4 p-3 sm:p-5">
+  @if (!online()) {
+    <div class="flex flex-col items-center gap-3 rounded-2xl border border-app-border2 bg-app-surface p-10 text-center shadow-sm">
+      <svg lucideWifiOff class="size-10 text-app-subtle"></svg>
+      <h2 class="text-lg font-bold text-app-text">Sin conexión a internet</h2>
+      <p class="max-w-md text-sm text-app-muted">Este reporte solo está disponible en modo online. Conéctate a internet para continuar.</p>
+    </div>
+  } @else {
+    <div #reportPage class="space-y-5">
+      <!-- Filtros -->
+      <div class="space-y-3 rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div class="min-w-0">
+            <h1 class="text-lg font-extrabold leading-tight text-app-heading">Avance por Grupo</h1>
+            <p class="text-xs text-app-muted">Jarra blanca, jarra verde y descarte por grupo y supervisor</p>
+          </div>
+          <div class="grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex">
+            <button type="button" class="btn h-[38px] min-h-[38px] rounded-[7px] border-0 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700" (click)="exportarExcel()" [disabled]="isLoading() || !kpis()">
+              <svg lucideDownload class="size-4"></svg> Excel
+            </button>
+            <button type="button" class="btn h-[38px] min-h-[38px] rounded-[7px] border-0 bg-slate-700 text-white shadow-sm hover:bg-slate-800" (click)="capturarDashboard()" [disabled]="isLoading() || !kpis()">
+              <svg lucideCamera class="size-4"></svg> Capturar
+            </button>
+          </div>
+        </div>
+
+        <div class="grid items-end gap-3 border-t border-app-border pt-3 sm:grid-cols-2 lg:flex">
+          <div class="w-full min-w-0 lg:flex-1">
+            <app-search-select label="Empresa" placeholder="Selecciona empresa" [options]="empresaOpciones()" [value]="empresaRuc() || null" [disabled]="isLoading()" (selected)="cambiarEmpresa($event)" />
+          </div>
+          <div class="w-full min-w-0 lg:flex-1">
+            <app-search-select label="Campaña" placeholder="Selecciona campaña" [options]="campaniaOpciones()" [value]="campaniaId() || null" [disabled]="campaniaOpciones().length === 0 || isLoading()" (selected)="cambiarCampania($event)" />
+          </div>
+          <label class="block w-full lg:w-40 lg:shrink-0">
+            <span class="mb-[7px] block text-[11px] font-extrabold uppercase text-app-text2">Desde</span>
+            <input type="date" class="input input-bordered h-[38px] min-h-[38px] w-full rounded-[7px] border-app-border bg-app-surface px-4 text-[16px] font-semibold text-app-heading sm:text-[13px]" [ngModel]="fechaDesde()" (ngModelChange)="cambiarFechaDesde($event)" />
+          </label>
+          <label class="block w-full lg:w-40 lg:shrink-0">
+            <span class="mb-[7px] block text-[11px] font-extrabold uppercase text-app-text2">Hasta</span>
+            <input type="date" class="input input-bordered h-[38px] min-h-[38px] w-full rounded-[7px] border-app-border bg-app-surface px-4 text-[16px] font-semibold text-app-heading sm:text-[13px]" [ngModel]="fechaHasta()" (ngModelChange)="cambiarFechaHasta($event)" />
+          </label>
+        </div>
+
+        <div class="grid items-end gap-3 sm:grid-cols-2 lg:flex">
+          <div class="w-full min-w-0 lg:flex-1">
+            <app-search-multi-select label="Grupo" placeholder="Todos los grupos" [showSelectAll]="true" [options]="grupoOpciones()" [values]="gruposSeleccionados()" (valuesChange)="cambiarGrupos($event)" />
+          </div>
+          <div class="w-full min-w-0 lg:flex-1">
+            <app-search-multi-select label="Supervisor" placeholder="Todos los supervisores" [showSelectAll]="true" [options]="supervisorOpciones()" [values]="supervisoresSeleccionados()" (valuesChange)="supervisoresSeleccionados.set($event)" />
+          </div>
+          <button type="button" class="btn btn-primary h-[38px] min-h-[38px] w-full rounded-[7px] sm:col-span-2 lg:w-auto lg:shrink-0" (click)="consultar()" [disabled]="isLoading()">
+            <svg lucideRefreshCcw class="size-4"></svg> Consultar
+          </button>
+        </div>
+      </div>
+
+      @if (errorMensaje()) {
+        <p class="rounded-xl border border-red-200 dark:border-red-500/35 bg-red-50 dark:bg-red-500/15 p-3 text-sm text-red-700 dark:text-red-300">{{ errorMensaje() }}</p>
+      }
+
+      @if (kpis(); as k) {
+        <!-- Resumen general -->
+        <div class="grid items-center gap-5 rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm sm:p-5 lg:grid-cols-[auto_minmax(0,1fr)_auto]">
+          <div>
+            <span class="block text-[11px] font-bold uppercase tracking-wide text-app-muted">Total de jarras</span>
+            <p class="text-4xl font-extrabold leading-tight text-app-heading">{{ k.total | number }}</p>
+            <span class="block text-xs text-app-muted">Sin descarte: <b class="text-app-text">{{ k.totalSinDescarte | number }}</b></span>
+          </div>
+
+          <div class="min-w-0">
+            <div class="flex h-3 w-full overflow-hidden rounded-full bg-app-surface2">
+              <div class="h-full bg-slate-500" [style.width.%]="porcentaje(k.jarraBlanca)"></div>
+              <div class="h-full bg-green-500" [style.width.%]="porcentaje(k.jarraVerde)"></div>
+              <div class="h-full bg-blue-600" [style.width.%]="porcentaje(k.descarte)"></div>
+            </div>
+            <div class="mt-2 grid grid-cols-3 gap-2 text-xs">
+              <div>
+                <span class="flex items-center gap-1.5 font-semibold text-app-text"><i class="inline-block size-2.5 rounded-full bg-slate-500"></i>Jarra blanca</span>
+                <span class="text-app-muted"><b class="text-app-heading">{{ k.jarraBlanca | number }}</b> · {{ porcentaje(k.jarraBlanca) | number: '1.1-1' }}%</span>
+              </div>
+              <div>
+                <span class="flex items-center gap-1.5 font-semibold text-app-text"><i class="inline-block size-2.5 rounded-full bg-green-500"></i>Jarra verde</span>
+                <span class="text-app-muted"><b class="text-app-heading">{{ k.jarraVerde | number }}</b> · {{ porcentaje(k.jarraVerde) | number: '1.1-1' }}%</span>
+              </div>
+              <div>
+                <span class="flex items-center gap-1.5 font-semibold text-app-text"><i class="inline-block size-2.5 rounded-full bg-blue-600"></i>Descarte</span>
+                <span class="text-app-muted"><b class="text-app-heading">{{ k.descarte | number }}</b> · {{ porcentaje(k.descarte) | number: '1.1-1' }}%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-5 gap-4 border-t border-app-border pt-4 text-center lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+            <div><p class="text-lg font-extrabold leading-tight text-app-heading">{{ k.grupos | number }}</p><span class="text-[10px] font-bold uppercase tracking-wide text-app-muted">Grupos</span></div>
+            <div><p class="text-lg font-extrabold leading-tight text-app-heading">{{ k.supervisores | number }}</p><span class="text-[10px] font-bold uppercase tracking-wide text-app-muted">Superv.</span></div>
+            <div><p class="text-lg font-extrabold leading-tight text-app-heading">{{ k.cosechadores | number }}</p><span class="text-[10px] font-bold uppercase tracking-wide text-app-muted">Cosech.</span></div>
+            <div><p class="text-lg font-extrabold leading-tight text-app-heading">{{ k.viajes | number }}</p><span class="text-[10px] font-bold uppercase tracking-wide text-app-muted">Viajes</span></div>
+            <div><p class="text-lg font-extrabold leading-tight text-app-heading">{{ k.promedioPorCosechador | number: '1.0-1' }}</p><span class="text-[10px] font-bold uppercase tracking-wide text-app-muted">Prom.</span></div>
+          </div>
+        </div>
+
+        <!-- Ranking de grupos (barras horizontales apiladas) -->
+        <div class="min-w-0 rounded-2xl border border-app-border2 bg-app-surface p-3 shadow-sm sm:p-5">
+          <h2 class="mb-2 text-sm font-bold text-app-text">Ranking de grupos</h2>
+          <div #chartGrupo class="w-full"></div>
+        </div>
+
+        <!-- Detalle: tarjetas o tabla -->
+        <div class="min-w-0 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h2 class="text-sm font-bold text-app-text">Detalle por grupo</h2>
+            <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+              <input type="search" class="input input-bordered h-[34px] min-h-[34px] w-full rounded-[7px] border-app-border bg-app-surface px-3 text-[16px] text-app-heading sm:w-64 sm:text-[13px]" placeholder="Buscar grupo, lote o supervisor" [ngModel]="busqueda()" (ngModelChange)="cambiarBusqueda($event)" />
+            </div>
+          </div>
+
+            <div class="rounded-2xl border border-app-border2 bg-app-surface p-3 shadow-sm sm:p-5">
+              <div class="tabla-scroll">
+                <table class="table table-sm whitespace-nowrap">
+                  <thead>
+                    <tr>
+                      <th>Grupo</th>
+                      <th>Lote</th>
+                      <th>Supervisor</th>
+                      <th class="text-right">Cosechadores</th>
+                      <th class="text-right">Jarra blanca</th>
+                      <th class="text-right">Jarra verde</th>
+                      <th class="text-right">Descarte</th>
+                      <th class="text-right">Total</th>
+                      <th class="text-right">% descarte</th>
+                      <th class="text-right">Prom. / cosech.</th>
+                      <th class="text-right">Viajes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (f of paginacion.paged(); track f.grupo + '|' + f.lote + '|' + f.dniSupervisor) {
+                      <tr>
+                        <td class="font-semibold">{{ f.grupo }}</td>
+                        <td>{{ f.lote }}</td>
+                        <td>
+                          <span class="font-semibold">{{ f.supervisor }}</span>
+                          @if (f.dniSupervisor) { <span class="ml-1 text-[11px] text-app-muted">{{ f.dniSupervisor }}</span> }
+                        </td>
+                        <td class="text-right">{{ f.cosechadores | number }}</td>
+                        <td class="text-right">{{ f.jarraBlanca | number }}</td>
+                        <td class="text-right">{{ f.jarraVerde | number }}</td>
+                        <td class="text-right">{{ f.descarte | number }}</td>
+                        <td class="text-right font-semibold">{{ f.total | number }}</td>
+                        <td class="text-right"><span class="badge badge-primary badge-sm font-semibold">{{ f.porcentajeDescarte | number: '1.1-1' }}%</span></td>
+                        <td class="text-right">{{ f.promedioPorCosechador | number: '1.0-1' }}</td>
+                        <td class="text-right">{{ f.viajes | number }}</td>
+                      </tr>
+                    }
+                    @if (filasGrupo().length === 0) {
+                      <tr><td colspan="11" class="text-center text-app-subtle">Sin datos</td></tr>
+                    }
+                  </tbody>
+                  @if (filasGrupo().length > 0) {
+                    <tfoot class="sticky bottom-0 z-10">
+                      <tr class="font-extrabold">
+                        <td colspan="4" class="bg-app-surface2">Total</td>
+                        <td class="bg-app-surface2 text-right">{{ totales().blanca | number }}</td>
+                        <td class="bg-app-surface2 text-right">{{ totales().verde | number }}</td>
+                        <td class="bg-app-surface2 text-right">{{ totales().descarte | number }}</td>
+                        <td class="bg-app-surface2 text-right">{{ totales().total | number }}</td>
+                        <td colspan="3" class="bg-app-surface2"></td>
+                      </tr>
+                    </tfoot>
+                  }
+                </table>
+              </div>
+              <app-paginator [total]="filasGrupo().length" [(page)]="paginacion.page" [(pageSize)]="paginacion.pageSize" />
+            </div>
+        </div>
+      } @else if (!errorMensaje()) {
+        <p class="rounded-xl border border-app-border2 bg-app-surface p-6 text-center text-sm text-app-muted">Elige empresa, campaña y fechas, y pulsa «Consultar».</p>
+      }
+    </div>
+  }
+</section>

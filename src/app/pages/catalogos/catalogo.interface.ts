@@ -123,7 +123,7 @@ const OPERATIVOS: Partial<Record<CatalogoKey, ConfigCatalogo>> = {
       { campo: 'nombres', etiqueta: 'Nombres', tipo: 'texto', maxLength: 200, requerido: true, placeholder: 'Ej: JUAN CARLOS' },
       { campo: 'tipoDocumentoIdentidad', etiqueta: 'Tipo de documento', tipo: 'select', requerido: true, opciones: TIPOS_DOCUMENTO, porDefecto: '1' },
       { campo: 'documentoIdentidad', etiqueta: 'Documento de identidad', tipo: 'texto', maxLength: 20, requerido: true, placeholder: 'Ej: 12345678' },
-      { campo: 'licenciaConducir', etiqueta: 'Licencia de conducir', tipo: 'texto', maxLength: 30, mayusculas: true, placeholder: 'Ej: Q12345678' },
+      { campo: 'licenciaConducir', etiqueta: 'Licencia de conducir', tipo: 'texto', maxLength: 30, requerido: true, mayusculas: true, placeholder: 'Ej: Q12345678' },
     ],
     columnas: ['apellidos', 'nombres', 'tipoDocumentoIdentidad', 'documentoIdentidad', 'licenciaConducir'],
     campoUnico: 'documentoIdentidad',

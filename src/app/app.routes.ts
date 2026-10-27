@@ -280,6 +280,18 @@ export const routes: Routes = [
         loadComponent: () =>
           import("./pages/reportes/reporte-campania/reporte-campania.component").then((m) => m.ReporteCampaniaComponent),
       },
+      {
+        path: "reporte-avance-cosechador",
+        canActivate: [roleGuard(ROLES.admin, ROLES.monitor)],
+        loadComponent: () =>
+          import("./pages/reportes/reporte-avance-cosechador/reporte-avance-cosechador.component").then((m) => m.ReporteAvanceCosechadorComponent),
+      },
+      {
+        path: "reporte-avance-grupo",
+        canActivate: [roleGuard(ROLES.admin, ROLES.monitor)],
+        loadComponent: () =>
+          import("./pages/reportes/reporte-avance-grupo/reporte-avance-grupo.component").then((m) => m.ReporteAvanceGrupoComponent),
+      },
     ],
   },
   { path: "**", redirectTo: "" },
