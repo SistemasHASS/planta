@@ -30,7 +30,7 @@ export class LoadingService {
     this.state.update((current) => ({ ...current, visible: false }));
   }
 
-  async hideAfterMinimum(minimumMs = 650): Promise<void> {
+  async hideAfterMinimum(minimumMs = 350): Promise<void> {
     const version = this.version;
     const elapsed = Date.now() - this.openedAt;
     const pendingMs = Math.max(0, minimumMs - elapsed);

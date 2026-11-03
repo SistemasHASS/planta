@@ -10,6 +10,7 @@ export const ROLES = {
   guiasManuales: 'GMPLA',
   coordinacion: 'COPLA',
   operaciones: 'OPPLA',
+  anotador: 'ANPLA',
 } as const;
 
 /** Nombre para mostrar de cada rol (por ejemplo, bajo el nombre del usuario en el menu). */
@@ -20,6 +21,7 @@ export const ROLE_LABELS: Record<string, string> = {
   [ROLES.guiasManuales]: 'Guias manuales',
   [ROLES.coordinacion]: 'Coordinacion',
   [ROLES.operaciones]: 'Operaciones',
+  [ROLES.anotador]: 'Anotador',
 };
 
 const normalizeRole = (value: unknown): string => String(value ?? '').trim().toUpperCase();

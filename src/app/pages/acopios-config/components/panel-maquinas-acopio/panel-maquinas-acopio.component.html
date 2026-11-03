@@ -1,0 +1,147 @@
+<div #listaMaquinas class="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+  <div class="flex items-center justify-between gap-2 pb-3">
+    <div class="flex flex-wrap items-center gap-2">
+      <h5 class="text-sm font-bold uppercase tracking-wide text-app-text2">Máquinas</h5>
+      <span class="badge badge-soft badge-info">{{ totalMaquinas() }} {{ totalMaquinas() === 1 ? 'máquina' : 'máquinas' }}</span>
+      <span class="badge badge-soft badge-neutral">{{ totalPuestosActivos() }} puestos activos</span>
+    </div>
+  </div>
+
+  @if (tiposMaquina().length === 0) {
+    <div class="mb-3 rounded-2xl border border-dashed border-amber-500/60 bg-tint-amber p-3 text-sm text-amber-800 dark:text-amber-200" role="alert">
+      <p class="font-bold">Este acopio no tiene un tipo de proceso de máquina activo.</p>
+      <p class="text-xs">Actívalo primero en “Editar acopio” para poder crear máquinas.</p>
+    </div>
+  }
+
+  <ul class="space-y-2">
+    @for (m of maquinas(); track m.clave) {
+      <li class="rounded-2xl border border-l-4 px-3 py-2.5 shadow-sm transition"
+        [class]="m.id === 0 ? 'border-dashed border-orange-500 bg-app-surface' : m.activo ? 'border-app-border2 border-l-orange-500 bg-app-surface' : 'border-dashed border-amber-500/50 border-l-amber-500 bg-app-surface3'">
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="grid size-10 shrink-0 place-items-center rounded-xl text-white"
+            [class]="m.id === 0 ? 'bg-slate-400' : m.activo ? 'bg-orange-500' : 'bg-slate-500/70'">
+            <svg lucideCpu class="size-5"></svg>
+          </span>
+          <div class="min-w-0 flex-1 basis-32">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="truncate text-sm font-bold" [class]="m.activo ? 'text-app-heading' : 'text-app-muted line-through decoration-1'">{{ m.id === 0 ? 'Máquina nueva' : m.nombreGuardado }}</span>
+              @if (m.id > 0) {
+                <span class="badge badge-soft badge-sm" [class]="m.activo ? 'badge-success' : 'badge-neutral'">{{ m.tipoGuardado }}</span>
+              }
+              @if (!m.activo) { <span class="badge badge-soft badge-warning badge-sm gap-1"><svg lucideEyeOff class="size-3"></svg> Inactiva</span> }
+            </div>
+            <span class="text-xs text-app-muted">{{ m.curos }} {{ m.curos === 1 ? 'curo' : 'curos' }} · {{ m.puestos }} puestos por curo · {{ m.curos * m.puestos }} puestos{{ m.activo ? '' : ' · fuera de servicio' }}</span>
+          </div>
+
+          <div class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-end">
+            <!-- Una máquina inactiva no se edita: primero se vuelve a activar -->
+            <div class="col-span-2 grid grid-cols-2 gap-2 transition sm:flex sm:flex-wrap sm:items-end" [class.opacity-40]="!m.activo" [class.pointer-events-none]="!m.activo" [attr.inert]="m.activo ? null : ''">
+              <div class="col-span-2 flex flex-col gap-0.5 sm:w-36">
+                <span class="text-[10px] font-bold uppercase tracking-wide text-app-muted">Tipo de proceso</span>
+                <app-search-select sortOrder="none" placeholder="Tipo" [options]="opcionesTipo(m)" [value]="m.tipo" (selected)="cambiarTipo(m, $event.value)" />
+              </div>
+              <label class="col-span-2 flex flex-col gap-0.5 sm:col-auto">
+                <span class="text-[10px] font-bold uppercase tracking-wide text-app-muted">Nombre</span>
+                <input type="text" maxlength="50" autocomplete="off" class="input input-sm !h-[42px] w-full sm:w-40" placeholder="Ej. Kato 3" aria-label="Nombre de la máquina" [value]="m.nombre" (input)="escribirNombre(m, $event)" />
+              </label>
+
+              <div class="flex flex-col gap-0.5">
+              <span class="text-[10px] font-bold uppercase tracking-wide text-app-muted">Curos</span>
+              <div class="join w-full sm:w-auto">
+                <button type="button" class="btn btn-sm btn-square join-item !h-[42px] !min-h-[42px] !w-10" aria-label="Menos curos" [disabled]="m.curos <= minCuros" (click)="sumarCuros(m, -1)"><svg lucideMinus class="size-3.5"></svg></button>
+                <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" class="input input-sm !h-[42px] join-item w-14 min-w-0 flex-1 px-1 sm:flex-none text-center font-semibold" aria-label="Cantidad de curos" [value]="m.curos > 0 ? m.curos : ''" (keydown)="bloquearTecla($event)" (input)="escribirCuros(m, $event)" (blur)="terminarCuros(m)" />
+                <button type="button" class="btn btn-sm btn-square join-item !h-[42px] !min-h-[42px] !w-10" aria-label="Más curos" [disabled]="m.curos >= maxCuros" (click)="sumarCuros(m, 1)"><svg lucidePlus class="size-3.5"></svg></button>
+              </div>
+              </div>
+
+              <div class="flex flex-col gap-0.5">
+              <span class="text-[10px] font-bold uppercase tracking-wide text-app-muted">Puestos por curo</span>
+              <div class="join w-full sm:w-auto">
+                <button type="button" class="btn btn-sm btn-square join-item !h-[42px] !min-h-[42px] !w-10" aria-label="Menos puestos" [disabled]="m.puestos <= minPuestos" (click)="sumarPuestos(m, -1)"><svg lucideMinus class="size-3.5"></svg></button>
+                <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" class="input input-sm !h-[42px] join-item w-14 min-w-0 flex-1 px-1 sm:flex-none text-center font-semibold" aria-label="Puestos por curo" [value]="m.puestos > 0 ? m.puestos : ''" (keydown)="bloquearTecla($event)" (input)="escribirPuestos(m, $event)" (blur)="terminarPuestos(m)" />
+                <button type="button" class="btn btn-sm btn-square join-item !h-[42px] !min-h-[42px] !w-10" aria-label="Más puestos" [disabled]="m.puestos >= maxPuestos" (click)="sumarPuestos(m, 1)"><svg lucidePlus class="size-3.5"></svg></button>
+              </div>
+              </div>
+
+              <button type="button" class="btn btn-accion btn-accion--ok col-span-2 gap-2 disabled:opacity-40 !h-[42px] !min-h-[42px] max-sm:!w-full sm:!w-[42px]" [title]="m.id === 0 ? 'Guardar máquina' : 'Guardar cambios'" aria-label="Guardar" [disabled]="!puedeGuardar(m)" (click)="guardar(m)"><svg lucideCheck class="size-4"></svg><span class="sm:hidden">{{ m.id === 0 ? 'Guardar máquina' : 'Guardar cambios' }}</span></button>
+            </div>
+
+            <div class="col-span-2 flex items-center gap-1.5 sm:col-auto">
+              @if (m.activo) {
+                @if (m.id > 0) {
+                  <button type="button" class="btn btn-accion btn-accion--info gap-2 !h-[42px] !min-h-[42px] max-sm:flex-1 sm:!w-[42px]" title="Desactivar máquina" aria-label="Desactivar máquina" (click)="alternarActivo(m)"><svg lucideEye class="size-4"></svg><span class="sm:hidden">Desactivar</span></button>
+                }
+              } @else {
+                <button type="button" class="btn btn-accion btn-accion--warn btn-accion--txt !h-[42px] !min-h-[42px] max-sm:flex-1" title="Activar máquina" aria-label="Activar máquina" (click)="alternarActivo(m)"><svg lucideEyeOff class="size-4"></svg> Activar</button>
+              }
+              @if (m.id === 0) {
+                <button type="button" class="btn btn-accion gap-2 !h-[42px] !min-h-[42px] max-sm:flex-1 sm:!w-[42px]" title="Quitar fila nueva" aria-label="Quitar fila nueva" (click)="descartarNueva(m)"><svg lucideX class="size-4"></svg><span class="sm:hidden">Quitar</span></button>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Curos de la máquina: cada uno con sus 8 puestos (lado A 1-4 | lado B 5-8). Muestra cómo quedará con la cantidad escrita. -->
+        <div class="mt-2.5 border-t border-dashed border-app-border2 pt-2" [class.opacity-50]="!m.activo">
+          <p class="mb-1.5 text-[11px] text-app-muted">Así quedan los curos: cada uno tiene {{ m.puestos }} {{ m.puestos === 1 ? 'puesto' : 'puestos' }}, <span class="font-semibold text-app-text2">{{ textoLados(m.puestos) }}</span>.</p>
+          <div class="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
+          @for (c of todosLosCuros; track c) {
+            @if (c <= m.curos) {
+              <div class="rounded-xl border px-2 py-1.5 sm:w-auto"
+                [class]="m.id > 0 && c > m.curosGuardados ? 'border-dashed border-orange-500 bg-tint-amber' : 'border-app-border2 bg-app-surface2'">
+                <div class="mb-1 flex items-center justify-between gap-2">
+                  <span class="text-[11px] font-bold uppercase tracking-wide text-app-text2">Curo {{ c }}</span>
+                  @if (m.id > 0 && c > m.curosGuardados) { <span class="text-[10px] font-bold uppercase text-orange-600 dark:text-orange-300">Nuevo</span> }
+                </div>
+                <div class="flex items-center justify-center gap-1.5 sm:justify-start">
+                  <div class="flex gap-0.5">
+                    @for (p of todosLosPuestos; track p) {
+                      @if (p <= mitadA(m.puestos)) {
+                        <span class="grid size-6 place-items-center rounded-md bg-orange-500/20 text-[11px] font-bold text-orange-700 dark:text-orange-300">{{ p }}</span>
+                      }
+                    }
+                  </div>
+                  @if (m.puestos > 1) {
+                    <span class="h-6 w-px bg-app-border2"></span>
+                    <div class="flex gap-0.5">
+                      @for (p of todosLosPuestos; track p) {
+                        @if (p > mitadA(m.puestos) && p <= m.puestos) {
+                          <span class="grid size-6 place-items-center rounded-md border border-orange-500/50 text-[11px] font-bold text-orange-700 dark:text-orange-300">{{ p }}</span>
+                        }
+                      }
+                    </div>
+                  }
+                </div>
+                <div class="mt-0.5 flex justify-around gap-3 text-[9px] font-semibold uppercase tracking-wider text-app-subtle">
+                  <span>Lado A</span>
+                  @if (m.puestos > 1) { <span>Lado B</span> }
+                </div>
+              </div>
+            }
+          }
+          </div>
+        </div>
+        @if (m.id > 0 && m.curos < m.curosGuardados) {
+          <p class="mt-2 text-xs font-semibold text-amber-700 dark:text-amber-300">
+            Al guardar se {{ m.curosGuardados - m.curos === 1 ? 'quitará el curo' : 'quitarán los curos' }}
+            {{ m.curos + 1 }}{{ m.curosGuardados - m.curos === 1 ? '' : ' al ' + m.curosGuardados }} (siempre se quitan los últimos).
+          </p>
+        }
+      </li>
+    } @empty {
+      <li class="grid place-items-center gap-1 rounded-2xl border border-dashed border-app-border2 p-8 text-center text-app-muted">
+        <svg lucideInbox class="size-9 opacity-40"></svg>
+        <p class="text-sm font-semibold text-app-text2">Este acopio aún no tiene máquinas</p>
+        <p class="text-xs">Usa “Agregar máquina” para crear la primera.</p>
+      </li>
+    }
+  </ul>
+</div>
+
+<!-- Botón fijo: siempre visible aunque la lista de máquinas sea larga -->
+<div class="border-t border-app-border2 bg-app-surface2 px-4 py-3 sm:px-5">
+  <button type="button" class="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-600 bg-emerald-600 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-900 dark:hover:bg-emerald-500" [disabled]="hayBorrador() || tiposMaquina().length === 0" (click)="agregarMaquina()">
+    <svg lucidePlus class="size-4"></svg> Agregar máquina
+  </button>
+</div>

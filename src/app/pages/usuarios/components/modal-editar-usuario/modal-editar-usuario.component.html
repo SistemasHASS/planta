@@ -1,5 +1,5 @@
 <div class="modal modal-open" role="dialog" aria-modal="true">
-  <div class="modal-box flex w-full !max-h-full !max-w-xl flex-col gap-0 overflow-hidden p-0">
+  <div class="modal-box flex w-full !max-h-full !max-w-xl flex-col gap-0 !overflow-visible p-0">
 
     <!-- Cabecera -->
     <div class="flex items-center justify-between gap-3 border-b border-app-border2 px-4 py-1.5 sm:px-5">
@@ -48,7 +48,7 @@
     </div>
 
     <!-- Pie -->
-    <div class="flex justify-end gap-2 border-t border-app-border2 bg-app-surface px-4 py-2.5 sm:px-5">
+    <div class="flex justify-end gap-2 rounded-b-[inherit] border-t border-app-border2 bg-app-surface px-4 py-2.5 sm:px-5">
       <button type="button" class="btn btn-sm btn-ghost" (click)="closed.emit()">Cancelar</button>
       <button type="button" class="btn btn-sm btn-primary" [disabled]="!hayCambios() || cargando()" (click)="guardar()"><svg lucideSave class="size-4"></svg> Guardar cambios</button>
     </div>

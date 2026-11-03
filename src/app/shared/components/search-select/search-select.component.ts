@@ -207,9 +207,13 @@ export class SearchSelectComponent implements OnChanges, OnDestroy {
       const estilo = getComputedStyle(el);
       const contiene = estilo.transform !== 'none' || estilo.filter !== 'none' || estilo.perspective !== 'none' || /paint|layout|strict|content/.test(estilo.contain);
       if (contiene) {
-        const caja = el.getBoundingClientRect();
-        limiteSuperior = Math.max(limiteSuperior, caja.top);
-        limiteInferior = Math.min(limiteInferior, caja.bottom);
+        // Solo limita si ese contenedor recorta lo que sobresale; si no recorta, la lista puede salir del modal y se mide con la ventana.
+        const recorta = estilo.overflowX !== 'visible' || estilo.overflowY !== 'visible';
+        if (recorta) {
+          const caja = el.getBoundingClientRect();
+          limiteSuperior = Math.max(limiteSuperior, caja.top);
+          limiteInferior = Math.min(limiteInferior, caja.bottom);
+        }
         break;
       }
     }

@@ -1,0 +1,154 @@
+<div class="modal modal-open" role="dialog" aria-modal="true">
+  <div class="modal-box flex w-full !max-h-full !max-w-6xl flex-col gap-0 overflow-hidden p-0 sm:!h-[min(48rem,92dvh)]">
+
+    <!-- Cabecera -->
+    <div class="flex items-center justify-between gap-3 border-b border-app-border2 px-4 py-1.5 sm:px-5">
+      <div class="flex min-w-0 items-center gap-3">
+        <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md">
+          <svg lucideRows3 class="size-5"></svg>
+        </span>
+        <div class="min-w-0">
+          <span class="text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Acopio configuración</span>
+          <h3 class="truncate text-base font-extrabold leading-tight text-app-heading sm:text-lg">Líneas y máquinas</h3>
+        </div>
+      </div>
+      <button type="button" class="btn btn-circle btn-ghost size-10 min-h-10 sm:size-8 sm:min-h-8" aria-label="Cerrar" (click)="closed.emit()"><svg lucideX class="size-4"></svg></button>
+    </div>
+
+    <!-- Cuerpo: lista de acopios (izquierda) y detalle (derecha) -->
+    <div class="flex min-h-0 flex-1 flex-col bg-app-surface2 sm:flex-row">
+
+      <!-- Lista de acopios -->
+      <aside class="flex shrink-0 flex-col border-b border-app-border2 sm:w-72 sm:border-b-0 sm:border-r">
+        <div class="p-3">
+          <span class="flex h-[38px] items-center gap-2 rounded-[9px] border border-app-border2 bg-app-surface px-3 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100 dark:focus-within:ring-emerald-500/25">
+            <svg lucideSearch class="size-4 shrink-0 text-app-subtle"></svg>
+            <input type="text" class="min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-app-subtle sm:text-[14px]" placeholder="Buscar acopio" aria-label="Buscar acopio" [ngModel]="filtroTexto()" (ngModelChange)="filtroTexto.set($event)" />
+          </span>
+        </div>
+        <ul class="flex gap-2 overflow-x-auto px-3 pb-3 sm:block sm:min-h-0 sm:flex-1 sm:space-y-1 sm:overflow-y-auto">
+          @for (a of acopiosFiltrados(); track a.codigoAcopio) {
+            @let activo = a.codigoAcopio === seleccionado()?.codigoAcopio;
+            <li class="w-48 shrink-0 sm:w-auto">
+              <button type="button" class="flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition"
+                [class]="activo ? 'border-emerald-500 bg-tint-emerald' : 'border-app-border2 bg-app-surface hover:bg-app-surface3 sm:border-transparent sm:bg-transparent'"
+                (click)="elegir(a)">
+                <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-app-surface3 text-app-muted" [class.!bg-emerald-600]="activo" [class.!text-white]="activo"><svg lucideBuilding2 class="size-4"></svg></span>
+                <span class="min-w-0 flex-1">
+                  <span class="block truncate text-sm font-bold text-app-heading">{{ a.acopioNombre }}</span>
+                  <span class="block text-xs text-app-muted">{{ a.codigoAcopio }}</span>
+                </span>
+                <svg lucideChevronRight class="hidden size-4 shrink-0 text-app-subtle sm:block"></svg>
+              </button>
+            </li>
+          } @empty {
+            <li class="grid place-items-center gap-1 p-6 text-center text-sm text-app-muted">
+              <svg lucideInbox class="size-8 opacity-40"></svg>
+              No se encontraron acopios
+            </li>
+          }
+        </ul>
+      </aside>
+
+      <!-- Detalle del acopio elegido -->
+      <section class="flex min-h-0 min-w-0 flex-1 flex-col">
+        @if (seleccionado(); as acopio) {
+          <div class="flex flex-wrap items-center justify-between gap-2 px-4 pt-3 sm:px-5">
+            <div class="min-w-0">
+              <h4 class="truncate text-base font-extrabold text-app-heading">{{ acopio.acopioNombre }}</h4>
+              <span class="text-xs text-app-muted">Código {{ acopio.codigoAcopio }}</span>
+            </div>
+            <div role="tablist" class="inline-flex gap-1 rounded-xl border border-app-border2 bg-app-surface3 p-1">
+              <button type="button" role="tab" [attr.aria-selected]="pestania() === 'lineas'"
+                class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition"
+                [class]="pestania() === 'lineas' ? 'bg-emerald-600 text-white shadow-sm dark:text-slate-900' : 'text-app-muted hover:bg-app-surface2 hover:text-app-heading'"
+                (click)="cambiarPestania('lineas')"><svg lucideRows3 class="size-3.5"></svg> Líneas</button>
+              <button type="button" role="tab" [attr.aria-selected]="pestania() === 'maquinas'"
+                class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition"
+                [class]="pestania() === 'maquinas' ? 'bg-emerald-600 text-white shadow-sm dark:text-slate-900' : 'text-app-muted hover:bg-app-surface2 hover:text-app-heading'"
+                (click)="cambiarPestania('maquinas')"><svg lucideCpu class="size-3.5"></svg> Máquinas</button>
+            </div>
+          </div>
+
+          @if (pestania() === 'lineas') {
+          <div #listaLineas class="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+              <!-- Líneas manuales -->
+              <div class="flex items-center justify-between gap-2 pb-3">
+                <div class="flex flex-wrap items-center gap-2">
+                  <h5 class="text-sm font-bold uppercase tracking-wide text-app-text2">Líneas manuales</h5>
+                  <span class="badge badge-soft badge-info">{{ totalLineas() }} {{ totalLineas() === 1 ? 'línea' : 'líneas' }}</span>
+                  <span class="badge badge-soft badge-neutral">{{ totalPuestosActivos() }} puestos activos</span>
+                </div>
+              </div>
+
+              <ul class="space-y-2">
+                @for (f of lineas(); track f.clave) {
+                  <li class="flex flex-wrap items-center gap-3 rounded-2xl border border-l-4 px-3 py-2.5 shadow-sm transition"
+                    [class]="f.id === 0 ? 'border-dashed border-emerald-500 bg-app-surface' : f.activo ? 'border-app-border2 border-l-indigo-500 bg-app-surface' : 'border-dashed border-amber-500/50 border-l-amber-500 bg-app-surface3'">
+                    <span class="grid size-10 shrink-0 place-items-center rounded-xl text-sm font-extrabold text-white"
+                      [class]="f.id === 0 ? 'bg-slate-400' : f.activo ? 'bg-indigo-500' : 'bg-slate-500/70'">
+                      {{ f.numero ?? 'N' }}
+                    </span>
+                    <div class="min-w-0 flex-1 basis-32">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <span class="truncate text-sm font-bold" [class]="f.activo ? 'text-app-heading' : 'text-app-muted line-through decoration-1'">{{ f.numero ? 'Línea ' + f.numero : 'Línea nueva' }}</span>
+                        @if (f.tipo) { <span class="badge badge-soft badge-sm" [class]="f.activo ? 'badge-success' : 'badge-neutral'">{{ f.tipo }}</span> }
+                        @if (!f.activo) { <span class="badge badge-soft badge-warning badge-sm gap-1"><svg lucideEyeOff class="size-3"></svg> Inactiva</span> }
+                      </div>
+                      <span class="text-xs text-app-muted">{{ f.puestos }} puestos{{ f.activo ? ' activos' : ' · fuera de servicio' }}</span>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                      <!-- Una línea inactiva no se edita: primero se vuelve a activar -->
+                      <div class="flex flex-wrap items-center gap-2 transition" [class.opacity-40]="!f.activo" [class.pointer-events-none]="!f.activo" [attr.inert]="f.activo ? null : ''">
+                        <div class="w-36">
+                          <app-search-select sortOrder="none" placeholder="Tipo" [options]="opcionesTipo(f)" [value]="f.tipo" (selected)="cambiarTipo(f, $event.value)" />
+                        </div>
+
+                        <div class="join">
+                          <button type="button" class="btn btn-sm btn-square join-item" aria-label="Menos puestos" [disabled]="f.puestos <= minPuestos" (click)="sumarPuestos(f, -1)"><svg lucideMinus class="size-3.5"></svg></button>
+                          <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" class="input input-sm join-item w-14 px-1 text-center font-semibold" aria-label="Cantidad de puestos" [value]="f.puestos > 0 ? f.puestos : ''" (keydown)="bloquearTecla($event)" (input)="escribirPuestos(f, $event)" (blur)="terminarPuestos(f)" />
+                          <button type="button" class="btn btn-sm btn-square join-item" aria-label="Más puestos" [disabled]="f.puestos >= maxPuestos" (click)="sumarPuestos(f, 1)"><svg lucidePlus class="size-3.5"></svg></button>
+                        </div>
+
+                        <button type="button" class="btn btn-accion btn-accion--ok disabled:opacity-40" [title]="f.id === 0 ? 'Guardar línea' : 'Guardar cambios'" aria-label="Guardar" [disabled]="!tieneCambios(f) || f.puestos < minPuestos" (click)="guardar(f)"><svg lucideCheck class="size-4"></svg></button>
+                      </div>
+
+                      <div class="flex items-center gap-1.5">
+                        @if (f.activo) {
+                          <button type="button" class="btn btn-accion btn-accion--info disabled:opacity-40" title="Desactivar línea" aria-label="Desactivar línea" [disabled]="f.id === 0" (click)="alternarActivo(f)"><svg lucideEye class="size-4"></svg></button>
+                        } @else {
+                          <button type="button" class="btn btn-accion btn-accion--warn btn-accion--txt" title="Activar línea" aria-label="Activar línea" (click)="alternarActivo(f)"><svg lucideEyeOff class="size-4"></svg> Activar</button>
+                        }
+                        @if (f.id === 0) {
+                          <button type="button" class="btn btn-accion" title="Quitar fila nueva" aria-label="Quitar fila nueva" (click)="descartarNueva(f)"><svg lucideX class="size-4"></svg></button>
+                        }
+                      </div>
+                    </div>
+                  </li>
+                } @empty {
+                  <li class="grid place-items-center gap-1 rounded-2xl border border-dashed border-app-border2 p-8 text-center text-app-muted">
+                    <svg lucideInbox class="size-9 opacity-40"></svg>
+                    <p class="text-sm font-semibold text-app-text2">Este acopio aún no tiene líneas</p>
+                    <p class="text-xs">Usa “Agregar línea” para crear la primera.</p>
+                  </li>
+                }
+              </ul>
+          </div>
+            <!-- Botón fijo: siempre visible aunque la lista de líneas sea larga -->
+            <div class="border-t border-app-border2 bg-app-surface2 px-4 py-3 sm:px-5">
+              <button type="button" class="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-600 bg-emerald-600 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-900 dark:hover:bg-emerald-500" [disabled]="hayBorrador()" (click)="agregarLinea()">
+                <svg lucidePlus class="size-4"></svg> Agregar línea
+              </button>
+            </div>
+          } @else {
+            <app-panel-maquinas-acopio class="flex min-h-0 flex-1 flex-col" [acopio]="acopio" />
+          }
+        } @else {
+          <div class="grid flex-1 place-items-center p-6 text-sm text-app-muted">No hay acopios.</div>
+        }
+      </section>
+    </div>
+  </div>
+  <div class="modal-backdrop bg-black/40" (click)="closed.emit()"></div>
+</div>

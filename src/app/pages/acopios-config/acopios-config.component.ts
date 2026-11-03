@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LucideBuilding2, LucideInbox, LucidePencil, LucideRefreshCcw, LucideSearch, LucideWifiOff, LucideX } from '@lucide/angular';
+import { LucideBuilding2, LucideInbox, LucidePencil, LucideRefreshCcw, LucideRows3, LucideSearch, LucideWifiOff, LucideX } from '@lucide/angular';
 import { PaginatorComponent } from '../../shared/components/paginator/paginator.component';
 import { CatalogosRepository } from '../../shared/dexiedb/repository/catalogos.repository';
 import { Configuracion } from '../../shared/interfaces/administracion.interface';
@@ -15,6 +15,7 @@ import { esDispositivoMovil } from '../../shared/utils/archivo';
 import { crearPaginacion } from '../../shared/utils/paginacion';
 import { AcopioConfig } from './acopios-config.interface';
 import { ModalEditarAcopioComponent } from './components/modal-editar-acopio/modal-editar-acopio.component';
+import { ModalLineasAcopioComponent } from './components/modal-lineas-acopio/modal-lineas-acopio.component';
 
 const texto = (valor: unknown): string => String(valor ?? '').trim();
 
@@ -29,10 +30,12 @@ const texto = (valor: unknown): string => String(valor ?? '').trim();
     FormsModule,
     PaginatorComponent,
     ModalEditarAcopioComponent,
+    ModalLineasAcopioComponent,
     LucideBuilding2,
     LucideInbox,
     LucidePencil,
     LucideRefreshCcw,
+    LucideRows3,
     LucideSearch,
     LucideWifiOff,
     LucideX,
@@ -58,6 +61,8 @@ export class AcopiosConfigComponent implements OnInit {
   readonly filtroTexto = signal('');
   /** Acopio que se está editando (null = ventana cerrada). */
   readonly editando = signal<AcopioConfig | null>(null);
+  /** Ventana de líneas y máquinas (true = abierta). */
+  readonly verLineas = signal(false);
 
   /** Acopios que coinciden con lo escrito en el buscador (código, nombre o serie). */
   readonly acopiosFiltrados = computed(() => {
@@ -125,6 +130,16 @@ export class AcopiosConfigComponent implements OnInit {
   /** Nombres de los tipos de proceso que están activos en el acopio. */
   tiposActivos(acopio: AcopioConfig): string[] {
     return acopio.tiposProcesoEmpacado.filter((t) => t.activo).map((t) => t.nombre);
+  }
+
+  /** Abre la ventana de líneas y máquinas mostrando la carga. */
+  async abrirLineas(): Promise<void> {
+    this.loading.show('Cargando líneas y máquinas...');
+    try {
+      this.verLineas.set(true);
+    } finally {
+      await this.loading.hideAfterMinimum();
+    }
   }
 
   /** Celular o tablet: un toque sobre la fila abre la edición. */

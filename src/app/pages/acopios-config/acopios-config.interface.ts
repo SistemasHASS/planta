@@ -3,6 +3,8 @@ export interface TipoDeAcopio {
   id: number;
   codigo: string;
   nombre: string;
+  /** true = es un proceso de máquina. */
+  maquina?: boolean;
   activo: boolean;
 }
 

@@ -18,10 +18,20 @@
   th.acciones-fija {
     z-index: 5;
     background-color: var(--app-surface-3);
-    box-shadow: inset 0 -2px 0 var(--tint-emerald-border), -8px 0 8px -8px rgb(0 0 0 / 0.18);
+    box-shadow:
+      inset 0 -2px 0 var(--tint-emerald-border),
+      -8px 0 8px -8px rgb(0 0 0 / 0.18);
   }
-  .acciones-fija-grupo { background-color: var(--tint-emerald-bg); }
-  .acciones-fija-hijo { background-color: var(--app-surface-2); }
-  tr:hover > .acciones-fija:not(th) { background-color: var(--app-surface-2); }
-  tr:hover > .acciones-fija-grupo:not(th) { background-color: var(--tint-emerald-bg); }
+  .acciones-fija-grupo {
+    background-color: var(--tint-emerald-bg);
+  }
+  .acciones-fija-hijo {
+    background-color: var(--app-surface-2);
+  }
+  tr:hover > .acciones-fija:not(th) {
+    background-color: var(--app-surface-2);
+  }
+  tr:hover > .acciones-fija-grupo:not(th) {
+    background-color: var(--tint-emerald-bg);
+  }
 }

@@ -109,7 +109,7 @@
           <div class="flex flex-wrap items-center justify-between gap-2">
             <h2 class="text-sm font-bold text-app-text">Detalle por grupo</h2>
             <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-              <input type="search" class="input input-bordered h-[34px] min-h-[34px] w-full rounded-[7px] border-app-border bg-app-surface px-3 text-[16px] text-app-heading sm:w-64 sm:text-[13px]" placeholder="Buscar grupo, lote o supervisor" [ngModel]="busqueda()" (ngModelChange)="cambiarBusqueda($event)" />
+              <input type="search" class="input input-bordered h-[34px] min-h-[34px] w-full rounded-[7px] border-app-border bg-app-surface px-3 text-[16px] text-app-heading sm:w-64 sm:text-[13px]" placeholder="Buscar grupo, lote, variedad o supervisor" [ngModel]="busqueda()" (ngModelChange)="cambiarBusqueda($event)" />
             </div>
           </div>
 
@@ -120,6 +120,7 @@
                     <tr>
                       <th>Grupo</th>
                       <th>Lote</th>
+                      <th>Variedad</th>
                       <th>Supervisor</th>
                       <th class="text-right">Cosechadores</th>
                       <th class="text-right">Jarra blanca</th>
@@ -132,10 +133,11 @@
                     </tr>
                   </thead>
                   <tbody>
-                    @for (f of paginacion.paged(); track f.grupo + '|' + f.lote + '|' + f.dniSupervisor) {
+                    @for (f of paginacion.paged(); track f.grupo + '|' + f.lote + '|' + f.variedad + '|' + f.dniSupervisor) {
                       <tr>
                         <td class="font-semibold">{{ f.grupo }}</td>
                         <td>{{ f.lote }}</td>
+                        <td>{{ f.variedad }}</td>
                         <td>
                           <span class="font-semibold">{{ f.supervisor }}</span>
                           @if (f.dniSupervisor) { <span class="ml-1 text-[11px] text-app-muted">{{ f.dniSupervisor }}</span> }
@@ -151,13 +153,13 @@
                       </tr>
                     }
                     @if (filasGrupo().length === 0) {
-                      <tr><td colspan="11" class="text-center text-app-subtle">Sin datos</td></tr>
+                      <tr><td colspan="12" class="text-center text-app-subtle">Sin datos</td></tr>
                     }
                   </tbody>
                   @if (filasGrupo().length > 0) {
                     <tfoot class="sticky bottom-0 z-10">
                       <tr class="font-extrabold">
-                        <td colspan="4" class="bg-app-surface2">Total</td>
+                        <td colspan="5" class="bg-app-surface2">Total</td>
                         <td class="bg-app-surface2 text-right">{{ totales().blanca | number }}</td>
                         <td class="bg-app-surface2 text-right">{{ totales().verde | number }}</td>
                         <td class="bg-app-surface2 text-right">{{ totales().descarte | number }}</td>

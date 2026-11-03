@@ -29,7 +29,8 @@ export type FuenteSelect =
 export interface CampoCatalogo {
   campo: string;
   etiqueta: string;
-  tipo: 'texto' | 'select' | 'numero';
+  /** 'booleano' = casilla de Sí/No (se guarda 1 o 0). */
+  tipo: 'texto' | 'select' | 'numero' | 'booleano';
   maxLength?: number;
   requerido?: boolean;
   /** Se escribe en mayúsculas (placas, licencia). */
@@ -231,8 +232,9 @@ const NUEVOS: Partial<Record<CatalogoKey, ConfigCatalogo>> = {
     campos: [
       { campo: 'codigo', etiqueta: 'Código', tipo: 'texto', maxLength: 5, requerido: true, mayusculas: true, placeholder: 'Ej: EXP' },
       { campo: 'nombre', etiqueta: 'Nombre', tipo: 'texto', maxLength: 100, requerido: true, placeholder: 'Ej: EXPORTACIÓN' },
+      { campo: 'maquina', etiqueta: 'Proceso de máquina', tipo: 'booleano', porDefecto: '0' },
     ],
-    columnas: ['codigo', 'nombre'],
+    columnas: ['codigo', 'nombre', 'maquina'],
     campoUnico: 'codigo',
     campoNombre: ['nombre'],
     filtros: [],
@@ -508,7 +510,8 @@ const NUEVOS: Partial<Record<CatalogoKey, ConfigCatalogo>> = {
 export const CATALOGOS = { ...OPERATIVOS, ...NUEVOS } as Record<CatalogoKey, ConfigCatalogo>;
 
 const texto = (valor: unknown): string => String(valor ?? '').trim();
-const esVerdadero = (valor: unknown): boolean =>
+/** El dato viene como true/false o 1/0 según de dónde llegue. */
+export const esVerdadero = (valor: unknown): boolean =>
   typeof valor === 'string' ? ['1', 'true', 'si', 'sí'].includes(valor.trim().toLowerCase()) : valor === true || valor === 1;
 
 /** Etiqueta de una columna o campo. */
@@ -535,6 +538,7 @@ export function valorMostrado(config: ConfigCatalogo, registro: RegistroCatalogo
   const def = config.campos.find((c) => c.campo === campo);
   const valor = texto(registro[campo]);
   if (def?.tipo === 'select' && def.opciones) return def.opciones.find((o) => o.value === valor)?.label ?? (valor || '—');
+  if (def?.tipo === 'booleano') return esVerdadero(valor) ? 'Sí' : 'No';
   return valor || '—';
 }
 

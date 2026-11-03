@@ -106,7 +106,7 @@ export class ReporteAvanceGrupoComponent implements OnInit, OnDestroy {
   readonly filasGrupo = computed<AvanceGrupoFila[]>(() => {
     const filas = this.reporteData()?.grupos ?? [];
     const q = this.busqueda().trim().toLowerCase();
-    return q ? filas.filter((f) => `${f.grupo} ${f.lote} ${f.dniSupervisor} ${f.supervisor}`.toLowerCase().includes(q)) : filas;
+    return q ? filas.filter((f) => `${f.grupo} ${f.lote} ${f.variedad} ${f.dniSupervisor} ${f.supervisor}`.toLowerCase().includes(q)) : filas;
   });
   readonly paginacion = crearPaginacion(() => this.filasGrupo(), 15);
   readonly totales = computed(() =>
@@ -394,11 +394,9 @@ export class ReporteAvanceGrupoComponent implements OnInit, OnDestroy {
     if (!el || filas.length === 0) return;
     el.style.height = `${Math.max(220, filas.length * 34 + 90)}px`;
 
-    // Etiqueta: grupo, lote y los dos primeros nombres del supervisor (el SP entrega "APELLIDO APELLIDO NOMBRE").
+    // Etiqueta de cada barra: grupo, lote y variedad (el supervisor se ve en la tabla).
     const etiqueta = (f: AvanceGrupoFila): string => {
-      const corto = texto(f.supervisor).split(/\s+/).slice(0, 2).join(' ');
-      const base = `${texto(f.grupo)} · ${texto(f.lote)}`;
-      return corto ? `${base} · ${corto}` : base;
+      return `${texto(f.grupo)} · ${texto(f.lote)} · ${texto(f.variedad)}`;
     };
 
     this.chartGrupo = Highcharts.chart(el, {

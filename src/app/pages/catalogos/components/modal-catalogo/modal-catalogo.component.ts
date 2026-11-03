@@ -10,7 +10,7 @@ import { ConnectivityService } from '../../../../shared/services/connectivity.se
 import { FeedbackModalService } from '../../../../shared/services/feedback-modal.service';
 import { LoadingService } from '../../../../shared/services/loading.service';
 import { portalToBody } from '../../../../shared/utils/portal';
-import { CampoCatalogo, ConfigCatalogo, OpcionCampo, RegistroCatalogo, registroAJson } from '../../catalogo.interface';
+import { CampoCatalogo, ConfigCatalogo, OpcionCampo, RegistroCatalogo, esVerdadero, registroAJson } from '../../catalogo.interface';
 
 const texto = (valor: unknown): string => String(valor ?? '').trim();
 
@@ -104,7 +104,10 @@ export class ModalCatalogoComponent implements OnInit {
   async ngOnInit(): Promise<void> {
     const r = this.registro();
     const inicial: Record<string, string> = {};
-    for (const c of this.config().campos) inicial[c.campo] = r ? texto(r[c.campo]) : (c.porDefecto ?? '');
+    for (const c of this.config().campos) {
+      if (c.tipo === 'booleano') inicial[c.campo] = (r ? esVerdadero(r[c.campo]) : esVerdadero(c.porDefecto)) ? '1' : '0';
+      else inicial[c.campo] = r ? texto(r[c.campo]) : (c.porDefecto ?? '');
+    }
     this.valores.set(inicial);
     this.activo.set(r ? r.activo : true);
     this.inicial = this.resumen();

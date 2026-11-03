@@ -15,7 +15,12 @@
       <section class="rounded-2xl border border-tint-emerald-border bg-tint-emerald px-4 py-3">
         <div class="grid gap-3 sm:grid-cols-2">
           @for (c of config().campos; track c.campo) {
-            @if (c.tipo === 'select') {
+            @if (c.tipo === 'booleano') {
+              <label class="flex cursor-pointer items-center gap-3 sm:col-span-2">
+                <input type="checkbox" class="checkbox checkbox-success checkbox-sm" [checked]="valores()[c.campo] === '1'" (change)="cambiar(c, $any($event.target).checked ? '1' : '0')" />
+                <span class="text-sm font-semibold text-app-heading">{{ c.etiqueta }}</span>
+              </label>
+            } @else if (c.tipo === 'select') {
               <div class="sm:col-span-1">
                 <app-search-select [label]="c.etiqueta" [required]="!!c.requerido" placeholder="Seleccione" sortOrder="none" [options]="opcionesDe(c)" [value]="valores()[c.campo]" (selected)="cambiar(c, $any($event.value))" />
               </div>

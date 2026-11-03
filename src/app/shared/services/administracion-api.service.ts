@@ -90,6 +90,34 @@ export class AdministracionApiService {
     return this.post('matrices-compatibilidad/sincronizar', { json });
   }
 
+  /** Líneas (activas e inactivas) de un acopio: [{ id, numero, codigoTipoProcesoEmpacado, cantidadPuestos, activo }]. Solo administrador. */
+  acopioLineas(codigoAcopio: string): Promise<SobreSp<Fila[]>> {
+    return this.post('acopio-lineas/listar', { codigoAcopio });
+  }
+
+  /**
+   * Crea o actualiza líneas de un acopio (también activar o desactivar). Solo administrador.
+   * json = [{ id, modo: 'nuevo' | 'editado', codigoAcopio, codigoTipoProcesoEmpacado, cantidadPuestos, activo }] (texto JSON).
+   * Responde por cada fila: [{ rowNo, id, numero, accion }] (el número lo asigna el servidor).
+   */
+  sincronizarAcopioLineas(json: string): Promise<SobreSp<Fila[]>> {
+    return this.post('acopio-lineas/sincronizar', { json });
+  }
+
+  /** Máquinas (activas e inactivas) de un acopio: [{ id, codigo, nombre, cantidadCuros, activo }]. Solo administrador. */
+  acopioMaquinas(codigoAcopio: string): Promise<SobreSp<Fila[]>> {
+    return this.post('acopio-maquinas/listar', { codigoAcopio });
+  }
+
+  /**
+   * Crea o actualiza máquinas de un acopio (también activar o desactivar). Solo administrador.
+   * json = [{ id, modo: 'nuevo' | 'editado', codigoAcopio, codigo, nombre, cantidadCuros, activo }] (texto JSON).
+   * Responde por cada fila: [{ rowNo, id, codigo, accion }].
+   */
+  sincronizarAcopioMaquinas(json: string): Promise<SobreSp<Fila[]>> {
+    return this.post('acopio-maquinas/sincronizar', { json });
+  }
+
   private post(ruta: string, cuerpo: object): Promise<SobreSp<Fila[]>> {
     return firstValueFrom(this.http.post<SobreSp<Fila[]>>(`${this.baseUrl}/${ruta}`, cuerpo));
   }

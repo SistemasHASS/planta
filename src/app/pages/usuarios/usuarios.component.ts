@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import {
   LucideChartColumn,
   LucideCircleHelp,
+  LucideClipboardPen,
   LucideEye,
   LucideInbox,
   LucideMonitor,
@@ -50,6 +51,7 @@ const texto = (valor: unknown): string => String(valor ?? '').trim();
     ModalEditarUsuarioComponent,
     LucideChartColumn,
     LucideCircleHelp,
+    LucideClipboardPen,
     LucideEye,
     LucideInbox,
     LucideMonitor,
@@ -148,6 +150,7 @@ export class UsuariosComponent implements OnInit {
       case ROLES.guiasManuales: return 'badge-secondary';
       case ROLES.coordinacion: return 'badge-warning';
       case ROLES.operaciones: return 'badge-primary';
+      case ROLES.anotador: return 'badge-accent';
       default: return 'badge-neutral';
     }
   }

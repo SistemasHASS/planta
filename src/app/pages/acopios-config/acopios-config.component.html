@@ -18,7 +18,10 @@
           <h2 class="text-sm font-bold uppercase tracking-wide text-app-text2">Acopios</h2>
           <span class="badge badge-soft badge-success">{{ acopiosFiltrados().length }} {{ acopiosFiltrados().length === 1 ? 'registro' : 'registros' }}</span>
         </div>
-        <button type="button" class="btn btn-primary btn-sm" (click)="cargarAcopios()"><svg lucideRefreshCcw class="size-4"></svg> Actualizar</button>
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" class="btn btn-sm gap-2 border border-emerald-600 bg-emerald-600 px-4 font-bold text-white shadow-sm transition hover:-translate-y-px hover:bg-emerald-700 disabled:opacity-50 dark:border-emerald-600 dark:bg-emerald-600 dark:text-slate-900 dark:hover:bg-emerald-500" [disabled]="acopios().length === 0" (click)="abrirLineas()"><svg lucideRows3 class="size-4"></svg> Líneas y máquinas</button>
+          <button type="button" class="btn btn-primary btn-sm" (click)="cargarAcopios()"><svg lucideRefreshCcw class="size-4"></svg> Actualizar</button>
+        </div>
       </div>
 
       <!-- Buscador -->
@@ -98,4 +101,8 @@
 
 @if (editando(); as acopio) {
   <app-modal-editar-acopio [acopio]="acopio" [idProyecto]="cfg()?.idProyecto ?? ''" (saved)="alGuardar($event)" (closed)="editando.set(null)" />
+}
+
+@if (verLineas()) {
+  <app-modal-lineas-acopio [acopios]="acopios()" (closed)="verLineas.set(false)" />
 }

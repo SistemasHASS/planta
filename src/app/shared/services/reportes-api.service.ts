@@ -203,6 +203,7 @@ export interface AvanceGrupoKpis {
 export interface AvanceGrupoFila {
   grupo: string;
   lote: string;
+  variedad: string;
   dniSupervisor: string;
   supervisor: string;
   cosechadores: number;
