@@ -72,13 +72,14 @@ const NAV_SECTIONS: NavSection[] = [
     key: 'configuraciones',
     title: 'Configuraciones',
     defaultOpen: true,
-    items: [{ label: 'Parametros', path: '/parametros', icon: 'sliders', roles: [ROLES.logistica, ROLES.admin, ROLES.monitor, ROLES.guiasManuales] }],
+    items: [{ label: 'Parametros', path: '/parametros', icon: 'sliders', roles: [ROLES.logistica, ROLES.admin, ROLES.monitor, ROLES.guiasManuales, ROLES.anotador] }],
   },
   {
     key: 'gestion',
     title: 'Gestión',
     defaultOpen: true,
     items: [
+      { label: 'Panel de empaque', path: '/empacadores/jornada', icon: 'calendar', roles: [ROLES.anotador] },
       { label: 'Procesos', path: '/procesos', icon: 'calendar', roles: [ROLES.logistica, ROLES.admin] },
       { label: 'Palets', path: '/palets', icon: 'package', roles: [ROLES.logistica, ROLES.admin] },
       { label: 'Guías', path: '/guias', icon: 'truck', roles: [ROLES.logistica, ROLES.admin, ROLES.monitor] },

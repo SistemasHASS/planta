@@ -1,0 +1,119 @@
+@if (!escaneando()) {
+  <!-- 1. Elegir formato y tipo de empaque (una sola vez) -->
+  <div class="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" (click)="closed.emit()">
+    <div class="w-full max-w-sm min-w-0 space-y-4 rounded-3xl bg-app-surface p-5 shadow-2xl" (click)="$event.stopPropagation()">
+      <div>
+        <p class="text-xs font-extrabold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">Recolección rápida</p>
+        <p class="text-xl font-extrabold leading-tight text-app-heading">¿Qué vas a recolectar?</p>
+        <p class="text-sm text-app-muted">Elige el formato y el tipo de empaque. Después solo escaneas el QR de cada empacador.</p>
+      </div>
+      <div class="grid grid-cols-[minmax(0,1fr)] gap-3">
+        <app-search-select class="block min-w-0" label="Formato" placeholder="Formato" [disabled]="cargandoTipos()" [options]="recoleccion.opcionesFormato()" [value]="formatoId() || null" (selected)="elegirFormato($event)" />
+        <app-search-select class="block min-w-0" label="Tipo de empaque" placeholder="Tipo de empaque" [disabled]="cargandoTipos() || !formatoId()" [options]="tiposEmpaque()" [value]="tipoEmpaqueId() || null" (selected)="elegirTipo($event)" />
+      </div>
+      @if (cargandoTipos()) {
+        <p class="flex items-center gap-2 text-xs font-semibold text-app-muted"><span class="loading loading-spinner loading-xs"></span> Cargando tipos de empaque…</p>
+      }
+      @if (errorTipos()) {
+        <p class="rounded-xl border-2 border-tint-rose-border bg-tint-rose p-3 text-sm font-semibold text-app-heading" role="alert">{{ errorTipos() }}</p>
+      }
+      <div class="grid gap-2">
+        <button type="button" class="btn btn-primary btn-lg" [disabled]="cargandoTipos() || !formatoId() || !tipoEmpaqueId()" (click)="comenzar()">Comenzar a escanear</button>
+        <button type="button" class="btn btn-ghost" (click)="closed.emit()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+} @else {
+  <!-- 2. Cámara. Mientras se atiende un código queda oculta y el panel de abajo se pone encima. -->
+  <app-qr-scanner-modal
+    [class.hidden]="panel() !== null"
+    titulo="Recolección rápida"
+    [subtitulo]="resumenEleccion()"
+    [resultado]="resultadoEscaner()"
+    (scanned)="alLeerQr($event)"
+    (closed)="volverAEleccion()" />
+
+  @if (aviso()) {
+    <div class="pointer-events-none fixed inset-x-0 top-4 z-[1200] flex justify-center px-4" role="status" aria-live="polite">
+      <p class="max-w-sm rounded-2xl bg-emerald-600 px-4 py-3 text-center text-sm font-extrabold text-white shadow-xl">✓ {{ aviso() }}</p>
+    </div>
+  }
+
+  @if (panel(); as p) {
+    <div class="fixed inset-0 z-[1100] flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true">
+      <div class="flex max-h-[92dvh] w-full min-w-0 max-w-sm flex-col overflow-y-auto rounded-3xl bg-app-surface shadow-2xl">
+        @if (p.tipo === 'buscando') {
+            <div class="grid place-items-center px-8 py-14" role="status" aria-live="polite">
+              <div class="flex flex-col items-center gap-3">
+                <span class="loading loading-spinner loading-lg text-emerald-500"></span>
+                <span class="text-base font-bold text-app-heading">Buscando empacador…</span>
+              </div>
+            </div>
+          } @else if (p.tipo === 'error') {
+            <div class="flex flex-col gap-4 p-5">
+              <div class="space-y-1 rounded-2xl border-2 border-tint-rose-border bg-tint-rose p-4" role="alert">
+                <p class="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide text-rose-700 dark:text-rose-300">
+                  <span class="grid size-5 place-items-center rounded-full bg-rose-500 text-[11px] leading-none text-white" aria-hidden="true">!</span>
+                  No se puede registrar
+                </p>
+                <p class="text-base font-semibold text-app-heading">{{ p.mensaje }}</p>
+              </div>
+              <button type="button" class="btn btn-primary btn-lg w-full" (click)="seguirEscaneando()">Volver a escanear</button>
+            </div>
+          } @else if (p.tipo === 'captura') {
+            <!-- Destino bien grande, igual que en el escáner de asignación -->
+            <div class="flex shrink-0 items-center justify-center gap-6 bg-gradient-to-r from-emerald-600 to-emerald-500 px-4 py-3 text-white">
+              <div class="text-center leading-none">
+                <div class="text-xs font-extrabold uppercase tracking-[0.2em] opacity-90">Línea</div>
+                <div class="mt-1 text-5xl font-black">{{ p.linea['numero'] }}</div>
+              </div>
+              <span class="h-12 w-px bg-white/50"></span>
+              <div class="text-center leading-none">
+                <div class="text-xs font-extrabold uppercase tracking-[0.2em] opacity-90">Puesto</div>
+                <div class="mt-1 text-5xl font-black">P{{ p.puesto }}</div>
+              </div>
+            </div>
+
+            <form class="flex flex-col gap-4 p-5" (submit)="$event.preventDefault(); guardar()">
+              <div>
+                <p class="text-xl font-extrabold leading-tight text-app-heading">{{ p.empacador['nombreCompleto'] }}</p>
+                <p class="text-sm text-app-muted">Documento <strong class="text-app-heading">{{ p.empacador['numeroDocumento'] }}</strong></p>
+              </div>
+
+              <div class="grid grid-cols-[minmax(0,1fr)] gap-3">
+                <app-search-select class="block min-w-0" label="Formato" placeholder="Formato" [disabled]="guardando() || capCargando()" [options]="recoleccion.opcionesFormato()" [value]="capFormatoId() || null" (selected)="elegirFormatoCaptura($event)" />
+                <app-search-select class="block min-w-0" label="Tipo de empaque" placeholder="Tipo de empaque" [disabled]="guardando() || capCargando() || !capFormatoId()" [options]="capTipos()" [value]="capTipoId() || null" (selected)="elegirTipoCaptura($event)" />
+              </div>
+
+              @if (p.existente; as ex) {
+                <p class="rounded-xl border border-tint-amber-border bg-tint-amber p-3 text-sm font-semibold text-app-heading">
+                  Ya tiene <strong>{{ ex.cantidad }}</strong> caja(s) en esta recolección. Lo que escribas reemplaza ese total.
+                  @if (cambiaEmpaque(ex)) { <br />Su formato o tipo de empaque cambiará a lo elegido aquí. }
+                </p>
+              }
+
+              <div>
+                <p class="mb-2 text-center text-xs font-extrabold uppercase tracking-wide text-app-muted">Cantidad de cajas</p>
+                <div class="flex items-center justify-center gap-3">
+                  <button type="button" class="btn btn-outline btn-circle btn-lg text-2xl" aria-label="Menos una caja" [disabled]="cantidad() <= 0 || guardando()" (click)="sumar(-1)">−</button>
+                  <input #campo type="text" inputmode="numeric" pattern="[0-9]*" maxlength="5" autocomplete="off" placeholder="0" class="input input-bordered h-16 w-32 text-center text-3xl font-extrabold" aria-label="Cantidad de cajas" [value]="cantidad() || ''" [disabled]="guardando()" (input)="escribir($any($event.target))" (keydown)="soloDigitos($event)" (focus)="$any($event.target).select()" />
+                  <button type="button" class="btn btn-outline btn-circle btn-lg text-2xl" aria-label="Más una caja" [disabled]="guardando()" (click)="sumar(1)">+</button>
+                </div>
+              </div>
+
+              @if (errorGuardar()) {
+                <p class="rounded-xl border-2 border-tint-rose-border bg-tint-rose p-3 text-sm font-semibold text-app-heading" role="alert">{{ errorGuardar() }}</p>
+              }
+
+              <div class="grid gap-2">
+                <button type="submit" class="btn btn-primary btn-lg" [disabled]="guardando() || capCargando() || !capFormatoId() || !capTipoId() || cantidad() < 1">
+                  @if (guardando()) { <span class="loading loading-spinner loading-sm"></span> Guardando… } @else { Guardar y escanear otro }
+                </button>
+                <button type="button" class="btn btn-ghost" [disabled]="guardando()" (click)="seguirEscaneando()">Cancelar</button>
+              </div>
+            </form>
+          }
+      </div>
+    </div>
+  }
+}

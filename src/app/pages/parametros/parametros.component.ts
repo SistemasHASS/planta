@@ -132,6 +132,11 @@ export class ParametrosComponent implements OnInit {
       this.feedback.error('No se pudo guardar la configuración');
       return;
     }
+    // Anotador: solo se guarda el parámetro, no se descarga nada más (por ahora no tiene otras pantallas).
+    if (texto(this.usuario()?.idRol).toUpperCase() === ROLES.anotador) {
+      this.feedback.success('Configuración guardada', 'Listo');
+      return;
+    }
     await this.descargarCatalogos(cfg);
   }
 

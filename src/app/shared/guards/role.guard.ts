@@ -27,7 +27,7 @@ export const ROLE_LABELS: Record<string, string> = {
 const normalizeRole = (value: unknown): string => String(value ?? '').trim().toUpperCase();
 
 /** Roles que pueden abrir Parametros: es la pantalla a la que se vuelve cuando una ruta no está permitida. */
-const ROLES_CON_PARAMETROS: string[] = [ROLES.logistica, ROLES.admin, ROLES.monitor, ROLES.guiasManuales];
+const ROLES_CON_PARAMETROS: string[] = [ROLES.logistica, ROLES.admin, ROLES.monitor, ROLES.guiasManuales, ROLES.anotador];
 
 /**
  * Guard por rol para una ruta puntual:

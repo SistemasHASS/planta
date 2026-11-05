@@ -53,7 +53,11 @@ export class TopbarComponent implements OnInit {
     const codigo = texto(this.usuario()?.codigoAcopio);
     return !!codigo && codigo !== '0';
   });
-  readonly acopio = computed(() => `${texto(this.usuario()?.acopioNombre)} - ${texto(this.usuario()?.serieGuia)}`);
+  /** El anotador no emite guías: no tiene serie. */
+  readonly sinSerie = computed(() => texto(this.usuario()?.idRol ?? this.usuario()?.rol).toUpperCase() === 'ANPLA');
+  readonly acopio = computed(() => this.sinSerie()
+    ? texto(this.usuario()?.acopioNombre)
+    : `${texto(this.usuario()?.acopioNombre)} - ${texto(this.usuario()?.serieGuia)}`);
 
   readonly frutaCorta = computed(() => resumen(this.fruta()));
   readonly empresaCorta = computed(() => resumen(this.empresa()));

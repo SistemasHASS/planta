@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { LucideSave, LucideUser, LucideX } from '@lucide/angular';
 import { SearchSelectComponent, SearchSelectOption } from '../../../../shared/components/search-select/search-select.component';
-import { ROLE_LABELS } from '../../../../shared/guards/role.guard';
+import { ROLES, ROLE_LABELS } from '../../../../shared/guards/role.guard';
 import { AdministracionApiService } from '../../../../shared/services/administracion-api.service';
 import { CatalogosApiService } from '../../../../shared/services/catalogos-api.service';
 import { ConnectivityService } from '../../../../shared/services/connectivity.service';
@@ -56,6 +56,8 @@ export class ModalEditarUsuarioComponent implements OnInit {
 
   protected codigoInicial = '';
 
+  /** El anotador solo necesita el acopio: no emite guías, así que no tiene serie. */
+  readonly esAnotador = computed(() => texto(this.usuario().idRol).toUpperCase() === ROLES.anotador);
   readonly perfil = computed(() => ROLE_LABELS[texto(this.usuario().idRol).toUpperCase()] ?? texto(this.usuario().idRol));
 
   readonly opcionesAcopio = computed<SearchSelectOption[]>(() => [

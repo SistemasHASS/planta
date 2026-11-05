@@ -1,0 +1,151 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-sm sm:p-6" role="dialog" aria-modal="true" aria-labelledby="historial-titulo" (click)="closed.emit()">
+  <div class="flex h-full max-h-[56rem] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-app-surface shadow-2xl ring-1 ring-black/5" (click)="$event.stopPropagation()">
+
+    <!-- Encabezado -->
+    <div class="flex items-center gap-3 bg-gradient-to-r from-emerald-600 to-emerald-700 px-4 py-3 text-white sm:px-5">
+      <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-white/15 ring-1 ring-white/20">
+        <svg lucideBoxes class="size-5"></svg>
+      </span>
+      <div class="min-w-0 flex-1">
+        <h2 id="historial-titulo" class="text-lg font-extrabold leading-tight">Historial de recolecciones</h2>
+        <p class="text-xs text-emerald-50/90">Solo ves tus recolecciones de la jornada.</p>
+      </div>
+      <button type="button" class="grid size-9 shrink-0 place-items-center rounded-full bg-white/10 transition hover:bg-white/25" aria-label="Cerrar" (click)="closed.emit()">
+        <svg lucideX class="size-5"></svg>
+      </button>
+    </div>
+
+    @if (cargandoLista()) {
+      <div class="grid flex-1 place-items-center"><span class="loading loading-spinner loading-lg text-emerald-500"></span></div>
+    } @else if (errorLista()) {
+      <div class="grid flex-1 place-items-center p-6">
+        <p class="rounded-xl border border-tint-amber-border bg-tint-amber p-3 text-sm text-app-heading">{{ errorLista() }}</p>
+      </div>
+    } @else if (recolecciones().length === 0) {
+      <div class="grid flex-1 place-items-center p-6 text-center">
+        <div>
+          <span class="mx-auto mb-3 grid size-14 place-items-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800"><svg lucideBoxes class="size-7"></svg></span>
+          <p class="text-base font-bold text-app-heading">Todavía no tienes recolecciones</p>
+          <p class="text-sm text-app-muted">Cuando inicies una, aparecerá aquí con sus cajas.</p>
+        </div>
+      </div>
+    } @else {
+      <div class="flex min-h-0 flex-1 flex-col sm:flex-row">
+
+        <!-- Lista de recolecciones -->
+        <nav class="flex shrink-0 gap-2 overflow-x-auto border-b border-app-border2 bg-slate-50 p-2.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:w-64 sm:flex-col sm:overflow-y-auto sm:overflow-x-visible sm:border-b-0 sm:border-r sm:p-3 dark:bg-slate-900/40" aria-label="Mis recolecciones">
+          <p class="hidden px-1 pb-1 text-[11px] font-extrabold uppercase tracking-wider text-app-muted sm:block">Mis recolecciones</p>
+          @for (r of recolecciones(); track r['id']) {
+            <button type="button" class="relative w-36 shrink-0 rounded-xl border px-3 py-2 text-left shadow-sm transition sm:w-auto sm:py-2.5" [class]="seleccionada() === r ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-500/30 dark:bg-emerald-900/30' : 'border-app-border2 bg-app-surface hover:border-emerald-300 dark:hover:border-emerald-700'" [attr.aria-current]="seleccionada() === r" (click)="elegir(r)">
+              <span class="flex items-center justify-between gap-2">
+                <span class="text-base font-extrabold text-app-heading">#{{ r['numero'] }}</span>
+                @if (abierta(r)) {
+                  <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-extrabold uppercase text-white"><span class="size-1.5 animate-pulse rounded-full bg-white"></span>En curso</span>
+                } @else {
+                  <span class="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-extrabold uppercase text-slate-600 dark:bg-slate-700 dark:text-slate-300">Cerrada</span>
+                }
+              </span>
+              <span class="mt-0.5 block text-sm font-bold text-app-heading">{{ r['totalCajas'] }} <span class="font-semibold text-app-muted">{{ +r['totalCajas'] === 1 ? 'caja' : 'cajas' }} · {{ r['registros'] }} {{ +r['registros'] === 1 ? 'empacador' : 'empacadores' }}</span></span>
+              <span class="block text-[11px] text-app-muted">{{ fechaHora(r['fechaInicio']) }}</span>
+            </button>
+          }
+        </nav>
+
+        <!-- Detalle de la recolección elegida -->
+        <section class="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
+          @if (seleccionada(); as sel) {
+            <div class="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <p class="text-[11px] font-extrabold uppercase tracking-wider text-app-muted">Recolección</p>
+                <p class="text-3xl font-extrabold leading-none text-app-heading">#{{ sel['numero'] }}</p>
+              </div>
+              <p class="text-right text-[11px] leading-snug text-app-muted">
+                <span class="block">Inicio {{ fechaHora(sel['fechaInicio']) }}</span>
+                @if (!abierta(sel) && sel['fechaFin']) { <span class="block">Fin {{ fechaHora(sel['fechaFin']) }}</span> }
+              </p>
+            </div>
+
+            @if (cargandoDetalle()) {
+              <div class="grid place-items-center py-16"><span class="loading loading-spinner loading-md text-emerald-500"></span></div>
+            } @else if (errorDetalle()) {
+              <p class="rounded-xl border border-tint-amber-border bg-tint-amber p-3 text-sm text-app-heading">{{ errorDetalle() }}</p>
+            } @else if (detalle().length === 0) {
+              <div class="rounded-2xl border border-dashed border-app-border2 p-8 text-center">
+                <p class="text-sm font-bold text-app-heading">Esta recolección no tiene cajas registradas</p>
+                <p class="text-xs text-app-muted">Toca un empacador en "Recolección de cajas" para registrar.</p>
+              </div>
+            } @else {
+              <!-- Resumen y buscador -->
+              <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div class="flex flex-wrap gap-2 text-xs font-bold">
+                  <span class="rounded-full bg-emerald-100 px-3 py-1.5 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">{{ totalCajas() }} {{ totalCajas() === 1 ? 'caja' : 'cajas' }}</span>
+                  <span class="rounded-full bg-slate-200 px-3 py-1.5 text-slate-700 dark:bg-slate-700 dark:text-slate-200">{{ detalle().length }} {{ detalle().length === 1 ? 'empacador' : 'empacadores' }}</span>
+                </div>
+                <input type="search" class="input input-bordered input-sm w-full sm:ml-auto sm:w-64" placeholder="Buscar por nombre o DNI" aria-label="Buscar empacador" autocomplete="off" [value]="busqueda()" (input)="busqueda.set($any($event.target).value)" />
+              </div>
+
+              @if (filas().length === 0) {
+                <p class="rounded-xl border border-dashed border-app-border2 p-6 text-center text-sm text-app-muted">Ningún empacador coincide con "{{ busqueda() }}".</p>
+              } @else {
+                <!-- Tabla (pantallas medianas y grandes) -->
+                <div class="hidden overflow-x-auto rounded-xl border border-app-border2 sm:block">
+                  <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-50 text-[11px] font-extrabold uppercase tracking-wide text-app-muted dark:bg-slate-900/50">
+                      <tr>
+                        <th class="px-3 py-2">DNI</th>
+                        <th class="px-3 py-2">Empacador</th>
+                        <th class="px-3 py-2">Línea · P</th>
+                        <th class="px-3 py-2">Formato</th>
+                        <th class="px-3 py-2">Tipo de empaque</th>
+                        <th class="px-3 py-2 text-right">Cajas</th>
+                        <th class="px-3 py-2 text-right">Hora</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-app-border2">
+                      @for (f of filas(); track f['id']) {
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                          <td class="whitespace-nowrap px-3 py-2 font-mono text-xs text-app-muted">{{ f['numeroDocumento'] }}</td>
+                          <td class="px-3 py-2 font-bold text-app-heading">{{ f['nombreCompleto'] }}</td>
+                          <td class="whitespace-nowrap px-3 py-2 text-app-muted">{{ f['numeroLinea'] }}@if (f['puesto']) { · P{{ f['puesto'] }} }</td>
+                          <td class="whitespace-nowrap px-3 py-2 text-app-heading">{{ f['formatoDescripcion'] || '—' }}</td>
+                          <td class="px-3 py-2 text-xs text-app-muted">{{ tipoEmpaque(f) }}</td>
+                          <td class="px-3 py-2 text-right text-base font-extrabold text-emerald-700 dark:text-emerald-300">{{ f['cantidadCajas'] }}</td>
+                          <td class="whitespace-nowrap px-3 py-2 text-right text-xs text-app-muted" [attr.title]="f['fechaModificacion'] ? 'Modificado ' + hora(f['fechaModificacion']) : null">{{ hora(f['fechaModificacion'] || f['fechaRegistro']) }}@if (f['fechaModificacion']) { <span class="text-amber-600 dark:text-amber-300" aria-label="modificado">*</span> }</td>
+                        </tr>
+                      }
+                    </tbody>
+                    <tfoot class="bg-slate-50 dark:bg-slate-900/50">
+                      <tr>
+                        <td colspan="5" class="px-3 py-2 text-right text-xs font-extrabold uppercase text-app-muted">{{ busqueda().trim() ? 'Total de la búsqueda' : 'Total' }}</td>
+                        <td class="px-3 py-2 text-right text-base font-extrabold text-app-heading">{{ totalFiltrado() }}</td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+
+                <!-- Lista compacta (móvil) -->
+                <ul class="divide-y divide-app-border2 overflow-hidden rounded-xl border border-app-border2 sm:hidden">
+                  @for (f of filas(); track f['id']) {
+                    <li class="flex items-center gap-3 px-3 py-2.5">
+                      <div class="min-w-0 flex-1">
+                        <p class="text-sm font-bold leading-tight text-app-heading">{{ f['nombreCompleto'] }}</p>
+                        <p class="text-[11px] text-app-muted">{{ f['numeroDocumento'] }} · Línea {{ f['numeroLinea'] }}@if (f['puesto']) { · P{{ f['puesto'] }} }</p>
+                        <p class="mt-0.5 text-[11px] leading-snug text-app-muted"><span class="font-bold text-app-heading">{{ f['formatoDescripcion'] || '—' }}</span> · {{ tipoEmpaque(f) }}</p>
+                      </div>
+                      <span class="shrink-0 text-xl font-extrabold text-emerald-700 dark:text-emerald-300">{{ f['cantidadCajas'] }}</span>
+                    </li>
+                  }
+                  <li class="flex items-center justify-between bg-slate-50 px-3 py-2 text-xs font-extrabold uppercase text-app-muted dark:bg-slate-900/50">
+                    <span>{{ busqueda().trim() ? 'Total de la búsqueda' : 'Total' }}</span>
+                    <span class="text-base text-app-heading">{{ totalFiltrado() }}</span>
+                  </li>
+                </ul>
+              }
+            }
+          }
+        </section>
+      </div>
+    }
+  </div>
+</div>

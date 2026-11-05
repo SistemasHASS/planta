@@ -80,7 +80,7 @@
                     @if (u.codigoAcopio) { <span class="text-app-heading">{{ u.acopioNombre || u.codigoAcopio }}</span> } @else { <span class="text-xs text-app-subtle">Sin acopio</span> }
                   </td>
                   <td>
-                    @if (u.serieGuia) { <span class="badge badge-soft badge-neutral font-mono">{{ u.serieGuia }}</span> } @else { <span class="text-xs text-app-subtle">Sin serie</span> }
+                    @if (u.idRol === 'ANPLA') { <span class="text-xs text-app-subtle">—</span> } @else if (u.serieGuia) { <span class="badge badge-soft badge-neutral font-mono">{{ u.serieGuia }}</span> } @else { <span class="text-xs text-app-subtle">Sin serie</span> }
                   </td>
                   <td><span class="badge badge-soft badge-success">Activo</span></td>
                   <td (click)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()">

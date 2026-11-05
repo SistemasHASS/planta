@@ -24,7 +24,19 @@ export const parametrosConfigChildGuard: CanActivateChildFn = async (_route, sta
   const session = await auth.getSession();
   const rol = normalizar(session?.user.idRol ?? session?.user.rol);
   // Quien no puede abrir Parámetros (por su rol) no puede configurarlos: no se le exige, o se quedaría en un ciclo de redirecciones.
-  if (![ROLES.logistica, ROLES.admin, ROLES.monitor, ROLES.guiasManuales].includes(rol as never)) return true;
+  if (![ROLES.logistica, ROLES.admin, ROLES.monitor, ROLES.guiasManuales, ROLES.anotador].includes(rol as never)) return true;
+
+  // El anotador trabaja sobre el acopio asignado: sin acopio no entra a ninguna pantalla (solo Parametros).
+  if (rol === ROLES.anotador) {
+    const acopio = String(session?.user.codigoAcopio ?? '').trim();
+    if (!acopio || acopio === '0') {
+      feedback.warning(
+        'No tienes un acopio asignado. Cierra sesión y pide al administrador que te asigne un acopio; luego vuelve a iniciar sesión.',
+        'Acopio requerido',
+      );
+      return router.parseUrl('/parametros');
+    }
+  }
 
   const documento = String(session?.user.documentoIdentidad ?? '').trim();
   let configurado = false;

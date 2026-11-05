@@ -1,0 +1,37 @@
+@let l = linea();
+<div class="overflow-hidden rounded-2xl border border-app-border2 border-l-4 border-l-indigo-500 bg-app-surface shadow-sm">
+  <div class="flex flex-col gap-1 pr-3 sm:flex-row sm:items-center sm:gap-2">
+    <button type="button" class="flex min-w-0 flex-wrap items-center gap-2 px-4 py-3 text-left" [class.flex-1]="cabeceraFlexible()" [attr.aria-expanded]="store.estaDesplegada(l)" (click)="store.alternar(l)">
+      @if (store.estaDesplegada(l)) { 
+        <svg lucideChevronDown class="size-4 text-app-muted"></svg> 
+      } @else { 
+        <svg lucideChevronRight class="size-4 text-app-muted"></svg> 
+      }
+      <span class="text-base font-extrabold text-app-heading">Línea {{ l['numero'] }}</span>
+      @let asignados = store.asignadosDe(l);
+      @let total = store.puestosDe(l).length;
+      <!-- Avance de la línea: un segmento por puesto -->
+      <span class="flex w-full gap-0.5 sm:w-72" aria-hidden="true">
+        @for (p of store.puestosDe(l); track p) {
+          <span class="h-3 flex-1 rounded-sm" [class]="store.asignadoEn(l, p) ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700'"></span>
+        }
+      </span>
+      <span class="text-sm text-app-muted">
+        <strong class="text-app-heading">{{ asignados }}</strong> de {{ total }} ·
+        @if (asignados < total) { 
+          <strong class="text-amber-700 dark:text-amber-400">faltan {{ total - asignados }}</strong> 
+        }
+        @else { 
+          <strong class="text-emerald-600 dark:text-emerald-400">completa ✓</strong> 
+        }
+      </span>
+      <span class="badge badge-sm badge-soft font-mono">{{ l['codigoTipoProcesoEmpacado'] }}</span>
+    </button>
+    <ng-content select="[acciones]" />
+  </div>
+  @if (store.estaDesplegada(l)) {
+    <div class="border-t border-app-border2 p-3 sm:p-4">
+      <ng-content />
+    </div>
+  }
+</div>

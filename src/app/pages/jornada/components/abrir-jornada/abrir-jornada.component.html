@@ -1,0 +1,29 @@
+<div class="space-y-4 rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm sm:p-5">
+  <div>
+    <h2 class="text-base font-bold text-app-heading">Tu acopio no tiene una jornada abierta</h2>
+    <p class="text-sm text-app-muted">Elige el proceso abierto de tu acopio para iniciar la jornada. Podrán trabajar en ella todos los anotadores de tu acopio.</p>
+  </div>
+
+  @if (store.procesos().length === 0) {
+    <div class="rounded-xl border border-tint-amber-border bg-tint-amber p-3 text-sm text-app-heading">
+      No hay un proceso abierto en tu acopio. Avisa a Logística.
+    </div>
+  } @else {
+    <div class="max-w-xl">
+      <app-search-select
+        label="Proceso"
+        placeholder="— Seleccionar proceso —"
+        sortOrder="none"
+        [options]="store.opcionesProceso()"
+        [value]="store.procesoId()"
+        (selected)="store.procesoId.set($event.value || null)"
+      />
+    </div>
+  }
+
+  <div class="flex justify-end">
+    <button type="button" class="btn btn-primary gap-2" [disabled]="!store.procesoId()" (click)="store.abrir()">
+      <svg lucidePlay class="size-4"></svg> Abrir jornada
+    </button>
+  </div>
+</div>

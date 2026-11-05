@@ -20,6 +20,7 @@
     "@lucide/angular": "^1.32.0",
     "dexie": "^4.0.11",
     "highcharts": "^12.0.0",
+    "jsqr": "^1.4.0",
     "html2canvas-pro": "^1.5.8",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",

@@ -52,9 +52,15 @@ export const routes: Routes = [
       },
       {
         path: "parametros",
-        canActivate: [roleGuard(ROLES.logistica, ROLES.admin, ROLES.monitor, ROLES.guiasManuales)],
+        canActivate: [roleGuard(ROLES.logistica, ROLES.admin, ROLES.monitor, ROLES.guiasManuales, ROLES.anotador)],
         loadComponent: () =>
           import("./pages/parametros/parametros.component").then((m) => m.ParametrosComponent),
+      },
+      {
+        path: "empacadores/jornada",
+        canActivate: [roleGuard(ROLES.anotador)],
+        loadComponent: () =>
+          import("./pages/jornada/jornada.component").then((m) => m.JornadaComponent),
       },
       // Administrador (ADPLA): pantallas pendientes de portar; por ahora muestran el aviso de que se están migrando.
       {

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import Dexie, { Table } from 'dexie';
 import { AUTH_SCHEMA_V1, DB_SCHEMA } from './db-schema';
+import { RECOLECCION_SCHEMA_V8 } from './schema/recoleccion-db-schema';
 import { ELIMINAR_TABLAS_V7, TABLAS_ELIMINADAS_V7 } from './schema/tablas-eliminadas-db-schema';
 
 /** Nombre de la base IndexedDB en el navegador. */
@@ -39,6 +40,8 @@ export class DexieService extends Dexie {
     // Version 7 = se eliminan las tablas que la app nunca uso (codigosCaja, lugaresProduccionConfig, motivosTraslado,
     // usuarios, dpalets, guiasRemision y guiasRemisionPalets). El resto del esquema no cambia.
     this.version(7).stores({ ...DB_SCHEMA, ...ELIMINAR_TABLAS_V7 });
+    // Version 8 = formato y tipo de empaque elegidos por línea en la recolección (tabla nueva; el resto no cambia).
+    this.version(8).stores({ ...RECOLECCION_SCHEMA_V8 });
   }
 
   getTable<T, K = any>(tableName: string): Table<T, K> {

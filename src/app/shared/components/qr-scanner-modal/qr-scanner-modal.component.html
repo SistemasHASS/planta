@@ -1,0 +1,118 @@
+<div class="modal modal-open" role="dialog" aria-modal="true">
+  <!-- Celular: pantalla completa. Escritorio: ventana chica centrada. -->
+  <div class="modal-box flex h-dvh max-h-dvh w-full !max-w-none flex-col gap-0 overflow-hidden !rounded-none p-0 sm:h-auto sm:max-h-[95dvh] sm:!max-w-sm sm:!rounded-2xl">
+
+    <!-- Cabecera -->
+    <div class="flex shrink-0 items-center justify-between gap-3 px-4 py-3">
+      <div class="flex min-w-0 items-center gap-3">
+        <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md">
+          <svg lucideQrCode class="size-5"></svg>
+        </span>
+        <div class="min-w-0">
+          <h3 class="truncate text-base font-extrabold leading-tight text-app-heading">{{ titulo() }}</h3>
+          <p class="truncate text-xs text-app-muted">{{ subtitulo() }}</p>
+        </div>
+      </div>
+      <button type="button" class="btn btn-circle btn-ghost size-9 min-h-9" aria-label="Cerrar" (click)="closed.emit()"><svg lucideX class="size-4"></svg></button>
+    </div>
+
+    <!-- Destino: bien grande para que se note en qué puesto se está escaneando -->
+    @if (linea() && puesto()) {
+      <div class="flex shrink-0 items-center justify-center gap-6 bg-gradient-to-r from-emerald-600 to-emerald-500 px-4 py-4 text-white shadow-inner sm:gap-4 sm:py-3">
+        <div class="text-center leading-none">
+          <div class="text-sm font-extrabold uppercase tracking-[0.2em] opacity-90 sm:text-xs">Línea</div>
+          <div class="mt-1 text-7xl font-black sm:text-5xl">{{ linea() }}</div>
+        </div>
+        <span class="h-16 w-px bg-white/50 sm:h-12"></span>
+        <div class="text-center leading-none">
+          <div class="text-sm font-extrabold uppercase tracking-[0.2em] opacity-90 sm:text-xs">Puesto</div>
+          <div class="mt-1 text-7xl font-black sm:text-5xl">P{{ puesto() }}</div>
+        </div>
+      </div>
+    }
+
+    @if (resultado(); as r) {
+      <!-- Resultado de la búsqueda -->
+      <div class="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-2 pt-3">
+        <p class="text-xs text-app-muted">Código leído: <span class="font-mono font-bold text-app-heading">{{ r.codigo }}</span></p>
+
+        @if (r.buscando) {
+          <div class="grid h-44 place-items-center rounded-2xl border border-app-border2 bg-app-surface2" role="status" aria-live="polite">
+            <div class="flex flex-col items-center gap-3">
+              <span class="loading loading-spinner loading-lg text-emerald-500"></span>
+              <span class="text-base font-bold text-app-heading">{{ r.estado || 'Buscando trabajador…' }}</span>
+            </div>
+          </div>
+        } @else if (r.trabajador; as t) {
+          <div class="space-y-1 rounded-2xl border border-tint-emerald-border bg-tint-emerald p-4">
+            <span class="badge badge-soft badge-success font-bold">{{ r.asignado ? 'Asignado a ' + r.asignado : 'Trabajador encontrado' }}</span>
+            <p class="pt-1 text-2xl font-extrabold leading-tight text-app-heading sm:text-lg">{{ t['nombreCompleto'] }}</p>
+            <p class="text-sm text-app-muted">Documento <strong class="text-app-heading">{{ t['numeroDocumento'] }}</strong></p>
+            @if (r.siguiente) { <p class="pt-1 text-xs font-bold text-emerald-700 dark:text-emerald-300">{{ r.siguiente }}</p> }
+          </div>
+        } @else {
+          <div class="space-y-1 rounded-2xl border-2 border-tint-rose-border bg-tint-rose p-4" role="alert">
+            <p class="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide text-rose-700 dark:text-rose-300">
+              <span class="grid size-5 place-items-center rounded-full bg-rose-500 text-[11px] leading-none text-white" aria-hidden="true">!</span>
+              No se pudo asignar
+            </p>
+            <p class="text-sm font-semibold text-app-heading">{{ r.error || 'No se encontró el trabajador.' }}</p>
+          </div>
+        }
+      </div>
+      <div class="grid shrink-0 gap-2 px-4 py-4">
+        @if (r.buscando) {
+          <!-- Mientras se busca no hay botones: el resultado aparece solo -->
+        } @else if (r.asignado) {
+          @if (r.proximo) {
+            <button type="button" class="btn btn-primary btn-lg w-full" (click)="siguiente.emit(r.proximo)">Siguiente · P{{ r.proximo }}</button>
+          }
+          <button type="button" class="btn btn-outline btn-warning btn-lg sm:btn-md w-full" (click)="reintentar.emit()">Me equivoqué: volver a escanear P{{ puesto() }}</button>
+          <button type="button" class="btn btn-outline btn-lg sm:btn-md w-full" (click)="closed.emit()">Terminar</button>
+        } @else {
+          <button type="button" class="btn btn-primary btn-lg sm:btn-md w-full" [disabled]="r.buscando" (click)="reintentar.emit()">Volver a escanear P{{ puesto() }}</button>
+          <button type="button" class="btn btn-outline btn-lg sm:btn-md w-full" (click)="closed.emit()">Cerrar</button>
+        }
+      </div>
+    }
+
+    <!-- Cámara -->
+    <div class="relative min-h-0 w-full flex-1 overflow-hidden bg-black sm:aspect-square sm:flex-none" [class.hidden]="resultado() !== null">
+      <video #video class="size-full object-cover" [style.transform]="'scale(' + zoomSoftware() + ')'" playsinline muted autoplay></video>
+
+      @if (!error()) {
+        <div class="pointer-events-none absolute inset-0 grid place-items-center">
+          <div class="relative size-3/4 sm:size-3/5">
+            <span class="absolute left-0 top-0 size-7 rounded-tl-xl border-l-4 border-t-4 border-emerald-400"></span>
+            <span class="absolute right-0 top-0 size-7 rounded-tr-xl border-r-4 border-t-4 border-emerald-400"></span>
+            <span class="absolute bottom-0 left-0 size-7 rounded-bl-xl border-b-4 border-l-4 border-emerald-400"></span>
+            <span class="absolute bottom-0 right-0 size-7 rounded-br-xl border-b-4 border-r-4 border-emerald-400"></span>
+            <span class="absolute inset-x-2 top-1/2 h-0.5 animate-pulse rounded bg-emerald-400"></span>
+          </div>
+        </div>
+      }
+
+      @if (iniciando() && !error()) {
+        <div class="absolute inset-0 grid place-items-center bg-black/60 text-sm font-semibold text-white">Abriendo cámara…</div>
+      }
+      @if (error()) {
+        <div class="absolute inset-0 grid place-items-center bg-slate-900/90 p-6 text-center text-sm font-semibold text-white">{{ error() }}</div>
+      }
+    </div>
+
+    <!-- Pie -->
+    <div class="shrink-0 space-y-3 px-4 py-4" [class.hidden]="resultado() !== null">
+      <p class="text-center text-sm text-app-muted sm:text-xs">Centra el código en el recuadro. Se lee solo.</p>
+
+      <!-- Alternativa: escribir el documento -->
+      <form class="flex gap-2" (submit)="$event.preventDefault(); buscarManual()">
+        <input type="text" inputmode="numeric" autocomplete="off" maxlength="20" placeholder="O escribe el DNI"
+               class="input input-bordered h-12 min-w-0 flex-1 text-lg font-bold tracking-wider"
+               [value]="dni()" (input)="escribirDni($event)" aria-label="Documento del empacador" />
+        <button type="submit" class="btn btn-primary h-12 px-5" [disabled]="!dni().trim()">Buscar</button>
+      </form>
+      <button type="button" class="btn btn-outline btn-lg w-full sm:btn-md" (click)="closed.emit()">Cancelar</button>
+    </div>
+  </div>
+  <div class="modal-backdrop bg-black/50"></div>
+</div>

@@ -1,0 +1,86 @@
+<div class="space-y-4">
+  <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+    @if (recoleccion.miRecoleccion(); as rec) {
+      <div class="flex w-full min-w-0 items-center gap-3 rounded-xl border-2 border-emerald-500 bg-emerald-50 px-4 py-2 dark:bg-emerald-900/30 sm:w-auto sm:flex-1">
+        <span class="relative flex h-3 w-3 shrink-0"><span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex h-3 w-3 rounded-full bg-emerald-500"></span></span>
+        <div class="min-w-0">
+          <p class="text-sm font-extrabold text-emerald-800 dark:text-emerald-200">Recolección {{ rec['numero'] }} en curso</p>
+          <p class="text-xs text-emerald-700/80 dark:text-emerald-300/80">Iniciada {{ fechaHora(rec['fechaInicio']) }}</p>
+        </div>
+      </div>
+    }
+    <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-3">
+      @if (recoleccion.miRecoleccion()) {
+        <button type="button" [class]="botonBase + botonCerrar + ' col-span-2 whitespace-nowrap sm:col-span-1'" (click)="recoleccion.cerrarRecoleccion()">Cerrar recolección</button>
+        <button type="button" [class]="botonBase + botonRapido + ' whitespace-nowrap'" (click)="rapidaAbierta.set(true)">
+          <svg lucideZap class="size-4"></svg> <span class="sm:hidden">Rápida</span><span class="hidden sm:inline">Recolección rápida</span>
+        </button>
+      } @else {
+        <button type="button" [class]="botonBase + botonIniciar + ' col-span-2 sm:col-span-1'" (click)="recoleccion.iniciarRecoleccion()">
+          <span class="text-lg leading-none">+</span> Iniciar recolección
+        </button>
+      }
+      <button type="button" [class]="botonBase + botonNeutro + ' whitespace-nowrap ' + (recoleccion.miRecoleccion() ? '' : 'col-span-2 sm:col-span-1')" (click)="historialAbierto.set(true)">
+        <svg lucideHistory class="size-4"></svg> Historial<span class="hidden sm:inline">&nbsp;de recolección</span>
+      </button>
+    </div>
+  </div>
+  @if (recoleccion.recoleccionesDeOtros().length > 0) {
+    <p class="text-xs text-app-muted">
+      En curso por otros anotadores:
+      @for (o of recoleccion.recoleccionesDeOtros(); track o['id']) {<span class="font-bold"> {{ o['nombreAnotador'] }} (R{{ o['numero'] }})</span>{{ $last ? '' : ',' }}}
+    </p>
+  }
+
+  @if (store.misLineas().length === 0) {
+    <app-sin-lineas />
+  } @else {
+    <div class="space-y-3">
+      @for (l of store.misLineas(); track l['idLinea']) {
+        <app-linea-panel [linea]="l">
+          <div acciones class="flex flex-col gap-2 px-4 pb-3 sm:flex-row sm:items-center sm:p-0 [&_.field-label]:!hidden">
+            <div class="w-full min-w-0 sm:w-56 sm:shrink-0">
+              <app-search-select placeholder="Formato" [disabled]="!recoleccion.miRecoleccion()" [options]="recoleccion.opcionesFormato()" [value]="recoleccion.formatoDe(l)" (selected)="recoleccion.elegirFormato(l, $event)" />
+            </div>
+            <div class="w-full min-w-0 sm:w-96 sm:shrink-0">
+              <app-search-select placeholder="Tipo de empaque" [disabled]="!recoleccion.miRecoleccion() || !recoleccion.formatoDe(l)" [options]="recoleccion.tiposEmpaqueDe(l)" [value]="recoleccion.tipoEmpaqueDe(l)" (selected)="recoleccion.elegirTipoEmpaque(l, $event)" />
+            </div>
+          </div>
+          <!-- En recolección no se asignan ni se mueven empacadores: tocar uno registra sus cajas -->
+          <div class="grid grid-cols-3 gap-2 sm:grid-cols-6 lg:grid-cols-12">
+            @for (p of store.puestosDe(l); track p) {
+              @if (store.asignadoEn(l, p); as t) {
+                @let cajas = recoleccion.cajasDe(t);
+                <button type="button" class="flex min-h-[4.5rem] cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl border px-1 py-1 text-center transition duration-150 ease-out hover:-translate-y-1 hover:scale-105 hover:shadow-lg hover:ring-2 active:translate-y-0 active:scale-95" [class]="cajas > 0 ? conCajas : sinCajas" [attr.aria-label]="'Puesto ' + p + ', ' + t['nombreCompleto'] + ': ' + cajas + ' cajas. Registrar cajas'" title="Registrar cajas" (click)="abrirRegistro(l, p)">
+                  <span class="text-[9px] font-extrabold opacity-70">P{{ p }}</span>
+                  <span class="line-clamp-2 text-[10px] font-bold leading-tight">{{ t['nombreCompleto'] }}</span>
+                  @if (cajas > 0) {
+                    <span class="text-xl font-extrabold leading-none">{{ cajas }}</span>
+                  } @else {
+                    <span class="text-[10px] font-semibold opacity-80">sin cajas</span>
+                  }
+                </button>
+              } @else {
+                <div class="grid min-h-[4.5rem] place-items-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-xs font-bold text-slate-400 dark:border-slate-600 dark:bg-slate-800/60 dark:text-slate-500">
+                  <span>P{{ p }}</span>
+                </div>
+              }
+            }
+          </div>
+        </app-linea-panel>
+      }
+    </div>
+  }
+</div>
+
+@if (historialAbierto()) {
+  <app-historial-recoleccion-modal (closed)="historialAbierto.set(false)" />
+}
+
+@if (rapidaAbierta()) {
+  <app-recoleccion-rapida (closed)="rapidaAbierta.set(false)" />
+}
+
+@if (registro(); as r) {
+  <app-registro-cajas-modal [datos]="r" (closed)="registro.set(null)" />
+}

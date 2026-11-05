@@ -88,7 +88,7 @@
           }
           @case ('ACOPIO') {
             <p><strong>Nombre:</strong> {{ usuario()?.acopioNombre || '—' }}</p>
-            <p><strong>Serie:</strong> {{ usuario()?.serieGuia || '—' }}</p>
+            @if (!sinSerie()) { <p><strong>Serie:</strong> {{ usuario()?.serieGuia || '—' }}</p> }
           }
           @default {
             <p><strong>Razón social:</strong> {{ empresa() || '—' }}</p>

@@ -1,0 +1,45 @@
+<div class="space-y-3 rounded-2xl border border-app-border2 border-l-4 border-l-violet-500 bg-app-surface p-4 shadow-sm sm:px-5">
+  <button type="button" class="flex w-full flex-wrap items-center gap-2 text-left" [attr.aria-expanded]="abierto()" (click)="abierto.set(!abierto())">
+    @if (abierto()) { 
+      <svg lucideChevronDown class="size-4 text-app-muted"></svg> } @else { <svg lucideChevronRight class="size-4 text-app-muted"></svg> 
+    }
+    <span class="text-base font-bold text-app-heading">Mis líneas</span>
+    <span class="badge badge-soft badge-secondary font-bold">{{ store.tomadas() }} tomada(s)</span>
+    @if (abierto()) {
+      <span class="w-full text-xs text-app-muted sm:w-auto">Toma las líneas donde vas a anotar. Las de otro anotador quedan bloqueadas.</span>
+    } @else {
+      <span class="text-sm font-bold text-emerald-700 dark:text-emerald-300">Líneas {{ store.numerosMios() }}</span>
+    }
+  </button>
+
+  @if (!abierto()) {
+    <!-- Contraída: solo el encabezado -->
+  } @else if (store.lineas().length === 0) {
+    <p class="text-sm text-app-muted">Tu acopio no tiene líneas activas.</p>
+  } @else {
+    <div class="flex flex-wrap gap-2">
+      @for (l of store.lineas(); track l['idLinea']) {
+        @switch (l['situacion']) {
+          @case ('MIA') {
+            <button type="button" class="inline-flex min-h-10 items-center gap-2 rounded-full border border-emerald-300 bg-emerald-100 px-3 text-sm font-bold text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200" title="Tocar para soltar" (click)="store.soltar(l)">
+              Línea {{ l['numero'] }}
+              <span class="rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-extrabold text-white">MÍA ✕</span>
+            </button>
+          }
+          @case ('OCUPADA') {
+            <span class="inline-flex min-h-10 items-center gap-2 rounded-full border border-slate-300 bg-slate-100 px-3 text-sm font-bold text-slate-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-400" [attr.title]="'Tomada por ' + l['nombreAnotador']">
+              Línea {{ l['numero'] }}
+              <span class="max-w-[9rem] truncate rounded-full bg-slate-500 px-2 py-0.5 text-[10px] font-extrabold text-white">🔒 {{ l['nombreAnotador'] }}</span>
+            </span>
+          }
+          @default {
+            <button type="button" class="inline-flex min-h-10 items-center gap-2 rounded-full border border-app-border2 bg-app-surface px-3 text-sm font-bold text-app-heading hover:border-sky-400" (click)="store.tomar(l)">
+              Línea {{ l['numero'] }}
+              <span class="rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-[10px] font-extrabold text-sky-700 dark:border-sky-700 dark:bg-sky-900/40 dark:text-sky-300">+ Tomar</span>
+            </button>
+          }
+        }
+      }
+    </div>
+  }
+</div>

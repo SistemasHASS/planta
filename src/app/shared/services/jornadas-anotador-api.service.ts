@@ -1,0 +1,121 @@
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { SobreSp } from './catalogos-api.service';
+
+type Fila = Record<string, any>;
+
+/**
+ * Jornadas del anotador (API: POST api/jornadas-anotador/..., solo rol ANPLA). Empresa, RUC, usuario, rol y acopio salen del token.
+ * Devuelven el sobre del SP { error, data, mensaje } sin tocarlo.
+ */
+@Injectable({ providedIn: 'root' })
+export class JornadasAnotadorApiService {
+  private readonly http = inject(HttpClient);
+  private readonly baseUrl = `${environment.apiBaseUrl}/api/jornadas-anotador`;
+
+  /** Jornada abierta del anotador (o todas las suyas con soloAbierta = false). */
+  listar(soloAbierta = true): Promise<SobreSp<Fila[]>> {
+    return this.post('listar', { soloAbierta });
+  }
+
+  /** Abre una jornada sobre un proceso abierto del acopio del anotador. */
+  abrir(idProyecto: string, idProceso: string): Promise<SobreSp<Fila[]>> {
+    return this.post('sincronizar', { modo: 'nuevo', idProyecto, idProceso });
+  }
+
+  /** Cierra la jornada indicada. */
+  cerrar(id: number): Promise<SobreSp<Fila[]>> {
+    return this.post('sincronizar', { modo: 'editado', id });
+  }
+
+  /** Lineas del acopio con su situacion en el proceso de la jornada abierta: LIBRE, MIA u OCUPADA (con el nombre de quien la tomo). */
+  lineas(): Promise<SobreSp<Fila[]>> {
+    return this.post('lineas/listar', {});
+  }
+
+  /** Toma la linea (modo nuevo). */
+  tomarLinea(idLinea: number): Promise<SobreSp<Fila[]>> {
+    return this.post('lineas/sincronizar', { modo: 'nuevo', idLinea });
+  }
+
+  /** Suelta una linea tomada (modo editado); id = idTomada de la lista. */
+  soltarLinea(id: number): Promise<SobreSp<Fila[]>> {
+    return this.post('lineas/sincronizar', { modo: 'editado', id });
+  }
+
+  /** Busca un trabajador activo de la empresa por su numero de documento (lo que trae el QR). */
+  buscarTrabajador(numeroDocumento: string): Promise<SobreSp<Fila[]>> {
+    return this.post('trabajador/buscar', { numeroDocumento });
+  }
+
+  /** Empacadores asignados a los puestos de las lineas del acopio (jornada abierta). */
+  puestos(): Promise<SobreSp<Fila[]>> {
+    return this.post('puestos/listar', {});
+  }
+
+  /** Asigna un empacador a un puesto; si el puesto tenia a otro, lo reemplaza. */
+  asignarPuesto(idLinea: number, puesto: number, trabajador: { numeroDocumento: string; nombreCompleto: string; apellidoPaterno: string; apellidoMaterno: string }): Promise<SobreSp<Fila[]>> {
+    return this.post('puestos/sincronizar', { modo: 'nuevo', idLinea, puesto, ...trabajador });
+  }
+
+  /** Mueve al empacador (id = idPuesto) a otro puesto; si el destino tenia a otro, lo reemplaza. */
+  moverPuesto(id: number, idLinea: number, puesto: number): Promise<SobreSp<Fila[]>> {
+    return this.post('puestos/sincronizar', { modo: 'mover', id, idLinea, puesto });
+  }
+
+  /** Quita al empacador del puesto (id = idPuesto). */
+  quitarPuesto(id: number): Promise<SobreSp<Fila[]>> {
+    return this.post('puestos/sincronizar', { modo: 'editado', id });
+  }
+
+  /** Vacia la linea: libera a todos sus empacadores (la linea sigue tomada). */
+  vaciarLinea(idLinea: number): Promise<SobreSp<Fila[]>> {
+    return this.post('puestos/sincronizar', { modo: 'vaciar', idLinea });
+  }
+
+  /** Tipos de empaque que la matriz de compatibilidad asocia al formato. */
+  tiposEmpaque(codigoCultivo: string, formatoId: number): Promise<SobreSp<Fila[]>> {
+    return this.post('tipos-empaque/listar', { codigoCultivo, formatoId });
+  }
+
+  /** Recolecciones de cajas de la jornada abierta del acopio (mia = 1 en las del usuario). */
+  recolecciones(): Promise<SobreSp<Fila[]>> {
+    return this.post('recolecciones/listar', {});
+  }
+
+  /** Historial: mis recolecciones de la jornada con su total de cajas (idRecoleccion = 0) o el detalle de cajas de una recolección mía. */
+  historialRecolecciones(idRecoleccion = 0): Promise<SobreSp<Fila[]>> {
+    return this.post('recolecciones/cajas/historial', { idRecoleccion });
+  }
+
+  /** Cajas registradas por empacador (numeroDocumento) en la recolección abierta del usuario. */
+  resumenCajas(): Promise<SobreSp<Fila[]>> {
+    return this.post('recolecciones/cajas/resumen', {});
+  }
+
+  /** Quita al empacador de la recolección abierta: su fila de cajas queda anulada y el stock se devuelve. */
+  quitarCajas(cuerpo: { idLinea: number; puesto: number }): Promise<SobreSp<Fila[]>> {
+    return this.post('recolecciones/cajas/sincronizar', { modo: 'anular', ...cuerpo });
+  }
+
+  /** Registra las cajas de un empacador (el del puesto) con el formato y tipo de empaque de la linea, en la recoleccion abierta. */
+  registrarCajas(cuerpo: { idLinea: number; puesto: number; formatoId: number; tipoEmpaqueId: number; cantidadCajas: number; calibreNombre: string }): Promise<SobreSp<Fila[]>> {
+    return this.post('recolecciones/cajas/sincronizar', { modo: 'nuevo', ...cuerpo });
+  }
+
+  /** Inicia una recoleccion del anotador (el servidor le pone el numero correlativo). */
+  iniciarRecoleccion(): Promise<SobreSp<Fila[]>> {
+    return this.post('recolecciones/sincronizar', { modo: 'nuevo' });
+  }
+
+  /** Cierra la recoleccion (solo su dueno). */
+  cerrarRecoleccion(id: number): Promise<SobreSp<Fila[]>> {
+    return this.post('recolecciones/sincronizar', { modo: 'editado', id });
+  }
+
+  private post<T>(ruta: string, cuerpo: Record<string, unknown>): Promise<SobreSp<T>> {
+    return firstValueFrom(this.http.post<SobreSp<T>>(`${this.baseUrl}/${ruta}`, cuerpo));
+  }
+}

@@ -35,7 +35,8 @@
         }
       </section>
 
-      <!-- Serie de guía (la define el acopio) -->
+      <!-- Serie de guía (la define el acopio). El anotador no la usa. -->
+      @if (!esAnotador()) {
       <section class="rounded-2xl border border-tint-sky-border bg-tint-sky px-4 py-3">
         <h4 class="mb-2 text-xs font-bold uppercase tracking-wide text-sky-800 dark:text-sky-300">Serie de guía</h4>
         @if (acopioElegido()?.serie) {
@@ -45,6 +46,7 @@
         }
         <p class="mt-2 text-xs text-app-muted">La serie sale de la configuración del acopio (Acopio configuración).</p>
       </section>
+      }
     </div>
 
     <!-- Pie -->
