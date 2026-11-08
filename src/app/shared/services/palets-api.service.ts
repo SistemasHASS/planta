@@ -18,6 +18,23 @@ export interface ConsultaMatriz {
   tipoClamshellId?: number;
 }
 
+/** Cajas disponibles de un proceso para un formato y tipo de empaque (suma de los movimientos activos del stock). */
+export interface StockCajaProceso {
+  formatoId: number;
+  formatoDescripcion: string;
+  tipoEmpaqueId: number;
+  tipoEmpaqueDescripcion: string;
+  categoriaNombre?: string | null;
+  calibreNombre?: string | null;
+  disponibles: number;
+}
+
+/** `activo` es false cuando la empresa no maneja el flujo de empaque (parametro Flujo_Empaque): entonces no se muestra nada. */
+export interface StockCajasProceso {
+  activo: boolean;
+  stock: StockCajaProceso[];
+}
+
 /**
  * Palets, sus detalles y la matriz de compatibilidad (API: POST api/palets/...).
  * Empresa, RUC, usuario, rol y acopio salen del token. Devuelven el sobre del SP { error, data, mensaje } sin tocarlo.
@@ -29,6 +46,11 @@ export class PaletsApiService {
 
   porProceso(idProceso: string): Promise<SobreSp<Fila[]>> {
     return this.post('por-proceso', { idProceso });
+  }
+
+  /** Cajas disponibles del proceso por formato y tipo de empaque. Solo vienen si la empresa maneja el flujo de empaque. */
+  stockCajas(idProceso: string): Promise<SobreSp<StockCajasProceso>> {
+    return this.post<StockCajasProceso>('stock-cajas', { idProceso });
   }
 
   /** Crea, edita o cierra palets. `palets` es un palet o una lista; el SP lee el JSON tal cual. */
@@ -88,7 +110,7 @@ export class PaletsApiService {
     return this.post('matriz/calibre-empaque', c);
   }
 
-  private post(ruta: string, cuerpo: object): Promise<SobreSp<Fila[]>> {
-    return firstValueFrom(this.http.post<SobreSp<Fila[]>>(`${this.baseUrl}/${ruta}`, cuerpo));
+  private post<T = Fila[]>(ruta: string, cuerpo: object): Promise<SobreSp<T>> {
+    return firstValueFrom(this.http.post<SobreSp<T>>(`${this.baseUrl}/${ruta}`, cuerpo));
   }
 }

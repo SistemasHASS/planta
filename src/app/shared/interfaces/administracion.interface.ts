@@ -6,6 +6,8 @@ export interface Configuracion {
     idFundo: string;
     codigoCultivo: string;
     idProyecto: string;
+    /** Parametro Flujo_Empaque de la empresa (SI y activo). Se guarda al guardar o sincronizar Parametros; sin el, no se consulta el stock de cajas. */
+    flujoEmpaque?: boolean;
 }
 
 export interface MatrizCompatibilidad {

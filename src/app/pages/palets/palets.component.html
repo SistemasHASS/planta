@@ -66,6 +66,35 @@
   </div>
 
   @if (procesoSeleccionado()) {
+    <!-- Cajas disponibles del proceso (solo si la empresa maneja el flujo de empaque) -->
+    @if (stockCajas(); as stock) {
+      <section class="space-y-3 rounded-2xl border border-app-border2 bg-app-surface px-4 py-3 shadow-sm" aria-label="Cajas disponibles">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="inline-flex items-center gap-1.5 text-sm font-extrabold text-app-heading"><svg lucidePackage class="size-4 text-sky-500"></svg> Cajas disponibles</span>
+          <button
+            type="button"
+            class="btn h-9 min-h-9 w-full gap-2 border-0 bg-gradient-to-r from-sky-500 to-indigo-600 px-4 font-extrabold text-white shadow-lg shadow-indigo-500/30 transition hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-70 sm:w-auto"
+            (click)="onActualizarStock()">
+            <svg lucideRefreshCcw class="size-4"></svg>
+            Actualizar stock
+          </button>
+        </div>
+        <div class="grid grid-cols-1 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(250px,1fr))]">
+          @for (s of stock; track s.formatoId + '-' + s.tipoEmpaqueId) {
+            <span class="flex min-w-0 items-center gap-2 rounded-xl border border-app-border2 py-1 pl-1 pr-3">
+              <span class="min-w-10 shrink-0 rounded-lg bg-tint-sky px-2 py-0.5 text-center text-base font-extrabold text-sky-700 dark:text-sky-300">{{ s.disponibles }}</span>
+              <span class="min-w-0 text-xs leading-tight">
+                <span class="block truncate font-bold text-app-heading">{{ s.formatoDescripcion }}</span>
+                <span class="block truncate text-app-muted" [title]="etiquetaEmpaque(s)">{{ etiquetaEmpaque(s) }}</span>
+              </span>
+            </span>
+          } @empty {
+            <span class="text-sm text-app-muted">No hay cajas disponibles</span>
+          }
+        </div>
+      </section>
+    }
+
     <!-- Columnas fluidas: 1/3 + 2/3 mientras quepan (22rem + 30rem); si no, la lista queda arriba y el detalle abajo. -->
     <div class="flex min-w-0 flex-wrap gap-4">
       <!-- Lista de palets -->
@@ -92,7 +121,11 @@
               <span class="grid size-7 place-items-center rounded-lg bg-sky-500 text-white shadow-sm"><svg lucideLayers class="size-4"></svg></span> En proceso / cerrados
               <span class="badge badge-sm border-0 bg-sky-500 font-bold text-white">{{ paletsActivos().length }}</span>
             </h2>
-            @if (seccionActivosAbierta()) { <svg lucideChevronUp class="size-4 text-sky-700 dark:text-sky-300"></svg> } @else { <svg lucideChevronDown class="size-4 text-sky-700 dark:text-sky-300"></svg> }
+            @if (seccionActivosAbierta()) { 
+              <svg lucideChevronUp class="size-4 text-sky-700 dark:text-sky-300"></svg> 
+            } @else { 
+              <svg lucideChevronDown class="size-4 text-sky-700 dark:text-sky-300"></svg> 
+            }
           </button>
           @if (seccionActivosAbierta()) {
             <div class="max-h-[26rem] space-y-2.5 overflow-auto p-3">
@@ -134,19 +167,26 @@
               <span class="grid size-7 place-items-center rounded-lg bg-emerald-500 text-white shadow-sm"><svg lucideTruck class="size-4"></svg></span> Despachados
               <span class="badge badge-sm border-0 bg-emerald-500 font-bold text-white">{{ paletsDespachados().length }}</span>
             </h2>
-            @if (seccionDespachadosAbierta()) { <svg lucideChevronUp class="size-4 text-emerald-700 dark:text-emerald-300"></svg> } @else { <svg lucideChevronDown class="size-4 text-emerald-700 dark:text-emerald-300"></svg> }
+            @if (seccionDespachadosAbierta()) { 
+              <svg lucideChevronUp class="size-4 text-emerald-700 dark:text-emerald-300"></svg> 
+            } @else { 
+              <svg lucideChevronDown class="size-4 text-emerald-700 dark:text-emerald-300"></svg> 
+            }
           </button>
           @if (seccionDespachadosAbierta()) {
             <div class="max-h-72 space-y-2.5 overflow-auto p-3">
               @for (p of paletsDespachados(); track paletKey(p)) {
-                <button type="button" class="block w-full rounded-xl border border-l-[5px] border-app-border2 bg-gradient-to-br p-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]"
+                <button type="button" 
+                  class="block w-full rounded-xl border border-l-[5px] border-app-border2 bg-gradient-to-br p-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]"
                   [class]="paletEstilo('DESPACHADO', esSeleccionado(p))"
                   (click)="verDetalle(p)">
                   <div class="flex flex-wrap items-start justify-between gap-2">
                     <span class="whitespace-nowrap font-bold text-app-heading">Palet #{{ p.numeroPalet == 0 ? p.id : p.numeroPalet }}</span>
                     <span class="flex flex-wrap justify-end gap-1">
                       <span class="badge badge-sm badge-neutral whitespace-nowrap font-semibold tracking-wide">DESPACHADO</span>
-                      @if (p.numeroViaje) { <span class="badge badge-sm badge-soft badge-info">Viaje #{{ p.numeroViaje }}</span> }
+                      @if (p.numeroViaje) { 
+                        <span class="badge badge-sm badge-soft badge-info">Viaje #{{ p.numeroViaje }}</span> 
+                      }
                     </span>
                   </div>
                   <p class="mt-1 text-sm"><strong>Cajas:</strong> {{ p.cantidadCajas }}</p>
@@ -178,7 +218,9 @@
                 <div class="flex flex-wrap items-center gap-2">
                   <h2 class="text-xl font-extrabold text-app-heading">Palet #{{ ps.numeroPalet == 0 ? ps.id : ps.numeroPalet }}</h2>
                   <span class="badge font-semibold tracking-wide" [class]="getEstadoBadgeClass(ps.estado)">{{ getEstadoLabel(ps.estado) }}</span>
-                  @if (ps.numeroViaje) { <span class="badge badge-soft badge-info font-semibold">Viaje #{{ ps.numeroViaje }}</span> }
+                  @if (ps.numeroViaje) { 
+                    <span class="badge badge-soft badge-info font-semibold">Viaje #{{ ps.numeroViaje }}</span> 
+                  }
                 </div>
                 <p class="text-sm text-app-muted">
                   <strong class="text-app-text">Acopio:</strong> {{ nombreAcopio(ps.codigoAcopio, ps.acopioNombre) }} ({{ ps.codigoAcopio }}) · <strong class="text-app-text">Turno:</strong> {{ procesoSeleccionado()!.turno }}
@@ -241,7 +283,11 @@
             <div class="overflow-hidden rounded-2xl border border-app-border2 shadow-sm">
               <button type="button" class="flex w-full items-center justify-between gap-2 bg-gradient-to-r from-slate-100 via-app-surface2 to-white px-4 py-3 text-left dark:from-slate-500/15 dark:via-transparent dark:to-transparent" (click)="toggleSeccionComposicion()">
                 <span class="flex items-center gap-2.5 text-sm font-extrabold uppercase tracking-wide text-app-text"><span class="grid size-7 place-items-center rounded-lg bg-slate-700 text-white shadow-sm"><svg lucideLayers class="size-4"></svg></span> Composición del palet <span class="badge badge-sm border-0 bg-slate-700 font-bold text-white">{{ composiciones().length }}</span></span>
-                @if (seccionComposicionAbierta()) { <svg lucideChevronUp class="size-4"></svg> } @else { <svg lucideChevronDown class="size-4"></svg> }
+                @if (seccionComposicionAbierta()) { 
+                  <svg lucideChevronUp class="size-4"></svg> 
+                } @else { 
+                  <svg lucideChevronDown class="size-4"></svg> 
+                }
               </button>
               @if (seccionComposicionAbierta()) {
                 @if (composiciones().length > 0) {
@@ -270,9 +316,13 @@
                         @for (c of composiciones(); track c.idDPalet) {
                           <tr class="dark:!bg-transparent" [class.bg-amber-50]="c.esReposicion" [class.bg-sky-50]="c.esEnsayo && !c.esReposicion">
                             <td>
-                              @if (c.esReposicion) { <span class="badge badge-sm badge-warning">REPO</span> }
-                              @else if (c.esEnsayo) { <span class="badge badge-sm badge-info">ENSAYO</span> }
-                              @else { <span class="badge badge-sm badge-success">PROD</span> }
+                              @if (c.esReposicion) { 
+                                <span class="badge badge-sm badge-warning">REPO</span> 
+                              }@else if (c.esEnsayo) { 
+                                <span class="badge badge-sm badge-info">ENSAYO</span> 
+                              }@else { 
+                                <span class="badge badge-sm badge-success">PROD</span> 
+                              }
                             </td>
                             <td><span class="badge badge-sm border-0 bg-indigo-100 dark:bg-indigo-500/15 font-semibold text-indigo-700 dark:text-indigo-300">{{ c.tipoProcesoEmpacadoNombre ?? (c.tipoProcesoEmpacadoId ? 'FP' : '-') }}</span></td>
                             <td>{{ c.consignatarioNombre }}</td>
@@ -310,7 +360,11 @@
               <div class="mt-3 rounded-xl border border-app-border2">
                 <button type="button" class="flex w-full items-center justify-between gap-2 p-3 text-left" (click)="toggleSeccionObservaciones()">
                   <span class="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-app-text2"><svg lucideCircleAlert class="size-4 text-amber-500"></svg> Observaciones y medida correctiva</span>
-                  @if (seccionObservacionesAbierta()) { <svg lucideChevronUp class="size-4"></svg> } @else { <svg lucideChevronDown class="size-4"></svg> }
+                  @if (seccionObservacionesAbierta()) { 
+                    <svg lucideChevronUp class="size-4"></svg> 
+                  } @else { 
+                    <svg lucideChevronDown class="size-4"></svg> 
+                  }
                 </button>
                 @if (seccionObservacionesAbierta()) {
                   <div class="grid gap-3 p-3 pt-0 sm:grid-cols-2">
@@ -330,35 +384,68 @@
   }
 </section>
 
-<app-modal-cajas
-  [visible]="showModalAgregarCajas()"
-  [palet]="paletSeleccionado()"
-  [composiciones]="composiciones()"
-  [formCajas]="formCajas()"
-  [modoEdicion]="modoEdicionCajas()"
-  [tiposProcesoEmpacadoModal]="tiposProcesoEmpacadoModal()"
-  [consignatarios]="consignatarios()"
-  [filteredDestinos]="filteredDestinos()"
-  [filteredFormatos]="filteredFormatos()"
-  [filteredTiposEmpaqueGuia]="filteredTiposEmpaqueGuia()"
-  [filteredPresentaciones]="filteredPresentaciones()"
-  [filteredTiposCaja]="filteredTiposCaja()"
-  [filteredTiposClamshell]="filteredTiposClamshell()"
-  [filteredVariedades]="filteredVariedades()"
-  [filteredCodigosRancho]="filteredCodigosRancho()"
-  [lugaresProduccion]="lugaresProduccion()"
-  [transportes]="transportes()"
-  [variedades]="variedades()"
-  [tipoProcesoEmpacadoDisabled]="tipoProcesoEmpacadoDisabled()"
-  [formatoDisabled]="formatoDisabled()"
-  [tipoEmpaqueGuiaDisabled]="tipoEmpaqueGuiaDisabled()"
-  [presentacionDisabled]="presentacionDisabled()"
-  [tipoCajaDisabled]="tipoCajaDisabled()"
-  [tipoClamshellDisabled]="tipoClamshellDisabled()"
-  [codigoRanchoDisabled]="codigoRanchoDisabled()"
-  (cerrar)="cerrarModalAgregarCajas()"
-  (guardar)="modoEdicionCajas() ? submitEditarCajas() : submitAgregarCajas()"
-  (campoChange)="onModalCampoChange($event)" />
+@if (savedConfig()?.flujoEmpaque) {
+  <app-modal-cajas-stock
+    [visible]="showModalAgregarCajas()"
+    [palet]="paletSeleccionado()"
+    [composiciones]="composiciones()"
+    [formCajas]="formCajas()"
+    [modoEdicion]="modoEdicionCajas()"
+    [stockCajas]="stockCajas()"
+    [tiposProcesoEmpacadoModal]="tiposProcesoEmpacadoModal()"
+    [consignatarios]="consignatarios()"
+    [filteredDestinos]="filteredDestinos()"
+    [filteredFormatos]="filteredFormatos()"
+    [filteredTiposEmpaqueGuia]="filteredTiposEmpaqueGuia()"
+    [filteredPresentaciones]="filteredPresentaciones()"
+    [filteredTiposCaja]="filteredTiposCaja()"
+    [filteredTiposClamshell]="filteredTiposClamshell()"
+    [filteredVariedades]="filteredVariedades()"
+    [filteredCodigosRancho]="filteredCodigosRancho()"
+    [lugaresProduccion]="lugaresProduccion()"
+    [transportes]="transportes()"
+    [variedades]="variedades()"
+    [tipoProcesoEmpacadoDisabled]="tipoProcesoEmpacadoDisabled()"
+    [formatoDisabled]="formatoDisabled()"
+    [tipoEmpaqueGuiaDisabled]="tipoEmpaqueGuiaDisabled()"
+    [presentacionDisabled]="presentacionDisabled()"
+    [tipoCajaDisabled]="tipoCajaDisabled()"
+    [tipoClamshellDisabled]="tipoClamshellDisabled()"
+    [codigoRanchoDisabled]="codigoRanchoDisabled()"
+    (cerrar)="cerrarModalAgregarCajas()"
+    (guardar)="modoEdicionCajas() ? submitEditarCajas() : submitAgregarCajas()"
+    (campoChange)="onModalCampoChange($event)" />
+} @else {
+  <app-modal-cajas
+    [visible]="showModalAgregarCajas()"
+    [palet]="paletSeleccionado()"
+    [composiciones]="composiciones()"
+    [formCajas]="formCajas()"
+    [modoEdicion]="modoEdicionCajas()"
+    [tiposProcesoEmpacadoModal]="tiposProcesoEmpacadoModal()"
+    [consignatarios]="consignatarios()"
+    [filteredDestinos]="filteredDestinos()"
+    [filteredFormatos]="filteredFormatos()"
+    [filteredTiposEmpaqueGuia]="filteredTiposEmpaqueGuia()"
+    [filteredPresentaciones]="filteredPresentaciones()"
+    [filteredTiposCaja]="filteredTiposCaja()"
+    [filteredTiposClamshell]="filteredTiposClamshell()"
+    [filteredVariedades]="filteredVariedades()"
+    [filteredCodigosRancho]="filteredCodigosRancho()"
+    [lugaresProduccion]="lugaresProduccion()"
+    [transportes]="transportes()"
+    [variedades]="variedades()"
+    [tipoProcesoEmpacadoDisabled]="tipoProcesoEmpacadoDisabled()"
+    [formatoDisabled]="formatoDisabled()"
+    [tipoEmpaqueGuiaDisabled]="tipoEmpaqueGuiaDisabled()"
+    [presentacionDisabled]="presentacionDisabled()"
+    [tipoCajaDisabled]="tipoCajaDisabled()"
+    [tipoClamshellDisabled]="tipoClamshellDisabled()"
+    [codigoRanchoDisabled]="codigoRanchoDisabled()"
+    (cerrar)="cerrarModalAgregarCajas()"
+    (guardar)="modoEdicionCajas() ? submitEditarCajas() : submitAgregarCajas()"
+    (campoChange)="onModalCampoChange($event)" />
+}
 
 <app-modal-cerrar-palet
   [visible]="showModalCerrarPalet()"

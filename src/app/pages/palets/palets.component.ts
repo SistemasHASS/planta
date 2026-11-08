@@ -49,7 +49,7 @@ import { CatalogosApiService } from '../../shared/services/catalogos-api.service
 import { ConnectivityService } from '../../shared/services/connectivity.service';
 import { FeedbackModalService } from '../../shared/services/feedback-modal.service';
 import { MaestrosApiService } from '../../shared/services/maestros-api.service';
-import { ConsultaMatriz, PaletsApiService } from '../../shared/services/palets-api.service';
+import { ConsultaMatriz, PaletsApiService, StockCajaProceso } from '../../shared/services/palets-api.service';
 import { LoadingService } from '../../shared/services/loading.service';
 import { PaletsSyncService } from '../../shared/services/palets-sync.service';
 import { ProcesosApiService } from '../../shared/services/procesos-api.service';
@@ -58,6 +58,7 @@ import { abrirOCompartirArchivo, descargarArchivo, esDispositivoMovil } from '..
 import { formatDateTime, formatTimeClave } from '../../shared/utils/date-time.util';
 import { permisos } from '../../shared/utils/permisos';
 import { FormCajas, ModalCajasComponent } from './components/modal-cajas/modal-cajas.component';
+import { ModalCajasStockComponent } from './components/modal-cajas-stock/modal-cajas-stock.component';
 import { InfoEliminar, ModalEliminarPaletComponent } from './components/modal-eliminar-palet/modal-eliminar-palet.component';
 import { ModalCerrarPaletComponent } from './components/modal-cerrar-palet/modal-cerrar-palet.component';
 
@@ -75,6 +76,7 @@ const texto = (v: unknown): string => String(v ?? '').trim();
     FormsModule,
     RouterLink,
     ModalCajasComponent,
+    ModalCajasStockComponent,
     ModalCerrarPaletComponent,
     ModalEliminarPaletComponent,
     LucideArrowLeftRight,
@@ -183,6 +185,11 @@ export class PaletsComponent implements OnInit {
   campania = signal<any>({});
   procesosAbiertos = signal<Proceso[]>([]);
   procesoSeleccionado = signal<Proceso | null>(null);
+
+  /** Cajas disponibles del proceso por formato y tipo de empaque. null = no se muestra (la empresa no maneja el flujo de empaque o no se pudo leer). */
+  readonly stockCajas = signal<StockCajaProceso[] | null>(null);
+  /** Se esta actualizando solo el stock de cajas (boton "Actualizar stock"). */
+  readonly actualizandoStock = signal(false);
   palets = signal<Palet[]>([]);
   paletSeleccionado = signal<Palet | null>(null);
   composiciones = signal<DPalet[]>([]);
@@ -418,6 +425,61 @@ export class PaletsComponent implements OnInit {
     }
   }
 
+  /**
+   * Cajas disponibles del proceso. Solo se pide si la configuracion guardada en el equipo trae Flujo_Empaque activo (el SP lo vuelve a validar y responde activo = false si no).
+   * Si falla o no hay internet se queda sin mostrar: es solo informativo y no debe estorbar al resto de la pantalla.
+   */
+  private async cargarStockCajas(idProceso: string): Promise<void> {
+    // El parametro se guardo en el equipo al guardar Parametros: si la empresa no maneja el flujo de empaque no se muestra nada ni se hace la peticion.
+    if (!this.savedConfig()?.flujoEmpaque || !idProceso || !this.online) {
+      this.stockCajas.set(null);
+      return;
+    }
+    try {
+      const sobre = await this.api.stockCajas(idProceso);
+      this.stockCajas.set(!sobre?.error && sobre?.data?.activo ? (sobre.data.stock ?? []) : null);
+    } catch (error) {
+      console.error('Error al consultar las cajas disponibles', error);
+      this.stockCajas.set(null);
+    }
+  }
+
+  /** Boton "Actualizar stock": vuelve a leer solo las cajas disponibles, sin tocar los palets ni cerrar el detalle abierto. */
+  async actualizarStock(): Promise<void> {
+    const proceso = this.procesoSeleccionado();
+    if (!proceso || this.actualizandoStock()) return;
+    if (!this.online) {
+      this.alertService.showAlert('Sin conexión', 'Se necesita internet para actualizar el stock de cajas.', 'warning');
+      return;
+    }
+    this.actualizandoStock.set(true);
+    try {
+      await this.cargarStockCajas(proceso.idProceso);
+    } finally {
+      this.actualizandoStock.set(false);
+    }
+  }
+
+  /** Click en "Actualizar stock": igual que actualizarStock() pero con el loading de pantalla. */
+  async onActualizarStock(): Promise<void> {
+    if (!this.procesoSeleccionado() || this.actualizandoStock()) return;
+    if (!this.online) {
+      await this.actualizarStock();
+      return;
+    }
+    this.loading.show('Actualizando stock...');
+    try {
+      await this.actualizarStock();
+    } finally {
+      await this.loading.hideAfterMinimum();
+    }
+  }
+
+  /** "Descripción — categoría — calibre" del tipo de empaque, sin los datos vacíos (igual que en las listas de la recolección). */
+  etiquetaEmpaque(s: StockCajaProceso): string {
+    return [s.tipoEmpaqueDescripcion, s.categoriaNombre, s.calibreNombre].map(texto).filter(Boolean).join(' — ');
+  }
+
   /** Actualizar: vuelve a pedir a la API los palets del proceso abierto, los lista y cierra el detalle abierto; no usa Dexie. */
   async onSincronizar(): Promise<void> {
     const proceso = this.procesoSeleccionado();
@@ -428,7 +490,7 @@ export class PaletsComponent implements OnInit {
     }
     this.loading.show('Actualizando palets...');
     try {
-      await this.listarPaletsForProceso(proceso.idProceso);
+      await Promise.all([this.listarPaletsForProceso(proceso.idProceso), this.cargarStockCajas(proceso.idProceso)]);
       // Solo se actualizan los palets: se cierra el detalle abierto para que se vuelva a abrir con datos nuevos
       this.paletSeleccionado.set(null);
       this.composiciones.set([]);
@@ -443,7 +505,7 @@ export class PaletsComponent implements OnInit {
     this.paletSeleccionado.set(null);
     this.composiciones.set([]);
     try {
-      await this.listarPaletsForProceso(p.idProceso);
+      await Promise.all([this.listarPaletsForProceso(p.idProceso), this.cargarStockCajas(p.idProceso)]);
     } finally {
       await this.loading.hideAfterMinimum();
     }
@@ -451,6 +513,7 @@ export class PaletsComponent implements OnInit {
 
   cambiarProceso(): void {
     this.procesoSeleccionado.set(null);
+    this.stockCajas.set(null);
     this.paletSeleccionado.set(null);
     this.palets.set([]);
     this.composiciones.set([]);
@@ -583,8 +646,44 @@ export class PaletsComponent implements OnInit {
     return [idproceso, dateTimeString].join('');
   }
 
+  /**
+   * Con el flujo de empaque activo (parametro Flujo_Empaque guardado en el equipo) solo se pueden agregar cajas si hay stock disponible.
+   * Siempre consulta el stock al servidor (el mismo metodo del boton "Actualizar stock"), asi tambien se refresca la franja de cajas disponibles.
+   * Sin el parametro no valida nada.
+   */
+  private async hayCajasParaAgregar(): Promise<boolean> {
+    if (!this.savedConfig()?.flujoEmpaque) return true;
+    this.loading.show('Verificando stock de cajas...');
+    try {
+      await this.actualizarStock();
+    } finally {
+      await this.loading.hideAfterMinimum();
+    }
+    const stock = this.stockCajas();
+    if (stock === null) {
+      this.alertService.showAlert('Stock no disponible', 'No se pudo verificar el stock de cajas. Toca "Actualizar stock" e inténtalo de nuevo.', 'warning');
+      return false;
+    }
+    if (!stock.some((s) => Number(s.disponibles) > 0)) {
+      this.alertService.showAlert('Sin cajas disponibles', 'No tienes cajas disponibles para agregar al palet. Cuando los anotadores registren cajas, toca "Actualizar stock".', 'warning');
+      return false;
+    }
+    // Palet con formato fijado: el stock debe ser de ese mismo formato (el tipo de empaque no importa).
+    const fijado = this.composiciones()[0];
+    if (fijado) {
+      const disponibles = stock.filter((s) => Number(s.formatoId) === Number(fijado.formatoId)).reduce((t, s) => t + (Number(s.disponibles) || 0), 0);
+      if (disponibles <= 0) {
+        const formato = fijado.formatoNombre || `#${fijado.formatoId}`;
+        this.alertService.showAlert('Sin stock para este palet', `Este palet tiene el formato ${formato} y no hay cajas disponibles de ese formato.`, 'warning');
+        return false;
+      }
+    }
+    return true;
+  }
+
   async abrirModalAgregarCajas(palet: Palet): Promise<void> {
     if (!this.exigirInternet()) return;
+    if (!(await this.hayCajasParaAgregar())) return;
 
     const codigoAcopio = String(palet?.codigoAcopio ?? this.procesoSeleccionado()?.codigoAcopio ?? '').trim();
     if (!codigoAcopio) {
@@ -1262,6 +1361,10 @@ export class PaletsComponent implements OnInit {
       listaVacia: 'Sin composiciones',
     });
     if (!ok1) return;
+
+    // Entre las dos confirmaciones se muestra el loading un instante para que no salgan una tras otra de golpe.
+    this.loading.show('Verificando palet...');
+    await this.loading.hideAfterMinimum(600);
 
     const ok2 = await this.alertService.showConfirm(
       'Acción irreversible',

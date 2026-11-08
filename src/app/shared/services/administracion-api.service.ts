@@ -23,6 +23,11 @@ export class AdministracionApiService {
     return this.post('reglas-sobrepeso', { idProyecto, codigoCultivo });
   }
 
+  /** Parametro activo de la empresa por nombre (ej. Flujo_Empaque): filas con idparametro, valor y activo; vacio si no existe o esta inactivo. */
+  parametro(idParametro: string): Promise<SobreSp<Fila[]>> {
+    return this.post('parametro', { idParametro });
+  }
+
   correlativosDocumentos(): Promise<SobreSp<Fila[]>> {
     return this.post('correlativos-documentos', {});
   }

@@ -240,6 +240,10 @@ export class JornadaStore {
     });
     if (!ok) return;
 
+    // Entre las dos confirmaciones se muestra el loading un instante para que no salgan una tras otra de golpe.
+    this.loading.show('Verificando jornada...');
+    await this.loading.hideAfterMinimum(600);
+
     // Segunda advertencia: cerrar la jornada no se puede deshacer desde esta pantalla.
     const segura = await this.confirm.confirm({
       title: 'Última advertencia',

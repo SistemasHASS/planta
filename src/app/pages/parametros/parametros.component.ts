@@ -6,6 +6,7 @@ import { Usuario } from '../../shared/interfaces/auth.interface';
 import { Configuracion } from '../../shared/interfaces/administracion.interface';
 import { Campania, Cultivo, Fundo } from '../../shared/interfaces/catalogo.interface';
 import { ROLES } from '../../shared/guards/role.guard';
+import { AdministracionApiService } from '../../shared/services/administracion-api.service';
 import { AuthService } from '../../shared/services/auth.service';
 import { CatalogosSyncService } from '../../shared/services/catalogos-sync.service';
 import { ConfirmModalService } from '../../shared/services/confirm-modal.service';
@@ -34,6 +35,7 @@ export class ParametrosComponent implements OnInit {
   private readonly confirm = inject(ConfirmModalService);
   private readonly catalogos = inject(CatalogosRepository);
   private readonly catalogosSync = inject(CatalogosSyncService);
+  private readonly administracionApi = inject(AdministracionApiService);
 
   readonly usuario = signal<Usuario | null>(null);
   readonly fundos = signal<Fundo[]>([]);
@@ -92,6 +94,9 @@ export class ParametrosComponent implements OnInit {
     this.loading.show('Sincronizando parametros...');
     try {
       await this.catalogosSync.sincronizarMaestros();
+      // Si ya hay una configuracion guardada, tambien se vuelve a leer Flujo_Empaque (por si lo activaron o desactivaron).
+      const guardada = this.guardada();
+      if (guardada) await this.persistirConfiguracion(await this.conFlujoEmpaque(guardada));
       await this.cargarDatosDesdeDexie();
       await this.cargarConfiguracionGuardada();
       await this.loading.hideAfterMinimum();
@@ -122,12 +127,12 @@ export class ParametrosComponent implements OnInit {
       return;
     }
 
-    const cfg: Configuracion = { nrodocumento: nro, idFundo: fundo!.id as unknown as string, codigoCultivo, idProyecto: texto(camp.idproyecto) };
+    const base: Configuracion = { nrodocumento: nro, idFundo: fundo!.id as unknown as string, codigoCultivo, idProyecto: texto(camp.idproyecto) };
+    let cfg = base;
     try {
-      const existente: any = await this.catalogos.configuracionRepo.getByField('nrodocumento', nro);
-      if (existente?._pk != null) await this.catalogos.configuracionRepo.delete(existente._pk);
-      await this.catalogos.configuracionRepo.save(cfg);
-      this.guardada.set(cfg);
+      // Flujo_Empaque se lee del servidor una sola vez aqui y queda guardado: las pantallas lo consultan en el equipo, no en cada visita.
+      cfg = await this.conFlujoEmpaque(base);
+      await this.persistirConfiguracion(cfg);
     } catch {
       this.feedback.error('No se pudo guardar la configuración');
       return;
@@ -168,6 +173,32 @@ export class ParametrosComponent implements OnInit {
     } catch {
       this.loading.hide();
       this.feedback.error('Error sincronizando parámetros');
+    }
+  }
+
+  /** Reemplaza la configuracion guardada de este usuario por `cfg`. */
+  private async persistirConfiguracion(cfg: Configuracion): Promise<void> {
+    const existente: any = await this.catalogos.configuracionRepo.getByField('nrodocumento', cfg.nrodocumento);
+    if (existente?._pk != null) await this.catalogos.configuracionRepo.delete(existente._pk);
+    await this.catalogos.configuracionRepo.save(cfg);
+    this.guardada.set(cfg);
+  }
+
+  /**
+   * Agrega a la configuracion si la empresa maneja el flujo de empaque (parametro Flujo_Empaque = SI y activo).
+   * Si no hay internet o falla la consulta se conserva lo que ya estaba guardado (o false si no habia nada).
+   */
+  private async conFlujoEmpaque(cfg: Configuracion): Promise<Configuracion> {
+    const previo = this.guardada()?.flujoEmpaque ?? false;
+    if (!this.connectivity.online()) return { ...cfg, flujoEmpaque: previo };
+    try {
+      const sobre = await this.administracionApi.parametro('Flujo_Empaque');
+      if (sobre.error) return { ...cfg, flujoEmpaque: previo };
+      const activo = (sobre.data ?? []).some((p) => texto(p['valor']).toUpperCase() === 'SI' && p['activo'] !== false && p['activo'] !== 0);
+      return { ...cfg, flujoEmpaque: activo };
+    } catch (error) {
+      console.error('Error al leer el parametro Flujo_Empaque', error);
+      return { ...cfg, flujoEmpaque: previo };
     }
   }
 
