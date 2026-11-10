@@ -47,12 +47,14 @@
       <div class="flex gap-1 rounded-2xl bg-slate-200 p-1 dark:bg-slate-800" role="tablist">
         <button type="button" role="tab" [attr.aria-selected]="pestana() === 'asignar'" class="inline-flex min-h-11 min-w-0 flex-1 items-center justify-center rounded-xl px-2 text-center text-sm font-extrabold leading-tight transition sm:flex-none sm:px-5" [class]="clasePestana('asignar')" (click)="cambiarPestana('asignar')">Asignar empacadores</button>
         <button type="button" role="tab" [attr.aria-selected]="pestana() === 'recoleccion'" class="inline-flex min-h-11 min-w-0 flex-1 items-center justify-center rounded-xl px-2 text-center text-sm font-extrabold leading-tight transition sm:flex-none sm:px-5" [class]="clasePestana('recoleccion')" (click)="cambiarPestana('recoleccion')">Recolección de cajas</button>
-        <span class="hidden min-h-11 items-center rounded-xl px-5 text-sm font-bold text-slate-400 dark:text-slate-500 sm:inline-flex">Stock</span>
-        <span class="hidden min-h-11 items-center rounded-xl px-5 text-sm font-bold text-slate-400 dark:text-slate-500 sm:inline-flex">Producción</span>
+        <button type="button" role="tab" [attr.aria-selected]="pestana() === 'stock'" class="inline-flex min-h-11 min-w-0 flex-1 items-center justify-center rounded-xl px-2 text-center text-sm font-extrabold leading-tight transition sm:flex-none sm:px-5" [class]="clasePestana('stock')" (click)="cambiarPestana('stock')">Stock</button>
+        <button type="button" role="tab" [attr.aria-selected]="pestana() === 'produccion'" class="inline-flex min-h-11 min-w-0 flex-1 items-center justify-center rounded-xl px-2 text-center text-sm font-extrabold leading-tight transition sm:flex-none sm:px-5" [class]="clasePestana('produccion')" (click)="cambiarPestana('produccion')">Producción</button>
       </div>
 
       @switch (pestana()) {
         @case ('recoleccion') { <app-recoleccion-cajas /> }
+        @case ('stock') { <app-stock-anotador /> }
+        @case ('produccion') { <app-produccion-dia /> }
         @default { <app-asignar-empacadores /> }
       }
     } @else {

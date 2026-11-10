@@ -1,6 +1,6 @@
-import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
+import { HttpErrorResponse, HttpInterceptorFn, HttpResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { catchError, from, switchMap, throwError } from 'rxjs';
+import { catchError, tap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ConnectivityService } from '../services/connectivity.service';
 import { FeedbackModalService } from '../services/feedback-modal.service';
@@ -23,22 +23,26 @@ export const connectivityInterceptor: HttpInterceptorFn = (req, next) => {
     return throwError(() => buildOfflineError(req.url));
   }
 
-  return from(connectivity.checkConnection()).pipe(
-    switchMap((online) => {
-      if (!online) {
+  // Sin navegador en linea no hay nada que intentar. No se hace un health por peticion: el servicio ya lo consulta
+  // cada 30 s y, si la peticion real falla por red (status 0), el catchError lo marca como sin conexion.
+  if (!connectivity.hasInternet()) {
+    showOfflineWarning(connectivity, feedback);
+    return throwError(() => buildOfflineError(req.url));
+  }
+
+  return next(req).pipe(
+    tap((event) => {
+      // Una respuesta real es la mejor prueba de que el servidor responde: se recupera el estado sin esperar al siguiente health.
+      if (event instanceof HttpResponse && !connectivity.serverAvailable()) {
+        connectivity.forceStatus(true);
+      }
+    }),
+    catchError((error: unknown) => {
+      if (error instanceof HttpErrorResponse && error.status === 0) {
         showOfflineWarning(connectivity, feedback);
-        return throwError(() => buildOfflineError(req.url));
       }
 
-      return next(req).pipe(
-        catchError((error: unknown) => {
-          if (error instanceof HttpErrorResponse && error.status === 0) {
-            showOfflineWarning(connectivity, feedback);
-          }
-
-          return throwError(() => error);
-        })
-      );
+      return throwError(() => error);
     })
   );
 };

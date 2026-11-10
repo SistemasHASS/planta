@@ -71,6 +71,33 @@ export const routes: Routes = [
           import("./pages/acopios-config/acopios-config.component").then((m) => m.AcopiosConfigComponent),
       },
       {
+        path: "admin/kilos_pago",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Kilos de Pago" },
+        loadComponent: () => import("./pages/kilos-pago/kilos-pago.component").then((m) => m.KilosPagoComponent),
+      },
+      {
+        path: "historial-kilos",
+        canActivate: [roleGuard(ROLES.admin, ROLES.anotador)],
+        data: { titulo: "Historial de Kilos" },
+        loadComponent: () =>
+          import("./pages/historial-kilos/historial-kilos.component").then((m) => m.HistorialKilosComponent),
+      },
+      {
+        path: "admin/historial_kilos",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Historial de Kilos (Administrador)" },
+        loadComponent: () =>
+          import("./pages/historial-kilos-admin/historial-kilos-admin.component").then((m) => m.HistorialKilosAdminComponent),
+      },
+      {
+        path: "admin/control_interno",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Excel de Control Interno" },
+        loadComponent: () =>
+          import("./pages/control-interno/control-interno.component").then((m) => m.ControlInternoComponent),
+      },
+      {
         path: "admin/usuarios",
         canActivate: [roleGuard(ROLES.admin)],
         data: { titulo: "Gestión de Usuarios" },

@@ -69,6 +69,9 @@ const texto = (v: unknown): string => String(v ?? '').trim();
  * sincronizacion con el servidor. Todo es en linea: solo se usan de Dexie la configuracion y la campania guardadas, y los catalogos sincronizados para cruzar nombres. La logica es la de la aplicacion anterior; solo cambian
  * la forma de llamar a la API (api/palets) y la pantalla.
  */
+/** La base rechazó guardar el detalle (ej. no hay stock disponible): `message` es el texto que dejó el SP, listo para mostrarlo. */
+class RechazoDeGuardado extends Error {}
+
 @Component({
   selector: 'app-palets',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -161,7 +164,18 @@ export class PaletsComponent implements OnInit {
     getDPaletsPorPalet: (idPalet: string) => from(this.api.dPaletsPorPalet(idPalet).then((s) => [s])),
     sincronizar: (palets: unknown) => from(this.api.sincronizar(palets).then((s) => [s])),
     /** Devuelve la lista de resultados por detalle ({ idDPalet, success, mensaje }). */
-    sincronizarDPalets: (dPalets: unknown[]) => from(this.api.sincronizarDPalets(dPalets).then((s) => (Array.isArray(s.data) ? s.data : []))),
+    sincronizarDPalets: (dPalets: unknown[]) =>
+      from(
+        this.api.sincronizarDPalets(dPalets).then((s) => {
+          const filas = Array.isArray(s.data) ? s.data : [];
+          // Si el SP no guardó (sin stock disponible, validación del detalle...) no se sigue con los totales del palet.
+          const rechazo = s.error ? s.mensaje : filas.find((f) => f['success'] === false)?.['mensaje'];
+          if (s.error || filas.some((f) => f['success'] === false)) {
+            throw new RechazoDeGuardado(String(rechazo || 'No se pudo guardar el detalle del palet.'));
+          }
+          return filas;
+        }),
+      ),
   };
 
   private readonly catalogoService = {
@@ -473,6 +487,13 @@ export class PaletsComponent implements OnInit {
     } finally {
       await this.loading.hideAfterMinimum();
     }
+  }
+
+  /** La combinacion de formato y tipo de empaque guia elegida en el modal no tiene cajas en stock. */
+  avisarSinStockCombinacion(e: { formato: string; guia: string }): void {
+    const formato = e.formato ? ` ${e.formato}` : '';
+    const guia = e.guia ? ` ${e.guia}` : '';
+    this.alertService.showAlert('Sin stock', `No hay stock para la combinación de formato${formato} y tipo de empaque guía${guia}.`, 'warning');
   }
 
   /** "Descripción — categoría — calibre" del tipo de empaque, sin los datos vacíos (igual que en las listas de la recolección). */
@@ -1010,6 +1031,7 @@ export class PaletsComponent implements OnInit {
       await firstValueFrom(this.paletService.sincronizar(paletActualizado));
       this.reemplazarPalet(paletActualizado);
       await this.verDetalle(paletActualizado);
+      await this.cargarStockCajas(palet.idProceso); // el stock cambió: se vuelve a pedir
       await this.loading.hideAfterMinimum();
       this.alertService.showAlert('Exito', 'Cajas actualizadas correctamente', 'success');
       this.cerrarModalAgregarCajas();
@@ -1018,8 +1040,9 @@ export class PaletsComponent implements OnInit {
       }
     } catch (err) {
       console.error('Error editando cajas:', err);
+      if (err instanceof RechazoDeGuardado) await this.cargarStockCajas(palet.idProceso); // el stock pudo cambiar (otro usuario): se vuelve a pedir
       await this.loading.hideAfterMinimum();
-      this.alertService.showAlertAcept('Error', 'Error al actualizar las cajas', 'error');
+      this.alertService.showAlertAcept('Error', this.mensajeDeRechazo(err, 'Error al actualizar las cajas'), 'error');
     }
   }
 
@@ -1254,6 +1277,7 @@ export class PaletsComponent implements OnInit {
       await firstValueFrom(this.paletService.sincronizar(paletActualizado));
       this.reemplazarPalet(paletActualizado);
       await this.verDetalle(paletActualizado);
+      await this.cargarStockCajas(palet.idProceso); // el stock cambió: se vuelve a pedir
 
       await this.loading.hideAfterMinimum();
       this.alertService.showAlert('Éxito', 'Cajas agregadas correctamente', 'success');
@@ -1263,9 +1287,20 @@ export class PaletsComponent implements OnInit {
       }
     } catch (err) {
       console.error('Error guardando cajas:', err);
+      if (err instanceof RechazoDeGuardado) await this.cargarStockCajas(palet.idProceso); // el stock pudo cambiar (otro usuario): se vuelve a pedir
       await this.loading.hideAfterMinimum();
-      this.alertService.showAlertAcept('Error', 'Error al guardar las cajas', 'error');
+      this.alertService.showAlertAcept('Error', this.mensajeDeRechazo(err, 'Error al guardar las cajas'), 'error');
     }
+  }
+
+  /** Piden más cajas de las que hay disponibles para la combinación: no se envía. */
+  avisarStockInsuficiente(e: { disponible: number; solicitado: number }): void {
+    this.alertService.showAlert('Sin stock', `No tiene un stock disponible para esta acción. Disponible: ${e.disponible}, solicitado: ${e.solicitado}.`, 'warning');
+  }
+
+  /** Si la base rechazó guardar, su mensaje (ej. "No hay stock disponible para esta acción..."); si no, el texto genérico de siempre. */
+  private mensajeDeRechazo(err: unknown, porDefecto: string): string {
+    return err instanceof RechazoDeGuardado ? err.message : porDefecto;
   }
 
   abrirModalCerrarPalet(palet: Palet): void {
@@ -1388,13 +1423,23 @@ export class PaletsComponent implements OnInit {
     };
 
     try {
-      await firstValueFrom(this.paletService.sincronizar(paletEliminado));
+      const resp = await firstValueFrom(this.paletService.sincronizar(paletEliminado));
+      const sobre = resp?.[0] as any;
+      const fila = sobre?.data?.[0];
+      // Si la base no lo eliminó (ej. el palet está en una guía) se muestra su mensaje y no se da por eliminado.
+      if (sobre?.error || (fila && fila.success === false)) {
+        await this.loading.hideAfterMinimum();
+        this.alertService.showAlertAcept('Error', String(fila?.mensaje || sobre?.mensaje || 'No se pudo eliminar el palet'), 'error');
+        return;
+      }
       this.paletSeleccionado.set(null);
       this.composiciones.set([]);
       this.alertService.showAlert('Éxito', 'Palet eliminado correctamente', 'success');
       const proceso = this.procesoSeleccionado();
-      if (proceso) await this.listarPaletsForProceso(proceso.idProceso, { showLoading: false });
-      else await this.loading.hideAfterMinimum();
+      if (proceso) {
+        // Las cajas del palet vuelven al stock: se vuelve a pedir junto con la lista de palets.
+        await Promise.all([this.listarPaletsForProceso(proceso.idProceso, { showLoading: false }), this.cargarStockCajas(proceso.idProceso)]);
+      } else await this.loading.hideAfterMinimum();
     } catch (err) {
       console.error('Error eliminando palet:', err);
       await this.loading.hideAfterMinimum();
@@ -1460,6 +1505,10 @@ export class PaletsComponent implements OnInit {
     });
     if (!ok1) return;
 
+    // Entre las dos confirmaciones se muestra el loading un instante para que no salgan una tras otra de golpe.
+    this.loading.show('Verificando composición...');
+    await this.loading.hideAfterMinimum(600);
+
     // Confirmación 2: irreversible
     const ok2 = await this.alertService.showConfirm(
       'Acción irreversible',
@@ -1500,13 +1549,15 @@ export class PaletsComponent implements OnInit {
 
       this.reemplazarPalet(paletActualizado);
       this.composiciones.set(activos);
+      await this.cargarStockCajas(palet.idProceso); // las cajas vuelven al stock: se vuelve a pedir
 
       await this.loading.hideAfterMinimum();
       this.alertService.showAlert('Éxito', 'Composición eliminada correctamente', 'success');
     } catch (err) {
       console.error('Error eliminando composición:', err);
+      if (err instanceof RechazoDeGuardado) await this.cargarStockCajas(palet.idProceso); // el stock pudo cambiar (otro usuario): se vuelve a pedir
       await this.loading.hideAfterMinimum();
-      this.alertService.showAlertAcept('Error', 'Error al eliminar la composición', 'error');
+      this.alertService.showAlertAcept('Error', this.mensajeDeRechazo(err, 'Error al eliminar la composición'), 'error');
     }
   }
 

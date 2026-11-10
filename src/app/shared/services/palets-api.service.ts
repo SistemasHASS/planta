@@ -24,6 +24,8 @@ export interface StockCajaProceso {
   formatoDescripcion: string;
   tipoEmpaqueId: number;
   tipoEmpaqueDescripcion: string;
+  /** Codigo del tipo de empaque (PLANTA_TiposEmpaque.codigo): es el mismo que trae la guia en codigoTipoEmpaque. */
+  tipoEmpaqueCodigo?: string | null;
   categoriaNombre?: string | null;
   calibreNombre?: string | null;
   disponibles: number;

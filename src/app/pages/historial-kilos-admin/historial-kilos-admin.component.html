@@ -1,0 +1,212 @@
+<section class="w-full space-y-4 p-4 sm:p-6">
+  <header class="flex flex-wrap items-center gap-3">
+    <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-white shadow-md">
+      <svg viewBox="0 0 24 24" class="size-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 3v18h18" /><path d="M7 16v-5" /><path d="M12 16V7" /><path d="M17 16v-8" />
+      </svg>
+    </span>
+    <div class="min-w-0 flex-1">
+      <span class="text-xs font-bold uppercase tracking-widest text-indigo-700 dark:text-indigo-300">Administración</span>
+      <h1 class="text-xl font-extrabold leading-tight text-app-heading sm:text-2xl">Historial de kilos · Anotadores y empacadores</h1>
+      <p class="text-sm text-app-muted">Lo que registró cada anotador en el día: kilos reales frente a kilos de pago de cada empacador, y cuánto de la tarea de su proceso llevan.</p>
+    </div>
+    <a routerLink="/admin/acopio_configuracion" class="btn btn-outline h-[42px] min-h-0 gap-2"><svg lucideSettings class="size-4"></svg> Configuración</a>
+  </header>
+
+  @if (!online()) {
+    <div class="grid place-items-center gap-2 rounded-2xl border border-app-border2 bg-app-surface p-12 text-center shadow-sm">
+      <svg lucideWifiOff class="size-12 text-amber-500"></svg>
+      <p class="text-base font-bold text-app-text2">Sin conexión a internet</p>
+      <p class="max-w-md text-sm text-app-muted">El historial de kilos solo está disponible en modo online. Conéctate a internet para continuar.</p>
+    </div>
+  } @else if (sinFlujo()) {
+    <div class="grid place-items-center gap-2 rounded-2xl border border-dashed border-amber-300 bg-amber-50 p-10 text-center dark:border-amber-500/35 dark:bg-amber-500/15">
+      <svg lucideInbox class="size-10 text-amber-500"></svg>
+      <p class="text-base font-bold text-amber-800 dark:text-amber-300">El flujo de empaque no está activo</p>
+      <p class="max-w-md text-sm text-amber-800/80 dark:text-amber-300/80">El historial de kilos solo está disponible cuando el parámetro Flujo_Empaque está activo.</p>
+    </div>
+  } @else {
+    <!-- Filtros -->
+    <div class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm">
+      <div class="flex flex-wrap items-end gap-3">
+        <div class="w-64 max-w-full max-sm:w-full">
+          <app-search-multi-select label="Acopio" placeholder="Todos los acopios" [showSelectAll]="true" [options]="acopiosOpciones()" [values]="acopiosElegidos()" (valuesChange)="acopiosElegidos.set($event)" />
+        </div>
+        <div class="w-64 max-w-full max-sm:w-full">
+          <app-search-multi-select label="Anotador" placeholder="Todos los anotadores" [showSelectAll]="true" [options]="anotadoresOpciones()" [values]="anotadoresElegidos()" (valuesChange)="cambiarAnotadores($event)" />
+        </div>
+        <div class="w-52 max-w-full max-sm:w-full">
+          <app-search-multi-select label="Proceso" placeholder="Todos" sortOrder="none" [options]="procesosOpciones" [values]="procesosElegidos()" (valuesChange)="cambiarProceso($event)" />
+        </div>
+        <label class="block">
+          <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Fecha</span>
+          <input type="date" class="input input-bordered h-[42px] w-44 text-[16px] sm:text-[14px]" [ngModel]="fecha()" (ngModelChange)="fecha.set($event)" />
+        </label>
+        <button type="button" class="btn btn-primary h-[42px] min-h-0 gap-2" (click)="consultar()"><svg lucideSearch class="size-4"></svg> Consultar</button>
+      </div>
+    </div>
+
+    @if (todos().length > 0) {
+      <!-- KPIs -->
+      <div class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <div class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm">
+          <p class="text-[11px] font-bold uppercase tracking-wide text-app-muted">Empacadores</p>
+          <p class="mt-1 text-3xl font-extrabold tabular-nums text-app-heading">{{ totalEmpacadores() }}</p>
+          <p class="text-xs text-app-muted">{{ totalAnotadores() }} anotador(es)</p>
+        </div>
+        <div class="rounded-2xl border border-tint-emerald-border bg-tint-emerald p-4 shadow-sm">
+          <p class="text-[11px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Con tarea cumplida</p>
+          <p class="mt-1 text-3xl font-extrabold tabular-nums text-emerald-700 dark:text-emerald-300">{{ conTarea() }}</p>
+        </div>
+        <div class="rounded-2xl border border-tint-sky-border bg-tint-sky p-4 shadow-sm">
+          <p class="text-[11px] font-bold uppercase tracking-wide text-sky-700 dark:text-sky-300">Tareas completas</p>
+          <p class="mt-1 text-3xl font-extrabold tabular-nums text-sky-700 dark:text-sky-300">{{ tareasCompletas() }}</p>
+        </div>
+        <div class="rounded-2xl border border-tint-amber-border bg-tint-amber p-4 shadow-sm">
+          <p class="text-[11px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">Sin cumplir la primera</p>
+          <p class="mt-1 text-3xl font-extrabold tabular-nums text-amber-700 dark:text-amber-300">{{ sinPrimera() }}</p>
+        </div>
+        @if (metaUnica() !== null) {
+          <div class="rounded-2xl border border-tint-indigo-border bg-tint-indigo p-4 shadow-sm">
+            <p class="text-[11px] font-bold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">Meta tarea</p>
+            <p class="mt-1 text-3xl font-extrabold tabular-nums text-indigo-700 dark:text-indigo-300">{{ metaUnica() | number: '1.0-2' }} <span class="text-sm font-bold">kg</span></p>
+          </div>
+        }
+        <div class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm">
+          <p class="text-[11px] font-bold uppercase tracking-wide text-app-muted">Kg reales</p>
+          <p class="mt-1 text-3xl font-extrabold tabular-nums text-app-heading">{{ kgRealTotal() | number: '1.0-2' }}</p>
+          <p class="text-xs text-app-muted">{{ cajasTotal() | number: '1.0-0' }} cajas · {{ kgPagoTotal() | number: '1.0-2' }} kg de pago</p>
+        </div>
+      </div>
+
+      @if (bloques().length > 0) {
+        <div class="grid gap-3 sm:grid-cols-2">
+          @for (b of bloques(); track b.titulo) {
+            <div class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm">
+              <p class="text-sm font-bold text-app-heading">{{ b.titulo }}</p>
+              <p class="mt-1 text-xs text-app-muted">
+                {{ b.empacadores }} empacador(es) · {{ b.cumplen }} con tarea cumplida · {{ b.cajas | number: '1.0-0' }} cajas
+              </p>
+              <p class="mt-1 text-sm tabular-nums text-app-text">
+                <span class="font-bold">{{ b.kgPago | number: '1.0-2' }}</span> kg de pago · <span class="font-bold">{{ b.kgReal | number: '1.0-2' }}</span> kg reales
+              </p>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Gráfico -->
+      <div class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <p class="text-sm font-bold text-app-heading">Kg reales vs kg de pago por empacador</p>
+          <div class="flex flex-wrap items-center gap-2 text-xs font-semibold">
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 transition"
+              [class]="verReal() ? 'border-indigo-500 bg-tint-indigo text-app-heading' : 'border-app-border2 text-app-subtle line-through'"
+              (click)="alternar('real')"
+            >
+              <span class="size-2.5 rounded-sm" [style.background]="colorReal"></span> Kg reales
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 transition"
+              [class]="verPago() ? 'border-orange-500 bg-tint-amber text-app-heading' : 'border-app-border2 text-app-subtle line-through'"
+              (click)="alternar('pago')"
+            >
+              <span class="size-2.5 rounded-sm" [style.background]="colorPago"></span> Kg de pago
+            </button>
+            @for (m of metas(); track m) {
+              <span class="inline-flex items-center gap-1.5 text-app-muted">
+                <svg width="22" height="6" aria-hidden="true"><line x1="0" y1="3" x2="22" y2="3" stroke="#dc2626" stroke-width="2" stroke-dasharray="4 3" /></svg>
+                Meta {{ m | number: '1.0-2' }} kg sobre kg de pago
+              </span>
+            }
+          </div>
+        </div>
+
+        @if (filtrados().length > 0) {
+          <div class="mt-3 overflow-x-auto">
+            <div #grafico class="h-[22rem] w-full" [style.min-width.px]="anchoGrafico()"></div>
+          </div>
+
+          <p class="mt-1 text-xs text-app-muted">{{ filtrados().length }} empacador(es){{ filtrados().length > 5 ? ' · desplázate hacia la derecha para ver todos' : '' }}</p>
+        } @else {
+          <p class="py-10 text-center text-sm text-app-muted">No hay empacadores para el proceso elegido.</p>
+        }
+      </div>
+
+      <!-- Tabla -->
+      <div class="rounded-2xl border border-app-border2 bg-app-surface shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3 px-4 pt-4">
+          <p class="text-sm font-bold text-app-heading">Detalle por empacador · {{ buscados().length }} de {{ filtrados().length }}</p>
+          <label class="input input-bordered flex h-[38px] w-full items-center gap-2 sm:w-72">
+            <svg lucideSearch class="size-4 opacity-60"></svg>
+            <input type="search" class="grow text-[16px] sm:text-[14px]" placeholder="Buscar por anotador, empacador, DNI o acopio" [ngModel]="busqueda()" (ngModelChange)="cambiarBusqueda($event)" />
+          </label>
+        </div>
+
+        <div class="tabla-scroll mt-3 border-t border-app-border2">
+          <table class="table table-sm [&_td]:align-middle [&_td]:py-2.5">
+            <thead>
+              <tr class="text-[11px] font-bold uppercase tracking-wide">
+                <th class="w-12">#</th>
+                <th>Anotador</th>
+                <th>Empacador</th>
+                <th>DNI</th>
+                <th>Acopio</th>
+                <th class="text-right">Cajas</th>
+                <th class="text-right">Kg pago</th>
+                <th class="text-right">Kg real</th>
+                <th class="min-w-[220px]">Tarea</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (e of paginacion.paged(); track e.clave; let i = $index) {
+                <tr class="border-t border-app-border hover:bg-app-surface2" [class]="e.cumple ? '!bg-emerald-50/70 dark:!bg-emerald-500/10' : ''">
+                  <td class="tabular-nums text-app-muted">{{ paginacion.offset() + i + 1 }}</td>
+                  <td class="text-app-text">{{ e.anotador }}</td>
+                  <td>
+                    <p class="font-bold text-app-heading">{{ e.nombre }}</p>
+                    @if (e.proceso) { <p class="text-[11px] text-app-muted">{{ e.proceso }}</p> }
+                  </td>
+                  <td class="tabular-nums text-app-muted">{{ e.dni }}</td>
+                  <td class="text-app-heading">{{ nombreAcopio(e.acopio) }}</td>
+                  <td class="text-right tabular-nums">{{ e.cajas | number: '1.0-0' }}</td>
+                  <td class="text-right font-bold tabular-nums text-app-heading">{{ e.kgPago | number: '1.2-2' }}</td>
+                  <td class="text-right tabular-nums text-app-text">{{ e.kgReal | number: '1.2-2' }}</td>
+                  <td>
+                    @if (e.meta === null) {
+                      <span class="text-xs text-app-subtle">Sin meta</span>
+                    } @else {
+                      <div class="flex items-center gap-2">
+                        <span
+                          class="inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold"
+                          [class]="e.cumple ? 'bg-emerald-600 text-white' : 'bg-app-surface3 text-app-text2'"
+                        >{{ e.tareas }} {{ e.tareas === 1 ? 'tarea' : 'tareas' }}</span>
+                        <div class="min-w-0 flex-1">
+                          <div class="h-2 overflow-hidden rounded-full bg-app-surface3">
+                            <div class="h-full rounded-full" [class]="e.cumple && e.avance === 0 ? 'bg-emerald-500' : 'bg-orange-500'" [style.width.%]="e.cumple && e.avance === 0 ? 100 : e.avance"></div>
+                          </div>
+                          <p class="mt-0.5 text-[11px] tabular-nums text-app-muted">va {{ e.sobran | number: '1.0-2' }} de {{ e.meta | number: '1.0-2' }} kg · {{ e.avance }}%</p>
+                        </div>
+                      </div>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="9" class="py-8 text-center text-app-muted">Nadie coincide con la búsqueda</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <app-paginator [total]="buscados().length" [(page)]="paginacion.page" [(pageSize)]="paginacion.pageSize" />
+      </div>
+    } @else {
+      <div class="grid place-items-center gap-2 rounded-2xl border border-dashed border-app-border2 bg-app-surface p-10 text-center text-app-muted">
+        <svg lucideInbox class="size-10 opacity-40"></svg>
+        <p>{{ consultado() ? 'No hubo empacadores con cajas en esa fecha' : 'Elige la fecha y presiona Consultar' }}</p>
+      </div>
+    }
+  }
+</section>

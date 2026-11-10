@@ -95,6 +95,24 @@ export class JornadasAnotadorApiService {
     return this.post('recolecciones/cajas/resumen', {});
   }
 
+  /** Stock actual del anotador: sus cajas que Logística aún no consumió en palets, por formato y tipo de empaque (cada anotador ve solo lo suyo). */
+  stockAnotador(): Promise<SobreSp<Fila[]>> {
+    return this.post('stock', {});
+  }
+
+  /** Producción del día: cajas de todos los empacadores en el proceso de la jornada abierta, una fila por anotación (empacador + recolección). */
+  produccionDia(): Promise<SobreSp<Fila[]>> {
+    return this.post('produccion', {});
+  }
+
+  /**
+   * Corrige una anotación (id del registro de cajas): la cantidad y, si se envía `producto`, también el formato y el tipo de empaque (con el calibre del tipo elegido).
+   * La base no deja quitar cajas que ya están en palets (ni mover a otro producto cajas que ya salieron a un palet).
+   */
+  corregirCajas(id: number, cantidadCajas: number, producto?: { formatoId: number; tipoEmpaqueId: number; calibreNombre: string }): Promise<SobreSp<Fila[]>> {
+    return this.post('produccion/corregir', { id, cantidadCajas, ...(producto ?? {}) });
+  }
+
   /** Quita al empacador de la recolección abierta: su fila de cajas queda anulada y el stock se devuelve. */
   quitarCajas(cuerpo: { idLinea: number; puesto: number }): Promise<SobreSp<Fila[]>> {
     return this.post('recolecciones/cajas/sincronizar', { modo: 'anular', ...cuerpo });

@@ -7,7 +7,7 @@
       } @else { 
         <svg lucideChevronRight class="size-4 text-app-muted"></svg> 
       }
-      <span class="text-base font-extrabold text-app-heading">Línea {{ l['numero'] }}</span>
+      <span class="text-base font-extrabold text-app-heading">{{ nombreLinea(l) }}</span>
       @let asignados = store.asignadosDe(l);
       @let total = store.puestosDe(l).length;
       <!-- Avance de la línea: un segmento por puesto -->

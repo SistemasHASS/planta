@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { SearchSelectComponent } from '../../../../shared/components/search-select/search-select.component';
 import { ConnectivityService } from '../../../../shared/services/connectivity.service';
@@ -5,7 +6,7 @@ import { FeedbackModalService } from '../../../../shared/services/feedback-modal
 import { LoadingService } from '../../../../shared/services/loading.service';
 import { JornadaStore } from '../../jornada.store';
 import { RecoleccionStore } from '../../recoleccion.store';
-import { Fila, fechaHora } from '../../jornada.utils';
+import { Fila, fechaHora, ladosDe } from '../../jornada.utils';
 import { LucideHistory, LucideZap } from '@lucide/angular';
 import { HistorialRecoleccionModalComponent } from '../historial-recoleccion-modal/historial-recoleccion-modal.component';
 import { LineaPanelComponent } from '../linea-panel/linea-panel.component';
@@ -19,7 +20,7 @@ import { SinLineasComponent } from '../sin-lineas/sin-lineas.component';
  */
 @Component({
   selector: 'app-recoleccion-cajas',
-  imports: [HistorialRecoleccionModalComponent, LineaPanelComponent, LucideHistory, LucideZap, RecoleccionRapidaComponent, RegistroCajasModalComponent, SearchSelectComponent, SinLineasComponent],
+  imports: [HistorialRecoleccionModalComponent, LineaPanelComponent, LucideHistory, LucideZap, NgTemplateOutlet, RecoleccionRapidaComponent, RegistroCajasModalComponent, SearchSelectComponent, SinLineasComponent],
   templateUrl: './recoleccion-cajas.component.html',
   host: { class: 'block' },
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -32,6 +33,8 @@ export class RecoleccionCajasComponent {
   private readonly loading = inject(LoadingService);
 
   protected readonly fechaHora = fechaHora;
+  /** Lado A y lado B de un curo de máquina (null si es una línea manual). */
+  protected readonly ladosDe = ladosDe;
 
   /** Botones de la barra de recolección: misma altura y forma; solo cambia el color (suaves, también en modo oscuro). */
   protected readonly botonBase =

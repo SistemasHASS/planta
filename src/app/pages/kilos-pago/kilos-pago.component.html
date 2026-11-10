@@ -1,0 +1,129 @@
+<section class="w-full space-y-4 p-4 sm:p-6">
+  <header class="flex items-center gap-3">
+    <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md">
+      <svg lucideScale class="size-6"></svg>
+    </span>
+    <div class="min-w-0">
+      <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Administración</span>
+      <h1 class="text-xl font-extrabold leading-tight text-app-heading sm:text-2xl">Kilos de pago</h1>
+      <p class="text-sm text-app-muted">Kilos que se le cuentan al empacador por cada caja, según formato, tipo de empaque, categoría y calibre.</p>
+    </div>
+  </header>
+
+  @if (!online()) {
+    <div class="grid place-items-center gap-2 rounded-2xl border border-app-border2 bg-app-surface p-12 text-center shadow-sm">
+      <svg lucideWifiOff class="size-12 text-amber-500"></svg>
+      <p class="text-base font-bold text-app-text2">Sin conexión a internet</p>
+      <p class="max-w-md text-sm text-app-muted">Los kilos de pago solo están disponibles en modo online. Conéctate a internet para continuar.</p>
+    </div>
+  } @else if (sinFlujo()) {
+    <div class="grid place-items-center gap-2 rounded-2xl border border-dashed border-amber-300 bg-amber-50 p-10 text-center dark:border-amber-500/35 dark:bg-amber-500/15">
+      <svg lucideScale class="size-10 text-amber-500"></svg>
+      <p class="text-base font-bold text-amber-800 dark:text-amber-300">El flujo de empaque no está activo</p>
+      <p class="max-w-md text-sm text-amber-800/80 dark:text-amber-300/80">Los kilos de pago solo se configuran cuando el parámetro Flujo_Empaque está activo.</p>
+    </div>
+  } @else {
+    <div class="rounded-2xl border border-app-border2 bg-app-surface shadow-sm">
+      <!-- Título, contador y acciones -->
+      <div class="flex flex-wrap items-center justify-between gap-3 px-4 pt-4">
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 class="text-sm font-bold uppercase tracking-wide text-app-text2">Kilos de pago por formato, tipo de empaque, categoría y calibre</h2>
+          <span class="badge badge-soft badge-success">{{ filasFiltradas().length }} {{ filasFiltradas().length === 1 ? 'registro' : 'registros' }}</span>
+          @if (hayCambios()) {
+            <span class="badge badge-soft badge-warning">{{ cambiadas().length }} sin guardar</span>
+          }
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          @if (hayCambios()) {
+            <button type="button" class="btn btn-ghost btn-sm" (click)="descartar()">Descartar</button>
+          }
+          <button type="button" class="btn btn-sm gap-2 border border-emerald-600 bg-emerald-600 px-4 font-bold text-white shadow-sm transition hover:-translate-y-px hover:bg-emerald-700 disabled:opacity-50 dark:border-emerald-600" [disabled]="!hayCambios()" (click)="guardar()">
+            <svg lucideSave class="size-4"></svg> Guardar cambios
+          </button>
+          <button type="button" class="btn btn-primary btn-sm" (click)="cargar()"><svg lucideRefreshCcw class="size-4"></svg> Actualizar</button>
+        </div>
+      </div>
+
+      <p class="px-4 pt-3 text-sm text-app-muted">
+        Los kilos que se le cuentan al empacador por cada caja. Es lo que se usa para medir su tarea y no tiene por qué coincidir con el peso real de la caja: una misma caja puede pagarse distinto según el tipo de empaque. Dos decimales. Lo que todavía no se configuró aparece en 0.00.
+      </p>
+
+      <!-- Buscador -->
+      <div class="p-4">
+        <label class="block min-w-0 sm:max-w-md">
+          <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Buscar</span>
+          <span class="flex h-[42px] items-center gap-2 rounded-[9px] border border-app-border2 bg-app-surface px-3 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100 dark:focus-within:ring-emerald-500/20">
+            <svg lucideSearch class="size-4 shrink-0 text-app-subtle"></svg>
+            <input type="text" class="min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-app-subtle sm:text-[14px]" placeholder="Formato, tipo de empaque, categoría o calibre" aria-label="Buscar" [ngModel]="filtroTexto()" (ngModelChange)="filtroTexto.set($event)" />
+            @if (filtroTexto()) {
+              <button type="button" class="grid size-5 shrink-0 place-items-center rounded-full text-app-subtle hover:bg-app-surface3 hover:text-app-text2" aria-label="Borrar texto" (click)="filtroTexto.set('')"><svg lucideX class="size-3.5"></svg></button>
+            }
+          </span>
+        </label>
+      </div>
+
+      @if (filasFiltradas().length > 0) {
+        <div class="tabla-scroll border-t border-app-border2">
+          <table class="table table-sm table-pin-rows [&_td]:align-middle [&_td]:py-2.5 [&_thead_th]:!py-3 [&_thead_th]:!text-app-text2 [&_thead_th]:!shadow-[inset_0_-2px_0_var(--tint-emerald-border)]">
+            <thead>
+              <tr class="text-[11px] font-bold uppercase tracking-wide">
+                <th>Formato</th>
+                <th>Tipo de empaque</th>
+                <th>Categoría</th>
+                <th>Calibre</th>
+                <th class="text-right">Peso real (kg)</th>
+                <th class="text-right">Kilos de pago</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (f of filasFiltradas(); track f.clave) {
+                <tr class="border-t border-app-border hover:bg-app-surface2">
+                  <td class="min-w-[14rem] text-app-heading">
+                    {{ f.formatoDescripcion }}
+                    <span class="ml-1 font-mono text-[11px] text-app-subtle">({{ f.formatoCodigo }})</span>
+                  </td>
+                  <td class="min-w-[12rem] text-app-heading">
+                    {{ f.tipoEmpaqueDescripcion }}
+                    <span class="ml-1 font-mono text-[11px] text-app-subtle">({{ f.tipoEmpaqueCodigo }})</span>
+                  </td>
+                  <td class="min-w-[10rem] text-app-heading">
+                    {{ f.categoriaDescripcion }}
+                    <span class="ml-1 font-mono text-[11px] text-app-subtle">({{ f.categoriaCodigo }})</span>
+                  </td>
+                  <td class="min-w-[8rem] text-app-heading">
+                    {{ f.calibreDescripcion || f.calibreId }}
+                    <span class="ml-1 font-mono text-[11px] text-app-subtle">({{ f.calibreId }})</span>
+                  </td>
+                  <td class="text-right tabular-nums text-app-muted">{{ dos(f.pesoReal) }}</td>
+                  <td class="text-right">
+                    <input
+                      type="text"
+                      inputmode="decimal"
+                      autocomplete="off"
+                      maxlength="8"
+                      class="input input-bordered input-sm w-28 text-right font-bold tabular-nums"
+                      [class.border-amber-400]="cambio(f)"
+                      [class.bg-amber-50]="cambio(f)"
+                      [class.dark:bg-amber-500/10]="cambio(f)"
+                      [attr.aria-label]="'Kilos de pago de ' + f.formatoDescripcion + ' ' + f.tipoEmpaqueDescripcion + ' ' + f.categoriaDescripcion + ' ' + f.calibreDescripcion"
+                      [value]="textoDe(f)"
+                      (input)="escribir(f, $any($event.target))"
+                      (keydown)="soloNumero($event)"
+                      (focus)="$any($event.target).select()"
+                      (blur)="terminar(f, $any($event.target))"
+                    />
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="grid place-items-center gap-2 border-t border-app-border2 p-10 text-center text-app-muted">
+          <svg lucideInbox class="size-10 opacity-40"></svg>
+          <p>No se encontraron formatos</p>
+        </div>
+      }
+    </div>
+  }
+</section>

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { Fila } from '../../jornada.utils';
+import { Fila, nombreLinea } from '../../jornada.utils';
 
 /** Menú de un puesto ocupado: mover, cambiar por otro empacador (escanear) o quitar. */
 @Component({
@@ -8,6 +8,8 @@ import { Fila } from '../../jornada.utils';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MenuPuestoModalComponent {
+  protected readonly nombreLinea = nombreLinea;
+
   readonly linea = input.required<Fila>();
   readonly puesto = input.required<number>();
   readonly empacador = input.required<Fila>();

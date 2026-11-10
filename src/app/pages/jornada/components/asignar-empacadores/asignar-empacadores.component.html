@@ -1,3 +1,17 @@
+<!-- Un puesto (vacío u ocupado): se usa igual en la cuadrícula de una línea manual y en los lados de un curo -->
+<ng-template #botonPuesto let-l let-p="puesto">
+  @if (store.asignadoEn(l, p); as t) {
+    <button type="button" class="flex h-16 select-none [-webkit-touch-callout:none] flex-col items-center justify-center gap-0.5 rounded-xl border border-emerald-300 bg-emerald-50 px-1 text-center text-emerald-800 transition hover:border-emerald-500 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200" [class.ring-4]="moviendo()?.idPuesto === t['idPuesto'] || esDestino(l, p)" [class.ring-amber-400]="moviendo()?.idPuesto === t['idPuesto']" [class.ring-blue-500]="esDestino(l, p)" [class.opacity-40]="origenArrastre() === t['idPuesto']" [attr.data-linea]="l['idLinea']" [attr.data-puesto]="p" (pointerdown)="iniciarArrastre($event, p, t)" (contextmenu)="$event.preventDefault()" [attr.aria-label]="'Puesto ' + p + ': ' + t['nombreCompleto'] + '. Toca para moverlo, cambiarlo o quitarlo'" (click)="tocarPuesto(l, p)">
+      <span class="text-[9px] font-extrabold opacity-70">P{{ p }}</span>
+      <span class="line-clamp-2 text-[10px] font-bold leading-tight">{{ t['nombreCompleto'] }}</span>
+    </button>
+  } @else {
+    <button type="button" class="grid h-16 place-items-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-xs font-bold text-slate-400 transition hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-600 dark:border-slate-600 dark:bg-slate-800/60 dark:text-slate-500 dark:hover:bg-emerald-900/20" [class.ring-4]="esDestino(l, p)" [class.ring-blue-500]="esDestino(l, p)" [attr.data-linea]="l['idLinea']" [attr.data-puesto]="p" [attr.aria-label]="'Escanear empacador para el puesto ' + p" (click)="tocarPuesto(l, p)">
+      <span>P{{ p }}</span>
+    </button>
+  }
+</ng-template>
+
 @if (store.misLineas().length === 0) {
   <app-sin-lineas />
 } @else {
@@ -7,20 +21,33 @@
         @if (store.asignadosDe(l) > 0) {
           <button acciones type="button" class="btn btn-outline btn-error btn-xs mb-3 ml-4 shrink-0 self-start sm:m-0 sm:self-auto" (click)="vaciarLinea(l)">Vaciar</button>
         }
-        <div class="grid grid-cols-3 gap-2 sm:grid-cols-6 lg:grid-cols-12">
-          @for (p of store.puestosDe(l); track p) {
-            @if (store.asignadoEn(l, p); as t) {
-              <button type="button" class="flex h-16 select-none [-webkit-touch-callout:none] flex-col items-center justify-center gap-0.5 rounded-xl border border-emerald-300 bg-emerald-50 px-1 text-center text-emerald-800 transition hover:border-emerald-500 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200" [class.ring-4]="moviendo()?.idPuesto === t['idPuesto'] || esDestino(l, p)" [class.ring-amber-400]="moviendo()?.idPuesto === t['idPuesto']" [class.ring-blue-500]="esDestino(l, p)" [class.opacity-40]="origenArrastre() === t['idPuesto']" [attr.data-linea]="l['idLinea']" [attr.data-puesto]="p" (pointerdown)="iniciarArrastre($event, p, t)" (contextmenu)="$event.preventDefault()" [attr.aria-label]="'Puesto ' + p + ': ' + t['nombreCompleto'] + '. Toca para moverlo, cambiarlo o quitarlo'" (click)="tocarPuesto(l, p)">
-                <span class="text-[9px] font-extrabold opacity-70">P{{ p }}</span>
-                <span class="line-clamp-2 text-[10px] font-bold leading-tight">{{ t['nombreCompleto'] }}</span>
-              </button>
-            } @else {
-              <button type="button" class="grid h-16 place-items-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-xs font-bold text-slate-400 transition hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-600 dark:border-slate-600 dark:bg-slate-800/60 dark:text-slate-500 dark:hover:bg-emerald-900/20" [class.ring-4]="esDestino(l, p)" [class.ring-blue-500]="esDestino(l, p)" [attr.data-linea]="l['idLinea']" [attr.data-puesto]="p" [attr.aria-label]="'Escanear empacador para el puesto ' + p" (click)="tocarPuesto(l, p)">
-                <span>P{{ p }}</span>
-              </button>
+        @if (ladosDe(l); as lados) {
+          <!-- Curo de una máquina: lado A y lado B -->
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div class="rounded-xl border border-app-border2 bg-app-surface2 p-2.5">
+              <p class="mb-2 text-center text-[11px] font-extrabold uppercase tracking-wide text-app-muted">Lado A</p>
+              <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                @for (p of lados.ladoA; track p) {
+                  <ng-container *ngTemplateOutlet="botonPuesto; context: { $implicit: l, puesto: p }" />
+                }
+              </div>
+            </div>
+            <div class="rounded-xl border border-app-border2 bg-app-surface2 p-2.5">
+              <p class="mb-2 text-center text-[11px] font-extrabold uppercase tracking-wide text-app-muted">Lado B</p>
+              <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                @for (p of lados.ladoB; track p) {
+                  <ng-container *ngTemplateOutlet="botonPuesto; context: { $implicit: l, puesto: p }" />
+                }
+              </div>
+            </div>
+          </div>
+        } @else {
+          <div class="grid grid-cols-3 gap-2 sm:grid-cols-6 lg:grid-cols-12">
+            @for (p of store.puestosDe(l); track p) {
+              <ng-container *ngTemplateOutlet="botonPuesto; context: { $implicit: l, puesto: p }" />
             }
-          }
-        </div>
+          </div>
+        }
         <p class="mt-3 text-xs text-app-muted">Toca un puesto vacío para escanear al empacador · mantén pulsado un puesto ocupado y arrástralo para moverlo · tócalo para cambiarlo o quitarlo.</p>
       </app-linea-panel>
     }

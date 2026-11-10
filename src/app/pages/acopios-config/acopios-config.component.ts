@@ -127,9 +127,11 @@ export class AcopiosConfigComponent implements OnInit {
     }
   }
 
-  /** Nombres de los tipos de proceso que están activos en el acopio. */
-  tiposActivos(acopio: AcopioConfig): string[] {
-    return acopio.tiposProcesoEmpacado.filter((t) => t.activo).map((t) => t.nombre);
+  /** Tipos de proceso activos en el acopio, con sus kilos por tarea (solo vienen con el parámetro Flujo_Empaque activo y si ya se configuraron). */
+  tiposActivos(acopio: AcopioConfig): { nombre: string; kilosTarea: number | null }[] {
+    return acopio.tiposProcesoEmpacado
+      .filter((t) => t.activo)
+      .map((t) => ({ nombre: t.nombre, kilosTarea: t.kilosTarea != null && Number(t.kilosTarea) > 0 ? Number(t.kilosTarea) : null }));
   }
 
   /** Abre la ventana de líneas y máquinas mostrando la carga. */

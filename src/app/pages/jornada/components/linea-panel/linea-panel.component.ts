@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import { LucideChevronDown, LucideChevronRight } from '@lucide/angular';
 import { JornadaStore } from '../../jornada.store';
-import { Fila } from '../../jornada.utils';
+import { Fila, nombreLinea } from '../../jornada.utils';
 
 /**
  * Tarjeta plegable de una línea: título, avance de puestos y badge. Lo propio de cada pestaña se proyecta:
@@ -17,6 +17,7 @@ import { Fila } from '../../jornada.utils';
 })
 export class LineaPanelComponent {
   protected readonly store = inject(JornadaStore);
+  protected readonly nombreLinea = nombreLinea;
 
   readonly linea = input.required<Fila>();
   /** La cabecera ocupa todo el ancho disponible (así las acciones quedan pegadas a la derecha). */

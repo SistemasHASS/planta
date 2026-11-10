@@ -14,6 +14,7 @@ import {
   LucideLibrary,
   LucideMapPin,
   LucideNetwork,
+  LucideScale,
   LucideSettings,
   LucideUsers,
   LucideLeaf,
@@ -80,6 +81,7 @@ const NAV_SECTIONS: NavSection[] = [
     defaultOpen: true,
     items: [
       { label: 'Panel de empaque', path: '/empacadores/jornada', icon: 'calendar', roles: [ROLES.anotador] },
+      { label: 'Historial de kilos', path: '/historial-kilos', icon: 'chart', roles: [ROLES.anotador] },
       { label: 'Procesos', path: '/procesos', icon: 'calendar', roles: [ROLES.logistica, ROLES.admin] },
       { label: 'Palets', path: '/palets', icon: 'package', roles: [ROLES.logistica, ROLES.admin] },
       { label: 'Guías', path: '/guias', icon: 'truck', roles: [ROLES.logistica, ROLES.admin, ROLES.monitor] },
@@ -96,6 +98,9 @@ const NAV_SECTIONS: NavSection[] = [
       { label: 'Gestión de Destinatarios', path: '/admin/destinatarios', icon: 'map-pin', adminOnly: true },
       { label: 'Matriz Compatibilidad', path: '/admin/matriz', icon: 'network', adminOnly: true },
       { label: 'Reglas Sobrepeso', path: '/admin/sobrepeso', icon: 'gauge', adminOnly: true },
+      { label: 'Kilos de Pago', path: '/admin/kilos_pago', icon: 'scale', adminOnly: true },
+      { label: 'Historial de Kilos', path: '/admin/historial_kilos', icon: 'chart', adminOnly: true },
+      { label: 'Excel Control Interno', path: '/admin/control_interno', icon: 'file-chart', adminOnly: true },
       { label: 'Series GRE', path: '/admin/correlativos-documentos', icon: 'file-text', adminOnly: true },
       { label: 'Códigos Caja', path: '/admin/codigos-caja', icon: 'package', adminOnly: true },
       {
@@ -194,6 +199,7 @@ const NAV_SECTIONS: NavSection[] = [
     LucideLayoutDashboard,
     LucideLibrary,
     LucideMapPin,
+    LucideScale,
     LucideNetwork,
     LucideSettings,
     LucideUsers,

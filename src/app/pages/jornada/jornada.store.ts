@@ -9,7 +9,7 @@ import { FeedbackModalService } from '../../shared/services/feedback-modal.servi
 import { JornadasAnotadorApiService } from '../../shared/services/jornadas-anotador-api.service';
 import { LoadingService } from '../../shared/services/loading.service';
 import { ProcesosApiService } from '../../shared/services/procesos-api.service';
-import { Fila, fecha, texto } from './jornada.utils';
+import { Fila, fecha, lineaTexto, texto } from './jornada.utils';
 
 /** Se ejecuta después de leer las líneas (conJornada=true) o al saber que no hay jornada abierta (conJornada=false). */
 type GanchoLineas = (conJornada: boolean) => Promise<void>;
@@ -42,8 +42,8 @@ export class JornadaStore {
 
   readonly misLineas = computed(() => this.lineas().filter((l) => texto(l['situacion']) === 'MIA'));
   readonly tomadas = computed(() => this.misLineas().length);
-  /** Números de las líneas que tomé, para mostrarlos cuando la tarjeta "Mis líneas" está contraída. */
-  readonly numerosMios = computed(() => this.misLineas().map((l) => texto(l['numero'])).join(' · '));
+  /** Números (o nombres de curo) de las líneas que tomé, para mostrarlos cuando la tarjeta "Mis líneas" está contraída. */
+  readonly numerosMios = computed(() => this.misLineas().map((l) => (texto(l['maquinaNombre']) && l['curo'] ? `${texto(l['maquinaNombre'])} · Curo ${texto(l['curo'])}` : texto(l['numero']))).join(' · '));
   /** Lineas (idLinea) con su detalle de puestos desplegado. */
   readonly desplegadas = signal<ReadonlySet<number>>(new Set());
   /** Empacadores asignados en cada posición ("idLinea-puesto"), tal como los devuelve el servidor. */
@@ -307,7 +307,7 @@ export class JornadaStore {
     const ok = await this.confirm.confirm({
       title: 'Soltar línea',
       eyebrow: 'Confirma la acción',
-      message: `¿Seguro que deseas soltar la línea ${texto(linea['numero'])}?`,
+      message: `¿Seguro que deseas soltar ${lineaTexto(linea)}?`,
       detail: 'Otro anotador podrá tomarla.',
       confirmText: 'Soltar línea',
       tone: 'warning',

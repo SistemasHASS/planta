@@ -1,7 +1,7 @@
 <div class="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center" role="dialog" aria-modal="true" (click)="closed.emit()">
   <div class="w-full max-w-sm space-y-3 rounded-t-3xl bg-app-surface p-5 shadow-2xl sm:rounded-3xl" (click)="$event.stopPropagation()">
     <div>
-      <p class="text-xs font-extrabold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Línea {{ linea()['numero'] }} · Puesto P{{ puesto() }}</p>
+      <p class="text-xs font-extrabold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">{{ nombreLinea(linea()) }} · Puesto P{{ puesto() }}</p>
       <p class="text-xl font-extrabold leading-tight text-app-heading">{{ empacador()['nombreCompleto'] }}</p>
       <p class="text-sm text-app-muted">Documento {{ empacador()['numeroDocumento'] }}</p>
     </div>

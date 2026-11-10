@@ -65,8 +65,11 @@
                   </td>
                   <td class="min-w-[16rem]">
                     <div class="flex flex-wrap gap-1">
-                      @for (nombre of tiposActivos(a); track nombre) {
-                        <span class="badge badge-soft badge-success">{{ nombre }}</span>
+                      @for (t of tiposActivos(a); track t.nombre) {
+                        <span class="badge badge-soft badge-success">
+                          {{ t.nombre }}
+                          @if (t.kilosTarea !== null) { <span class="ml-1 border-l border-current/30 pl-1 font-bold">{{ t.kilosTarea }} kg</span> }
+                        </span>
                       } @empty {
                         <span class="text-xs text-app-subtle">Sin tipos activos</span>
                       }

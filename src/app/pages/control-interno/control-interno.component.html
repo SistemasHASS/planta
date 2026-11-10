@@ -1,0 +1,131 @@
+<section class="w-full space-y-4 p-4 sm:p-6">
+  <header class="flex items-center gap-3">
+    <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md">
+      <svg lucideFileSpreadsheet class="size-6"></svg>
+    </span>
+    <div class="min-w-0">
+      <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Administración</span>
+      <h1 class="text-xl font-extrabold leading-tight text-app-heading sm:text-2xl">Excel de Control Interno</h1>
+      <p class="text-sm text-app-muted">Total de cajas y kilos de pago de cada empacador en el periodo, repartido por formato, tipo de empaque, categoría y calibre. Sale solo quien tuvo movimiento.</p>
+    </div>
+  </header>
+
+  @if (!online()) {
+    <div class="grid place-items-center gap-2 rounded-2xl border border-app-border2 bg-app-surface p-12 text-center shadow-sm">
+      <svg lucideWifiOff class="size-12 text-amber-500"></svg>
+      <p class="text-base font-bold text-app-text2">Sin conexión a internet</p>
+      <p class="max-w-md text-sm text-app-muted">El control interno solo está disponible en modo online. Conéctate a internet para continuar.</p>
+    </div>
+  } @else if (sinFlujo()) {
+    <div class="grid place-items-center gap-2 rounded-2xl border border-dashed border-amber-300 bg-amber-50 p-10 text-center dark:border-amber-500/35 dark:bg-amber-500/15">
+      <svg lucideFileSpreadsheet class="size-10 text-amber-500"></svg>
+      <p class="text-base font-bold text-amber-800 dark:text-amber-300">El flujo de empaque no está activo</p>
+      <p class="max-w-md text-sm text-amber-800/80 dark:text-amber-300/80">El control interno solo está disponible cuando el parámetro Flujo_Empaque está activo.</p>
+    </div>
+  } @else {
+    <!-- Filtros -->
+    <div class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm">
+      <div class="flex flex-wrap items-end gap-3">
+        <label class="block max-sm:w-full">
+          <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text max-sm:mb-[7px] max-sm:text-[11px] max-sm:font-extrabold max-sm:uppercase">Desde</span>
+          <input type="date" class="input input-bordered h-[42px] w-44 text-[16px] sm:text-[14px] max-sm:h-[38px] max-sm:w-full" [ngModel]="desde()" (ngModelChange)="desde.set($event)" />
+        </label>
+        <label class="block max-sm:w-full">
+          <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text max-sm:mb-[7px] max-sm:text-[11px] max-sm:font-extrabold max-sm:uppercase">Hasta</span>
+          <input type="date" class="input input-bordered h-[42px] w-44 text-[16px] sm:text-[14px] max-sm:h-[38px] max-sm:w-full" [ngModel]="hasta()" (ngModelChange)="hasta.set($event)" />
+        </label>
+        <div class="w-72 max-w-full max-sm:w-full">
+          <app-search-multi-select label="Planta de empaque" placeholder="Todas las plantas" [showSelectAll]="true" [options]="plantasOpciones()" [values]="plantasElegidas()" (valuesChange)="plantasElegidas.set($event)" />
+        </div>
+        <button type="button" class="btn btn-primary h-[42px] min-h-0 gap-2 max-sm:h-[38px]" (click)="consultar()"><svg lucideSearch class="size-4"></svg> Consultar</button>
+        <button type="button" class="btn h-[42px] min-h-0 gap-2 border border-emerald-600 bg-emerald-600 px-4 font-bold text-white shadow-sm hover:bg-emerald-700 dark:border-emerald-600 max-sm:h-[38px]" (click)="exportarExcel()">
+          <svg lucideFileSpreadsheet class="size-4"></svg> Excel
+        </button>
+      </div>
+    </div>
+
+    @if (filas().length > 0) {
+      <div class="rounded-2xl border border-app-border2 bg-app-surface shadow-sm">
+        <div class="space-y-1 px-4 pt-4">
+          <p class="text-sm font-bold text-app-heading">
+            {{ filas().length }} fila(s) · {{ empacadores() }} empacador(es) · {{ totalCajas() | number: '1.0-0' }} cajas · {{ totalKilos() | number: '1.2-2' }} kg de pago
+          </p>
+          <p class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-app-muted">
+            <span class="inline-flex items-center gap-1.5"><span class="size-2.5 rounded-sm bg-app-surface3"></span> sin cajas de ese producto</span>
+            @if (hayFueraDeMatriz()) {
+              <span class="inline-flex items-center gap-1.5"><span class="size-2.5 rounded-sm bg-[#9c4221]"></span> producto fuera de la matriz</span>
+            }
+            <span>desplázate a la derecha para ver todos los productos</span>
+          </p>
+        </div>
+
+        <div class="tabla-scroll mt-3 border-t border-app-border2">
+          <table class="table table-sm [&_td]:align-middle [&_td]:py-2.5">
+            <thead>
+              <tr class="text-[11px] font-bold uppercase tracking-wide [&_th]:!text-white">
+                <th rowspan="2" class="md:sticky md:left-0 md:!z-[5] h-[64px] w-[96px] min-w-[96px] max-w-[96px] !bg-[#1f4e79]">Fecha</th>
+                <th rowspan="2" class="md:sticky md:left-[96px] md:!z-[5] h-[64px] w-[72px] min-w-[72px] max-w-[72px] !bg-[#1f4e79]">Planta</th>
+                <th rowspan="2" class="md:sticky md:left-[168px] md:!z-[5] h-[64px] w-[150px] min-w-[150px] max-w-[150px] !bg-[#1f4e79]">Anotador</th>
+                <th rowspan="2" class="md:sticky md:left-[318px] md:!z-[5] h-[64px] w-[96px] min-w-[96px] max-w-[96px] !bg-[#1f4e79]">DNI</th>
+                <th rowspan="2" class="md:sticky md:left-[414px] md:!z-[5] h-[64px] w-[220px] min-w-[220px] max-w-[220px] !bg-[#1f4e79] md:shadow-[2px_0_0_0_rgba(0,0,0,0.12)]">Empacador</th>
+                @for (c of columnas(); track c.clave) {
+                  <th colspan="2" class="h-[64px] min-w-[9rem] text-center leading-tight" [class]="c.fueraDeMatriz ? '!bg-[#9c4221]' : '!bg-[#1f4e79]'">
+                    {{ c.formato }}
+                    @if (c.tipoEmpaque) { <span class="block font-medium opacity-80">{{ c.tipoEmpaque }}</span> }
+                    @if (c.categoriaCalibre) { <span class="block text-[10px] font-medium normal-case opacity-70">{{ c.categoriaCalibre }}</span> }
+                  </th>
+                }
+                <th rowspan="2" class="h-[64px] !bg-[#1f4e79] text-center">Total cajas</th>
+                <th rowspan="2" class="h-[64px] !bg-[#1f4e79] text-center">Total kg de pago</th>
+              </tr>
+              <tr class="text-[10px] font-bold uppercase tracking-wide [&_th]:!text-white">
+                @for (c of columnas(); track c.clave) {
+                  <th class="!top-[64px] text-center" [class]="c.fueraDeMatriz ? '!bg-[#9c4221]' : '!bg-[#1f4e79]'">cajas</th>
+                  <th class="!top-[64px] text-center" [class]="c.fueraDeMatriz ? '!bg-[#9c4221]' : '!bg-[#1f4e79]'">kg</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (f of paginacion.paged(); track f.clave) {
+                <tr class="group border-t border-app-border hover:bg-app-surface2">
+                  <td class="md:sticky md:left-0 w-[96px] min-w-[96px] max-w-[96px] whitespace-nowrap bg-app-surface text-app-muted group-hover:bg-app-surface2">{{ fecha(f.fecha) }}</td>
+                  <td class="md:sticky md:left-[96px] w-[72px] min-w-[72px] max-w-[72px] whitespace-nowrap bg-app-surface text-app-heading group-hover:bg-app-surface2">{{ f.acopio }}</td>
+                  <td class="md:sticky md:left-[168px] w-[150px] min-w-[150px] max-w-[150px] truncate bg-app-surface text-app-muted group-hover:bg-app-surface2" [title]="f.anotadores">{{ f.anotadores }}</td>
+                  <td class="md:sticky md:left-[318px] w-[96px] min-w-[96px] max-w-[96px] whitespace-nowrap bg-app-surface tabular-nums text-app-muted group-hover:bg-app-surface2">{{ f.dni }}</td>
+                  <td class="md:sticky md:left-[414px] w-[220px] min-w-[220px] max-w-[220px] truncate bg-app-surface font-bold text-app-heading md:shadow-[2px_0_0_0_rgba(0,0,0,0.08)] group-hover:bg-app-surface2" [title]="f.empacador">{{ f.empacador }}</td>
+                  @for (c of columnas(); track c.clave) {
+                    <td class="text-right tabular-nums" [class.text-app-subtle]="!f.cajas[c.clave]">{{ f.cajas[c.clave] || 0 | number: '1.0-0' }}</td>
+                    <td class="bg-emerald-50/60 text-right tabular-nums dark:bg-emerald-500/5" [class.text-app-subtle]="!f.cajas[c.clave]">{{ f.kilos[c.clave] || 0 | number: '1.2-2' }}</td>
+                  }
+                  <td class="text-right font-bold tabular-nums text-app-heading">{{ f.total | number: '1.0-0' }}</td>
+                  <td class="text-right font-bold tabular-nums text-app-heading">{{ f.totalKilos | number: '1.2-2' }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr class="border-t-2 border-[#1f4e79] bg-app-surface2 text-xs font-bold text-app-heading">
+                <td class="md:sticky md:left-0 md:!z-[3] w-[96px] min-w-[96px] max-w-[96px] bg-app-surface2">TOTALES</td>
+                <td class="md:sticky md:left-[96px] md:!z-[3] w-[72px] min-w-[72px] max-w-[72px] bg-app-surface2"></td>
+                <td class="md:sticky md:left-[168px] md:!z-[3] w-[150px] min-w-[150px] max-w-[150px] bg-app-surface2"></td>
+                <td class="md:sticky md:left-[318px] md:!z-[3] w-[96px] min-w-[96px] max-w-[96px] bg-app-surface2"></td>
+                <td class="md:sticky md:left-[414px] md:!z-[3] w-[220px] min-w-[220px] max-w-[220px] truncate bg-app-surface2 md:shadow-[2px_0_0_0_rgba(0,0,0,0.08)]">{{ filas().length }} fila(s) · {{ empacadores() }} empacador(es)</td>
+                @for (c of columnas(); track c.clave) {
+                  <td class="text-right tabular-nums">{{ sumas().cajas[c.clave] || 0 | number: '1.0-0' }}</td>
+                  <td class="text-right tabular-nums">{{ sumas().kilos[c.clave] || 0 | number: '1.2-2' }}</td>
+                }
+                <td class="text-right tabular-nums">{{ totalCajas() | number: '1.0-0' }}</td>
+                <td class="text-right tabular-nums">{{ totalKilos() | number: '1.2-2' }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <app-paginator [total]="filas().length" [(page)]="paginacion.page" [(pageSize)]="paginacion.pageSize" />
+      </div>
+    } @else {
+      <div class="grid place-items-center gap-2 rounded-2xl border border-dashed border-app-border2 bg-app-surface p-10 text-center text-app-muted">
+        <svg lucideInbox class="size-10 opacity-40"></svg>
+        <p>{{ consultado() ? 'No hubo movimiento de empacadores en ese rango de fechas' : 'Elige el rango de fechas y la planta, y presiona Consultar' }}</p>
+      </div>
+    }
+  }
+</section>

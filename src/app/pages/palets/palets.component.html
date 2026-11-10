@@ -386,6 +386,9 @@
 
 @if (savedConfig()?.flujoEmpaque) {
   <app-modal-cajas-stock
+    (sinStock)="avisarSinStockCombinacion($event)"
+    (stockInsuficiente)="avisarStockInsuficiente($event)"
+    (actualizarStock)="onActualizarStock()"
     [visible]="showModalAgregarCajas()"
     [palet]="paletSeleccionado()"
     [composiciones]="composiciones()"

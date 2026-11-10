@@ -1,16 +1,18 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, output, signal } from '@angular/core';
-import { LucideBoxes, LucideX } from '@lucide/angular';
+import { LucideBoxes, LucidePencilLine, LucideX } from '@lucide/angular';
 import { JornadasAnotadorApiService } from '../../../../shared/services/jornadas-anotador-api.service';
-import { Fila, fechaHora, hora, texto } from '../../jornada.utils';
+import { CorregirProduccionModalComponent } from '../corregir-produccion-modal/corregir-produccion-modal.component';
+import { Fila, conSigno, correccion, esActivo, etiquetaCorreccion, fechaHora, hora, productoAntes, texto } from '../../jornada.utils';
 
 /**
  * Historial de recolecciones del anotador: a la izquierda sus recolecciones de la jornada y a la derecha el detalle de la elegida.
  * Cada empacador tiene una sola fila por recolección (si se vuelve a registrar, se actualiza esa misma), así que el detalle es una tarjeta por empacador, ordenada por DNI.
  * Solo muestra las recolecciones del propio anotador (el servidor filtra por usuario).
+ * Desde el lápiz de un empacador se corrigen sus cajas (misma regla que en Producción: no se pueden quitar cajas que ya están en un palet) y la corrección queda visible en la fila.
  */
 @Component({
   selector: 'app-historial-recoleccion-modal',
-  imports: [LucideBoxes, LucideX],
+  imports: [CorregirProduccionModalComponent, LucideBoxes, LucidePencilLine, LucideX],
   templateUrl: './historial-recoleccion-modal.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -21,6 +23,12 @@ export class HistorialRecoleccionModalComponent implements OnInit {
 
   protected readonly fechaHora = fechaHora;
   protected readonly hora = hora;
+  protected readonly conSigno = conSigno;
+  protected readonly etiquetaCorreccion = etiquetaCorreccion;
+  protected readonly productoAntes = productoAntes;
+
+  /** Fila de cajas que se está corrigiendo. */
+  protected readonly editando = signal<Fila | null>(null);
 
   protected readonly recolecciones = signal<Fila[]>([]);
   protected readonly cargandoLista = signal(true);
@@ -82,6 +90,47 @@ export class HistorialRecoleccionModalComponent implements OnInit {
       this.errorDetalle.set(e instanceof Error && e.message ? e.message : 'No se pudo consultar el detalle.');
     } finally {
       if (pedido === this.pedido) this.cargandoDetalle.set(false);
+    }
+  }
+
+  /** Abre la corrección de una fila, con el número y el estado de la recolección elegida (por si la fila no los trae). */
+  protected corregir(f: Fila): void {
+    const sel = this.seleccionada();
+    this.editando.set({
+      ...f,
+      numeroRecoleccion: f['numeroRecoleccion'] ?? sel?.['numero'],
+      estadoRecoleccion: f['estadoRecoleccion'] ?? sel?.['estado'],
+    });
+  }
+
+  protected corregida(f: Fila): boolean {
+    return esActivo(f['corregida']);
+  }
+
+  protected corregido(f: Fila): number {
+    return correccion(f);
+  }
+
+  /** Se guardó una corrección: se cierra la ventana y se vuelven a pedir la lista (totales) y el detalle de la recolección elegida. */
+  protected async trasCorregir(): Promise<void> {
+    this.editando.set(null);
+    const id = Number(this.seleccionada()?.['id']);
+    if (!id) return;
+    const pedido = ++this.pedido;
+    try {
+      const [lista, detalle] = await Promise.all([this.jornadasApi.historialRecolecciones(0), this.jornadasApi.historialRecolecciones(id)]);
+      if (pedido !== this.pedido) return;
+      if (!lista.error) {
+        const nueva = lista.data ?? [];
+        this.recolecciones.set(nueva);
+        const actual = nueva.find((x) => Number(x['id']) === id);
+        if (actual) this.seleccionada.set(actual);
+      }
+      if (detalle.error) throw new Error(detalle.mensaje || 'No se pudo consultar el detalle.');
+      this.detalle.set(detalle.data ?? []);
+      this.errorDetalle.set('');
+    } catch (e) {
+      if (pedido === this.pedido) this.errorDetalle.set(e instanceof Error && e.message ? e.message : 'No se pudo consultar el detalle.');
     }
   }
 

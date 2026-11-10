@@ -99,6 +99,7 @@
                         <th class="px-3 py-2">Tipo de empaque</th>
                         <th class="px-3 py-2 text-right">Cajas</th>
                         <th class="px-3 py-2 text-right">Hora</th>
+                        <th class="px-3 py-2"></th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-app-border2">
@@ -108,9 +109,15 @@
                           <td class="px-3 py-2 font-bold text-app-heading">{{ f['nombreCompleto'] }}</td>
                           <td class="whitespace-nowrap px-3 py-2 text-app-muted">{{ f['numeroLinea'] }}@if (f['puesto']) { · P{{ f['puesto'] }} }</td>
                           <td class="whitespace-nowrap px-3 py-2 text-app-heading">{{ f['formatoDescripcion'] || '—' }}</td>
-                          <td class="px-3 py-2 text-xs text-app-muted">{{ tipoEmpaque(f) }}</td>
-                          <td class="px-3 py-2 text-right text-base font-extrabold text-emerald-700 dark:text-emerald-300">{{ f['cantidadCajas'] }}</td>
+                          <td class="px-3 py-2 text-xs text-app-muted">{{ tipoEmpaque(f) }}@if (productoAntes(f)) { <span class="mt-0.5 block text-[10px] font-bold text-amber-700 dark:text-amber-300">antes: {{ productoAntes(f) }}</span> }</td>
+                          <td class="whitespace-nowrap px-3 py-2 text-right">
+                            <span class="block text-base font-extrabold text-emerald-700 dark:text-emerald-300">{{ f['cantidadCajas'] }}</span>
+                            @if (corregida(f)) { <span class="block text-[10px] font-bold uppercase text-amber-700 dark:text-amber-300" [attr.title]="'Anotadas ' + f['cantidadAnotada']">{{ etiquetaCorreccion(f) }}</span> }
+                          </td>
                           <td class="whitespace-nowrap px-3 py-2 text-right text-xs text-app-muted" [attr.title]="f['fechaModificacion'] ? 'Modificado ' + hora(f['fechaModificacion']) : null">{{ hora(f['fechaModificacion'] || f['fechaRegistro']) }}@if (f['fechaModificacion']) { <span class="text-amber-600 dark:text-amber-300" aria-label="modificado">*</span> }</td>
+                          <td class="px-3 py-2 text-right">
+                            <button type="button" class="inline-grid size-8 place-items-center rounded-lg border border-indigo-300 bg-indigo-50 text-indigo-600 transition hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 dark:hover:bg-indigo-900/50" [attr.aria-label]="'Corregir las cajas de ' + f['nombreCompleto']" title="Corregir cajas" (click)="corregir(f)"><svg lucidePencilLine class="size-4"></svg></button>
+                          </td>
                         </tr>
                       }
                     </tbody>
@@ -118,7 +125,7 @@
                       <tr>
                         <td colspan="5" class="px-3 py-2 text-right text-xs font-extrabold uppercase text-app-muted">{{ busqueda().trim() ? 'Total de la búsqueda' : 'Total' }}</td>
                         <td class="px-3 py-2 text-right text-base font-extrabold text-app-heading">{{ totalFiltrado() }}</td>
-                        <td></td>
+                        <td colspan="2"></td>
                       </tr>
                     </tfoot>
                   </table>
@@ -132,8 +139,13 @@
                         <p class="text-sm font-bold leading-tight text-app-heading">{{ f['nombreCompleto'] }}</p>
                         <p class="text-[11px] text-app-muted">{{ f['numeroDocumento'] }} · Línea {{ f['numeroLinea'] }}@if (f['puesto']) { · P{{ f['puesto'] }} }</p>
                         <p class="mt-0.5 text-[11px] leading-snug text-app-muted"><span class="font-bold text-app-heading">{{ f['formatoDescripcion'] || '—' }}</span> · {{ tipoEmpaque(f) }}</p>
+                        @if (productoAntes(f)) { <p class="text-[10px] font-bold leading-snug text-amber-700 dark:text-amber-300">antes: {{ productoAntes(f) }}</p> }
                       </div>
-                      <span class="shrink-0 text-xl font-extrabold text-emerald-700 dark:text-emerald-300">{{ f['cantidadCajas'] }}</span>
+                      <div class="shrink-0 text-right">
+                        <span class="block text-xl font-extrabold leading-tight text-emerald-700 dark:text-emerald-300">{{ f['cantidadCajas'] }}</span>
+                        @if (corregida(f)) { <span class="block text-[10px] font-bold uppercase text-amber-700 dark:text-amber-300">{{ etiquetaCorreccion(f) }}</span> }
+                      </div>
+                      <button type="button" class="grid size-9 shrink-0 place-items-center rounded-lg border border-indigo-300 bg-indigo-50 text-indigo-600 dark:border-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300" [attr.aria-label]="'Corregir las cajas de ' + f['nombreCompleto']" (click)="corregir(f)"><svg lucidePencilLine class="size-4"></svg></button>
                     </li>
                   }
                   <li class="flex items-center justify-between bg-slate-50 px-3 py-2 text-xs font-extrabold uppercase text-app-muted dark:bg-slate-900/50">
@@ -149,3 +161,7 @@
     }
   </div>
 </div>
+
+@if (editando(); as fila) {
+  <app-corregir-produccion-modal [filas]="[fila]" (closed)="editando.set(null)" (guardado)="trasCorregir()" />
+}

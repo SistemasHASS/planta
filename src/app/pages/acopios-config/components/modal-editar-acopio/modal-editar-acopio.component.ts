@@ -12,6 +12,9 @@ import { AcopioConfig } from '../../acopios-config.interface';
 
 const texto = (valor: unknown): string => String(valor ?? '').trim();
 
+/** Máximo que acepta la base (decimal 10,2 con tope en 99999.99). */
+const TAREA_MAXIMA = 99999.99;
+
 /** Un tipo de proceso empacado que se puede marcar. */
 interface TipoDisponible {
   codigo: string;
@@ -20,6 +23,7 @@ interface TipoDisponible {
 
 /**
  * Ventana para editar un acopio (solo administrador, solo en línea): serie de guía y tipos de proceso empacado activos.
+ * Con el parámetro Flujo_Empaque activo, cada tipo marcado pide también los kilos de la tarea (meta de un empacador); sin el parámetro no se muestra ni se envía.
  * Al abrirse pide al servidor los tipos y las series disponibles; al guardar envía los cambios.
  * No guarda nada en el equipo. Avisa a la pantalla con saved(mensaje) o closed().
  */
@@ -57,6 +61,12 @@ export class ModalEditarAcopioComponent implements OnInit {
   readonly marcados = signal<Record<string, boolean>>({});
   readonly filtroTipos = signal('');
 
+  /** Parámetro Flujo_Empaque activo: solo entonces se piden los kilos por tarea. */
+  readonly flujoEmpaque = signal(false);
+  /** Kilos por tarea escritos por tipo (código → texto del campo) y los que tenía guardados al abrir. */
+  readonly tareas = signal<Record<string, string>>({});
+  private tareasIniciales: Record<string, string> = {};
+
   /** Valores con los que se abrió la ventana, para saber si hubo cambios. */
   protected serieInicial = '';
   private marcadosIniciales: Record<string, boolean> = {};
@@ -79,7 +89,10 @@ export class ModalEditarAcopioComponent implements OnInit {
     if (this.serieGuia().trim() !== this.serieInicial) return true;
     const ahora = this.marcados();
     const codigos = new Set([...Object.keys(ahora), ...Object.keys(this.marcadosIniciales)]);
-    return [...codigos].some((codigo) => !!ahora[codigo] !== !!this.marcadosIniciales[codigo]);
+    if ([...codigos].some((codigo) => !!ahora[codigo] !== !!this.marcadosIniciales[codigo])) return true;
+    if (!this.flujoEmpaque()) return false;
+    const tareas = this.tareas();
+    return Object.keys(ahora).some((codigo) => ahora[codigo] && Number(tareas[codigo] ?? '') !== Number(this.tareasIniciales[codigo] ?? ''));
   });
 
   async ngOnInit(): Promise<void> {
@@ -92,6 +105,18 @@ export class ModalEditarAcopioComponent implements OnInit {
     this.marcados.set({ ...inicial });
 
     await this.cargarOpciones();
+    this.prepararTareas();
+  }
+
+  /** Con el flujo de empaque activo: muestra solo los kilos por tarea que cada tipo ya tiene guardados (si no tiene, el campo queda vacío). */
+  private prepararTareas(): void {
+    if (!this.flujoEmpaque()) return;
+    const guardadas: Record<string, string> = {};
+    for (const tipo of this.acopio().tiposProcesoEmpacado) {
+      if (tipo.kilosTarea != null && Number(tipo.kilosTarea) > 0) guardadas[texto(tipo.codigo)] = String(Number(tipo.kilosTarea));
+    }
+    this.tareasIniciales = { ...guardadas };
+    this.tareas.set({ ...guardadas });
   }
 
   /** Pide al servidor los tipos de proceso empacado y las series de guía que se pueden elegir. */
@@ -104,10 +129,15 @@ export class ModalEditarAcopioComponent implements OnInit {
     this.cargando.set(true);
     this.loading.show('Cargando datos del acopio...');
     try {
-      const [respTipos, respSeries] = await Promise.all([
+      const [respTipos, respSeries, respFlujo] = await Promise.all([
         this.catalogosApi.porProyecto('tiposProcesoEmpacado', this.idProyecto()),
         this.administracionApi.correlativosDocumentos(),
+        // Si no se puede leer el parámetro, la ventana funciona como siempre (sin kilos por tarea).
+        this.administracionApi.parametro('Flujo_Empaque').catch(() => null),
       ]);
+
+      const filasFlujo = Array.isArray(respFlujo?.data) && !respFlujo?.error ? respFlujo.data : [];
+      this.flujoEmpaque.set(filasFlujo.some((p) => texto(p['valor']).toUpperCase() === 'SI' && p['activo'] !== false && p['activo'] !== 0));
 
       const filasTipos = Array.isArray(respTipos?.data) && !respTipos.error ? respTipos.data : [];
       this.tipos.set(
@@ -153,6 +183,22 @@ export class ModalEditarAcopioComponent implements OnInit {
     this.marcados.update((actual) => ({ ...actual, [codigo]: marcado }));
   }
 
+  /** Lo que se escribe en kilos por tarea: solo números con hasta 2 decimales (también al pegar). */
+  escribirTarea(codigo: string, campo: HTMLInputElement): void {
+    let valor = campo.value.replace(',', '.').replace(/[^\d.]/g, '');
+    const punto = valor.indexOf('.');
+    if (punto >= 0) valor = valor.slice(0, punto + 1) + valor.slice(punto + 1).replace(/\./g, '').slice(0, 2);
+    valor = valor.replace(/^0+(?=\d)/, '').slice(0, 8);
+    if (campo.value !== valor) campo.value = valor;
+    this.tareas.update((actual) => ({ ...actual, [codigo]: valor }));
+  }
+
+  /** Bloquea al teclear lo que no sirve en un número: la "e", signos y letras (las teclas de control y atajos siguen funcionando). */
+  soloNumero(e: KeyboardEvent): void {
+    if (e.ctrlKey || e.metaKey || e.altKey || e.key.length > 1) return;
+    if (!/^[\d.,]$/.test(e.key)) e.preventDefault();
+  }
+
   async guardar(): Promise<void> {
     if (!this.connectivity.online()) {
       this.feedback.warning('Necesitas internet para guardar los cambios.', 'Sin conexión');
@@ -165,9 +211,26 @@ export class ModalEditarAcopioComponent implements OnInit {
     // Se envían los tipos que el acopio ya tenía (activos o no) y los que se marcaron ahora.
     const codigos = new Set([...Object.keys(this.marcadosIniciales), ...Object.keys(marcados).filter((c) => marcados[c])]);
 
+    // Con el flujo de empaque activo, los kilos por tarea se envían solo si son mayores que 0 (0 o vacío = se deja como está).
+    const conTarea = this.flujoEmpaque();
+    const tareas = this.tareas();
+    const conKilos = (codigo: string): boolean => !!marcados[codigo] && conTarea && Number(tareas[codigo]) > 0;
+    if (conTarea) {
+      const invalida = this.tipos().find((t) => conKilos(t.codigo) && Number(tareas[t.codigo]) > TAREA_MAXIMA);
+      if (invalida) {
+        this.feedback.warning(`Los kilos por tarea de ${invalida.nombre} no pueden pasar de 99999.99.`, 'Kilos por tarea');
+        return;
+      }
+    }
+
     const json = JSON.stringify([{ codigoAcopio, acopioNombre: texto(this.acopio().acopioNombre), serieGuia: this.serieGuia().trim() }]);
     const jsonDetalle = JSON.stringify(
-      [...codigos].map((codigo) => ({ codigoAcopio, codigoTipoProcesoEmpacado: codigo, activo: !!marcados[codigo] })),
+      [...codigos].map((codigo) => ({
+        codigoAcopio,
+        codigoTipoProcesoEmpacado: codigo,
+        activo: !!marcados[codigo],
+        ...(conKilos(codigo) ? { kilosTarea: Number(tareas[codigo]) } : {}),
+      })),
     );
 
     this.loading.show('Guardando cambios...');

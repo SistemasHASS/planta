@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { QrScannerModalComponent, ResultadoQr } from '../../../../shared/components/qr-scanner-modal/qr-scanner-modal.component';
 import { ConfirmModalService } from '../../../../shared/services/confirm-modal.service';
@@ -6,7 +7,7 @@ import { FeedbackModalService } from '../../../../shared/services/feedback-modal
 import { JornadasAnotadorApiService } from '../../../../shared/services/jornadas-anotador-api.service';
 import { LoadingService } from '../../../../shared/services/loading.service';
 import { JornadaStore } from '../../jornada.store';
-import { Fila, texto } from '../../jornada.utils';
+import { Fila, ladosDe, lineaTexto, texto } from '../../jornada.utils';
 import { LineaPanelComponent } from '../linea-panel/linea-panel.component';
 import { MenuPuestoModalComponent } from '../menu-puesto-modal/menu-puesto-modal.component';
 import { SinLineasComponent } from '../sin-lineas/sin-lineas.component';
@@ -18,13 +19,15 @@ import { ArrastrePuestos } from './arrastre-puestos';
  */
 @Component({
   selector: 'app-asignar-empacadores',
-  imports: [LineaPanelComponent, MenuPuestoModalComponent, QrScannerModalComponent, SinLineasComponent],
+  imports: [LineaPanelComponent, MenuPuestoModalComponent, NgTemplateOutlet, QrScannerModalComponent, SinLineasComponent],
   templateUrl: './asignar-empacadores.component.html',
   host: { class: 'block' },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AsignarEmpacadoresComponent {
   protected readonly store = inject(JornadaStore);
+  /** Lado A y lado B de un curo de máquina (null si es una línea manual). */
+  protected readonly ladosDe = ladosDe;
   private readonly connectivity = inject(ConnectivityService);
   private readonly loading = inject(LoadingService);
   private readonly feedback = inject(FeedbackModalService);
@@ -111,7 +114,7 @@ export class AsignarEmpacadoresComponent {
       const ok = await this.confirm.confirm({
         title: 'Reemplazar empacador',
         eyebrow: 'El puesto está ocupado',
-        message: `En la línea ${texto(linea['numero'])}, puesto P${puesto} está ${texto(ocupante['nombreCompleto'])}. ¿Reemplazarlo por ${mov.nombre}?`,
+        message: `En ${lineaTexto(linea)}, puesto P${puesto} está ${texto(ocupante['nombreCompleto'])}. ¿Reemplazarlo por ${mov.nombre}?`,
         detail: 'Quien estaba en ese puesto quedará sin puesto.',
         confirmText: 'Sí, reemplazar',
         tone: 'warning',
@@ -129,7 +132,7 @@ export class AsignarEmpacadoresComponent {
     const ok = await this.confirm.confirm({
       title: 'Vaciar línea',
       eyebrow: 'Confirma la acción',
-      message: `¿Quitar a los ${cantidad} empacadores de la línea ${texto(linea['numero'])}?`,
+      message: `¿Quitar a los ${cantidad} empacadores de ${lineaTexto(linea)}?`,
       detail: 'Todos los puestos quedarán libres. La línea sigue siendo tuya.',
       confirmText: 'Sí, vaciar',
       tone: 'warning',
@@ -145,7 +148,7 @@ export class AsignarEmpacadoresComponent {
     const ok = await this.confirm.confirm({
       title: 'Quitar empacador',
       eyebrow: 'Confirma la acción',
-      message: `¿Quitar a ${texto(m.empacador['nombreCompleto'])} del puesto P${m.puesto} de la línea ${texto(m.linea['numero'])}?`,
+      message: `¿Quitar a ${texto(m.empacador['nombreCompleto'])} del puesto P${m.puesto} de ${lineaTexto(m.linea)}?`,
       confirmText: 'Quitar',
       tone: 'warning',
     });

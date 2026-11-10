@@ -6,12 +6,14 @@ import { LoadingService } from '../../shared/services/loading.service';
 import { AbrirJornadaComponent } from './components/abrir-jornada/abrir-jornada.component';
 import { AsignarEmpacadoresComponent } from './components/asignar-empacadores/asignar-empacadores.component';
 import { MisLineasComponent } from './components/mis-lineas/mis-lineas.component';
+import { ProduccionDiaComponent } from './components/produccion-dia/produccion-dia.component';
 import { RecoleccionCajasComponent } from './components/recoleccion-cajas/recoleccion-cajas.component';
+import { StockAnotadorComponent } from './components/stock-anotador/stock-anotador.component';
 import { JornadaStore } from './jornada.store';
 import { fecha, fechaHora } from './jornada.utils';
 import { RecoleccionStore } from './recoleccion.store';
 
-type Pestana = 'asignar' | 'recoleccion';
+type Pestana = 'asignar' | 'recoleccion' | 'stock' | 'produccion';
 
 /**
  * Panel de empaque del anotador (ANPLA). Es solo el contenedor: encabezado, tarjeta de la jornada y pestañas.
@@ -26,6 +28,8 @@ type Pestana = 'asignar' | 'recoleccion';
     AsignarEmpacadoresComponent,
     MisLineasComponent,
     RecoleccionCajasComponent,
+    StockAnotadorComponent,
+    ProduccionDiaComponent,
     LucideCircleStop,
     LucidePackage,
     LucideRefreshCcw,
@@ -75,7 +79,7 @@ export class JornadaComponent implements OnInit {
       this.feedback.error('No hay conexión a internet');
       return;
     }
-    this.loading.show(pestana === 'recoleccion' ? 'Cargando recolección de cajas...' : 'Cargando asignación de empacadores...');
+    this.loading.show(pestana === 'recoleccion' ? 'Cargando recolección de cajas...' : pestana === 'stock' ? 'Cargando stock...' : pestana === 'produccion' ? 'Cargando producción...' : 'Cargando asignación de empacadores...');
     try {
       await this.store.cargarLineas();
       if (pestana === 'recoleccion') await this.recoleccion.entrar();

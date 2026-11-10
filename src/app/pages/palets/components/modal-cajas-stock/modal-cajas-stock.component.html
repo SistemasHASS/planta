@@ -26,15 +26,21 @@
         <div class="shrink-0 space-y-2 border-b border-sky-500/30 bg-sky-500/10 px-4 py-2.5 sm:px-6" role="status" aria-label="Stock de cajas">
           <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <span class="inline-flex items-center gap-1.5 text-xs font-extrabold text-sky-800 dark:text-sky-200"><svg lucidePackage class="size-4"></svg> Stock disponible</span>
+            <button type="button" class="btn h-8 min-h-8 gap-1.5 rounded-full border border-sky-400 bg-white px-3.5 text-xs font-bold normal-case text-sky-700 shadow-sm transition hover:border-sky-500 hover:bg-sky-50 active:scale-95 dark:border-sky-400/40 dark:bg-sky-500/15 dark:text-sky-200 dark:shadow-none dark:hover:border-sky-300/60 dark:hover:bg-sky-500/25" (click)="actualizarStock.emit()">
+              <svg lucideRefreshCcw class="size-3.5"></svg> Actualizar stock
+            </button>
           </div>
           <div class="grid grid-cols-1 gap-1.5 sm:grid-cols-[repeat(auto-fill,minmax(290px,1fr))]">
             @for (s of stockVisible(); track s.formatoId + '-' + s.tipoEmpaqueId) {
-              <span class="flex min-w-0 items-center gap-2 rounded-xl border border-app-border2 bg-app-surface py-0.5 pl-0.5 pr-2.5">
-                <span class="min-w-9 shrink-0 rounded-lg bg-tint-sky px-2 py-0.5 text-center text-sm font-extrabold text-sky-700 dark:text-sky-300">{{ s.disponibles }}</span>
+              <span class="flex min-w-0 items-center gap-2 rounded-xl border py-0.5 pl-0.5 pr-2.5 transition duration-200" [class]="claseChip(s)" [attr.aria-current]="esCoincidencia(s) ? 'true' : null">
+                <span class="min-w-9 shrink-0 rounded-lg px-2 py-0.5 text-center text-sm font-extrabold transition duration-200" [class]="claseNumero(s)">{{ s.disponibles }}</span>
                 <span class="min-w-0 text-xs leading-tight">
                   <span class="block font-bold text-app-heading">{{ s.formatoDescripcion }}</span>
                   <span class="block break-words text-app-muted">{{ etiquetaEmpaque(s) }}</span>
                 </span>
+                @if (esCoincidencia(s)) {
+                  <span class="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-sky-500 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-white"><svg lucideCircleCheck class="size-3"></svg> Coincide</span>
+                }
               </span>
             } @empty {
               <span class="text-xs font-semibold text-app-muted">{{ formatoFijado() ? 'Sin cajas disponibles de este formato' : 'No hay cajas disponibles' }}</span>
@@ -180,7 +186,7 @@
       <!-- Acciones -->
       <div class="flex shrink-0 flex-col-reverse gap-2 border-t border-app-border2 bg-app-surface px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6">
         <button type="button" class="btn btn-ghost h-11 min-h-11 rounded-full px-6 normal-case text-app-text2 sm:h-10 sm:min-h-10" (click)="cerrar.emit()">Cancelar</button>
-        <button type="button" class="btn btn-primary h-11 min-h-11 rounded-full px-6 normal-case shadow-sm sm:h-10 sm:min-h-10" (click)="guardar.emit()"><svg lucideCircleCheck class="size-4"></svg> {{ textoGuardar() }}</button>
+        <button type="button" class="btn btn-primary h-11 min-h-11 rounded-full px-6 normal-case shadow-sm sm:h-10 sm:min-h-10" (click)="confirmar()"><svg lucideCircleCheck class="size-4"></svg> {{ textoGuardar() }}</button>
       </div>
     </div>
     <div class="modal-backdrop" (click)="cerrar.emit()"></div>

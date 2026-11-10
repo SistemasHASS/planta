@@ -1,0 +1,100 @@
+<div class="overflow-hidden rounded-2xl border border-app-border2 bg-app-surface shadow-sm">
+  <div class="h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500"></div>
+
+  <div class="p-4 sm:p-5">
+    <div class="mb-3 flex items-center justify-between gap-3">
+      <div class="min-w-0">
+        <h2 class="inline-flex items-center gap-2 text-lg font-extrabold text-app-heading"><span class="grid size-8 place-items-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"><svg lucideBoxes class="size-5"></svg></span> Producción del día</h2>
+        <p class="text-xs text-app-muted">Lo que registraron los anotadores en el proceso de esta jornada.</p>
+      </div>
+      <button type="button" class="btn btn-sm h-9 min-h-9 shrink-0 gap-2 rounded-full border border-emerald-300 bg-emerald-50 px-4 font-bold normal-case text-emerald-800 hover:bg-emerald-100 disabled:opacity-60 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200 dark:hover:bg-emerald-900/50" [disabled]="cargando()" (click)="actualizar()">
+        <svg lucideRefreshCcw class="size-4"></svg> Actualizar
+      </button>
+    </div>
+
+    @if (cargando() && filas().length === 0) {
+      <div class="grid place-items-center py-10"><span class="loading loading-spinner loading-lg text-emerald-500"></span></div>
+    } @else if (error()) {
+      <p class="rounded-xl border border-tint-amber-border bg-tint-amber p-3 text-sm text-app-heading">{{ error() }}</p>
+    } @else if (filas().length === 0) {
+      <div class="py-10 text-center">
+        <span class="mx-auto mb-3 grid size-14 place-items-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800"><svg lucideBoxes class="size-7"></svg></span>
+        <p class="text-base font-bold text-app-heading">Todavía no hay producción registrada</p>
+        <p class="text-sm text-app-muted">Cuando los anotadores registren cajas, aparecerán aquí.</p>
+      </div>
+    } @else {
+      <!-- Anotadores -->
+      <div class="mb-3 flex flex-wrap gap-2" role="tablist" aria-label="Anotador">
+        <button type="button" role="tab" [attr.aria-selected]="anotador() === ''" class="rounded-full border px-3.5 py-1.5 text-xs font-extrabold transition" [class]="anotador() === '' ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm' : 'border-emerald-200 bg-emerald-50/60 text-emerald-800 hover:border-emerald-400 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-200'" (click)="elegirAnotador('')">Todo ({{ totalGeneral() }})</button>
+        @for (a of anotadores(); track a.id) {
+          <button type="button" role="tab" [attr.aria-selected]="anotador() === a.id" class="rounded-full border px-3.5 py-1.5 text-xs font-extrabold transition" [class]="anotador() === a.id ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm' : 'border-emerald-200 bg-emerald-50/60 text-emerald-800 hover:border-emerald-400 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-200'" (click)="elegirAnotador(a.id)">{{ a.nombre }} ({{ a.cajas }})</button>
+        }
+      </div>
+
+      <!-- Tarjetas por ítem (formato, tipo, categoría y calibre) -->
+      <div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(10.5rem,1fr))]">
+        <button type="button" class="rounded-xl border p-3 text-center transition" [class]="claveActiva() === '' ? 'border-indigo-500 bg-indigo-100 ring-2 ring-indigo-500/30 dark:bg-indigo-900/40' : 'border-indigo-200 bg-indigo-50/70 hover:border-indigo-400 dark:border-indigo-800 dark:bg-indigo-900/15'" [attr.aria-pressed]="claveActiva() === ''" (click)="clave.set('')">
+          <span class="block text-3xl font-extrabold leading-none text-indigo-700 dark:text-indigo-300">{{ totalTarjeta().cajas }}</span>
+          <span class="mt-1 block text-xs font-extrabold text-app-heading">Todos los formatos</span>
+          <span class="mt-1 inline-block rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-bold text-sky-800 dark:bg-sky-900/40 dark:text-sky-200">{{ fmt(totalTarjeta().kg) }} kg</span>
+          <span class="block text-[11px] text-app-muted">{{ totalTarjeta().empacadores }} {{ totalTarjeta().empacadores === 1 ? 'empacador' : 'empacadores' }}</span>
+        </button>
+        @for (t of tarjetas(); track t.clave) {
+          <button type="button" class="rounded-xl border p-3 text-center transition" [class]="claveActiva() === t.clave ? 'border-emerald-500 bg-emerald-100 ring-2 ring-emerald-500/30 dark:bg-emerald-900/40' : 'border-emerald-200 bg-emerald-50/70 hover:border-emerald-400 dark:border-emerald-800 dark:bg-emerald-900/15'" [attr.aria-pressed]="claveActiva() === t.clave" (click)="clave.set(t.clave)">
+            <span class="block text-3xl font-extrabold leading-none text-emerald-700 dark:text-emerald-300">{{ t.cajas }}</span>
+            <span class="mt-1 block text-xs font-extrabold text-app-heading">{{ t.formato }}</span>
+            <span class="block text-[11px] leading-tight text-app-muted">{{ t.detalle }}</span>
+            <span class="mt-1 inline-block rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-bold text-sky-800 dark:bg-sky-900/40 dark:text-sky-200">{{ fmt(t.kg) }} kg</span>
+            <span class="block text-[11px] text-app-muted">{{ t.empacadores }} {{ t.empacadores === 1 ? 'empacador' : 'empacadores' }}</span>
+          </button>
+        }
+      </div>
+
+      <!-- Empacadores -->
+      <input type="search" class="input input-bordered input-sm mb-3 w-full sm:w-72" placeholder="Buscar empacador..." aria-label="Buscar empacador" autocomplete="off" [value]="busqueda()" (input)="busqueda.set($any($event.target).value)" />
+
+      @if (empacadores().length === 0) {
+        <p class="rounded-xl border border-dashed border-app-border2 p-6 text-center text-sm text-app-muted">Ningún empacador coincide.</p>
+      } @else {
+        <div class="overflow-x-auto rounded-xl border border-app-border2">
+          <table class="w-full min-w-[40rem] text-left text-sm">
+            <thead>
+              <tr class="bg-emerald-50 text-[11px] font-extrabold uppercase tracking-wide text-emerald-800 dark:bg-emerald-900/25 dark:text-emerald-200">
+                <th class="px-3 py-2.5">Empacador</th>
+                <th class="py-2.5 pr-3">DNI</th>
+                <th class="py-2.5 pr-3">Línea</th>
+                <th class="py-2.5 pr-3">Puesto</th>
+                <th class="py-2.5 pr-3 text-right">Recogidas</th>
+                <th class="py-2.5 pr-3 text-right">Cajas</th>
+                <th class="py-2.5 pr-3 text-right">Kg</th>
+                <th class="py-2.5 pr-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (e of empacadores(); track e.dni) {
+                <tr class="border-t border-app-border2/70 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10">
+                  <td class="px-3 py-2.5 font-semibold text-app-heading">{{ e.nombre }}@if (e.corregida) { <span class="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-extrabold uppercase text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">corregida</span> }</td>
+                  <td class="py-2.5 pr-3 font-mono text-xs text-fuchsia-700 dark:text-fuchsia-300">{{ e.dni }}</td>
+                  <td class="py-2.5 pr-3"><span class="rounded-md bg-violet-100 px-2 py-0.5 text-xs font-bold text-violet-800 dark:bg-violet-900/40 dark:text-violet-200">{{ e.linea }}</span></td>
+                  <td class="py-2.5 pr-3"><span class="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">{{ e.puesto }}</span></td>
+                  <td class="py-2.5 pr-3 text-right text-app-heading">{{ e.recogidas }}</td>
+                  <td class="py-2.5 pr-3 text-right text-base font-extrabold text-emerald-700 dark:text-emerald-300">{{ e.cajas }}</td>
+                  <td class="py-2.5 pr-3 text-right font-semibold text-sky-700 dark:text-sky-300">{{ fmt(e.kg) }}</td>
+                  <td class="py-2.5 pr-3 text-right">
+                    <button type="button" class="grid size-8 place-items-center rounded-lg border border-indigo-300 bg-indigo-50 text-indigo-600 transition hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 dark:hover:bg-indigo-900/50" [attr.aria-label]="'Corregir lo anotado a ' + e.nombre" (click)="editando.set(e.dni)">
+                      <svg lucidePencilLine class="size-4"></svg>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    }
+  </div>
+</div>
+
+@if (editando() && filasEditando().length > 0) {
+  <app-corregir-produccion-modal [filas]="filasEditando()" (closed)="editando.set(null)" (guardado)="cargar()" />
+}

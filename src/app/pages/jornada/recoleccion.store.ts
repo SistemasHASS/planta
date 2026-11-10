@@ -176,6 +176,11 @@ export class RecoleccionStore {
     return this.tipoEmpaquePorLinea().get(Number(linea['idLinea'])) ?? null;
   }
 
+  /** Para quien corrige desde Producción o el historial sin haber entrado a "Recolección de cajas": trae los formatos si todavía no están. */
+  async asegurarFormatos(): Promise<void> {
+    if (this.opcionesFormato().length === 0) await this.cargarFormatos();
+  }
+
   /** Al entrar a la pestaña: trae los formatos y vuelve a poner lo que el anotador había elegido. */
   async entrar(): Promise<void> {
     await this.cargarFormatos();

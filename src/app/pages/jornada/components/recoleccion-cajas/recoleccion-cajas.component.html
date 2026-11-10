@@ -47,26 +47,33 @@
             </div>
           </div>
           <!-- En recolección no se asignan ni se mueven empacadores: tocar uno registra sus cajas -->
-          <div class="grid grid-cols-3 gap-2 sm:grid-cols-6 lg:grid-cols-12">
-            @for (p of store.puestosDe(l); track p) {
-              @if (store.asignadoEn(l, p); as t) {
-                @let cajas = recoleccion.cajasDe(t);
-                <button type="button" class="flex min-h-[4.5rem] cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl border px-1 py-1 text-center transition duration-150 ease-out hover:-translate-y-1 hover:scale-105 hover:shadow-lg hover:ring-2 active:translate-y-0 active:scale-95" [class]="cajas > 0 ? conCajas : sinCajas" [attr.aria-label]="'Puesto ' + p + ', ' + t['nombreCompleto'] + ': ' + cajas + ' cajas. Registrar cajas'" title="Registrar cajas" (click)="abrirRegistro(l, p)">
-                  <span class="text-[9px] font-extrabold opacity-70">P{{ p }}</span>
-                  <span class="line-clamp-2 text-[10px] font-bold leading-tight">{{ t['nombreCompleto'] }}</span>
-                  @if (cajas > 0) {
-                    <span class="text-xl font-extrabold leading-none">{{ cajas }}</span>
-                  } @else {
-                    <span class="text-[10px] font-semibold opacity-80">sin cajas</span>
+          @if (ladosDe(l); as lados) {
+            <!-- Curo de una máquina: lado A y lado B -->
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div class="rounded-xl border border-app-border2 bg-app-surface2 p-2.5">
+                <p class="mb-2 text-center text-[11px] font-extrabold uppercase tracking-wide text-app-muted">Lado A</p>
+                <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  @for (p of lados.ladoA; track p) {
+                    <ng-container *ngTemplateOutlet="botonPuesto; context: { $implicit: l, puesto: p }" />
                   }
-                </button>
-              } @else {
-                <div class="grid min-h-[4.5rem] place-items-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-xs font-bold text-slate-400 dark:border-slate-600 dark:bg-slate-800/60 dark:text-slate-500">
-                  <span>P{{ p }}</span>
                 </div>
+              </div>
+              <div class="rounded-xl border border-app-border2 bg-app-surface2 p-2.5">
+                <p class="mb-2 text-center text-[11px] font-extrabold uppercase tracking-wide text-app-muted">Lado B</p>
+                <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  @for (p of lados.ladoB; track p) {
+                    <ng-container *ngTemplateOutlet="botonPuesto; context: { $implicit: l, puesto: p }" />
+                  }
+                </div>
+              </div>
+            </div>
+          } @else {
+            <div class="grid grid-cols-3 gap-2 sm:grid-cols-6 lg:grid-cols-12">
+              @for (p of store.puestosDe(l); track p) {
+                <ng-container *ngTemplateOutlet="botonPuesto; context: { $implicit: l, puesto: p }" />
               }
-            }
-          </div>
+            </div>
+          }
         </app-linea-panel>
       }
     </div>
@@ -84,3 +91,24 @@
 @if (registro(); as r) {
   <app-registro-cajas-modal [datos]="r" (closed)="registro.set(null)" />
 }
+
+<!-- En recolección no se asignan ni se mueven empacadores: tocar uno registra sus cajas. Un puesto se usa igual en una línea manual y en los lados de un curo -->
+<ng-template #botonPuesto let-l let-p="puesto">
+  @if (store.asignadoEn(l, p); as t) {
+    @let cajas = recoleccion.cajasDe(t);
+    <button type="button" class="flex min-h-[4.5rem] cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl border px-1 py-1 text-center transition duration-150 ease-out hover:-translate-y-1 hover:scale-105 hover:shadow-lg hover:ring-2 active:translate-y-0 active:scale-95" [class]="cajas > 0 ? conCajas : sinCajas" [attr.aria-label]="'Puesto ' + p + ', ' + t['nombreCompleto'] + ': ' + cajas + ' cajas. Registrar cajas'" title="Registrar cajas" (click)="abrirRegistro(l, p)">
+      <span class="text-[9px] font-extrabold opacity-70">P{{ p }}</span>
+      <span class="line-clamp-2 text-[10px] font-bold leading-tight">{{ t['nombreCompleto'] }}</span>
+      @if (cajas > 0) {
+        <span class="text-xl font-extrabold leading-none">{{ cajas }}</span>
+      } @else {
+        <span class="text-[10px] font-semibold opacity-80">sin cajas</span>
+      }
+    </button>
+  } @else {
+    <div class="grid min-h-[4.5rem] place-items-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-xs font-bold text-slate-400 dark:border-slate-600 dark:bg-slate-800/60 dark:text-slate-500">
+      <span>P{{ p }}</span>
+    </div>
+  }
+</ng-template>
+

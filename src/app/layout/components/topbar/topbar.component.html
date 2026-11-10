@@ -87,6 +87,7 @@
             <p><strong>Periodo:</strong> {{ periodo() }}</p>
           }
           @case ('ACOPIO') {
+            <p><strong>Código:</strong> {{ usuario()?.codigoAcopio || '—' }}</p>
             <p><strong>Nombre:</strong> {{ usuario()?.acopioNombre || '—' }}</p>
             @if (!sinSerie()) { <p><strong>Serie:</strong> {{ usuario()?.serieGuia || '—' }}</p> }
           }

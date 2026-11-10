@@ -54,13 +54,25 @@
           <input type="text" class="min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-app-subtle sm:text-[14px]" placeholder="Buscar tipo" aria-label="Buscar tipo" [ngModel]="filtroTipos()" (ngModelChange)="filtroTipos.set($event)" />
         </span>
 
+        @if (flujoEmpaque()) {
+          <p class="mb-2 text-xs text-app-muted">Escribe los <strong class="text-app-heading">kilos por tarea</strong> de cada tipo marcado: lo que debe alcanzar un empacador para cumplir su tarea.</p>
+        }
+
         <div class="max-h-72 space-y-1 overflow-y-auto rounded-xl bg-app-surface p-2">
           @for (t of tiposFiltrados(); track t.codigo) {
-            <label class="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 transition-colors" [class.bg-tint-emerald]="estaMarcado(t.codigo)" [class.hover:bg-app-surface2]="!estaMarcado(t.codigo)">
-              <input type="checkbox" class="checkbox checkbox-success checkbox-sm" [checked]="estaMarcado(t.codigo)" (change)="marcar(t.codigo, $any($event.target).checked)" />
-              <span class="rounded-md bg-app-surface3 px-1.5 py-0.5 text-xs font-semibold text-app-text2">{{ t.codigo }}</span>
-              <span class="text-sm text-app-heading" [class.font-semibold]="estaMarcado(t.codigo)">{{ t.nombre }}</span>
-            </label>
+            <div class="flex items-center gap-3 rounded-lg px-2 py-2 transition-colors" [class.bg-tint-emerald]="estaMarcado(t.codigo)" [class.hover:bg-app-surface2]="!estaMarcado(t.codigo)">
+              <label class="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
+                <input type="checkbox" class="checkbox checkbox-success checkbox-sm" [checked]="estaMarcado(t.codigo)" (change)="marcar(t.codigo, $any($event.target).checked)" />
+                <span class="rounded-md bg-app-surface3 px-1.5 py-0.5 text-xs font-semibold text-app-text2">{{ t.codigo }}</span>
+                <span class="truncate text-sm text-app-heading" [class.font-semibold]="estaMarcado(t.codigo)">{{ t.nombre }}</span>
+              </label>
+              @if (flujoEmpaque() && estaMarcado(t.codigo)) {
+                <span class="flex shrink-0 items-center gap-1.5">
+                  <input type="text" inputmode="decimal" autocomplete="off" maxlength="8" class="input input-bordered input-sm w-24 text-right font-bold" [attr.aria-label]="'Kilos por tarea de ' + t.nombre" [value]="tareas()[t.codigo] || '0'" (input)="escribirTarea(t.codigo, $any($event.target))" (keydown)="soloNumero($event)" (focus)="$any($event.target).select()" />
+                  <span class="text-xs font-semibold text-app-muted">kg</span>
+                </span>
+              }
+            </div>
           } @empty {
             @if (!cargando()) { <p class="p-4 text-center text-sm text-app-muted">Sin tipos de proceso empacado</p> }
           }
