@@ -25,14 +25,14 @@
     } @else {
       <!-- Tarjetas por ítem (formato, tipo, categoría y calibre) -->
       <div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(10.5rem,1fr))]">
-        <button type="button" class="rounded-xl border p-3 text-center transition" [class]="claveActiva() === '' ? 'border-indigo-500 bg-indigo-100 ring-2 ring-indigo-500/30 dark:bg-indigo-900/40' : 'border-indigo-200 bg-indigo-50/70 hover:border-indigo-400 dark:border-indigo-800 dark:bg-indigo-900/15'" [attr.aria-pressed]="claveActiva() === ''" (click)="clave.set('')">
+        <button type="button" class="rounded-xl border p-3 text-center transition" [class]="claveActiva() === '' ? 'border-indigo-500 bg-indigo-100 ring-2 ring-indigo-500/30 dark:bg-indigo-900/40' : 'border-indigo-200 bg-indigo-50/70 hover:border-indigo-400 dark:border-indigo-800 dark:bg-indigo-900/15'" [attr.aria-pressed]="claveActiva() === ''" (click)="elegirTarjeta('')">
           <span class="block text-3xl font-extrabold leading-none text-indigo-700 dark:text-indigo-300">{{ totalTarjeta().cajas }}</span>
           <span class="mt-1 block text-xs font-extrabold text-app-heading">Todos los formatos</span>
           <span class="mt-1 inline-block rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-bold text-sky-800 dark:bg-sky-900/40 dark:text-sky-200">{{ fmt(totalTarjeta().kg) }} kg</span>
           <span class="block text-[11px] text-app-muted">{{ totalTarjeta().empacadores }} {{ totalTarjeta().empacadores === 1 ? 'empacador' : 'empacadores' }}</span>
         </button>
         @for (t of tarjetas(); track t.clave) {
-          <button type="button" class="rounded-xl border p-3 text-center transition" [class]="claveActiva() === t.clave ? 'border-emerald-500 bg-emerald-100 ring-2 ring-emerald-500/30 dark:bg-emerald-900/40' : 'border-emerald-200 bg-emerald-50/70 hover:border-emerald-400 dark:border-emerald-800 dark:bg-emerald-900/15'" [attr.aria-pressed]="claveActiva() === t.clave" (click)="clave.set(t.clave)">
+          <button type="button" class="rounded-xl border p-3 text-center transition" [class]="claveActiva() === t.clave ? 'border-emerald-500 bg-emerald-100 ring-2 ring-emerald-500/30 dark:bg-emerald-900/40' : 'border-emerald-200 bg-emerald-50/70 hover:border-emerald-400 dark:border-emerald-800 dark:bg-emerald-900/15'" [attr.aria-pressed]="claveActiva() === t.clave" (click)="elegirTarjeta(t.clave)">
             <span class="block text-3xl font-extrabold leading-none text-emerald-700 dark:text-emerald-300">{{ t.cajas }}</span>
             <span class="mt-1 block text-xs font-extrabold text-app-heading">{{ t.formato }}</span>
             <span class="block text-[11px] leading-tight text-app-muted">{{ t.detalle }}</span>
@@ -43,7 +43,7 @@
       </div>
 
       <!-- Empacadores -->
-      <input type="search" class="input input-bordered input-sm mb-3 w-full sm:w-72" placeholder="Buscar empacador..." aria-label="Buscar empacador" autocomplete="off" [value]="busqueda()" (input)="busqueda.set($any($event.target).value)" />
+      <input type="search" class="input input-bordered input-sm mb-3 w-full sm:w-72" placeholder="Buscar empacador..." aria-label="Buscar empacador" autocomplete="off" [value]="busqueda()" (input)="buscar($any($event.target).value)" />
 
       @if (empacadores().length === 0) {
         <p class="rounded-xl border border-dashed border-app-border2 p-6 text-center text-sm text-app-muted">Ningún empacador coincide.</p>
@@ -63,7 +63,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (e of empacadores(); track e.dni) {
+              @for (e of paginacion.paged(); track e.dni) {
                 <tr class="border-t border-app-border2/70 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10">
                   <td class="px-3 py-2.5 font-semibold text-app-heading">{{ e.nombre }}@if (e.corregida) { <span class="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-extrabold uppercase text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">corregida</span> }</td>
                   <td class="py-2.5 pr-3 font-mono text-xs text-fuchsia-700 dark:text-fuchsia-300">{{ e.dni }}</td>
@@ -82,6 +82,7 @@
             </tbody>
           </table>
         </div>
+        <app-paginator [total]="empacadores().length" [(page)]="paginacion.page" [(pageSize)]="paginacion.pageSize" />
       }
     }
   </div>

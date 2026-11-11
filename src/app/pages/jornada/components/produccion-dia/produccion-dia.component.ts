@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { LucideBoxes, LucidePencilLine, LucideRefreshCcw } from '@lucide/angular';
+import { PaginatorComponent } from '../../../../shared/components/paginator/paginator.component';
 import { ConnectivityService } from '../../../../shared/services/connectivity.service';
 import { JornadasAnotadorApiService } from '../../../../shared/services/jornadas-anotador-api.service';
 import { LoadingService } from '../../../../shared/services/loading.service';
+import { crearPaginacion } from '../../../../shared/utils/paginacion';
 import { CorregirProduccionModalComponent } from '../corregir-produccion-modal/corregir-produccion-modal.component';
 import { Fila, esActivo, texto } from '../../jornada.utils';
 
@@ -39,7 +41,7 @@ const claveItem = (f: Fila): string => [f['formatoId'], f['tipoEmpaqueId'], text
  */
 @Component({
   selector: 'app-produccion-dia',
-  imports: [CorregirProduccionModalComponent, LucideBoxes, LucidePencilLine, LucideRefreshCcw],
+  imports: [CorregirProduccionModalComponent, PaginatorComponent, LucideBoxes, LucidePencilLine, LucideRefreshCcw],
   templateUrl: './produccion-dia.component.html',
   host: { class: 'block' },
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -115,6 +117,19 @@ export class ProduccionDiaComponent implements OnInit {
       .filter((e) => !q || `${e.nombre} ${e.dni}`.toLowerCase().includes(q))
       .sort((a, b) => a.nombre.localeCompare(b.nombre));
   });
+
+  protected readonly paginacion = crearPaginacion(() => this.empacadores(), 10);
+
+  /** Elegir otra tarjeta o buscar cambia la lista: se vuelve a la primera página. */
+  protected elegirTarjeta(clave: string): void {
+    this.clave.set(clave);
+    this.paginacion.page.set(1);
+  }
+
+  protected buscar(valor: string): void {
+    this.busqueda.set(valor);
+    this.paginacion.page.set(1);
+  }
 
   /** Anotaciones del empacador que se está corrigiendo por vuelta. */
   protected readonly filasEditando = computed(() => {
