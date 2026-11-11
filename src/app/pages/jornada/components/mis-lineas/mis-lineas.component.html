@@ -46,7 +46,7 @@
         <div>
           <p class="mb-1.5 text-[11px] font-extrabold uppercase tracking-wide text-app-muted">Líneas</p>
           <div class="flex flex-wrap gap-2">
-            @for (l of manuales(); track l['idLinea']) {
+            @for (l of manuales(); track claveLinea(l)) {
               <ng-container *ngTemplateOutlet="chipLinea; context: { $implicit: l, etiqueta: nombreLinea(l) }" />
             }
           </div>
@@ -59,7 +59,7 @@
             @for (m of maquinas(); track m.nombre) {
               <div class="flex flex-wrap items-center gap-2">
                 <span class="min-w-16 text-sm font-extrabold text-app-heading">{{ m.nombre }}</span>
-                @for (l of m.curos; track l['idLinea']) {
+                @for (l of m.curos; track claveLinea(l)) {
                   <ng-container *ngTemplateOutlet="chipLinea; context: { $implicit: l, etiqueta: 'Curo ' + l['curo'] }" />
                 }
               </div>

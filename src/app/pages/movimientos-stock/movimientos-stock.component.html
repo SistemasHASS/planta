@@ -1,0 +1,147 @@
+<section class="w-full space-y-4 p-4 sm:p-6">
+  <header class="flex items-center gap-3">
+    <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-sky-500 to-sky-700 text-white shadow-md">
+      <svg lucideArrowLeftRight class="size-6"></svg>
+    </span>
+    <div class="min-w-0">
+      <span class="text-xs font-bold uppercase tracking-widest text-sky-700 dark:text-sky-300">Consultas</span>
+      <h1 class="text-xl font-extrabold leading-tight text-app-heading sm:text-2xl">Movimientos de stock</h1>
+      <p class="text-sm text-app-muted">Entradas, correcciones (con su observación), ajustes y salidas a palet de tus cajas.</p>
+    </div>
+  </header>
+
+  @if (!online()) {
+    <div class="grid place-items-center gap-2 rounded-2xl border border-app-border2 bg-app-surface p-12 text-center shadow-sm">
+      <svg lucideWifiOff class="size-12 text-amber-500"></svg>
+      <p class="text-base font-bold text-app-text2">Sin conexión a internet</p>
+      <p class="max-w-md text-sm text-app-muted">Los movimientos de stock solo están disponibles en modo online. Conéctate a internet para continuar.</p>
+    </div>
+  } @else {
+    <!-- Filtros -->
+    <div class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm">
+      <div class="flex flex-wrap items-end gap-3">
+        <label class="block max-sm:w-full">
+          <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Fecha</span>
+          <input type="date" class="input input-bordered h-[42px] w-44 text-[16px] sm:text-[14px] max-sm:w-full" [ngModel]="fecha()" (ngModelChange)="fecha.set($event)" />
+        </label>
+        <div class="w-60 max-w-full max-sm:w-full">
+          <app-search-multi-select label="Tipo" placeholder="Todos los tipos" sortOrder="none" [showSelectAll]="true" [options]="tiposOpciones" [values]="tipos()" (valuesChange)="tipos.set($event)" />
+        </div>
+        <button type="button" class="btn btn-primary h-[42px] min-h-0 gap-2 max-sm:w-full" (click)="consultar()"><svg lucideSearch class="size-4"></svg> Buscar</button>
+      </div>
+    </div>
+
+    @if (consultado()) {
+      <!-- Resumen: cajas en valor absoluto y cantidad de movimientos por tipo -->
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="flex items-center gap-3 rounded-2xl border border-tint-sky-border bg-tint-sky p-4 shadow-sm">
+          <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-sky-600 text-white"><svg lucidePackagePlus class="size-5"></svg></span>
+          <div class="min-w-0">
+            <p class="text-2xl font-extrabold leading-none tabular-nums text-sky-700 dark:text-sky-300">{{ resumen()['ENTRADA']?.cajas || 0 | number: '1.0-0' }}</p>
+            <p class="mt-1 text-xs font-bold uppercase tracking-wide text-app-muted">Cajas de entrada</p>
+            <p class="text-xs text-app-muted">{{ resumen()['ENTRADA']?.movimientos || 0 }} movimiento(s)</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 rounded-2xl border border-tint-amber-border bg-tint-amber p-4 shadow-sm">
+          <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-amber-500 text-white"><svg lucidePencilLine class="size-5"></svg></span>
+          <div class="min-w-0">
+            <p class="text-2xl font-extrabold leading-none tabular-nums text-amber-700 dark:text-amber-300">{{ resumen()['CORRECCION']?.cajas || 0 | number: '1.0-0' }}</p>
+            <p class="mt-1 text-xs font-bold uppercase tracking-wide text-app-muted">Cajas corregidas</p>
+            <p class="text-xs text-app-muted">{{ resumen()['CORRECCION']?.movimientos || 0 }} corrección(es)</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm">
+          <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-slate-500 text-white"><svg lucideSlidersHorizontal class="size-5"></svg></span>
+          <div class="min-w-0">
+            <p class="text-2xl font-extrabold leading-none tabular-nums text-app-text2">{{ resumen()['AJUSTE']?.cajas || 0 | number: '1.0-0' }}</p>
+            <p class="mt-1 text-xs font-bold uppercase tracking-wide text-app-muted">Cajas ajustadas</p>
+            <p class="text-xs text-app-muted">{{ resumen()['AJUSTE']?.movimientos || 0 }} ajuste(s)</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 rounded-2xl border border-tint-emerald-border bg-tint-emerald p-4 shadow-sm">
+          <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white"><svg lucidePackageMinus class="size-5"></svg></span>
+          <div class="min-w-0">
+            <p class="text-2xl font-extrabold leading-none tabular-nums text-emerald-700 dark:text-emerald-300">{{ resumen()['SALIDA_PALET']?.cajas || 0 | number: '1.0-0' }}</p>
+            <p class="mt-1 text-xs font-bold uppercase tracking-wide text-app-muted">Cajas a palet</p>
+            <p class="text-xs text-app-muted">{{ resumen()['SALIDA_PALET']?.movimientos || 0 }} salida(s)</p>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (movimientos().length > 0) {
+      <div class="overflow-hidden rounded-2xl border border-app-border2 bg-app-surface shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <p class="text-sm font-bold text-app-heading">{{ buscados().length }} de {{ movimientos().length }} movimiento(s)</p>
+          <label class="input input-bordered flex h-[38px] w-full items-center gap-2 sm:w-80">
+            <svg lucideSearch class="size-4 opacity-60"></svg>
+            <input type="search" class="grow text-[16px] sm:text-[14px]" placeholder="Buscar formato, empacador u observación" [ngModel]="busqueda()" (ngModelChange)="cambiarBusqueda($event)" />
+          </label>
+        </div>
+
+        <div class="tabla-scroll border-t border-app-border2">
+          <table class="table table-sm [&_td]:align-middle [&_td]:py-3">
+            <thead>
+              <tr class="bg-app-surface2 text-[11px] font-bold uppercase tracking-wide text-app-muted">
+                <th>Registro</th>
+                <th>Tipo</th>
+                <th>Proceso</th>
+                <th>Producto</th>
+                <th>Empacador</th>
+                <th class="text-right">Cajas</th>
+                <th class="min-w-[220px]">Observación</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (m of paginacion.paged(); track m.id) {
+                <tr class="border-t border-app-border hover:bg-app-surface2">
+                  <td class="whitespace-nowrap">
+                    <p class="font-bold tabular-nums text-app-heading">{{ m.fecha.slice(11, 16) }}</p>
+                    <p class="text-[11px] tabular-nums text-app-muted">{{ fechaCorta(m.fecha) }}</p>
+                  </td>
+                  <td><span class="inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold" [class]="etiqueta(m.tipo).clase">{{ etiqueta(m.tipo).texto }}</span></td>
+                  <td class="whitespace-nowrap text-app-text">{{ m.proceso || '—' }}</td>
+                  <td>
+                    <p class="whitespace-nowrap font-bold text-app-heading">{{ m.formato }}</p>
+                    <p class="whitespace-nowrap text-xs text-app-muted">{{ m.tipoEmpaque }}@if (m.categoriaCalibre) { · {{ m.categoriaCalibre }} }</p>
+                  </td>
+                  <td>
+                    @if (m.empacador) {
+                      <p class="whitespace-nowrap font-semibold text-app-text">{{ m.empacador }}</p>
+                      <p class="text-[11px] tabular-nums text-app-muted">DNI {{ m.empacadorDocumento }}</p>
+                    } @else {
+                      <span class="text-app-muted">—</span>
+                    }
+                  </td>
+                  <td class="text-right">
+                    <span class="inline-flex min-w-12 justify-center rounded-lg px-2 py-1 text-sm font-extrabold tabular-nums"
+                      [class]="m.cajas < 0 ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'">
+                      {{ m.cajas > 0 ? '+' : '' }}{{ m.cajas | number: '1.0-0' }}
+                    </span>
+                  </td>
+                  <td class="text-xs">
+                    @if (m.observaciones) {
+                      <span class="text-app-text">{{ m.observaciones }}</span>
+                    } @else if (m.tipo === 'SALIDA_PALET') {
+                      <span class="text-app-muted">{{ detalleSalida(m) }}</span>
+                    } @else {
+                      <span class="text-app-muted">—</span>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="7" class="py-8 text-center text-app-muted">Nada coincide con la búsqueda</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <app-paginator [total]="buscados().length" [(page)]="paginacion.page" [(pageSize)]="paginacion.pageSize" />
+      </div>
+    } @else {
+      <div class="grid place-items-center gap-2 rounded-2xl border border-dashed border-app-border2 bg-app-surface p-10 text-center text-app-muted">
+        <svg lucideInbox class="size-10 opacity-40"></svg>
+        <p>{{ consultado() ? 'No hay movimientos tuyos en la fecha seleccionada' : 'Selecciona una fecha y presiona Buscar' }}</p>
+      </div>
+    }
+  }
+</section>

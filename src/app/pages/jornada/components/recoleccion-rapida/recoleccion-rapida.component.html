@@ -64,8 +64,8 @@
             <!-- Destino bien grande, igual que en el escáner de asignación -->
             <div class="flex shrink-0 items-center justify-center gap-6 bg-gradient-to-r from-emerald-600 to-emerald-500 px-4 py-3 text-white">
               <div class="text-center leading-none">
-                <div class="text-xs font-extrabold uppercase tracking-[0.2em] opacity-90">Línea</div>
-                <div class="mt-1 text-5xl font-black">{{ p.linea['numero'] }}</div>
+                <div class="text-xs font-extrabold uppercase tracking-[0.2em] opacity-90">{{ destinoEtiqueta(p.linea) }}</div>
+                <div class="mt-1 text-5xl font-black">{{ destinoValor(p.linea) }}</div>
               </div>
               <span class="h-12 w-px bg-white/50"></span>
               <div class="text-center leading-none">

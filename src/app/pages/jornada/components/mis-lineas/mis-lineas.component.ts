@@ -2,7 +2,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
 import { LucideChevronDown, LucideChevronRight } from '@lucide/angular';
 import { JornadaStore } from '../../jornada.store';
-import { Fila, nombreLinea, texto } from '../../jornada.utils';
+import { Fila, claveLinea, esCuro, nombreLinea, texto } from '../../jornada.utils';
 
 /** Tarjeta "Mis líneas": el anotador toma o suelta las líneas donde va a trabajar. */
 @Component({
@@ -15,16 +15,18 @@ import { Fila, nombreLinea, texto } from '../../jornada.utils';
 export class MisLineasComponent {
   protected readonly store = inject(JornadaStore);
   protected readonly nombreLinea = nombreLinea;
+  protected readonly claveLinea = claveLinea;
 
   /** Líneas manuales (las de siempre). */
-  protected readonly manuales = computed(() => this.store.lineas().filter((l) => !texto(l['maquinaNombre'])));
+  protected readonly manuales = computed(() => this.store.lineas().filter((l) => !esCuro(l)));
 
   /** Máquinas con sus curos (cada curo es una línea que se toma). Solo hay con el parámetro Flujo_Empaque activo. */
   protected readonly maquinas = computed(() => {
     const porMaquina = new Map<string, Fila[]>();
     for (const l of this.store.lineas()) {
+      if (!esCuro(l)) continue;
       const nombre = texto(l['maquinaNombre']);
-      if (nombre) porMaquina.set(nombre, [...(porMaquina.get(nombre) ?? []), l]);
+      porMaquina.set(nombre, [...(porMaquina.get(nombre) ?? []), l]);
     }
     return [...porMaquina].map(([nombre, curos]) => ({ nombre, curos }));
   });

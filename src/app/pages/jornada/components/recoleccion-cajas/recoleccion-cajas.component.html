@@ -36,7 +36,7 @@
     <app-sin-lineas />
   } @else {
     <div class="space-y-3">
-      @for (l of store.misLineas(); track l['idLinea']) {
+      @for (l of store.misLineas(); track claveLinea(l)) {
         <app-linea-panel [linea]="l">
           <div acciones class="flex flex-col gap-2 px-4 pb-3 sm:flex-row sm:items-center sm:p-0 [&_.field-label]:!hidden">
             <div class="w-full min-w-0 sm:w-56 sm:shrink-0">

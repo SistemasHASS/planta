@@ -24,13 +24,21 @@
           <span class="inline-flex w-fit items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
             <span class="size-2 rounded-full bg-emerald-500"></span> Jornada abierta
           </span>
-          <div class="flex flex-wrap gap-x-5 gap-y-1 text-sm">
-            <span><span class="text-app-muted">Proceso</span> <strong class="text-app-heading">{{ fecha(j['fechaProceso']) }} · {{ j['turno'] || '—' }}</strong></span>
-            <span><span class="text-app-muted">Abierta por</span> <strong class="text-app-heading">{{ j['nombreUsuarioApertura'] || '—' }}</strong></span>
-            <span><span class="text-app-muted">Inicio</span> <strong class="text-app-heading">{{ fechaHora(j['fechaApertura']) }}</strong></span>
-          </div>
-          <span class="flex-1"></span>
-          <button type="button" class="btn btn-error btn-sm gap-2 sm:btn-md" (click)="store.cerrar()">
+          <dl class="grid flex-1 grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3 sm:gap-x-0">
+            <div class="min-w-0 sm:pr-6">
+              <dt class="text-[11px] font-bold uppercase tracking-wide text-app-muted">Proceso</dt>
+              <dd class="mt-0.5 truncate text-sm font-extrabold text-app-heading">{{ fecha(j['fechaProceso']) }} · {{ j['turno'] || '—' }}</dd>
+            </div>
+            <div class="min-w-0 max-sm:order-3 max-sm:col-span-2 sm:border-l sm:border-app-border2 sm:px-6">
+              <dt class="text-[11px] font-bold uppercase tracking-wide text-app-muted">Abierta por</dt>
+              <dd class="mt-0.5 truncate text-sm font-extrabold text-app-heading">{{ j['nombreUsuarioApertura'] || '—' }}</dd>
+            </div>
+            <div class="min-w-0 max-sm:order-2 sm:border-l sm:border-app-border2 sm:pl-6">
+              <dt class="text-[11px] font-bold uppercase tracking-wide text-app-muted">Inicio</dt>
+              <dd class="mt-0.5 truncate text-sm font-extrabold text-app-heading">{{ fechaHora(j['fechaApertura']) }}</dd>
+            </div>
+          </dl>
+          <button type="button" class="btn btn-error btn-sm gap-2 sm:btn-md sm:shrink-0" (click)="store.cerrar()">
             <svg lucideCircleStop class="size-4"></svg> Cerrar jornada
           </button>
         </div>

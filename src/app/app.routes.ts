@@ -77,6 +77,13 @@ export const routes: Routes = [
         loadComponent: () => import("./pages/kilos-pago/kilos-pago.component").then((m) => m.KilosPagoComponent),
       },
       {
+        path: "movimientos-stock",
+        canActivate: [roleGuard(ROLES.anotador)],
+        data: { titulo: "Movimientos de Stock" },
+        loadComponent: () =>
+          import("./pages/movimientos-stock/movimientos-stock.component").then((m) => m.MovimientosStockComponent),
+      },
+      {
         path: "historial-kilos",
         canActivate: [roleGuard(ROLES.admin, ROLES.anotador)],
         data: { titulo: "Historial de Kilos" },
@@ -324,6 +331,13 @@ export const routes: Routes = [
         canActivate: [roleGuard(ROLES.admin, ROLES.monitor)],
         loadComponent: () =>
           import("./pages/reportes/reporte-avance-grupo/reporte-avance-grupo.component").then((m) => m.ReporteAvanceGrupoComponent),
+      },
+      {
+        path: "reporte-planilla-empaque",
+        canActivate: [roleGuard(ROLES.admin, ROLES.monitor)],
+        data: { titulo: "Planilla de Empaque" },
+        loadComponent: () =>
+          import("./pages/reportes/reporte-planilla-empaque/reporte-planilla-empaque.component").then((m) => m.ReportePlanillaEmpaqueComponent),
       },
     ],
   },

@@ -9,7 +9,7 @@ import { FeedbackModalService } from '../../shared/services/feedback-modal.servi
 import { JornadasAnotadorApiService } from '../../shared/services/jornadas-anotador-api.service';
 import { LoadingService } from '../../shared/services/loading.service';
 import { ProcesosApiService } from '../../shared/services/procesos-api.service';
-import { Fila, fecha, lineaTexto, texto } from './jornada.utils';
+import { Fila, claveLinea, esCuro, fecha, lineaTexto, refLinea, texto } from './jornada.utils';
 
 /** Se ejecuta después de leer las líneas (conJornada=true) o al saber que no hay jornada abierta (conJornada=false). */
 type GanchoLineas = (conJornada: boolean) => Promise<void>;
@@ -43,10 +43,10 @@ export class JornadaStore {
   readonly misLineas = computed(() => this.lineas().filter((l) => texto(l['situacion']) === 'MIA'));
   readonly tomadas = computed(() => this.misLineas().length);
   /** Números (o nombres de curo) de las líneas que tomé, para mostrarlos cuando la tarjeta "Mis líneas" está contraída. */
-  readonly numerosMios = computed(() => this.misLineas().map((l) => (texto(l['maquinaNombre']) && l['curo'] ? `${texto(l['maquinaNombre'])} · Curo ${texto(l['curo'])}` : texto(l['numero']))).join(' · '));
-  /** Lineas (idLinea) con su detalle de puestos desplegado. */
-  readonly desplegadas = signal<ReadonlySet<number>>(new Set());
-  /** Empacadores asignados en cada posición ("idLinea-puesto"), tal como los devuelve el servidor. */
+  readonly numerosMios = computed(() => this.misLineas().map((l) => (esCuro(l) ? `${texto(l['maquinaNombre'])} · Curo ${texto(l['curo'])}` : texto(l['numero']))).join(' · '));
+  /** Lineas o curos (claveLinea) con su detalle de puestos desplegado. */
+  readonly desplegadas = signal<ReadonlySet<string>>(new Set());
+  /** Empacadores asignados en cada posición ("claveLinea|puesto"), tal como los devuelve el servidor. */
   readonly asignados = signal<Map<string, Fila>>(new Map());
 
   readonly opcionesProceso = computed<SearchSelectOption[]>(() =>
@@ -75,16 +75,17 @@ export class JornadaStore {
 
   // ---- Claves y consultas de puestos ----
 
-  clave(idLinea: number, puesto: number): string {
-    return `${idLinea}-${puesto}`;
+  /** Llave de un puesto: la de su línea o curo (claveLinea) y el número de puesto. */
+  clave(claveDeLinea: string, puesto: number): string {
+    return `${claveDeLinea}|${puesto}`;
   }
 
   asignadoEn(linea: Fila, puesto: number): Fila | undefined {
-    return this.asignados().get(this.clave(Number(linea['idLinea']), puesto));
+    return this.asignados().get(this.clave(claveLinea(linea), puesto));
   }
 
   asignadosDe(linea: Fila): number {
-    return this.puestosDe(linea).filter((p) => this.asignados().has(this.clave(Number(linea['idLinea']), p))).length;
+    return this.puestosDe(linea).filter((p) => this.asignados().has(this.clave(claveLinea(linea), p))).length;
   }
 
   /** Numeros de puesto de la linea: 1..cantidadPuestos. */
@@ -94,11 +95,11 @@ export class JornadaStore {
   }
 
   estaDesplegada(linea: Fila): boolean {
-    return this.desplegadas().has(Number(linea['idLinea']));
+    return this.desplegadas().has(claveLinea(linea));
   }
 
   alternar(linea: Fila): void {
-    const id = Number(linea['idLinea']);
+    const id = claveLinea(linea);
     this.desplegadas.update((actual) => {
       const nuevo = new Set(actual);
       if (nuevo.has(id)) nuevo.delete(id);
@@ -159,7 +160,7 @@ export class JornadaStore {
     const r = await this.jornadasApi.puestos();
     if (r.error) throw new Error(r.mensaje || 'No se pudieron consultar los puestos.');
     const mapa = new Map<string, Fila>();
-    for (const f of r.data ?? []) mapa.set(this.clave(Number(f['idLinea']), Number(f['puesto'])), f);
+    for (const f of r.data ?? []) mapa.set(this.clave(claveLinea(f), Number(f['puesto'])), f);
     this.asignados.set(mapa);
   }
 
@@ -287,12 +288,12 @@ export class JornadaStore {
     }
     this.loading.show('Tomando línea...');
     try {
-      const r = await this.jornadasApi.tomarLinea(Number(linea['idLinea']));
+      const r = await this.jornadasApi.tomarLinea(refLinea(linea));
       if (r.error) {
         this.feedback.error(r.mensaje || 'No se pudo tomar la línea.');
       } else {
         // La linea recien tomada se muestra desplegada.
-        this.desplegadas.update((actual) => new Set(actual).add(Number(linea['idLinea'])));
+        this.desplegadas.update((actual) => new Set(actual).add(claveLinea(linea)));
       }
       await this.cargarLineas();
       await this.loading.hideAfterMinimum();

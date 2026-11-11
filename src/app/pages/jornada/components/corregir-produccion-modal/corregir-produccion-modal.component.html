@@ -28,7 +28,7 @@
               @if (!abierta(f)) { <span class="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-extrabold uppercase text-slate-600 dark:bg-slate-700 dark:text-slate-300">cerrada</span> }
               @if (corregida(f)) { <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-extrabold uppercase text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">{{ etiquetaCorreccion(f) }}</span> }
             </div>
-            <span class="text-[11px] text-app-muted">Anotó <strong class="font-bold text-app-heading">{{ f['nombreAnotador'] }}</strong> · L{{ f['numeroLinea'] }} · P{{ f['puesto'] }}</span>
+            <span class="text-[11px] text-app-muted">Anotó <strong class="font-bold text-app-heading">{{ f['nombreAnotador'] }}</strong> · {{ f['lineaNombre'] }} · P{{ f['puesto'] }}</span>
           </div>
 
           <div class="mt-2 flex flex-wrap items-end justify-between gap-3">
@@ -121,9 +121,21 @@
           @if (diferencia(p) < 0 || productoCambiado(p)) {
             <p class="mt-2 text-xs text-app-muted">Si esas cajas ya están en un palet, el sistema no dejará {{ productoCambiado(p) ? 'moverlas a otro producto' : 'quitarlas' }}.</p>
           }
-          <div class="mt-4 grid grid-cols-2 gap-2">
+          <label class="mt-4 block text-left">
+            <span class="mb-1 block text-xs font-bold text-app-heading">Observación <span class="font-medium text-app-muted">(opcional)</span></span>
+            <textarea
+              rows="3"
+              class="textarea textarea-bordered w-full text-[16px] leading-snug sm:text-[14px]"
+              placeholder="¿Por qué corriges esta anotación? (opcional)"
+              [attr.maxlength]="maximoObservacion"
+              [value]="observacion()"
+              (input)="escribirObservacion($event)"
+            ></textarea>
+            <span class="block text-right text-[11px] text-app-muted">{{ observacion().length }}/{{ maximoObservacion }}</span>
+          </label>
+          <div class="mt-3 grid grid-cols-2 gap-2">
             <button type="button" class="btn h-11 min-h-11 rounded-xl border-app-border2 bg-app-surface normal-case text-app-heading hover:bg-slate-100 dark:hover:bg-slate-800" (click)="cancelarConfirmacion()">Cancelar</button>
-            <button type="button" class="btn h-11 min-h-11 rounded-xl border-0 bg-emerald-600 normal-case text-white hover:bg-emerald-700" (click)="confirmar()">Sí, guardar</button>
+            <button type="button" class="btn h-11 min-h-11 rounded-xl border-0 bg-emerald-600 normal-case text-white hover:bg-emerald-700 disabled:opacity-50" (click)="confirmar()">Sí, guardar</button>
           </div>
         </div>
       </div>

@@ -6,7 +6,7 @@ import { FeedbackModalService } from '../../../../shared/services/feedback-modal
 import { JornadasAnotadorApiService } from '../../../../shared/services/jornadas-anotador-api.service';
 import { LoadingService } from '../../../../shared/services/loading.service';
 import { RecoleccionStore } from '../../recoleccion.store';
-import { Fila, texto } from '../../jornada.utils';
+import { Fila, nombreLinea, refLinea, texto } from '../../jornada.utils';
 
 /** Con qué se abre la ventana: el puesto tocado y lo que está elegido en su línea. */
 export interface RegistroCajasInicial {
@@ -38,6 +38,7 @@ const MAX_CAJAS = 99999;
 })
 export class RegistroCajasModalComponent implements OnInit {
   protected readonly recoleccion = inject(RecoleccionStore);
+  protected readonly nombreLinea = nombreLinea;
   private readonly connectivity = inject(ConnectivityService);
   private readonly confirm = inject(ConfirmModalService);
   private readonly loading = inject(LoadingService);
@@ -146,7 +147,7 @@ export class RegistroCajasModalComponent implements OnInit {
     this.guardando.set(true);
     this.loading.show('Quitando cajas...');
     try {
-      const resp = await this.jornadasApi.quitarCajas({ idLinea: Number(linea['idLinea']), puesto });
+      const resp = await this.jornadasApi.quitarCajas({ ...refLinea(linea), puesto });
       if (resp.error) {
         this.feedback.error(resp.mensaje || 'No se pudieron quitar las cajas.');
         try { await this.recoleccion.cargarRecolecciones(); await this.recoleccion.cargarCajas(); } catch { /* el aviso de arriba ya informa */ }
@@ -181,7 +182,7 @@ export class RegistroCajasModalComponent implements OnInit {
     this.loading.show('Registrando cajas...');
     try {
       const resp = await this.recoleccion.registrarCajas({
-        idLinea: Number(linea['idLinea']),
+        ...refLinea(linea),
         puesto,
         formatoId,
         tipoEmpaqueId,

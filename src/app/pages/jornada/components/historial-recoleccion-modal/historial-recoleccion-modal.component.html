@@ -107,7 +107,7 @@
                         <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                           <td class="whitespace-nowrap px-3 py-2 font-mono text-xs text-app-muted">{{ f['numeroDocumento'] }}</td>
                           <td class="px-3 py-2 font-bold text-app-heading">{{ f['nombreCompleto'] }}</td>
-                          <td class="whitespace-nowrap px-3 py-2 text-app-muted">{{ f['numeroLinea'] }}@if (f['puesto']) { · P{{ f['puesto'] }} }</td>
+                          <td class="whitespace-nowrap px-3 py-2 text-app-muted">{{ f['lineaNombre'] }}@if (f['puesto']) { · P{{ f['puesto'] }} }</td>
                           <td class="whitespace-nowrap px-3 py-2 text-app-heading">{{ f['formatoDescripcion'] || '—' }}</td>
                           <td class="px-3 py-2 text-xs text-app-muted">{{ tipoEmpaque(f) }}@if (productoAntes(f)) { <span class="mt-0.5 block text-[10px] font-bold text-amber-700 dark:text-amber-300">antes: {{ productoAntes(f) }}</span> }</td>
                           <td class="whitespace-nowrap px-3 py-2 text-right">
@@ -137,7 +137,7 @@
                     <li class="flex items-center gap-3 px-3 py-2.5">
                       <div class="min-w-0 flex-1">
                         <p class="text-sm font-bold leading-tight text-app-heading">{{ f['nombreCompleto'] }}</p>
-                        <p class="text-[11px] text-app-muted">{{ f['numeroDocumento'] }} · Línea {{ f['numeroLinea'] }}@if (f['puesto']) { · P{{ f['puesto'] }} }</p>
+                        <p class="text-[11px] text-app-muted">{{ f['numeroDocumento'] }} · {{ f['lineaNombre'] }}@if (f['puesto']) { · P{{ f['puesto'] }} }</p>
                         <p class="mt-0.5 text-[11px] leading-snug text-app-muted"><span class="font-bold text-app-heading">{{ f['formatoDescripcion'] || '—' }}</span> · {{ tipoEmpaque(f) }}</p>
                         @if (productoAntes(f)) { <p class="text-[10px] font-bold leading-snug text-amber-700 dark:text-amber-300">antes: {{ productoAntes(f) }}</p> }
                       </div>

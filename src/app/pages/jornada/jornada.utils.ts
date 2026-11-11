@@ -1,3 +1,5 @@
+import type { RefLinea } from '../../shared/services/jornadas-anotador-api.service';
+
 /** Fila tal como la devuelve el servidor (las columnas dependen del SP). */
 export type Fila = Record<string, any>;
 
@@ -47,8 +49,22 @@ export const productoAntes = (f: Fila): string =>
     ? [f['formatoAntesDescripcion'], f['tipoEmpaqueAntesDescripcion'], f['categoriaAntesNombre'], f['calibreAntesNombre']].map(texto).filter(Boolean).join(' — ')
     : '';
 
-/** Una línea puede ser manual ("Línea 3") o un curo de una máquina (Flujo_Empaque activo): "Kato 1 · Curo 2". */
-const esCuro = (l: Fila): boolean => !!texto(l['maquinaNombre']) && Number(l['curo']) > 0;
+/**
+ * Lo que el anotador toma puede ser una línea manual ("Línea 3") o un curo de una máquina (Flujo_Empaque activo): "Kato 1 · Curo 2".
+ * El servidor lo marca con esMaquina (y trae idMaquina + curo; en un curo idLinea es 0, en una línea manual idMaquina y curo son 0).
+ */
+export const esCuro = (l: Fila): boolean => esActivo(l['esMaquina']);
+
+export const refLinea = (l: Fila): RefLinea => ({ idLinea: Number(l['idLinea']) || 0, idMaquina: Number(l['idMaquina']) || 0, curo: Number(l['curo']) || 0 });
+
+/** Rótulo del destino en grande (escáner / captura): "Línea" o, en un curo, "Kato 1 · Curo". */
+export const destinoEtiqueta = (l: Fila): string => (esCuro(l) ? `${texto(l['maquinaNombre'])} · Curo` : 'Línea');
+
+/** Valor del destino en grande: el número de la línea o el número del curo. */
+export const destinoValor = (l: Fila): string => (esCuro(l) ? texto(l['curo']) : texto(l['numero']));
+
+/** Llave de una línea o curo en pantalla y en la base local: "L12" (línea manual) o "M3-2" (máquina 3, curo 2). */
+export const claveLinea = (l: Fila): string => (esCuro(l) ? `M${Number(l['idMaquina']) || 0}-${Number(l['curo']) || 0}` : `L${Number(l['idLinea']) || 0}`);
 
 /** Nombre de una línea para mostrar: "Kato 1 · Curo 2" si es un curo de máquina; si no, "Línea N". */
 export const nombreLinea = (l: Fila): string => (esCuro(l) ? `${texto(l['maquinaNombre'])} · Curo ${texto(l['curo'])}` : `Línea ${texto(l['numero'])}`);

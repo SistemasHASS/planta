@@ -34,7 +34,7 @@ const numero = (v: unknown): number => Number(v) || 0;
 const claveItem = (f: Fila): string => [f['formatoId'], f['tipoEmpaqueId'], texto(f['categoriaNombre']), texto(f['calibreNombre'])].join('|');
 
 /**
- * Pestaña "Producción": todo lo que registraron los anotadores en el proceso de la jornada. Se filtra por anotador (Todo o uno), por formato y tipo de empaque (tarjetas) y por empacador (buscador).
+ * Pestaña "Producción": lo que registró el anotador en el proceso de la jornada (el SP trae solo lo suyo). Se filtra por formato y tipo de empaque (tarjetas) y por empacador (buscador).
  * Desde el lápiz de un empacador se corrigen sus anotaciones (una por vuelta); la base no deja bajar cajas que ya están en un palet.
  */
 @Component({
@@ -53,8 +53,7 @@ export class ProduccionDiaComponent implements OnInit {
   protected readonly cargando = signal(true);
   protected readonly error = signal('');
 
-  /** Anotador elegido ('' = Todo), tarjeta elegida ('' = todos los formatos) y texto del buscador. */
-  protected readonly anotador = signal('');
+  /** Tarjeta elegida ('' = todos los formatos) y texto del buscador. */
   protected readonly clave = signal('');
   protected readonly busqueda = signal('');
 
@@ -63,29 +62,10 @@ export class ProduccionDiaComponent implements OnInit {
 
   protected readonly fmt = (n: number): string => n.toFixed(2);
 
-  /** Anotadores con su total de cajas (para las pestañas). */
-  protected readonly anotadores = computed(() => {
-    const mapa = new Map<string, { id: string; nombre: string; cajas: number }>();
-    for (const f of this.filas()) {
-      const id = texto(f['idUsuarioAnotador']);
-      const actual = mapa.get(id) ?? { id, nombre: texto(f['nombreAnotador']) || id, cajas: 0 };
-      actual.cajas += numero(f['cantidadCajas']);
-      mapa.set(id, actual);
-    }
-    return [...mapa.values()].sort((a, b) => a.nombre.localeCompare(b.nombre));
-  });
-
-  protected readonly totalGeneral = computed(() => this.filas().reduce((s, f) => s + numero(f['cantidadCajas']), 0));
-
-  private readonly delAnotador = computed(() => {
-    const a = this.anotador();
-    return a ? this.filas().filter((f) => texto(f['idUsuarioAnotador']) === a) : this.filas();
-  });
-
-  /** Tarjetas por ítem: formato, tipo de empaque, categoría y calibre (con el anotador elegido). */
+  /** Tarjetas por ítem: formato, tipo de empaque, categoría y calibre . */
   protected readonly tarjetas = computed<Tarjeta[]>(() => {
     const mapa = new Map<string, Tarjeta & { dnis: Set<string> }>();
-    for (const f of this.delAnotador()) {
+    for (const f of this.filas()) {
       const clave = claveItem(f);
       const detalle = [f['tipoEmpaqueDescripcion'], f['categoriaNombre'], f['calibreNombre']].map(texto).filter(Boolean).join(' — ');
       const t = mapa.get(clave) ?? { clave, cajas: 0, kg: 0, empacadores: 0, formato: texto(f['formatoDescripcion']), detalle, dnis: new Set<string>() };
@@ -99,23 +79,23 @@ export class ProduccionDiaComponent implements OnInit {
   });
 
   protected readonly totalTarjeta = computed(() => {
-    const dnis = new Set(this.delAnotador().map((f) => texto(f['numeroDocumento'])));
+    const dnis = new Set(this.filas().map((f) => texto(f['numeroDocumento'])));
     return {
-      cajas: this.delAnotador().reduce((s, f) => s + numero(f['cantidadCajas']), 0),
-      kg: this.delAnotador().reduce((s, f) => s + numero(f['pesoTotal']), 0),
+      cajas: this.filas().reduce((s, f) => s + numero(f['cantidadCajas']), 0),
+      kg: this.filas().reduce((s, f) => s + numero(f['pesoTotal']), 0),
       empacadores: dnis.size,
     };
   });
 
-  /** La tarjeta elegida sigue valiendo solo si existe con el anotador elegido. */
+  /** La tarjeta elegida sigue valiendo solo si existe. */
   protected readonly claveActiva = computed(() => (this.tarjetas().some((t) => t.clave === this.clave()) ? this.clave() : ''));
 
-  /** Tabla: un renglón por empacador con lo que se ve según anotador, tarjeta y buscador. */
+  /** Tabla: un renglón por empacador con lo que se ve según tarjeta y buscador. */
   protected readonly empacadores = computed<EmpacadorFila[]>(() => {
     const clave = this.claveActiva();
     const q = this.busqueda().trim().toLowerCase();
     const mapa = new Map<string, EmpacadorFila & { ultimo: number }>();
-    for (const f of this.delAnotador()) {
+    for (const f of this.filas()) {
       if (clave && claveItem(f) !== clave) continue;
       const dni = texto(f['numeroDocumento']);
       const e = mapa.get(dni) ?? { dni, nombre: texto(f['nombreCompleto']), linea: '', puesto: '', recogidas: 0, cajas: 0, kg: 0, corregida: false, ultimo: 0 };
@@ -126,7 +106,7 @@ export class ProduccionDiaComponent implements OnInit {
       // Línea y puesto de la anotación más reciente.
       if (numero(f['id']) >= e.ultimo) {
         e.ultimo = numero(f['id']);
-        e.linea = `Línea ${f['numeroLinea']}`;
+        e.linea = texto(f['lineaNombre']);
         e.puesto = f['puesto'] == null ? '—' : String(f['puesto']);
       }
       mapa.set(dni, e);
@@ -136,7 +116,7 @@ export class ProduccionDiaComponent implements OnInit {
       .sort((a, b) => a.nombre.localeCompare(b.nombre));
   });
 
-  /** Anotaciones del empacador que se está corrigiendo (de todos los anotadores), por vuelta. */
+  /** Anotaciones del empacador que se está corrigiendo por vuelta. */
   protected readonly filasEditando = computed(() => {
     const dni = this.editando();
     if (!dni) return [];
@@ -179,9 +159,5 @@ export class ProduccionDiaComponent implements OnInit {
     } finally {
       await this.loading.hideAfterMinimum();
     }
-  }
-
-  protected elegirAnotador(id: string): void {
-    this.anotador.set(id);
   }
 }

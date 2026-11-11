@@ -5,7 +5,7 @@ import { ConnectivityService } from '../../../../shared/services/connectivity.se
 import { JornadasAnotadorApiService } from '../../../../shared/services/jornadas-anotador-api.service';
 import { portalToBody } from '../../../../shared/utils/portal';
 import { JornadaStore } from '../../jornada.store';
-import { Fila, texto } from '../../jornada.utils';
+import { Fila, claveLinea, destinoEtiqueta, destinoValor, lineaTexto, refLinea, texto } from '../../jornada.utils';
 import { CajasRegistradas, RecoleccionStore } from '../../recoleccion.store';
 
 const MAX_CAJAS = 99999;
@@ -31,6 +31,8 @@ type Panel =
 export class RecoleccionRapidaComponent {
   protected readonly store = inject(JornadaStore);
   protected readonly recoleccion = inject(RecoleccionStore);
+  protected readonly destinoEtiqueta = destinoEtiqueta;
+  protected readonly destinoValor = destinoValor;
   private readonly connectivity = inject(ConnectivityService);
   private readonly jornadasApi = inject(JornadasAnotadorApiService);
 
@@ -169,11 +171,11 @@ export class RecoleccionRapidaComponent {
       }
 
       const empacador = puesto;
-      const idLinea = Number(empacador['idLinea']);
-      const linea = this.store.misLineas().find((l) => Number(l['idLinea']) === idLinea);
+      const claveDeLinea = claveLinea(empacador);
+      const linea = this.store.misLineas().find((l) => claveLinea(l) === claveDeLinea);
       if (!linea) {
-        const otra = this.store.lineas().find((l) => Number(l['idLinea']) === idLinea);
-        const donde = otra ? `en la línea ${texto(otra['numero'])}, que es de otro anotador` : 'en una línea que no es tuya';
+        const otra = this.store.lineas().find((l) => claveLinea(l) === claveDeLinea);
+        const donde = otra ? `en ${lineaTexto(otra)}, que es de otro anotador` : 'en una línea que no es tuya';
         this.panel.set({ tipo: 'error', mensaje: `${texto(empacador['nombreCompleto'])} está ${donde}.` });
         return;
       }
@@ -270,7 +272,7 @@ export class RecoleccionRapidaComponent {
     const tipoEmpaqueId = this.capTipoId();
     try {
       const resp = await this.recoleccion.registrarCajas({
-        idLinea: Number(p.linea['idLinea']),
+        ...refLinea(p.linea),
         puesto: p.puesto,
         formatoId: this.capFormatoId(),
         tipoEmpaqueId,

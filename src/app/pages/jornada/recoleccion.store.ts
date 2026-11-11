@@ -5,13 +5,13 @@ import { CatalogosApiService } from '../../shared/services/catalogos-api.service
 import { ConfirmModalService } from '../../shared/services/confirm-modal.service';
 import { ConnectivityService } from '../../shared/services/connectivity.service';
 import { FeedbackModalService } from '../../shared/services/feedback-modal.service';
-import { JornadasAnotadorApiService } from '../../shared/services/jornadas-anotador-api.service';
+import { JornadasAnotadorApiService, RefLinea } from '../../shared/services/jornadas-anotador-api.service';
 import { LoadingService } from '../../shared/services/loading.service';
 import { MaestrosApiService } from '../../shared/services/maestros-api.service';
 import { SobreSp } from '../../shared/services/catalogos-api.service';
 import { opcionesDe } from '../../shared/utils/opciones-select';
 import { JornadaStore } from './jornada.store';
-import { Fila, esActivo, fechaHora, texto } from './jornada.utils';
+import { Fila, claveLinea, esActivo, fechaHora, texto } from './jornada.utils';
 
 /** Lo que un empacador tiene registrado en la recolección abierta (una sola fila por empacador). */
 export interface CajasRegistradas {
@@ -91,9 +91,11 @@ export class RecoleccionStore {
    * Registra (o corrige) las cajas del empacador de un puesto: una sola fila por empacador en la recolección.
    * La usan el registro manual y la recolección rápida. Después vuelve a leer las recolecciones y, si se guardó, el total de cada empacador.
    */
-  async registrarCajas(datos: { idLinea: number; puesto: number; formatoId: string; tipoEmpaqueId: string; cantidad: number; calibreNombre: string }): Promise<SobreSp<Fila[]>> {
+  async registrarCajas(datos: RefLinea & { puesto: number; formatoId: string; tipoEmpaqueId: string; cantidad: number; calibreNombre: string }): Promise<SobreSp<Fila[]>> {
     const resp = await this.jornadasApi.registrarCajas({
       idLinea: datos.idLinea,
+      idMaquina: datos.idMaquina,
+      curo: datos.curo,
       puesto: datos.puesto,
       formatoId: Number(datos.formatoId),
       tipoEmpaqueId: Number(datos.tipoEmpaqueId),
@@ -150,12 +152,12 @@ export class RecoleccionStore {
 
   /** Formatos activos del cultivo (siempre del servidor, no se guardan en el dispositivo). */
   readonly opcionesFormato = signal<SearchSelectOption[]>([]);
-  /** Formato elegido en cada línea (idLinea -> id del formato). */
-  readonly formatoPorLinea = signal<ReadonlyMap<number, string>>(new Map());
-  /** Tipos de empaque permitidos por la matriz para el formato de cada línea (idLinea -> opciones). */
-  readonly tiposEmpaquePorLinea = signal<ReadonlyMap<number, SearchSelectOption[]>>(new Map());
-  /** Tipo de empaque elegido en cada línea (idLinea -> id). */
-  readonly tipoEmpaquePorLinea = signal<ReadonlyMap<number, string>>(new Map());
+  /** Formato elegido en cada línea o curo (claveLinea -> id del formato). */
+  readonly formatoPorLinea = signal<ReadonlyMap<string, string>>(new Map());
+  /** Tipos de empaque permitidos por la matriz para el formato de cada línea o curo (claveLinea -> opciones). */
+  readonly tiposEmpaquePorLinea = signal<ReadonlyMap<string, SearchSelectOption[]>>(new Map());
+  /** Tipo de empaque elegido en cada línea o curo (claveLinea -> id). */
+  readonly tipoEmpaquePorLinea = signal<ReadonlyMap<string, string>>(new Map());
 
   /** Nombre del calibre de cada tipo de empaque visto (id del tipo -> calibre), para mandarlo al registrar cajas. */
   private readonly calibrePorTipo = new Map<string, string>();
@@ -165,15 +167,15 @@ export class RecoleccionStore {
   }
 
   formatoDe(linea: Fila): string | null {
-    return this.formatoPorLinea().get(Number(linea['idLinea'])) ?? null;
+    return this.formatoPorLinea().get(claveLinea(linea)) ?? null;
   }
 
   tiposEmpaqueDe(linea: Fila): SearchSelectOption[] {
-    return this.tiposEmpaquePorLinea().get(Number(linea['idLinea'])) ?? [];
+    return this.tiposEmpaquePorLinea().get(claveLinea(linea)) ?? [];
   }
 
   tipoEmpaqueDe(linea: Fila): string | null {
-    return this.tipoEmpaquePorLinea().get(Number(linea['idLinea'])) ?? null;
+    return this.tipoEmpaquePorLinea().get(claveLinea(linea)) ?? null;
   }
 
   /** Para quien corrige desde Producción o el historial sin haber entrado a "Recolección de cajas": trae los formatos si todavía no están. */
@@ -189,7 +191,7 @@ export class RecoleccionStore {
   }
 
   async elegirTipoEmpaque(linea: Fila, opcion: SearchSelectOption): Promise<void> {
-    const id = Number(linea['idLinea']);
+    const id = claveLinea(linea);
     const formato = this.formatoPorLinea().get(id);
     if (!formato) return;
     // La "x" del select manda un valor vacío: se quita solo el tipo de empaque y el formato se queda.
@@ -204,13 +206,13 @@ export class RecoleccionStore {
 
   /** Al elegir el formato se piden al servidor los tipos de empaque que la matriz de compatibilidad le asocia. */
   async elegirFormato(linea: Fila, opcion: SearchSelectOption): Promise<void> {
-    const id = Number(linea['idLinea']);
+    const id = claveLinea(linea);
     const formatoAnterior = this.formatoPorLinea().get(id);
     if (formatoAnterior === opcion.value) return;
 
     // La "x" del select manda un valor vacío: la línea queda sin formato ni tipo de empaque.
     if (!opcion.value) {
-      const sinLinea = (mapa: ReadonlyMap<number, any>) => { const n = new Map(mapa); n.delete(id); return n; };
+      const sinLinea = (mapa: ReadonlyMap<string, any>) => { const n = new Map(mapa); n.delete(id); return n; };
       this.formatoPorLinea.update(sinLinea);
       this.tipoEmpaquePorLinea.update(sinLinea);
       this.tiposEmpaquePorLinea.update(sinLinea);
@@ -292,23 +294,23 @@ export class RecoleccionStore {
   }
 
   /** Guarda la elección de la línea. Si el equipo no deja guardar, la pantalla sigue funcionando (solo no se recuerda). */
-  private async guardarSeleccion(idLinea: number, formatoId: string, tipoEmpaqueId: string | null): Promise<void> {
+  private async guardarSeleccion(claveDeLinea: string, formatoId: string, tipoEmpaqueId: string | null): Promise<void> {
     const usuario = this.claveUsuario();
     const idJornada = this.idJornadaActual();
     if (!usuario || !idJornada) return;
     try {
-      await this.seleccionesRepo.save({ clave: claveSeleccion(usuario, idJornada, idLinea), usuario, idJornada, idLinea, formatoId, tipoEmpaqueId });
+      await this.seleccionesRepo.save({ clave: claveSeleccion(usuario, idJornada, claveDeLinea), usuario, idJornada, claveLinea: claveDeLinea, formatoId, tipoEmpaqueId });
     } catch (e) {
       console.warn('[jornada] No se pudo guardar la elección de la línea', e);
     }
   }
 
-  private async borrarSeleccion(idLinea: number): Promise<void> {
+  private async borrarSeleccion(claveDeLinea: string): Promise<void> {
     const usuario = this.claveUsuario();
     const idJornada = this.idJornadaActual();
     if (!usuario || !idJornada) return;
     try {
-      await this.seleccionesRepo.delete(claveSeleccion(usuario, idJornada, idLinea));
+      await this.seleccionesRepo.delete(claveSeleccion(usuario, idJornada, claveDeLinea));
     } catch (e) {
       console.warn('[jornada] No se pudo borrar la elección de la línea', e);
     }
@@ -319,8 +321,8 @@ export class RecoleccionStore {
    * jornada que ya no está abierta. También lo quita de la pantalla.
    */
   private async podarSelecciones(): Promise<void> {
-    const mias = new Set(this.jornadaStore.misLineas().map((l) => Number(l['idLinea'])));
-    const quitar = (mapa: ReadonlyMap<number, any>) => new Map([...mapa].filter(([idLinea]) => mias.has(idLinea)));
+    const mias = new Set(this.jornadaStore.misLineas().map((l) => claveLinea(l)));
+    const quitar = (mapa: ReadonlyMap<string, any>) => new Map([...mapa].filter(([clave]) => mias.has(clave)));
     this.formatoPorLinea.update(quitar);
     this.tipoEmpaquePorLinea.update(quitar);
     this.tiposEmpaquePorLinea.update(quitar);
@@ -330,7 +332,7 @@ export class RecoleccionStore {
     const idJornada = this.jornadaAbierta();
     try {
       const guardadas = await this.seleccionesRepo.porUsuario(usuario);
-      const sobran = guardadas.filter((g) => !idJornada || g.idJornada !== idJornada || !mias.has(g.idLinea)).map((g) => g.clave);
+      const sobran = guardadas.filter((g) => !idJornada || g.idJornada !== idJornada || !mias.has(g.claveLinea)).map((g) => g.clave);
       await this.seleccionesRepo.eliminarVarios(sobran);
     } catch (e) {
       console.warn('[jornada] No se pudo limpiar lo guardado', e);
@@ -354,9 +356,9 @@ export class RecoleccionStore {
       console.warn('[jornada] No se pudo leer lo guardado', e);
       return;
     }
-    const mias = new Set(this.jornadaStore.misLineas().map((l) => Number(l['idLinea'])));
+    const mias = new Set(this.jornadaStore.misLineas().map((l) => claveLinea(l)));
     const formatosValidos = new Set(this.opcionesFormato().map((o) => o.value));
-    const aRestaurar = guardadas.filter((g) => g.idJornada === idJornada && mias.has(g.idLinea));
+    const aRestaurar = guardadas.filter((g) => g.idJornada === idJornada && mias.has(g.claveLinea));
     if (aRestaurar.length === 0) return;
 
     const descartar: string[] = [];
@@ -391,12 +393,12 @@ export class RecoleccionStore {
     for (const g of vigentes) {
       const tipos = tiposPorFormato.get(g.formatoId);
       if (!tipos) continue; // no se pudo consultar: queda vacía, lo guardado se conserva para el próximo intento
-      formatoPorLinea.set(g.idLinea, g.formatoId);
-      tiposPorLinea.set(g.idLinea, tipos);
+      formatoPorLinea.set(g.claveLinea, g.formatoId);
+      tiposPorLinea.set(g.claveLinea, tipos);
       if (g.tipoEmpaqueId && tipos.some((t) => t.value === g.tipoEmpaqueId)) {
-        tipoPorLinea.set(g.idLinea, g.tipoEmpaqueId);
+        tipoPorLinea.set(g.claveLinea, g.tipoEmpaqueId);
       } else {
-        tipoPorLinea.delete(g.idLinea);
+        tipoPorLinea.delete(g.claveLinea);
         // El tipo guardado ya no lo permite la matriz: se queda solo el formato.
         if (g.tipoEmpaqueId) actualizar.push({ ...g, tipoEmpaqueId: null });
       }

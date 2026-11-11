@@ -7,7 +7,7 @@ import { FeedbackModalService } from '../../../../shared/services/feedback-modal
 import { JornadasAnotadorApiService } from '../../../../shared/services/jornadas-anotador-api.service';
 import { LoadingService } from '../../../../shared/services/loading.service';
 import { JornadaStore } from '../../jornada.store';
-import { Fila, ladosDe, lineaTexto, texto } from '../../jornada.utils';
+import { Fila, claveLinea, destinoEtiqueta, destinoValor, ladosDe, lineaTexto, nombreLinea, refLinea, texto } from '../../jornada.utils';
 import { LineaPanelComponent } from '../linea-panel/linea-panel.component';
 import { MenuPuestoModalComponent } from '../menu-puesto-modal/menu-puesto-modal.component';
 import { SinLineasComponent } from '../sin-lineas/sin-lineas.component';
@@ -39,9 +39,13 @@ export class AsignarEmpacadoresComponent {
   /** Empacador que se está moviendo (esperando que se toque el puesto de destino). */
   protected readonly moviendo = signal<{ idPuesto: number; nombre: string } | null>(null);
   /** Puesto sobre el que se está escaneando el QR del empacador (null = escáner cerrado). */
-  protected readonly puestoEscaneo = signal<{ idLinea: number; linea: string; puesto: number; cantidad: number } | null>(null);
+  protected readonly puestoEscaneo = signal<{ linea: Fila; puesto: number; cantidad: number } | null>(null);
   /** Lo que muestra el escáner tras leer el código (buscando / trabajador / error). */
   protected readonly resultadoQr = signal<ResultadoQr | null>(null);
+
+  protected readonly claveLinea = claveLinea;
+  protected readonly etiquetaDestino = destinoEtiqueta;
+  protected readonly valorDestino = destinoValor;
 
   private readonly arrastre = new ArrastrePuestos({
     bloqueado: () => !!this.moviendo(),
@@ -58,13 +62,14 @@ export class AsignarEmpacadoresComponent {
   }
 
   protected esDestino(linea: Fila, puesto: number): boolean {
-    return this.arrastre.destino() === this.store.clave(Number(linea['idLinea']), puesto);
+    return this.arrastre.destino() === this.store.clave(claveLinea(linea), puesto);
   }
 
   private async soltarEn(ocupante: Fila, destino: string): Promise<void> {
-    const [idLinea, puesto] = destino.split('-').map(Number);
-    if (destino === this.store.clave(Number(ocupante['idLinea']), Number(ocupante['puesto']))) return; // mismo puesto
-    const linea = this.store.misLineas().find((l) => Number(l['idLinea']) === idLinea);
+    const [claveDeLinea, puestoTexto] = destino.split('|');
+    const puesto = Number(puestoTexto);
+    if (destino === this.store.clave(claveLinea(ocupante), Number(ocupante['puesto']))) return; // mismo puesto
+    const linea = this.store.misLineas().find((l) => claveLinea(l) === claveDeLinea);
     if (!linea) return;
     await this.moverA(linea, puesto, { idPuesto: Number(ocupante['idPuesto']), nombre: texto(ocupante['nombreCompleto']) }, this.store.asignados().get(destino));
   }
@@ -121,7 +126,7 @@ export class AsignarEmpacadoresComponent {
       });
       if (!ok) return;
     }
-    await this.ejecutarPuesto('Moviendo empacador...', 'No se pudo mover al empacador.', () => this.jornadasApi.moverPuesto(mov.idPuesto, Number(linea['idLinea']), puesto));
+    await this.ejecutarPuesto('Moviendo empacador...', 'No se pudo mover al empacador.', () => this.jornadasApi.moverPuesto(mov.idPuesto, refLinea(linea), puesto));
     this.moviendo.set(null);
   }
 
@@ -138,7 +143,7 @@ export class AsignarEmpacadoresComponent {
       tone: 'warning',
     });
     if (!ok) return;
-    await this.ejecutarPuesto('Vaciando línea...', 'No se pudo vaciar la línea.', () => this.jornadasApi.vaciarLinea(Number(linea['idLinea'])));
+    await this.ejecutarPuesto('Vaciando línea...', 'No se pudo vaciar la línea.', () => this.jornadasApi.vaciarLinea(refLinea(linea)));
   }
 
   protected async quitarEmpacador(): Promise<void> {
@@ -179,7 +184,7 @@ export class AsignarEmpacadoresComponent {
   /** Abre el escáner en un puesto. Después de cada empacador asignado pasa solo al siguiente puesto libre. */
   private abrirEscaner(linea: Fila, puesto: number): void {
     this.resultadoQr.set(null);
-    this.puestoEscaneo.set({ idLinea: Number(linea['idLinea']), linea: texto(linea['numero']), puesto, cantidad: this.store.puestosDe(linea).length });
+    this.puestoEscaneo.set({ linea, puesto, cantidad: this.store.puestosDe(linea).length });
   }
 
   protected cerrarEscaner(): void {
@@ -201,8 +206,8 @@ export class AsignarEmpacadoresComponent {
   }
 
   /** Primer puesto libre de la línea después de `desde` (o, si no hay, el primero libre desde el inicio). */
-  private siguienteLibre(idLinea: number, desde: number, cantidad: number): number | null {
-    const ocupado = (p: number) => this.store.asignados().has(this.store.clave(idLinea, p));
+  private siguienteLibre(claveDeLinea: string, desde: number, cantidad: number): number | null {
+    const ocupado = (p: number) => this.store.asignados().has(this.store.clave(claveDeLinea, p));
     for (let p = desde + 1; p <= cantidad; p++) if (!ocupado(p)) return p;
     for (let p = 1; p < desde; p++) if (!ocupado(p)) return p;
     return null;
@@ -230,7 +235,7 @@ export class AsignarEmpacadoresComponent {
 
       this.resultadoQr.set({ ...base, estado: 'Asignando al puesto…' });
       // Lo guarda el servidor: si el puesto tenía a otro lo reemplaza; si el empacador ya está en otro puesto avisa (para cambiarlo se usa Mover).
-      const guardado = await this.jornadasApi.asignarPuesto(destino.idLinea, destino.puesto, {
+      const guardado = await this.jornadasApi.asignarPuesto(refLinea(destino.linea), destino.puesto, {
         numeroDocumento: texto(trabajador['numeroDocumento']),
         nombreCompleto: texto(trabajador['nombreCompleto']),
         apellidoPaterno: texto(trabajador['apellidoPaterno']),
@@ -242,12 +247,12 @@ export class AsignarEmpacadoresComponent {
       }
       await this.store.cargarPuestos();
 
-      const proximo = this.siguienteLibre(destino.idLinea, destino.puesto, destino.cantidad);
+      const proximo = this.siguienteLibre(claveLinea(destino.linea), destino.puesto, destino.cantidad);
       this.resultadoQr.set({
         ...base,
         buscando: false,
         trabajador,
-        asignado: `Línea ${destino.linea} · P${destino.puesto}`,
+        asignado: `${nombreLinea(destino.linea)} · P${destino.puesto}`,
         siguiente: proximo ? '' : 'Línea completa',
         proximo,
       });

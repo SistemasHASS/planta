@@ -424,6 +424,29 @@ export class ReportesApiService {
     return this.post('reporte-diario-propio-externo', peticion);
   }
 
+  /**
+   * Procesos de una fecha para sacar su planilla de empaque (solo con Flujo_Empaque activo). codigoAcopio vacío = todas las plantas; admite varias separadas por coma.
+   * data = [{ idProceso, codigoAcopio, acopioNombre, fechaProceso, turno, estado, totalCajas, totalEmpacadores, totalAnotadores, supervisores }].
+   */
+  procesosPlanillaEmpaque(cuerpo: { fecha: string; codigoAcopio: string }): Promise<SobreSp<Fila[]>> {
+    return this.post('planilla-empaque/procesos', cuerpo);
+  }
+
+  /** Anotadores de un proceso (los que registraron cajas o tomaron una línea). data = [{ idUsuarioAnotador, nombre, dni }]. */
+  anotadoresPlanillaEmpaque(cuerpo: { codigoAcopio: string; idProceso: string }): Promise<SobreSp<Fila[]>> {
+    return this.post('planilla-empaque/anotadores', cuerpo);
+  }
+
+  /** Excel (que arma la API con el formato de la empresa) de la planilla de producción del proceso. idUsuarioAnotador vacío = todos los anotadores. */
+  exportarPlanillaProduccion(cuerpo: { codigoAcopio: string; idProceso: string; idUsuarioAnotador: string }): Promise<Blob> {
+    return firstValueFrom(this.http.post(`${this.baseUrl}/planilla-empaque/produccion`, cuerpo, { responseType: 'blob' }));
+  }
+
+  /** Excel (que arma la API con el formato de la empresa) del tareo / asistencia del proceso. idUsuarioAnotador vacío = todos los anotadores. */
+  exportarPlanillaTareo(cuerpo: { codigoAcopio: string; idProceso: string; idUsuarioAnotador: string }): Promise<Blob> {
+    return firstValueFrom(this.http.post(`${this.baseUrl}/planilla-empaque/tareo`, cuerpo, { responseType: 'blob' }));
+  }
+
   private post<T>(path: string, body: unknown): Promise<SobreSp<T>> {
     return firstValueFrom(this.http.post<SobreSp<T>>(`${this.baseUrl}/${path}`, body));
   }

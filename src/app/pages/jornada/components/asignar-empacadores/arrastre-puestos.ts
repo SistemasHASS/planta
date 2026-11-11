@@ -4,7 +4,7 @@ import { Fila } from '../../jornada.utils';
 export interface OpcionesArrastre {
   /** No se puede empezar a arrastrar (p. ej. ya hay un movimiento por toque en curso). */
   bloqueado: () => boolean;
-  /** Se soltó un empacador sobre un puesto ("idLinea-puesto"). */
+  /** Se soltó un empacador sobre un puesto ("claveLinea|puesto"). */
   alSoltar: (ocupante: Fila, destino: string) => void;
 }
 
@@ -15,7 +15,7 @@ export interface OpcionesArrastre {
 export class ArrastrePuestos {
   /** idPuesto del empacador que se está arrastrando (su puesto se ve atenuado). */
   readonly origen = signal<number | null>(null);
-  /** Puesto ("idLinea-puesto") sobre el que está el puntero mientras se arrastra (se pinta con borde azul). */
+  /** Puesto ("claveLinea|puesto") sobre el que está el puntero mientras se arrastra (se pinta con borde azul). */
   readonly destino = signal<string | null>(null);
 
   private arrastre: {
@@ -156,7 +156,7 @@ export class ArrastrePuestos {
     const a = this.arrastre;
     if (!a) return;
     const el = document.elementFromPoint(a.x, a.y)?.closest<HTMLElement>('[data-puesto]');
-    const clave = el ? `${el.dataset['linea']}-${el.dataset['puesto']}` : null;
+    const clave = el ? `${el.dataset['linea']}|${el.dataset['puesto']}` : null;
     if (clave !== this.destino()) this.destino.set(clave);
   }
 

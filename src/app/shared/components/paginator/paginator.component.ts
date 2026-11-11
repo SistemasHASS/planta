@@ -11,7 +11,7 @@ import { ChangeDetectionStrategy, Component, computed, input, model } from '@ang
           <label class="pager-size">
             <span>Filas</span>
             <select [value]="pageSize()" (change)="cambiarTamano($any($event.target).value)">
-              @for (opt of opciones; track opt) { <option [value]="opt" [selected]="opt === pageSize()">{{ opt }}</option> }
+              @for (opt of opciones(); track opt) { <option [value]="opt" [selected]="opt === pageSize()">{{ opt }}</option> }
             </select>
           </label>
           <button type="button" class="pager-btn" aria-label="Primera pagina" [disabled]="actual() <= 1" (click)="ir(1)">«</button>
@@ -38,7 +38,9 @@ export class PaginatorComponent {
   readonly total = input.required<number>();
   readonly page = model(1);
   readonly pageSize = model(10);
-  readonly opciones = [10, 25, 50, 100];
+  private readonly base = [10, 25, 50, 100];
+  /** Opciones base; si el tamano actual no esta entre ellas (p. ej. 15 o 20), se agrega para que el select muestre lo real. */
+  readonly opciones = computed(() => (this.base.includes(this.pageSize()) ? this.base : [...this.base, this.pageSize()].sort((a, b) => a - b)));
 
   readonly ultima = computed(() => Math.max(1, Math.ceil(this.total() / this.pageSize())));
   readonly actual = computed(() => Math.min(Math.max(1, this.page()), this.ultima()));

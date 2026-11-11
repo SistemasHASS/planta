@@ -9,6 +9,7 @@ import { RecoleccionStore } from '../../recoleccion.store';
 import { Fila, conSigno, correccion, esActivo, etiquetaCorreccion, productoAntes, texto } from '../../jornada.utils';
 
 const MAXIMO = 99999;
+const MAXIMO_OBSERVACION = 500;
 
 /** Formato y tipo de empaque que se están eligiendo para corregir una anotación (con los tipos que la matriz permite para ese formato). */
 interface ProductoEnEdicion {
@@ -48,6 +49,9 @@ export class CorregirProduccionModalComponent {
   protected readonly productos = signal<Record<number, ProductoEnEdicion>>({});
   /** Anotación que espera la confirmación del anotador. */
   protected readonly pendiente = signal<Fila | null>(null);
+  /** Motivo de la corrección que el anotador escribe en la confirmación (obligatorio). */
+  protected readonly observacion = signal('');
+  protected readonly maximoObservacion = MAXIMO_OBSERVACION;
 
   protected readonly conSigno = conSigno;
   protected readonly etiquetaCorreccion = etiquetaCorreccion;
@@ -59,7 +63,7 @@ export class CorregirProduccionModalComponent {
   );
   protected readonly ubicacion = computed(() => {
     const ultima = this.filas()[this.filas().length - 1];
-    return ultima ? `Línea ${ultima['numeroLinea']} · Puesto ${ultima['puesto'] ?? '—'}` : '';
+    return ultima ? `${texto(ultima['lineaNombre'])} · Puesto ${ultima['puesto'] ?? '—'}` : '';
   });
   protected readonly totalCajas = computed(() => this.filas().reduce((suma, f) => suma + (Number(f['cantidadCajas']) || 0), 0));
 
@@ -232,11 +236,18 @@ export class CorregirProduccionModalComponent {
   }
 
   protected pedirConfirmacion(f: Fila): void {
-    if (this.puedeGuardar(f)) this.pendiente.set(f);
+    if (!this.puedeGuardar(f)) return;
+    this.observacion.set('');
+    this.pendiente.set(f);
   }
 
   protected cancelarConfirmacion(): void {
     this.pendiente.set(null);
+    this.observacion.set('');
+  }
+
+  protected escribirObservacion(evento: Event): void {
+    this.observacion.set((evento.target as HTMLTextAreaElement).value);
   }
 
   protected async confirmar(): Promise<void> {
@@ -247,6 +258,7 @@ export class CorregirProduccionModalComponent {
       this.pendiente.set(null);
       return;
     }
+    const observaciones = this.observacion().trim();
     this.pendiente.set(null);
     if (!this.connectivity.online()) {
       this.feedback.error('No hay conexión a internet');
@@ -256,7 +268,7 @@ export class CorregirProduccionModalComponent {
     const producto = nuevo ? { ...nuevo, calibreNombre: this.recoleccion.calibreDe(String(nuevo.tipoEmpaqueId)) } : undefined;
     this.loading.show('Guardando corrección...');
     try {
-      const r = await this.api.corregirCajas(this.id(f), n, producto);
+      const r = await this.api.corregirCajas(this.id(f), n, observaciones, producto);
       if (r.error) throw new Error(r.mensaje || 'No se pudo guardar la corrección.');
       this.borradores.update((b) => {
         const { [this.id(f)]: _quitado, ...resto } = b;

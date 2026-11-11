@@ -62,6 +62,8 @@ export class QrScannerModalComponent {
   readonly subtitulo = input('Escanea su código QR');
   /** Destino que se resalta en grande (ej. línea "1" y puesto 2). */
   readonly linea = input('');
+  /** Rótulo sobre el destino: "Línea" o, en el curo de una máquina, "Kato 1 · Curo". */
+  readonly lineaEtiqueta = input('Línea');
   readonly puesto = input<number | null>(null);
 
   /** Resultado de la búsqueda del código leído (null = se está escaneando). */

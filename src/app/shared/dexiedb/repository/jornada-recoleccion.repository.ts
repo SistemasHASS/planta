@@ -4,16 +4,17 @@ import { DexieService } from '../dexie-db.service';
 
 /** Elección de formato y tipo de empaque de una línea en la recolección. */
 export interface SeleccionLineaRecoleccion {
-  /** usuario|idJornada|idLinea */
+  /** usuario|idJornada|claveLinea */
   clave: string;
   usuario: string;
   idJornada: number;
-  idLinea: number;
+  /** Llave de la línea o curo: "L12" (línea manual) o "M3-2" (máquina 3, curo 2). */
+  claveLinea: string;
   formatoId: string;
   tipoEmpaqueId: string | null;
 }
 
-export const claveSeleccion = (usuario: string, idJornada: number, idLinea: number): string => `${usuario}|${idJornada}|${idLinea}`;
+export const claveSeleccion = (usuario: string, idJornada: number, claveLinea: string): string => `${usuario}|${idJornada}|${claveLinea}`;
 
 @Injectable({ providedIn: 'root' })
 export class JornadaRecoleccionRepository extends BaseRepository<SeleccionLineaRecoleccion, string> {

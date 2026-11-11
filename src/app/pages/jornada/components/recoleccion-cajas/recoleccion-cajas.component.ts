@@ -6,7 +6,7 @@ import { FeedbackModalService } from '../../../../shared/services/feedback-modal
 import { LoadingService } from '../../../../shared/services/loading.service';
 import { JornadaStore } from '../../jornada.store';
 import { RecoleccionStore } from '../../recoleccion.store';
-import { Fila, fechaHora, ladosDe } from '../../jornada.utils';
+import { Fila, claveLinea, fechaHora, ladosDe } from '../../jornada.utils';
 import { LucideHistory, LucideZap } from '@lucide/angular';
 import { HistorialRecoleccionModalComponent } from '../historial-recoleccion-modal/historial-recoleccion-modal.component';
 import { LineaPanelComponent } from '../linea-panel/linea-panel.component';
@@ -35,6 +35,7 @@ export class RecoleccionCajasComponent {
   protected readonly fechaHora = fechaHora;
   /** Lado A y lado B de un curo de máquina (null si es una línea manual). */
   protected readonly ladosDe = ladosDe;
+  protected readonly claveLinea = claveLinea;
 
   /** Botones de la barra de recolección: misma altura y forma; solo cambia el color (suaves, también en modo oscuro). */
   protected readonly botonBase =

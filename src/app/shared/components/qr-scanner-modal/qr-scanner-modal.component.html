@@ -20,7 +20,7 @@
     @if (linea() && puesto()) {
       <div class="flex shrink-0 items-center justify-center gap-6 bg-gradient-to-r from-emerald-600 to-emerald-500 px-4 py-4 text-white shadow-inner sm:gap-4 sm:py-3">
         <div class="text-center leading-none">
-          <div class="text-sm font-extrabold uppercase tracking-[0.2em] opacity-90 sm:text-xs">Línea</div>
+          <div class="text-sm font-extrabold uppercase tracking-[0.2em] opacity-90 sm:text-xs">{{ lineaEtiqueta() }}</div>
           <div class="mt-1 text-7xl font-black sm:text-5xl">{{ linea() }}</div>
         </div>
         <span class="h-16 w-px bg-white/50 sm:h-12"></span>
