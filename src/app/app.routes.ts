@@ -92,14 +92,14 @@ export const routes: Routes = [
       },
       {
         path: "admin/historial_kilos",
-        canActivate: [roleGuard(ROLES.admin)],
+        canActivate: [roleGuard(ROLES.admin, ROLES.monitor)],
         data: { titulo: "Historial de Kilos (Administrador)" },
         loadComponent: () =>
           import("./pages/historial-kilos-admin/historial-kilos-admin.component").then((m) => m.HistorialKilosAdminComponent),
       },
       {
         path: "admin/control_interno",
-        canActivate: [roleGuard(ROLES.admin)],
+        canActivate: [roleGuard(ROLES.admin, ROLES.monitor)],
         data: { titulo: "Excel de Control Interno" },
         loadComponent: () =>
           import("./pages/control-interno/control-interno.component").then((m) => m.ControlInternoComponent),
@@ -334,8 +334,8 @@ export const routes: Routes = [
       },
       {
         path: "reporte-planilla-empaque",
-        canActivate: [roleGuard(ROLES.admin, ROLES.monitor)],
-        data: { titulo: "Planilla de Empaque" },
+        canActivate: [roleGuard(ROLES.admin, ROLES.monitor, ROLES.anotador)],
+        data: { titulo: "Tareo y Cajas Empaque" },
         loadComponent: () =>
           import("./pages/reportes/reporte-planilla-empaque/reporte-planilla-empaque.component").then((m) => m.ReportePlanillaEmpaqueComponent),
       },

@@ -5,8 +5,8 @@
     </span>
     <div class="min-w-0">
       <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Reportes Empaque</span>
-      <h1 class="text-xl font-extrabold leading-tight text-app-heading sm:text-2xl">Planilla de Empaque</h1>
-      <p class="text-sm text-app-muted">Busca los procesos de una fecha y genera el Excel de Producción (cajas por recolección) o el de Tareo con el formato de la empresa.</p>
+      <h1 class="text-xl font-extrabold leading-tight text-app-heading sm:text-2xl">Tareo y Cajas Empaque</h1>
+      <p class="text-sm text-app-muted">Busca los procesos de un rango de fechas y genera el Excel de Producción (cajas por recolección) o el de Tareo con el formato de la empresa.</p>
     </div>
   </header>
 
@@ -27,12 +27,18 @@
     <div class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm">
       <div class="flex flex-wrap items-end gap-3">
         <label class="block max-sm:w-full">
-          <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text max-sm:mb-[7px] max-sm:text-[11px] max-sm:font-extrabold max-sm:uppercase">Fecha del proceso</span>
-          <input type="date" class="input input-bordered h-[42px] w-44 text-[16px] sm:text-[14px] max-sm:h-[38px] max-sm:w-full" [ngModel]="fecha()" (ngModelChange)="fecha.set($event)" />
+          <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text max-sm:mb-[7px] max-sm:text-[11px] max-sm:font-extrabold max-sm:uppercase">Desde (fecha del proceso)</span>
+          <input type="date" class="input input-bordered h-[42px] w-44 text-[16px] sm:text-[14px] max-sm:h-[38px] max-sm:w-full" [ngModel]="desde()" (ngModelChange)="desde.set($event)" />
         </label>
+        <label class="block max-sm:w-full">
+          <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text max-sm:mb-[7px] max-sm:text-[11px] max-sm:font-extrabold max-sm:uppercase">Hasta</span>
+          <input type="date" class="input input-bordered h-[42px] w-44 text-[16px] sm:text-[14px] max-sm:h-[38px] max-sm:w-full" [ngModel]="hasta()" (ngModelChange)="hasta.set($event)" />
+        </label>
+        @if (!esAnotador()) {
         <div class="w-72 max-w-full max-sm:w-full">
           <app-search-multi-select label="Planta de empaque" placeholder="Todas las plantas" [showSelectAll]="true" [options]="plantasOpciones()" [values]="plantasElegidas()" (valuesChange)="plantasElegidas.set($event)" />
         </div>
+        }
         <button type="button" class="btn btn-primary h-[42px] min-h-0 gap-2 max-sm:h-[38px]" (click)="buscar()"><svg lucideSearch class="size-4"></svg> Buscar</button>
       </div>
     </div>
@@ -103,7 +109,7 @@
     } @else {
       <div class="grid place-items-center gap-2 rounded-2xl border border-dashed border-app-border2 bg-app-surface p-10 text-center text-app-muted">
         <svg lucideInbox class="size-10 opacity-40"></svg>
-        <p>{{ consultado() ? 'No hay procesos en esa fecha' : 'Elige la fecha y la planta, y presiona Buscar' }}</p>
+        <p>{{ consultado() ? 'No hay procesos en ese rango de fechas' : 'Elige el rango de fechas y la planta, y presiona Buscar' }}</p>
       </div>
     }
   }

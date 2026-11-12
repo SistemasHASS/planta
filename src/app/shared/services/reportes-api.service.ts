@@ -428,7 +428,7 @@ export class ReportesApiService {
    * Procesos de una fecha para sacar su planilla de empaque (solo con Flujo_Empaque activo). codigoAcopio vacío = todas las plantas; admite varias separadas por coma.
    * data = [{ idProceso, codigoAcopio, acopioNombre, fechaProceso, turno, estado, totalCajas, totalEmpacadores, totalAnotadores, supervisores }].
    */
-  procesosPlanillaEmpaque(cuerpo: { fecha: string; codigoAcopio: string }): Promise<SobreSp<Fila[]>> {
+  procesosPlanillaEmpaque(cuerpo: { fechaDesde: string; fechaHasta: string; codigoAcopio: string }): Promise<SobreSp<Fila[]>> {
     return this.post('planilla-empaque/procesos', cuerpo);
   }
 

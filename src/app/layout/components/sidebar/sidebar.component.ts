@@ -84,6 +84,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: 'Panel de empaque', path: '/empacadores/jornada', icon: 'calendar', roles: [ROLES.anotador] },
       { label: 'Historial de kilos', path: '/historial-kilos', icon: 'chart', roles: [ROLES.anotador] },
       { label: 'Movimientos de stock', path: '/movimientos-stock', icon: 'arrow-left-right', roles: [ROLES.anotador] },
+      { label: 'Tareo y Cajas Empaque', path: '/reporte-planilla-empaque', icon: 'package', roles: [ROLES.anotador], requiresInternet: true },
       { label: 'Procesos', path: '/procesos', icon: 'calendar', roles: [ROLES.logistica, ROLES.admin] },
       { label: 'Palets', path: '/palets', icon: 'package', roles: [ROLES.logistica, ROLES.admin] },
       { label: 'Guías', path: '/guias', icon: 'truck', roles: [ROLES.logistica, ROLES.admin, ROLES.monitor] },
@@ -167,7 +168,7 @@ const NAV_SECTIONS: NavSection[] = [
         children: [
           { label: 'Historial de Kilos', path: '/admin/historial_kilos', icon: 'dot', requiresInternet: true },
           { label: 'Excel Control Interno', path: '/admin/control_interno', icon: 'dot', requiresInternet: true },
-          { label: 'Planilla de Empaque', path: '/reporte-planilla-empaque', icon: 'dot', requiresInternet: true },
+          { label: 'Tareo y Cajas Empaque', path: '/reporte-planilla-empaque', icon: 'dot', requiresInternet: true },
         ],
       },
       {

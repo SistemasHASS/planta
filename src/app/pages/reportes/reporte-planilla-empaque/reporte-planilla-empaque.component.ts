@@ -6,6 +6,7 @@ import { SearchMultiSelectComponent } from '../../../shared/components/search-mu
 import { SearchSelectOption } from '../../../shared/components/search-select/search-select.component';
 import { CatalogosRepository } from '../../../shared/dexiedb/repository/catalogos.repository';
 import { Configuracion } from '../../../shared/interfaces/administracion.interface';
+import { ROLES } from '../../../shared/guards/role.guard';
 import { AuthService } from '../../../shared/services/auth.service';
 import { CatalogosApiService } from '../../../shared/services/catalogos-api.service';
 import { ConnectivityService } from '../../../shared/services/connectivity.service';
@@ -28,7 +29,7 @@ interface Planta {
   nombre: string;
 }
 
-/** Un proceso de la fecha (idProceso + planta). */
+/** Un proceso del rango de fechas (idProceso + planta). */
 interface ProcesoPlanilla {
   clave: string;
   idProceso: string;
@@ -70,7 +71,10 @@ export class ReportePlanillaEmpaqueComponent implements OnInit {
   private readonly feedback = inject(FeedbackModalService);
 
   readonly online = computed(() => this.connectivity.online());
-  readonly fecha = signal(nowPeruDate());
+  /** El anotador ve los procesos de su acopio, abiertos y cerrados; administrador y monitor, solo los cerrados de las plantas que elijan. */
+  readonly esAnotador = signal(false);
+  readonly desde = signal(nowPeruDate());
+  readonly hasta = signal(nowPeruDate());
   /** Códigos de las plantas elegidas (vacío = todas las plantas). */
   readonly plantasElegidas = signal<string[]>([]);
   readonly plantas = signal<Planta[]>([]);
@@ -97,6 +101,10 @@ export class ReportePlanillaEmpaqueComponent implements OnInit {
   private async cargarPlantas(): Promise<void> {
     try {
       const session = await this.auth.getSession();
+      if (texto(session?.user?.idRol).toUpperCase() === ROLES.anotador) {
+        this.esAnotador.set(true);
+        return;
+      }
       const nro = texto(session?.user?.documentoIdentidad);
       const cfg: Configuracion | null = nro ? ((await this.catalogos.configuracionRepo.getByField('nrodocumento', nro)) ?? null) : null;
       const idProyecto = texto(cfg?.idProyecto);
@@ -116,8 +124,12 @@ export class ReportePlanillaEmpaqueComponent implements OnInit {
   }
 
   async buscar(): Promise<void> {
-    if (!this.fecha()) {
-      this.feedback.warning('Selecciona una fecha.', 'Planilla de empaque');
+    if (!this.desde() || !this.hasta()) {
+      this.feedback.warning('Indica la fecha de inicio y la de fin.', 'Tareo y Cajas Empaque');
+      return;
+    }
+    if (this.desde() > this.hasta()) {
+      this.feedback.warning('La fecha de inicio no puede ser posterior a la de fin.', 'Tareo y Cajas Empaque');
       return;
     }
     if (!this.online()) {
@@ -131,7 +143,7 @@ export class ReportePlanillaEmpaqueComponent implements OnInit {
 
     this.loading.show('Buscando procesos...');
     try {
-      const sobre = await this.api.procesosPlanillaEmpaque({ fecha: this.fecha(), codigoAcopio: todas ? '' : elegidas.join(',') });
+      const sobre = await this.api.procesosPlanillaEmpaque({ fechaDesde: this.desde(), fechaHasta: this.hasta(), codigoAcopio: todas ? '' : elegidas.join(',') });
       this.procesoElegido.set(null);
       this.anotadores.set([]);
       this.anotadoresElegidos.set([]);
@@ -180,7 +192,7 @@ export class ReportePlanillaEmpaqueComponent implements OnInit {
       // Si mientras tanto se eligió otro proceso, esta respuesta ya no sirve.
       if (this.procesoElegido()?.clave !== proceso.clave) return;
       if (sobre?.error) {
-        this.feedback.warning(texto(sobre.mensaje) || 'No se pudieron consultar los anotadores.', 'Planilla de empaque');
+        this.feedback.warning(texto(sobre.mensaje) || 'No se pudieron consultar los anotadores.', 'Tareo y Cajas Empaque');
         return;
       }
       const filas = Array.isArray(sobre?.data) ? sobre.data : [];
@@ -212,7 +224,7 @@ export class ReportePlanillaEmpaqueComponent implements OnInit {
   async generar(tipo: TipoPlanilla): Promise<void> {
     const proceso = this.procesoElegido();
     if (!proceso) {
-      this.feedback.warning('Elige un proceso.', 'Planilla de empaque');
+      this.feedback.warning('Elige un proceso.', 'Tareo y Cajas Empaque');
       return;
     }
     if (!this.online()) {
@@ -243,7 +255,7 @@ export class ReportePlanillaEmpaqueComponent implements OnInit {
       await this.loading.hideAfterMinimum();
       const mensaje = await this.mensajeDeError(error, 'Error al generar el Excel.');
       if (/flujo de empaque/i.test(mensaje)) this.sinFlujo.set(true);
-      else this.feedback.warning(mensaje, 'Planilla de empaque');
+      else this.feedback.warning(mensaje, 'Tareo y Cajas Empaque');
     } finally {
       this.generando.set(null);
     }
