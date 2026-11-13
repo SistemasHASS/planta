@@ -447,6 +447,22 @@ export class ReportesApiService {
     return firstValueFrom(this.http.post(`${this.baseUrl}/planilla-empaque/tareo`, cuerpo, { responseType: 'blob' }));
   }
 
+  /**
+   * Histórico de empacadores: los que fueron asignados a un puesto en un rango de fechas de proceso. codigoAcopio vacío = todas las plantas (el anotador siempre recibe la suya).
+   * data = [{ numeroDocumento, nombreCompleto, totalAsignaciones, totalJornadas, totalCajas, ultimaAsignacion, ultimoAcopio }].
+   */
+  historicoEmpacadores(cuerpo: { fechaDesde: string; fechaHasta: string; codigoAcopio: string }): Promise<SobreSp<Fila[]>> {
+    return this.post('historico-empacador/listar', cuerpo);
+  }
+
+  /**
+   * Asignaciones de un empacador, de la más reciente a la más antigua.
+   * data = [{ id, idJornada, estadoJornada, idProceso, fechaProceso, turno, codigoAcopio, acopioNombre, esMaquina, maquina, numeroLinea, curo, puesto, anotador, estado, fechaAsignado, fechaLiberado, cajas }].
+   */
+  historicoEmpacadorDetalle(cuerpo: { numeroDocumento: string; fechaDesde: string; fechaHasta: string; codigoAcopio: string }): Promise<SobreSp<Fila[]>> {
+    return this.post('historico-empacador/detalle', cuerpo);
+  }
+
   private post<T>(path: string, body: unknown): Promise<SobreSp<T>> {
     return firstValueFrom(this.http.post<SobreSp<T>>(`${this.baseUrl}/${path}`, body));
   }

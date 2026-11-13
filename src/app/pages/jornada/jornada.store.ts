@@ -18,7 +18,8 @@ type GanchoLineas = (conJornada: boolean) => Promise<void>;
  * Estado y acciones de la jornada del acopio (jornada, líneas, puestos). Se provee en `JornadaComponent`: vive mientras dure la página
  * y lo comparten todos sus componentes hijos.
  *
- * La jornada es del ACOPIO: una sola abierta por acopio, la abre cualquier anotador y trabajan varios dentro de ella (cada uno toma sus líneas).
+ * La jornada es del ACOPIO y de un PROCESO: un proceso tiene una sola jornada, la abre cualquier anotador y trabajan varios dentro de ella (cada uno toma sus líneas).
+ * El acopio puede tener varias jornadas abiertas a la vez (p. ej. la de ayer y la de hoy): el anotador elige en cuál trabaja (`jornada`) y esa elección viaja en cada petición.
  * El acopio sale del token (la API solo devuelve los procesos del acopio asignado); la campaña, de los Parametros guardados.
  */
 @Injectable()
@@ -35,7 +36,14 @@ export class JornadaStore {
   readonly usuario = signal<Usuario | null>(null);
   readonly cargado = signal(false);
 
+  /** Jornada en la que se está trabajando (la elegida entre las abiertas del acopio). */
   readonly jornada = signal<Fila | null>(null);
+  /** Todas las jornadas abiertas del acopio (cada una de un proceso distinto). */
+  readonly jornadasAbiertas = signal<Fila[]>([]);
+  /** Procesos que ya tienen jornada (abierta o cerrada): no se les puede abrir otra. */
+  private readonly procesosConJornada = signal<ReadonlySet<string>>(new Set());
+  /** El anotador está viendo la lista de jornadas (no entra solo aunque haya una sola abierta). */
+  private enLista = false;
   readonly procesos = signal<Fila[]>([]);
   readonly procesoId = signal<string | null>(null);
   readonly lineas = signal<Fila[]>([]);
@@ -112,6 +120,57 @@ export class JornadaStore {
 
   async iniciar(): Promise<void> {
     this.usuario.set((await this.auth.getSession())?.user ?? null);
+    this.jornadasApi.elegirJornada(null);
+    await this.cargar();
+  }
+
+  // ---- Jornada elegida (se recuerda al recargar la página) ----
+
+  private leerElegida(): number {
+    try {
+      return Number(sessionStorage.getItem('planta.jornadaElegida')) || 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  private guardarElegida(id: number): void {
+    try {
+      if (id > 0) sessionStorage.setItem('planta.jornadaElegida', String(id));
+      else sessionStorage.removeItem('planta.jornadaElegida');
+    } catch {
+      /* sin almacenamiento: solo se pierde recordar la jornada */
+    }
+  }
+
+  private elegir(j: Fila | null): void {
+    const id = j ? Number(j['id']) : 0;
+    this.jornada.set(j);
+    this.jornadasApi.elegirJornada(id);
+    this.guardarElegida(id);
+  }
+
+  /** Entra a trabajar en una de las jornadas abiertas. */
+  async entrar(j: Fila): Promise<void> {
+    if (!this.connectivity.online()) {
+      this.feedback.error('No hay conexión a internet');
+      return;
+    }
+    this.enLista = false;
+    this.elegir(j);
+    this.loading.show('Cargando jornada...');
+    try {
+      await this.cargarLineas();
+      await this.loading.hideAfterMinimum();
+    } catch (e) {
+      this.loading.hide();
+      this.feedback.error(e instanceof Error && e.message ? e.message : 'No se pudo cargar la jornada.');
+    }
+  }
+
+  /** Sale de la jornada actual y vuelve a la lista de jornadas abiertas (sin cerrarla). */
+  async volverALista(): Promise<void> {
+    this.enLista = true;
     await this.cargar();
   }
 
@@ -124,11 +183,23 @@ export class JornadaStore {
 
     this.loading.show('Cargando jornada...');
     try {
-      const abierta = await this.jornadasApi.listar(true);
-      if (abierta.error) throw new Error(abierta.mensaje || 'No se pudo consultar la jornada.');
-      this.jornada.set(abierta.data?.[0] ?? null);
+      // Todas las jornadas del acopio: las abiertas se muestran y, de todas, se saca qué procesos ya tienen jornada.
+      const r = await this.jornadasApi.listar(false);
+      if (r.error) throw new Error(r.mensaje || 'No se pudo consultar la jornada.');
+      const todas = r.data ?? [];
+      const abiertas = todas.filter((j) => texto(j['estado']).toUpperCase() === 'ABIERTA');
+      this.jornadasAbiertas.set(abiertas);
+      this.procesosConJornada.set(new Set(todas.map((j) => texto(j['idProceso']))));
 
-      if (!this.jornada()) {
+      // Entra sola a la jornada que se estaba usando o, si hay una única abierta, a esa; con varias abiertas el anotador elige.
+      let elegida: Fila | null = null;
+      if (!this.enLista) {
+        const id = Number(this.jornada()?.['id'] ?? 0) || this.leerElegida();
+        elegida = abiertas.find((j) => Number(j['id']) === id) ?? (abiertas.length === 1 ? abiertas[0] : null);
+      }
+      this.elegir(elegida);
+
+      if (!elegida) {
         this.lineas.set([]);
         await this.notificar(false);
         await this.cargarProcesosAbiertos();
@@ -173,9 +244,10 @@ export class JornadaStore {
     }
     const r = await this.procesosApi.listar(cfg.idProyecto, cfg.codigoCultivo, { estado: 'ABIERTO' });
     if (r.error) throw new Error(r.mensaje || 'No se pudieron consultar los procesos.');
-    const abiertos = (r.data ?? []).filter((p) => texto(p['estado']).toUpperCase() === 'ABIERTO');
+    // Solo los procesos abiertos que todavía no tienen jornada (un proceso tiene una sola).
+    const abiertos = (r.data ?? []).filter((p) => texto(p['estado']).toUpperCase() === 'ABIERTO' && !this.procesosConJornada().has(texto(p['idProceso'])));
     this.procesos.set(abiertos);
-    // Un solo proceso abierto: ya queda elegido.
+    // Un solo proceso disponible: ya queda elegido.
     this.procesoId.set(abiertos.length === 1 ? texto(abiertos[0]['idProceso']) : null);
   }
 
@@ -220,6 +292,9 @@ export class JornadaStore {
         await this.cargar();
         return;
       }
+      // La jornada recién abierta es la que se usa: se entra directo a ella.
+      this.enLista = false;
+      this.guardarElegida(Number(r.data?.[0]?.['id'] ?? 0));
       await this.cargar();
       this.feedback.success('Jornada abierta', 'Listo');
     } catch {
@@ -270,6 +345,8 @@ export class JornadaStore {
         this.feedback.error(r.mensaje || 'No se pudo cerrar la jornada.');
         return;
       }
+      // Cerrada la jornada se vuelve a la lista (si queda otra abierta, el anotador elige).
+      this.enLista = true;
       await this.cargar();
       this.feedback.success('Jornada cerrada', 'Listo');
     } catch {

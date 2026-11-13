@@ -5,24 +5,45 @@ import {
   LucideChevronUp,
   LucideCircleAlert,
   LucideCircleCheck,
+  LucideClock,
   LucideLayers,
   LucidePackage,
+  LucideRotateCcw,
   LucideTruck,
+  LucideUsers,
   LucideWeight,
   LucideX,
 } from '@lucide/angular';
 import { DPalet, Palet } from '../../../../shared/interfaces/palet.interface';
 import { Proceso } from '../../../../shared/interfaces/proceso.interface';
 import { AlertaService } from '../../../../shared/services/alerta.service';
+import { AuthService } from '../../../../shared/services/auth.service';
 import { ConnectivityService } from '../../../../shared/services/connectivity.service';
 import { LoadingService } from '../../../../shared/services/loading.service';
 import { PaletsApiService } from '../../../../shared/services/palets-api.service';
 import { PaletsSyncService } from '../../../../shared/services/palets-sync.service';
+import { ProcesosApiService } from '../../../../shared/services/procesos-api.service';
+import { permisos } from '../../../../shared/utils/permisos';
 import { portalToBody } from '../../../../shared/utils/portal';
+
+/** Una jornada del proceso (PLANTA_ListarJornadasProceso). `numero` es su orden de apertura dentro del proceso (1 = la primera). */
+interface JornadaProceso {
+  id: number;
+  numero: number;
+  estado: string;
+  fechaApertura: string;
+  fechaCierre: string;
+  abiertaPor: string;
+  cerradaPor: string;
+  anotadores: number;
+  empacadores: number;
+  cajas: number;
+}
 
 /**
  * Palets de un proceso del historial y su composición. Solo lectura: copia de la vista de la pantalla de palets
  * sin ninguna acción de crear, editar, cerrar, reabrir ni eliminar.
+ * Además lista las jornadas del proceso; el administrador puede reabrir una jornada cerrada si el proceso está abierto.
  */
 @Component({
   selector: 'app-modal-palets-proceso',
@@ -33,9 +54,12 @@ import { portalToBody } from '../../../../shared/utils/portal';
     LucideChevronUp,
     LucideCircleAlert,
     LucideCircleCheck,
+    LucideClock,
     LucideLayers,
     LucidePackage,
+    LucideRotateCcw,
     LucideTruck,
+    LucideUsers,
     LucideWeight,
     LucideX,
   ],
@@ -52,6 +76,8 @@ export class ModalPaletsProcesoComponent implements OnInit {
   private readonly alertService = inject(AlertaService);
   private readonly loading = inject(LoadingService);
   private readonly connectivity = inject(ConnectivityService);
+  private readonly procesosApi = inject(ProcesosApiService);
+  private readonly auth = inject(AuthService);
 
   readonly proceso = input.required<Proceso>();
   readonly closed = output<void>();
@@ -60,6 +86,19 @@ export class ModalPaletsProcesoComponent implements OnInit {
   readonly paletSeleccionado = signal<Palet | null>(null);
   readonly composiciones = signal<DPalet[]>([]);
   readonly cargando = signal(true);
+
+  // ───────── Jornadas del proceso ─────────
+  readonly jornadas = signal<JornadaProceso[]>([]);
+  readonly cargandoJornadas = signal(true);
+  readonly errorJornadas = signal('');
+  readonly seccionJornadasAbierta = signal(true);
+  readonly rol = signal('');
+  /** Solo el administrador reabre jornadas (igual que reabrir un proceso). */
+  readonly puedeReabrir = computed(() => permisos.puedeReabrirProceso(this.rol()));
+  readonly procesoAbierto = computed(() => this.proceso().estado === 'ABIERTO');
+  /** Jornada a la que se le esta pidiendo confirmar el reabrir. */
+  readonly confirmandoId = signal<number | null>(null);
+  readonly reabriendoId = signal<number | null>(null);
 
   readonly seccionActivosAbierta = signal(true);
   readonly seccionDespachadosAbierta = signal(true);
@@ -70,7 +109,10 @@ export class ModalPaletsProcesoComponent implements OnInit {
   readonly paletsDespachados = computed(() => this.palets().filter((p) => p.estado === 'DESPACHADO'));
 
   async ngOnInit(): Promise<void> {
+    const session = await this.auth.getSession();
+    this.rol.set(String(session?.user?.idRol ?? '').trim().toUpperCase());
     await this.cargarPalets();
+    await this.cargarJornadas();
   }
 
   private get online(): boolean {
@@ -100,6 +142,93 @@ export class ModalPaletsProcesoComponent implements OnInit {
     } finally {
       this.cargando.set(false);
       await this.loading.hideAfterMinimum();
+    }
+  }
+
+  private async cargarJornadas(): Promise<void> {
+    const idProceso = String(this.proceso()?.idProceso ?? '').trim();
+    const codigoAcopio = String(this.proceso()?.codigoAcopio ?? '').trim();
+    this.cargandoJornadas.set(true);
+    this.errorJornadas.set('');
+    try {
+      if (!idProceso || !this.online) { this.jornadas.set([]); return; }
+      const sobre = await this.procesosApi.jornadasProceso(codigoAcopio, idProceso);
+      if (sobre?.error) {
+        this.jornadas.set([]);
+        this.errorJornadas.set(String(sobre.mensaje ?? 'No se pudieron consultar las jornadas del proceso.'));
+        return;
+      }
+      const filas: any[] = Array.isArray(sobre?.data) ? sobre.data : [];
+      // El SP las entrega de la mas reciente a la mas antigua; la numeracion es por orden de apertura.
+      this.jornadas.set(
+        filas.map((f, i) => ({
+          id: Number(f.id ?? 0),
+          numero: filas.length - i,
+          estado: String(f.estado ?? ''),
+          fechaApertura: String(f.fechaApertura ?? ''),
+          fechaCierre: String(f.fechaCierre ?? ''),
+          abiertaPor: String(f.abiertaPor ?? ''),
+          cerradaPor: String(f.cerradaPor ?? ''),
+          anotadores: Number(f.anotadores ?? 0),
+          empacadores: Number(f.empacadores ?? 0),
+          cajas: Number(f.cajas ?? 0),
+        })),
+      );
+    } catch (error) {
+      console.error(error);
+      this.jornadas.set([]);
+      this.errorJornadas.set('No se pudieron consultar las jornadas del proceso.');
+    } finally {
+      this.cargandoJornadas.set(false);
+    }
+  }
+
+  toggleSeccionJornadas(): void { this.seccionJornadasAbierta.update((a) => !a); }
+
+  /** AAAA-MM-DDTHH:mm... → DD/MM/AAAA HH:mm (sin pasar por Date: la hora ya viene en hora local de la planta). */
+  fechaHora(valor: string): string {
+    const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(valor ?? '');
+    return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}` : '—';
+  }
+
+  /** Por que no se puede reabrir (vacio = se puede). */
+  motivoBloqueo(j: JornadaProceso): string {
+    if (!this.procesoAbierto()) return 'Necesitas abrir el proceso para realizar esta acción.';
+    return '';
+  }
+
+  /** El boton siempre se puede pulsar: si el proceso esta cerrado se avisa, si no se pide confirmar. */
+  pedirConfirmacion(j: JornadaProceso): void {
+    const motivo = this.motivoBloqueo(j);
+    if (motivo) {
+      this.alertService.showAlert('No se puede reabrir', motivo, 'warning');
+      return;
+    }
+    this.confirmandoId.set(j.id);
+  }
+  cancelarConfirmacion(): void { this.confirmandoId.set(null); }
+
+  async reabrirJornada(j: JornadaProceso): Promise<void> {
+    if (this.motivoBloqueo(j)) return;
+    if (!this.online) {
+      this.alertService.showAlert('Sin conexión', 'Se necesita internet para reabrir la jornada.', 'warning');
+      return;
+    }
+    this.reabriendoId.set(j.id);
+    try {
+      const sobre = await this.procesosApi.reabrirJornada(j.id);
+      if (sobre?.error) {
+        this.alertService.showAlert('No se pudo reabrir', String(sobre.mensaje ?? 'No se pudo reabrir la jornada.'), 'error');
+      } else {
+        this.alertService.showAlert('Jornada reabierta', `La jornada ${j.numero} volvió a estar abierta.`, 'success');
+      }
+      this.confirmandoId.set(null);
+      await this.cargarJornadas();
+    } catch (error: any) {
+      console.error(error);
+      this.alertService.showAlert('Error', `${error?.error?.message ?? 'No se pudo reabrir la jornada.'}`, 'error');
+    } finally {
+      this.reabriendoId.set(null);
     }
   }
 

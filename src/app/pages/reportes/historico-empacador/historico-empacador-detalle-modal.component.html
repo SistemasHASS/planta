@@ -1,0 +1,74 @@
+<div class="modal modal-open modal-bottom sm:modal-middle" role="dialog" aria-modal="true">
+  <div class="modal-box flex w-full !max-h-full !max-w-6xl flex-col gap-0 overflow-hidden p-0 sm:!max-h-[92vh]">
+    <!-- Cabecera -->
+    <div class="flex items-center justify-between gap-3 border-b border-app-border2 px-4 py-2 sm:px-5">
+      <div class="flex min-w-0 items-center gap-3">
+        <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md"><svg lucideUsers class="size-5"></svg></span>
+        <div class="min-w-0">
+          <h3 class="truncate text-base font-extrabold leading-tight text-app-heading sm:text-lg">{{ empacador().nombreCompleto }}</h3>
+          <p class="truncate text-xs text-app-muted">DNI {{ empacador().numeroDocumento }} · {{ fechaCorta(empacador().fechaDesde) }} al {{ fechaCorta(empacador().fechaHasta) }}</p>
+        </div>
+      </div>
+      <button type="button" class="btn btn-circle btn-ghost size-10 min-h-10 sm:size-8 sm:min-h-8" aria-label="Cerrar" (click)="closed.emit()"><svg lucideX class="size-4"></svg></button>
+    </div>
+
+    <div class="min-h-0 flex-1 space-y-3 overflow-auto bg-app-surface2 p-3 sm:p-4">
+      @if (cargando()) {
+        <p class="p-8 text-center text-sm text-app-muted">Cargando histórico...</p>
+      } @else if (error()) {
+        <p class="p-8 text-center text-sm text-rose-600">{{ error() }}</p>
+      } @else if (asignaciones().length === 0) {
+        <p class="p-8 text-center text-sm text-app-muted">Este empacador no tiene asignaciones en el rango elegido.</p>
+      } @else {
+        <div class="flex flex-wrap gap-2 text-xs font-semibold">
+          <span class="rounded-full bg-emerald-100 px-3 py-1 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-200">{{ asignaciones().length }} asignación(es)</span>
+          <span class="rounded-full bg-violet-100 px-3 py-1 text-violet-800 dark:bg-violet-500/20 dark:text-violet-200">{{ totalJornadas() }} jornada(s)</span>
+          <span class="rounded-full bg-sky-100 px-3 py-1 text-sky-800 dark:bg-sky-500/20 dark:text-sky-200">{{ totalCajas() | number: '1.0-0' }} cajas</span>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-app-border2 bg-app-surface">
+          <table class="w-full min-w-[56rem] text-left text-sm">
+            <thead>
+              <tr class="bg-emerald-50 text-[11px] font-extrabold uppercase tracking-wide text-emerald-800 dark:bg-emerald-900/25 dark:text-emerald-200">
+                <th class="px-3 py-2.5">Asignado</th>
+                <th class="py-2.5 pr-3">Liberado</th>
+                <th class="py-2.5 pr-3">Proceso</th>
+                <th class="py-2.5 pr-3">Planta</th>
+                <th class="py-2.5 pr-3">Jornada</th>
+                <th class="py-2.5 pr-3">Línea / Máquina</th>
+                <th class="py-2.5 pr-3">Puesto</th>
+                <th class="py-2.5 pr-3">Anotador</th>
+                <th class="py-2.5 pr-3 text-right">Cajas</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (a of asignaciones(); track a.id) {
+                <tr class="border-t border-app-border2/70">
+                  <td class="px-3 py-2.5 whitespace-nowrap">{{ fechaHora(a.fechaAsignado) }}</td>
+                  <td class="py-2.5 pr-3 whitespace-nowrap">
+                    @if (a.estado === 'ACTIVO') {
+                      <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold uppercase text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">Vigente</span>
+                    } @else {
+                      {{ fechaHora(a.fechaLiberado) }}
+                    }
+                  </td>
+                  <td class="py-2.5 pr-3 whitespace-nowrap">{{ fechaCorta(a.fechaProceso) }} · {{ a.turno || '—' }}</td>
+                  <td class="py-2.5 pr-3">{{ a.acopio }}</td>
+                  <td class="py-2.5 pr-3 whitespace-nowrap">
+                    #{{ a.idJornada }}
+                    <span class="ml-1 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase" [class]="a.estadoJornada === 'ABIERTA' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'">{{ a.estadoJornada === 'ABIERTA' ? 'Abierta' : 'Cerrada' }}</span>
+                  </td>
+                  <td class="py-2.5 pr-3"><span class="rounded-md bg-violet-100 px-2 py-0.5 text-xs font-bold text-violet-800 dark:bg-violet-900/40 dark:text-violet-200">{{ a.ubicacion }}</span></td>
+                  <td class="py-2.5 pr-3"><span class="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">P{{ a.puesto }}</span></td>
+                  <td class="py-2.5 pr-3">{{ a.anotador }}</td>
+                  <td class="py-2.5 pr-3 text-right text-base font-extrabold text-emerald-700 dark:text-emerald-300">{{ a.cajas | number: '1.0-0' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="text-xs text-app-muted">Las cajas de cada fila son las registradas mientras esa asignación estaba vigente.</p>
+      }
+    </div>
+  </div>
+</div>

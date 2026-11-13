@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -23,7 +23,18 @@ export class JornadasAnotadorApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiBaseUrl}/api/jornadas-anotador`;
 
-  /** Jornada abierta del anotador (o todas las suyas con soloAbierta = false). */
+  /** Jornada abierta en la que trabaja el anotador. Con varias abiertas en el acopio, viaja en el header X-Id-Jornada y los SP la usan; null = la más reciente. */
+  private idJornada: number | null = null;
+
+  elegirJornada(id: number | null): void {
+    this.idJornada = id && id > 0 ? id : null;
+  }
+
+  private get opciones(): { headers?: HttpHeaders } {
+    return this.idJornada ? { headers: new HttpHeaders({ 'X-Id-Jornada': String(this.idJornada) }) } : {};
+  }
+
+  /** Jornadas abiertas del acopio (o todas, abiertas y cerradas, con soloAbierta = false). */
   listar(soloAbierta = true): Promise<SobreSp<Fila[]>> {
     return this.post('listar', { soloAbierta });
   }
@@ -152,11 +163,11 @@ export class JornadasAnotadorApiService {
 
   /** Manda los datos como JSON (arreglo de un elemento: [{...}]); el API lo pasa tal cual al SP, que lo convierte a filas. */
   private post<T>(ruta: string, datos: Record<string, unknown>): Promise<SobreSp<T>> {
-    return firstValueFrom(this.http.post<SobreSp<T>>(`${this.baseUrl}/${ruta}`, [datos]));
+    return firstValueFrom(this.http.post<SobreSp<T>>(`${this.baseUrl}/${ruta}`, [datos], this.opciones));
   }
 
   /** Consultas que no llevan datos del cliente (todo sale del token). */
   private postSinCuerpo<T>(ruta: string): Promise<SobreSp<T>> {
-    return firstValueFrom(this.http.post<SobreSp<T>>(`${this.baseUrl}/${ruta}`, {}));
+    return firstValueFrom(this.http.post<SobreSp<T>>(`${this.baseUrl}/${ruta}`, {}, this.opciones));
   }
 }

@@ -66,6 +66,16 @@ export class ProcesosApiService {
     });
   }
 
+  /** Jornadas de un proceso con lo trabajado. El administrador elige el acopio; los demas siempre reciben las del suyo. */
+  jornadasProceso(codigoAcopio: string, idProceso: string): Promise<SobreSp<Fila[]>> {
+    return this.post('jornadas/listar', { codigoAcopio, idProceso });
+  }
+
+  /** Vuelve a abrir una jornada cerrada (solo administrador, con el proceso abierto). */
+  reabrirJornada(id: number): Promise<SobreSp<Fila[]>> {
+    return this.post('jornadas/reabrir', { id });
+  }
+
   private post<T>(ruta: string, cuerpo: Record<string, unknown>): Promise<SobreSp<T>> {
     return firstValueFrom(this.http.post<SobreSp<T>>(`${this.baseUrl}/${ruta}`, cuerpo));
   }

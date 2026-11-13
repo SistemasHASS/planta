@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
-import { LucideCircleStop, LucidePackage, LucideRefreshCcw } from '@lucide/angular';
+import { LucideCircleStop, LucideLayers, LucidePackage, LucideRefreshCcw } from '@lucide/angular';
 import { ConnectivityService } from '../../shared/services/connectivity.service';
 import { FeedbackModalService } from '../../shared/services/feedback-modal.service';
 import { LoadingService } from '../../shared/services/loading.service';
@@ -18,8 +18,8 @@ type Pestana = 'asignar' | 'recoleccion' | 'stock' | 'produccion';
 /**
  * Panel de empaque del anotador (ANPLA). Es solo el contenedor: encabezado, tarjeta de la jornada y pestañas.
  * El estado vive en `JornadaStore` / `RecoleccionStore` (provistos aquí) y cada pestaña es su propio componente en `components/`.
- *  1. Sin jornada abierta en el acopio: `AbrirJornadaComponent`.
- *  2. Con jornada abierta: tarjeta de la jornada, "Mis líneas" y la pestaña elegida.
+ *  1. Sin jornada elegida: `AbrirJornadaComponent` (tarjetas de las jornadas abiertas del acopio y apertura de una nueva).
+ *  2. Con jornada elegida: tarjeta de la jornada, "Mis líneas" y la pestaña elegida.
  */
 @Component({
   selector: 'app-jornada',
@@ -31,6 +31,7 @@ type Pestana = 'asignar' | 'recoleccion' | 'stock' | 'produccion';
     StockAnotadorComponent,
     ProduccionDiaComponent,
     LucideCircleStop,
+    LucideLayers,
     LucidePackage,
     LucideRefreshCcw,
   ],

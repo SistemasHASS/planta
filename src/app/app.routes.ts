@@ -339,6 +339,13 @@ export const routes: Routes = [
         loadComponent: () =>
           import("./pages/reportes/reporte-planilla-empaque/reporte-planilla-empaque.component").then((m) => m.ReportePlanillaEmpaqueComponent),
       },
+      {
+        path: "historico-empacador",
+        canActivate: [roleGuard(ROLES.admin, ROLES.monitor, ROLES.anotador)],
+        data: { titulo: "Histórico empacador" },
+        loadComponent: () =>
+          import("./pages/reportes/historico-empacador/historico-empacador.component").then((m) => m.HistoricoEmpacadorComponent),
+      },
     ],
   },
   { path: "**", redirectTo: "" },

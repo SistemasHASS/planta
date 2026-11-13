@@ -1,0 +1,105 @@
+<section class="w-full space-y-4 p-4 sm:p-6">
+  <header class="flex items-center gap-3">
+    <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md">
+      <svg lucideUsers class="size-6"></svg>
+    </span>
+    <div class="min-w-0">
+      <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Reportes Empaque</span>
+      <h1 class="text-xl font-extrabold leading-tight text-app-heading sm:text-2xl">Histórico empacador</h1>
+      <p class="text-sm text-app-muted">Empacadores asignados a un puesto en un rango de fechas. Haz doble clic en uno para ver dónde trabajó: jornada, proceso, línea o máquina, puesto y cajas.</p>
+    </div>
+  </header>
+
+  @if (!online()) {
+    <div class="grid place-items-center gap-2 rounded-2xl border border-app-border2 bg-app-surface p-12 text-center shadow-sm">
+      <svg lucideWifiOff class="size-12 text-amber-500"></svg>
+      <p class="text-base font-bold text-app-text2">Sin conexión a internet</p>
+      <p class="max-w-md text-sm text-app-muted">El histórico de empacadores solo está disponible en modo online. Conéctate a internet para continuar.</p>
+    </div>
+  } @else {
+    <!-- Filtros -->
+    <div class="rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm">
+      <div class="flex flex-wrap items-end gap-3">
+        <label class="block max-sm:w-full">
+          <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text max-sm:mb-[7px] max-sm:text-[11px] max-sm:font-extrabold max-sm:uppercase">Desde (fecha del proceso)</span>
+          <input type="date" class="input input-bordered h-[42px] w-44 text-[16px] sm:text-[14px] max-sm:h-[38px] max-sm:w-full" [ngModel]="desde()" (ngModelChange)="desde.set($event)" />
+        </label>
+        <label class="block max-sm:w-full">
+          <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text max-sm:mb-[7px] max-sm:text-[11px] max-sm:font-extrabold max-sm:uppercase">Hasta</span>
+          <input type="date" class="input input-bordered h-[42px] w-44 text-[16px] sm:text-[14px] max-sm:h-[38px] max-sm:w-full" [ngModel]="hasta()" (ngModelChange)="hasta.set($event)" />
+        </label>
+        @if (!esAnotador()) {
+          <div class="w-72 max-w-full max-sm:w-full">
+            <app-search-multi-select label="Planta de empaque" placeholder="Todas las plantas" [showSelectAll]="true" [options]="plantasOpciones()" [values]="plantasElegidas()" (valuesChange)="plantasElegidas.set($event)" />
+          </div>
+        }
+        <button type="button" class="btn btn-primary h-[42px] min-h-0 gap-2 max-sm:h-[38px]" (click)="buscar()"><svg lucideSearch class="size-4"></svg> Buscar</button>
+      </div>
+    </div>
+
+    @if (consultado()) {
+      @if (empacadores().length === 0) {
+        <p class="rounded-2xl border border-dashed border-app-border2 bg-app-surface p-8 text-center text-sm text-app-muted">No hay empacadores asignados a un puesto en ese rango de fechas.</p>
+      } @else {
+        <div class="space-y-3 rounded-2xl border border-app-border2 bg-app-surface p-4 shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <p class="text-sm font-bold text-app-heading">{{ filtrados().length }} empacador(es)</p>
+            <input
+              type="search"
+              class="input input-bordered h-[38px] w-64 max-w-full text-[16px] sm:text-[14px] max-sm:w-full"
+              placeholder="Buscar por nombre o DNI"
+              [ngModel]="busqueda()"
+              (ngModelChange)="alBuscarTexto($event)"
+            />
+          </div>
+
+          @if (filtrados().length === 0) {
+            <p class="rounded-xl border border-dashed border-app-border2 p-6 text-center text-sm text-app-muted">Ningún empacador coincide.</p>
+          } @else {
+            <div class="overflow-x-auto rounded-xl border border-app-border2">
+              <table class="w-full min-w-[44rem] text-left text-sm">
+                <thead>
+                  <tr class="bg-emerald-50 text-[11px] font-extrabold uppercase tracking-wide text-emerald-800 dark:bg-emerald-900/25 dark:text-emerald-200">
+                    <th class="px-3 py-2.5">Empacador</th>
+                    <th class="py-2.5 pr-3">DNI</th>
+                    <th class="py-2.5 pr-3 text-right">Asignaciones</th>
+                    <th class="py-2.5 pr-3 text-right">Jornadas</th>
+                    <th class="py-2.5 pr-3 text-right">Cajas</th>
+                    <th class="py-2.5 pr-3">Última asignación</th>
+                    <th class="py-2.5 pr-3">Planta</th>
+                    <th class="py-2.5 pr-3"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (e of paginacion.paged(); track e.numeroDocumento) {
+                    <tr class="cursor-pointer select-none border-t border-app-border2/70 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10" title="Doble clic para ver el detalle" (dblclick)="abrirDetalle(e)">
+                      <td class="px-3 py-2.5 font-semibold text-app-heading">{{ e.nombreCompleto }}</td>
+                      <td class="py-2.5 pr-3 font-mono text-xs text-fuchsia-700 dark:text-fuchsia-300">{{ e.numeroDocumento }}</td>
+                      <td class="py-2.5 pr-3 text-right">{{ e.totalAsignaciones | number: '1.0-0' }}</td>
+                      <td class="py-2.5 pr-3 text-right">{{ e.totalJornadas | number: '1.0-0' }}</td>
+                      <td class="py-2.5 pr-3 text-right text-base font-extrabold text-emerald-700 dark:text-emerald-300">{{ e.totalCajas | number: '1.0-0' }}</td>
+                      <td class="py-2.5 pr-3 whitespace-nowrap">{{ fechaHora(e.ultimaAsignacion) }}</td>
+                      <td class="py-2.5 pr-3">{{ e.ultimoAcopio }}</td>
+                      <td class="py-2.5 pr-3 text-right">
+                        <button type="button" class="grid size-8 place-items-center rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 dark:hover:bg-emerald-900/50" [attr.aria-label]="'Ver el detalle de ' + e.nombreCompleto" (click)="abrirDetalle(e)">
+                          <svg lucideEye class="size-4"></svg>
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <app-paginator [total]="filtrados().length" [(page)]="paginacion.page" [(pageSize)]="paginacion.pageSize" />
+          }
+        </div>
+      }
+    } @else {
+      <p class="rounded-2xl border border-dashed border-app-border2 bg-app-surface p-8 text-center text-sm text-app-muted">Elige el rango de fechas y pulsa Buscar.</p>
+    }
+  }
+
+  @if (detalle(); as d) {
+    <app-historico-empacador-detalle-modal [empacador]="d" (closed)="detalle.set(null)" />
+  }
+</section>
