@@ -23,7 +23,7 @@
         <p class="text-sm text-app-muted">Cuando registres cajas, aparecerán aquí.</p>
       </div>
     } @else {
-      <!-- Tarjetas por ítem (formato, tipo, categoría y calibre) -->
+      <!-- Tarjetas por ítem (formato y tipo de empaque) -->
       <div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(10.5rem,1fr))]">
         <button type="button" class="rounded-xl border p-3 text-center transition" [class]="claveActiva() === '' ? 'border-indigo-500 bg-indigo-100 ring-2 ring-indigo-500/30 dark:bg-indigo-900/40' : 'border-indigo-200 bg-indigo-50/70 hover:border-indigo-400 dark:border-indigo-800 dark:bg-indigo-900/15'" [attr.aria-pressed]="claveActiva() === ''" (click)="elegirTarjeta('')">
           <span class="block text-3xl font-extrabold leading-none text-indigo-700 dark:text-indigo-300">{{ totalTarjeta().cajas }}</span>

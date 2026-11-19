@@ -30,7 +30,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (f of filas(); track f['formatoId'] + '-' + f['tipoEmpaqueId']) {
+          @for (f of filas(); track f['formatoId'] + '-' + f['tipoEmpaqueGrupoId']) {
             <tr class="border-b border-app-border2/60 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/40">
               <td class="py-2.5 pr-3 font-bold text-app-heading">{{ f['formatoDescripcion'] }}</td>
               <td class="py-2.5 pr-3 text-app-heading">{{ tipoEmpaque(f) }}</td>

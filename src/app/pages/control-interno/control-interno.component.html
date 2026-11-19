@@ -6,7 +6,7 @@
     <div class="min-w-0">
       <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Administración</span>
       <h1 class="text-xl font-extrabold leading-tight text-app-heading sm:text-2xl">Excel de Control Interno</h1>
-      <p class="text-sm text-app-muted">Total de cajas y kilos de pago de cada empacador en el periodo, repartido por formato, tipo de empaque, categoría y calibre. Sale solo quien tuvo movimiento.</p>
+      <p class="text-sm text-app-muted">Total de cajas y kilos de pago de cada empacador en el periodo, repartido por formato y tipo de empaque. Sale solo quien tuvo movimiento.</p>
     </div>
   </header>
 
@@ -71,8 +71,7 @@
                 @for (c of columnas(); track c.clave) {
                   <th colspan="2" class="h-[64px] min-w-[9rem] text-center leading-tight" [class]="c.fueraDeMatriz ? '!bg-[#9c4221]' : '!bg-[#1f4e79]'">
                     {{ c.formato }}
-                    @if (c.tipoEmpaque) { <span class="block font-medium opacity-80">{{ c.tipoEmpaque }}</span> }
-                    @if (c.categoriaCalibre) { <span class="block text-[10px] font-medium normal-case opacity-70">{{ c.categoriaCalibre }}</span> }
+                    @if (c.tipoEmpaqueGrupoNombre) { <span class="block font-medium opacity-80">{{ c.tipoEmpaqueGrupoNombre }}</span> }
                   </th>
                 }
                 <th rowspan="2" class="h-[64px] !bg-[#1f4e79] text-center">Total cajas</th>

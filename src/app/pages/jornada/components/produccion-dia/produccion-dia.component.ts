@@ -14,7 +14,7 @@ interface Tarjeta {
   kg: number;
   empacadores: number;
   formato: string;
-  /** Tipo de empaque — categoría — calibre, como se ve en el resto de la pantalla. */
+  /** Tipo de empaque del ítem. */
   detalle: string;
 }
 
@@ -32,8 +32,8 @@ interface EmpacadorFila {
 
 const numero = (v: unknown): number => Number(v) || 0;
 
-/** Un ítem es formato + tipo de empaque + categoría + calibre. */
-const claveItem = (f: Fila): string => [f['formatoId'], f['tipoEmpaqueId'], texto(f['categoriaNombre']), texto(f['calibreNombre'])].join('|');
+/** Un ítem es formato + tipo de empaque. */
+const claveItem = (f: Fila): string => [f['formatoId'], f['tipoEmpaqueGrupoId']].join('|');
 
 /**
  * Pestaña "Producción": lo que registró el anotador en el proceso de la jornada (el SP trae solo lo suyo). Se filtra por formato y tipo de empaque (tarjetas) y por empacador (buscador).
@@ -64,12 +64,12 @@ export class ProduccionDiaComponent implements OnInit {
 
   protected readonly fmt = (n: number): string => n.toFixed(2);
 
-  /** Tarjetas por ítem: formato, tipo de empaque, categoría y calibre . */
+  /** Tarjetas por ítem: formato y tipo de empaque. */
   protected readonly tarjetas = computed<Tarjeta[]>(() => {
     const mapa = new Map<string, Tarjeta & { dnis: Set<string> }>();
     for (const f of this.filas()) {
       const clave = claveItem(f);
-      const detalle = [f['tipoEmpaqueDescripcion'], f['categoriaNombre'], f['calibreNombre']].map(texto).filter(Boolean).join(' — ');
+      const detalle = texto(f['tipoEmpaqueGrupoNombre']);
       const t = mapa.get(clave) ?? { clave, cajas: 0, kg: 0, empacadores: 0, formato: texto(f['formatoDescripcion']), detalle, dnis: new Set<string>() };
       t.cajas += numero(f['cantidadCajas']);
       t.kg += numero(f['pesoTotal']);

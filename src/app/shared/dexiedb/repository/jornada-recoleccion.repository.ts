@@ -11,7 +11,7 @@ export interface SeleccionLineaRecoleccion {
   /** Llave de la línea o curo: "L12" (línea manual) o "M3-2" (máquina 3, curo 2). */
   claveLinea: string;
   formatoId: string;
-  tipoEmpaqueId: string | null;
+  tipoEmpaqueGrupoId: string | null;
 }
 
 export const claveSeleccion = (usuario: string, idJornada: number, claveLinea: string): string => `${usuario}|${idJornada}|${claveLinea}`;

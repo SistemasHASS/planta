@@ -231,6 +231,12 @@ export const routes: Routes = [
         loadComponent: () => import("./pages/catalogos/catalogo.component").then((m) => m.CatalogoComponent),
       },
       {
+        path: "admin/catalogos/tiposEmpaqueGrupo",
+        canActivate: [roleGuard(ROLES.admin)],
+        data: { titulo: "Tipo de Empaque Agrupador", catalogo: "tiposEmpaqueGrupo" },
+        loadComponent: () => import("./pages/catalogos/catalogo.component").then((m) => m.CatalogoComponent),
+      },
+      {
         path: "admin/catalogos/tiposEmpaqueGuia",
         canActivate: [roleGuard(ROLES.admin)],
         data: { titulo: "Tipos Empaque Guía", catalogo: "tiposEmpaqueGuia" },

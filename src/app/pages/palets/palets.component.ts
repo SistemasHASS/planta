@@ -215,7 +215,8 @@ export class PaletsComponent implements OnInit {
   calibres = signal<Calibre[]>([]);
   categorias = signal<Categoria[]>([]);
   tiposProcesoEmpacado = signal<TipoProcesoEmpacado[]>([]);
-  tiposEmpaque = signal<TipoEmpaque[]>([]);
+  /** Tipos de empaque del cultivo (con su agrupador): se cargan junto con el stock de cajas. */
+  readonly tiposEmpaque = signal<TipoEmpaque[]>([]);
 
   filteredDestinos = signal<any[]>([]);
   filteredFormatos = signal<any[]>([]);
@@ -451,10 +452,24 @@ export class PaletsComponent implements OnInit {
     }
     try {
       const sobre = await this.api.stockCajas(idProceso);
-      this.stockCajas.set(!sobre?.error && sobre?.data?.activo ? (sobre.data.stock ?? []) : null);
+      const activo = !sobre?.error && !!sobre?.data?.activo;
+      if (activo) await this.cargarTiposEmpaque();
+      this.stockCajas.set(activo ? (sobre.data.stock ?? []) : null);
     } catch (error) {
       console.error('Error al consultar las cajas disponibles', error);
       this.stockCajas.set(null);
+    }
+  }
+
+  /** Tipos de empaque del cultivo con su agrupador (tipoEmpaqueGrupoId): el stock se lleva por agrupador y la guia trae el tipo de empaque. Si falla, solo no se puede cruzar con el stock. */
+  private async cargarTiposEmpaque(): Promise<void> {
+    if (this.tiposEmpaque().length > 0) return;
+    try {
+      const codigoCultivo = String(this.savedConfig()?.codigoCultivo ?? '').trim();
+      const tipos = await this.catalogoCascada('tiposEmpaque', () => this.catalogosApi.porCultivo('tiposEmpaque', codigoCultivo));
+      this.tiposEmpaque.set(tipos as TipoEmpaque[]);
+    } catch (error) {
+      console.error('Error al consultar los tipos de empaque', error);
     }
   }
 
@@ -496,9 +511,9 @@ export class PaletsComponent implements OnInit {
     this.alertService.showAlert('Sin stock', `No hay stock para la combinación de formato${formato} y tipo de empaque guía${guia}.`, 'warning');
   }
 
-  /** "Descripción — categoría — calibre" del tipo de empaque, sin los datos vacíos (igual que en las listas de la recolección). */
+  /** Nombre del tipo de empaque agrupador del stock (CONVENCIONAL, JUMBO...). */
   etiquetaEmpaque(s: StockCajaProceso): string {
-    return [s.tipoEmpaqueDescripcion, s.categoriaNombre, s.calibreNombre].map(texto).filter(Boolean).join(' — ');
+    return texto(s.tipoEmpaqueGrupoNombre);
   }
 
   /** Actualizar: vuelve a pedir a la API los palets del proceso abierto, los lista y cierra el detalle abierto; no usa Dexie. */

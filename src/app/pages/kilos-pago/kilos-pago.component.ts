@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideInbox, LucideRefreshCcw, LucideSave, LucideScale, LucideSearch, LucideWifiOff, LucideX } from '@lucide/angular';
-import { CatalogosRepository } from '../../shared/dexiedb/repository/catalogos.repository';
 import { AdministracionApiService } from '../../shared/services/administracion-api.service';
 import { ConnectivityService } from '../../shared/services/connectivity.service';
 import { FeedbackModalService } from '../../shared/services/feedback-modal.service';
@@ -16,27 +15,19 @@ const KILOS_MAXIMO = 99999.99;
 interface FilaKilos {
   clave: string;
   formatoId: number;
-  tipoEmpaqueId: number;
+  tipoEmpaqueGrupoId: number;
   formatoCodigo: string;
   formatoDescripcion: string;
-  tipoEmpaqueCodigo: string;
-  tipoEmpaqueDescripcion: string;
-  categoriaId: number;
-  categoriaCodigo: string;
-  categoriaDescripcion: string;
-  /** El código del calibre es su id. */
-  calibreId: string;
-  /** Nombre del calibre: el de la apimaestra que está en el equipo o, si no está, el guardado. */
-  calibreDescripcion: string;
+  tipoEmpaqueGrupoCodigo: string;
+  tipoEmpaqueGrupoNombre: string;
   pesoReal: number;
   /** Kilos de pago guardados (0 si todavía no se configuró). */
   kilosPago: number;
 }
 
 /**
- * Kilos de pago por formato, tipo de empaque y categoría (solo administrador, solo en línea y solo con el parámetro Flujo_Empaque activo):
+ * Kilos de pago por formato y tipo de empaque (solo administrador, solo en línea y solo con el parámetro Flujo_Empaque activo):
  * los kilos que se le cuentan al empacador por cada caja. El peso real sale del formato; lo que todavía no se configuró se muestra en 0.00.
- * La categoría y el calibre son los del empaque; el nombre del calibre se cruza con los calibres guardados en el equipo y se manda al guardar.
  */
 @Component({
   selector: 'app-kilos-pago',
@@ -46,7 +37,6 @@ interface FilaKilos {
 })
 export class KilosPagoComponent implements OnInit {
   private readonly api = inject(AdministracionApiService);
-  private readonly catalogos = inject(CatalogosRepository);
   private readonly connectivity = inject(ConnectivityService);
   private readonly loading = inject(LoadingService);
   private readonly feedback = inject(FeedbackModalService);
@@ -62,7 +52,7 @@ export class KilosPagoComponent implements OnInit {
   readonly filasFiltradas = computed(() => {
     const buscado = this.filtroTexto().trim().toLowerCase();
     if (!buscado) return this.filas();
-    return this.filas().filter((f) => [f.formatoDescripcion, f.formatoCodigo, f.tipoEmpaqueDescripcion, f.tipoEmpaqueCodigo, f.categoriaDescripcion, f.categoriaCodigo, f.calibreId, f.calibreDescripcion].some((v) => v.toLowerCase().includes(buscado)));
+    return this.filas().filter((f) => [f.formatoDescripcion, f.formatoCodigo, f.tipoEmpaqueGrupoNombre, f.tipoEmpaqueGrupoCodigo].some((v) => v.toLowerCase().includes(buscado)));
   });
 
   /** Filas cuyos kilos de pago se cambiaron respecto a lo guardado. */
@@ -94,20 +84,14 @@ export class KilosPagoComponent implements OnInit {
         return;
       }
       this.sinFlujo.set(false);
-      const calibres = await this.nombresDeCalibres();
       const filas = (Array.isArray(sobre?.data) ? sobre.data : []).map<FilaKilos>((f) => ({
-        clave: `${f['formatoId']}|${f['tipoEmpaqueId']}|${f['categoriaId']}`,
+        clave: `${f['formatoId']}|${f['tipoEmpaqueGrupoId']}`,
         formatoId: Number(f['formatoId']),
-        tipoEmpaqueId: Number(f['tipoEmpaqueId']),
+        tipoEmpaqueGrupoId: Number(f['tipoEmpaqueGrupoId']),
         formatoCodigo: texto(f['formatoCodigo']),
         formatoDescripcion: texto(f['formatoDescripcion']),
-        tipoEmpaqueCodigo: texto(f['tipoEmpaqueCodigo']),
-        tipoEmpaqueDescripcion: texto(f['tipoEmpaqueDescripcion']),
-        categoriaId: Number(f['categoriaId']),
-        categoriaCodigo: texto(f['categoriaCodigo']),
-        categoriaDescripcion: texto(f['categoriaDescripcion']),
-        calibreId: texto(f['calibreId']),
-        calibreDescripcion: calibres.get(texto(f['calibreId'])) || texto(f['calibreDescripcion']),
+        tipoEmpaqueGrupoCodigo: texto(f['tipoEmpaqueGrupoCodigo']),
+        tipoEmpaqueGrupoNombre: texto(f['tipoEmpaqueGrupoNombre']),
         pesoReal: Number(f['pesoReal']) || 0,
         kilosPago: Number(f['kilosPago']) || 0,
       }));
@@ -118,16 +102,6 @@ export class KilosPagoComponent implements OnInit {
       this.feedback.error('Error de conexión: no se pudieron cargar los kilos de pago.', 'Sin conexión');
     } finally {
       await this.loading.hideAfterMinimum();
-    }
-  }
-
-  /** Nombres de los calibres (de la apimaestra) que ya están guardados en el equipo: id → nombre. */
-  private async nombresDeCalibres(): Promise<Map<string, string>> {
-    try {
-      const calibres = await this.catalogos.calibresRepo.getAll();
-      return new Map(calibres.map((c) => [texto(c.id), texto(c.calibre)] as [string, string]));
-    } catch {
-      return new Map();
     }
   }
 
@@ -180,11 +154,11 @@ export class KilosPagoComponent implements OnInit {
 
     const invalida = cambiadas.find((f) => !(Number(this.textoDe(f)) > 0 && Number(this.textoDe(f)) <= KILOS_MAXIMO));
     if (invalida) {
-      this.feedback.warning(`Los kilos de pago de ${invalida.formatoDescripcion} (${invalida.tipoEmpaqueDescripcion}) deben ser mayores que 0 y no pasar de 99999.99.`, 'Kilos de pago');
+      this.feedback.warning(`Los kilos de pago de ${invalida.formatoDescripcion} (${invalida.tipoEmpaqueGrupoNombre}) deben ser mayores que 0 y no pasar de 99999.99.`, 'Kilos de pago');
       return;
     }
 
-    const json = JSON.stringify(cambiadas.map((f) => ({ formatoId: f.formatoId, tipoEmpaqueId: f.tipoEmpaqueId, categoriaId: f.categoriaId, calibreDescripcion: f.calibreDescripcion, kilosPago: Number(this.textoDe(f)) })));
+    const json = JSON.stringify(cambiadas.map((f) => ({ formatoId: f.formatoId, tipoEmpaqueGrupoId: f.tipoEmpaqueGrupoId, kilosPago: Number(this.textoDe(f)) })));
 
     this.loading.show('Guardando kilos de pago...');
     try {

@@ -14,7 +14,7 @@ const MAXIMO_OBSERVACION = 500;
 /** Formato y tipo de empaque que se están eligiendo para corregir una anotación (con los tipos que la matriz permite para ese formato). */
 interface ProductoEnEdicion {
   formatoId: string;
-  tipoEmpaqueId: string;
+  tipoEmpaqueGrupoId: string;
   tipos: SearchSelectOption[];
 }
 
@@ -136,7 +136,7 @@ export class CorregirProduccionModalComponent {
       await this.recoleccion.asegurarFormatos();
       const formatoId = texto(f['formatoId']);
       const tipos = await this.recoleccion.tiposEmpaqueDeFormato(formatoId);
-      this.productos.update((p) => ({ ...p, [this.id(f)]: { formatoId, tipoEmpaqueId: texto(f['tipoEmpaqueId']), tipos } }));
+      this.productos.update((p) => ({ ...p, [this.id(f)]: { formatoId, tipoEmpaqueGrupoId: texto(f['tipoEmpaqueGrupoId']), tipos } }));
     } catch (e) {
       this.feedback.error(e instanceof Error && e.message ? e.message : 'No se pudieron consultar los formatos.');
     } finally {
@@ -156,7 +156,7 @@ export class CorregirProduccionModalComponent {
     const actual = this.editandoProducto(f);
     if (!actual || opcion.value === actual.formatoId) return;
     if (!opcion.value) {
-      this.productos.update((p) => ({ ...p, [this.id(f)]: { formatoId: '', tipoEmpaqueId: '', tipos: [] } }));
+      this.productos.update((p) => ({ ...p, [this.id(f)]: { formatoId: '', tipoEmpaqueGrupoId: '', tipos: [] } }));
       return;
     }
     if (!this.connectivity.online()) {
@@ -166,7 +166,7 @@ export class CorregirProduccionModalComponent {
     this.loading.show('Cargando tipos de empaque...');
     try {
       const tipos = await this.recoleccion.tiposEmpaqueDeFormato(opcion.value);
-      this.productos.update((p) => ({ ...p, [this.id(f)]: { formatoId: opcion.value, tipoEmpaqueId: '', tipos } }));
+      this.productos.update((p) => ({ ...p, [this.id(f)]: { formatoId: opcion.value, tipoEmpaqueGrupoId: '', tipos } }));
       if (tipos.length === 0) this.feedback.warning('La matriz de compatibilidad no tiene tipos de empaque para este formato.', 'Sin tipos de empaque');
     } catch (e) {
       this.feedback.error(e instanceof Error && e.message ? e.message : 'No se pudieron consultar los tipos de empaque.');
@@ -178,15 +178,15 @@ export class CorregirProduccionModalComponent {
   protected elegirTipo(f: Fila, opcion: SearchSelectOption): void {
     const actual = this.editandoProducto(f);
     if (!actual) return;
-    this.productos.update((p) => ({ ...p, [this.id(f)]: { ...actual, tipoEmpaqueId: opcion.value } }));
+    this.productos.update((p) => ({ ...p, [this.id(f)]: { ...actual, tipoEmpaqueGrupoId: opcion.value } }));
   }
 
   /** Formato y tipo elegidos si son distintos de los que tiene la anotación; si no, null. */
-  private productoNuevo(f: Fila): { formatoId: number; tipoEmpaqueId: number } | null {
+  private productoNuevo(f: Fila): { formatoId: number; tipoEmpaqueGrupoId: number } | null {
     const e = this.editandoProducto(f);
-    if (!e || !e.formatoId || !e.tipoEmpaqueId) return null;
-    if (e.formatoId === texto(f['formatoId']) && e.tipoEmpaqueId === texto(f['tipoEmpaqueId'])) return null;
-    return { formatoId: Number(e.formatoId), tipoEmpaqueId: Number(e.tipoEmpaqueId) };
+    if (!e || !e.formatoId || !e.tipoEmpaqueGrupoId) return null;
+    if (e.formatoId === texto(f['formatoId']) && e.tipoEmpaqueGrupoId === texto(f['tipoEmpaqueGrupoId'])) return null;
+    return { formatoId: Number(e.formatoId), tipoEmpaqueGrupoId: Number(e.tipoEmpaqueGrupoId) };
   }
 
   protected productoCambiado(f: Fila): boolean {
@@ -196,15 +196,15 @@ export class CorregirProduccionModalComponent {
   /** Abrió el cambio de producto pero falta elegir el formato o el tipo. */
   protected productoIncompleto(f: Fila): boolean {
     const e = this.editandoProducto(f);
-    return !!e && (!e.formatoId || !e.tipoEmpaqueId);
+    return !!e && (!e.formatoId || !e.tipoEmpaqueGrupoId);
   }
 
-  /** "Formato — tipo — categoría — calibre" del producto elegido (para el aviso de confirmación). */
+  /** "Formato — tipo de empaque" del producto elegido (para el aviso de confirmación). */
   protected productoElegido(f: Fila): string {
     const e = this.editandoProducto(f);
     if (!e) return '';
     const formato = this.recoleccion.opcionesFormato().find((o) => o.value === e.formatoId)?.label ?? '';
-    const tipo = e.tipos.find((o) => o.value === e.tipoEmpaqueId)?.label ?? '';
+    const tipo = e.tipos.find((o) => o.value === e.tipoEmpaqueGrupoId)?.label ?? '';
     return [formato, tipo].filter(Boolean).join(' — ');
   }
 
@@ -219,7 +219,7 @@ export class CorregirProduccionModalComponent {
   }
 
   protected detalle(f: Fila): string {
-    return [f['tipoEmpaqueDescripcion'], f['categoriaNombre'], f['calibreNombre']].map(texto).filter(Boolean).join(' — ');
+    return texto(f['tipoEmpaqueGrupoNombre']);
   }
 
   /** Cuánto se corrigió esta anotación antes (con signo) y si alguna vez se corrigió. */
@@ -265,7 +265,7 @@ export class CorregirProduccionModalComponent {
       return;
     }
     const nuevo = this.productoNuevo(f);
-    const producto = nuevo ? { ...nuevo, calibreNombre: this.recoleccion.calibreDe(String(nuevo.tipoEmpaqueId)) } : undefined;
+    const producto = nuevo ?? undefined;
     this.loading.show('Guardando corrección...');
     try {
       const r = await this.api.corregirCajas(this.id(f), n, observaciones, producto);

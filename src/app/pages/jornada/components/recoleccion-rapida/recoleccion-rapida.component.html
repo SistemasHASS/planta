@@ -9,7 +9,7 @@
       </div>
       <div class="grid grid-cols-[minmax(0,1fr)] gap-3">
         <app-search-select class="block min-w-0" label="Formato" placeholder="Formato" [disabled]="cargandoTipos()" [options]="recoleccion.opcionesFormato()" [value]="formatoId() || null" (selected)="elegirFormato($event)" />
-        <app-search-select class="block min-w-0" label="Tipo de empaque" placeholder="Tipo de empaque" [disabled]="cargandoTipos() || !formatoId()" [options]="tiposEmpaque()" [value]="tipoEmpaqueId() || null" (selected)="elegirTipo($event)" />
+        <app-search-select class="block min-w-0" label="Tipo de empaque" placeholder="Tipo de empaque" [disabled]="cargandoTipos() || !formatoId()" [options]="tiposEmpaque()" [value]="tipoEmpaqueGrupoId() || null" (selected)="elegirTipo($event)" />
       </div>
       @if (cargandoTipos()) {
         <p class="flex items-center gap-2 text-xs font-semibold text-app-muted"><span class="loading loading-spinner loading-xs"></span> Cargando tipos de empaque…</p>
@@ -18,7 +18,7 @@
         <p class="rounded-xl border-2 border-tint-rose-border bg-tint-rose p-3 text-sm font-semibold text-app-heading" role="alert">{{ errorTipos() }}</p>
       }
       <div class="grid gap-2">
-        <button type="button" class="btn btn-primary btn-lg" [disabled]="cargandoTipos() || !formatoId() || !tipoEmpaqueId()" (click)="comenzar()">Comenzar a escanear</button>
+        <button type="button" class="btn btn-primary btn-lg" [disabled]="cargandoTipos() || !formatoId() || !tipoEmpaqueGrupoId()" (click)="comenzar()">Comenzar a escanear</button>
         <button type="button" class="btn btn-ghost" (click)="closed.emit()">Cancelar</button>
       </div>
     </div>

@@ -7,7 +7,6 @@ import { ConnectivityService } from '../../shared/services/connectivity.service'
 import { FeedbackModalService } from '../../shared/services/feedback-modal.service';
 import { JornadasAnotadorApiService, RefLinea } from '../../shared/services/jornadas-anotador-api.service';
 import { LoadingService } from '../../shared/services/loading.service';
-import { MaestrosApiService } from '../../shared/services/maestros-api.service';
 import { SobreSp } from '../../shared/services/catalogos-api.service';
 import { opcionesDe } from '../../shared/utils/opciones-select';
 import { JornadaStore } from './jornada.store';
@@ -17,8 +16,7 @@ import { Fila, claveLinea, esActivo, fechaHora, texto } from './jornada.utils';
 export interface CajasRegistradas {
   cantidad: number;
   formatoId: string;
-  tipoEmpaqueId: string;
-  calibreNombre: string;
+  tipoEmpaqueGrupoId: string;
 }
 
 /**
@@ -34,7 +32,6 @@ export class RecoleccionStore {
   private readonly confirm = inject(ConfirmModalService);
   private readonly jornadasApi = inject(JornadasAnotadorApiService);
   private readonly catalogosApi = inject(CatalogosApiService);
-  private readonly maestrosApi = inject(MaestrosApiService);
   private readonly seleccionesRepo = inject(JornadaRecoleccionRepository);
 
   constructor() {
@@ -83,7 +80,7 @@ export class RecoleccionStore {
     if (r.error) throw new Error(r.mensaje || 'No se pudieron consultar las cajas registradas.');
     this.cajasPorEmpacador.set(new Map((r.data ?? []).map((f): [string, CajasRegistradas] => [
       texto(f['numeroDocumento']),
-      { cantidad: Number(f['totalCajas']) || 0, formatoId: texto(f['formatoId']), tipoEmpaqueId: texto(f['tipoEmpaqueId']), calibreNombre: texto(f['calibreNombre']) },
+      { cantidad: Number(f['totalCajas']) || 0, formatoId: texto(f['formatoId']), tipoEmpaqueGrupoId: texto(f['tipoEmpaqueGrupoId']) },
     ])));
   }
 
@@ -91,16 +88,15 @@ export class RecoleccionStore {
    * Registra (o corrige) las cajas del empacador de un puesto: una sola fila por empacador en la recolección.
    * La usan el registro manual y la recolección rápida. Después vuelve a leer las recolecciones y, si se guardó, el total de cada empacador.
    */
-  async registrarCajas(datos: RefLinea & { puesto: number; formatoId: string; tipoEmpaqueId: string; cantidad: number; calibreNombre: string }): Promise<SobreSp<Fila[]>> {
+  async registrarCajas(datos: RefLinea & { puesto: number; formatoId: string; tipoEmpaqueGrupoId: string; cantidad: number }): Promise<SobreSp<Fila[]>> {
     const resp = await this.jornadasApi.registrarCajas({
       idLinea: datos.idLinea,
       idMaquina: datos.idMaquina,
       curo: datos.curo,
       puesto: datos.puesto,
       formatoId: Number(datos.formatoId),
-      tipoEmpaqueId: Number(datos.tipoEmpaqueId),
+      tipoEmpaqueGrupoId: Number(datos.tipoEmpaqueGrupoId),
       cantidadCajas: datos.cantidad,
-      calibreNombre: datos.calibreNombre,
     });
     // Puede que la recolección o la jornada ya no estén abiertas: se refresca para que la pantalla lo muestre.
     try {
@@ -158,13 +154,6 @@ export class RecoleccionStore {
   readonly tiposEmpaquePorLinea = signal<ReadonlyMap<string, SearchSelectOption[]>>(new Map());
   /** Tipo de empaque elegido en cada línea o curo (claveLinea -> id). */
   readonly tipoEmpaquePorLinea = signal<ReadonlyMap<string, string>>(new Map());
-
-  /** Nombre del calibre de cada tipo de empaque visto (id del tipo -> calibre), para mandarlo al registrar cajas. */
-  private readonly calibrePorTipo = new Map<string, string>();
-
-  calibreDe(tipoEmpaqueId: string): string {
-    return this.calibrePorTipo.get(tipoEmpaqueId) ?? '';
-  }
 
   formatoDe(linea: Fila): string | null {
     return this.formatoPorLinea().get(claveLinea(linea)) ?? null;
@@ -241,27 +230,12 @@ export class RecoleccionStore {
     }
   }
 
-  /** Tipos de empaque permitidos para un formato (consulta al servidor, con el calibre en línea). */
+  /** Tipos de empaque agrupadores (CONVENCIONAL, JUMBO...) permitidos para un formato: salen de la matriz, sin categoría ni calibre. */
   async tiposEmpaqueDeFormato(formatoId: string): Promise<SearchSelectOption[]> {
-    return this.opcionesTiposEmpaque(formatoId, await this.calibresDelServidor());
-  }
-
-  /** Tipos de empaque activos que la matriz asocia al formato, con "descripción — categoría — calibre". */
-  private async opcionesTiposEmpaque(formatoId: string, calibres: Record<string, any>[]): Promise<SearchSelectOption[]> {
     const r = await this.jornadasApi.tiposEmpaque(this.cultivoDeJornada(), Number(formatoId));
     if (r.error) throw new Error(r.mensaje || 'No se pudieron consultar los tipos de empaque.');
     const activos = (r.data ?? []).filter((t) => esActivo(t['activo']));
-    const mismoId = (a: unknown, b: unknown): boolean => texto(a) !== '' && (texto(a) === texto(b) || Number(a) === Number(b));
-    for (const t of activos) {
-      t['nombreCalibre'] = texto(calibres.find((c) => mismoId(c['id'] ?? c['Id'], t['calibreId']))?.['calibre']);
-      this.calibrePorTipo.set(texto(t['id']), t['nombreCalibre']);
-    }
-    return opcionesDe(activos, 'id', ['descripcion', 'categoria', 'nombreCalibre']);
-  }
-
-  /** El nombre del calibre es de apimaestra: se pide en línea al endpoint. */
-  private async calibresDelServidor(): Promise<Record<string, any>[]> {
-    return (await this.maestrosApi.calibres()) as Record<string, any>[];
+    return opcionesDe(activos, 'id', ['nombre']);
   }
 
   /** Cultivo del proceso de la jornada abierta (viene del servidor con la jornada). */
@@ -294,12 +268,12 @@ export class RecoleccionStore {
   }
 
   /** Guarda la elección de la línea. Si el equipo no deja guardar, la pantalla sigue funcionando (solo no se recuerda). */
-  private async guardarSeleccion(claveDeLinea: string, formatoId: string, tipoEmpaqueId: string | null): Promise<void> {
+  private async guardarSeleccion(claveDeLinea: string, formatoId: string, tipoEmpaqueGrupoId: string | null): Promise<void> {
     const usuario = this.claveUsuario();
     const idJornada = this.idJornadaActual();
     if (!usuario || !idJornada) return;
     try {
-      await this.seleccionesRepo.save({ clave: claveSeleccion(usuario, idJornada, claveDeLinea), usuario, idJornada, claveLinea: claveDeLinea, formatoId, tipoEmpaqueId });
+      await this.seleccionesRepo.save({ clave: claveSeleccion(usuario, idJornada, claveDeLinea), usuario, idJornada, claveLinea: claveDeLinea, formatoId, tipoEmpaqueGrupoId });
     } catch (e) {
       console.warn('[jornada] No se pudo guardar la elección de la línea', e);
     }
@@ -372,18 +346,13 @@ export class RecoleccionStore {
     const formatos = [...new Set(vigentes.map((g) => g.formatoId))];
     const tiposPorFormato = new Map<string, SearchSelectOption[]>();
     if (formatos.length > 0) {
-      try {
-        const calibres = await this.calibresDelServidor();
-        await Promise.all(formatos.map(async (f) => {
-          try {
-            tiposPorFormato.set(f, await this.opcionesTiposEmpaque(f, calibres));
-          } catch (e) {
-            console.warn('[jornada] No se pudieron consultar los tipos de empaque del formato', f, e);
-          }
-        }));
-      } catch (e) {
-        console.warn('[jornada] No se pudieron consultar los calibres', e);
-      }
+      await Promise.all(formatos.map(async (f) => {
+        try {
+          tiposPorFormato.set(f, await this.tiposEmpaqueDeFormato(f));
+        } catch (e) {
+          console.warn('[jornada] No se pudieron consultar los tipos de empaque del formato', f, e);
+        }
+      }));
     }
 
     const formatoPorLinea = new Map(this.formatoPorLinea());
@@ -395,12 +364,12 @@ export class RecoleccionStore {
       if (!tipos) continue; // no se pudo consultar: queda vacía, lo guardado se conserva para el próximo intento
       formatoPorLinea.set(g.claveLinea, g.formatoId);
       tiposPorLinea.set(g.claveLinea, tipos);
-      if (g.tipoEmpaqueId && tipos.some((t) => t.value === g.tipoEmpaqueId)) {
-        tipoPorLinea.set(g.claveLinea, g.tipoEmpaqueId);
+      if (g.tipoEmpaqueGrupoId && tipos.some((t) => t.value === g.tipoEmpaqueGrupoId)) {
+        tipoPorLinea.set(g.claveLinea, g.tipoEmpaqueGrupoId);
       } else {
         tipoPorLinea.delete(g.claveLinea);
         // El tipo guardado ya no lo permite la matriz: se queda solo el formato.
-        if (g.tipoEmpaqueId) actualizar.push({ ...g, tipoEmpaqueId: null });
+        if (g.tipoEmpaqueGrupoId) actualizar.push({ ...g, tipoEmpaqueGrupoId: null });
       }
     }
     this.formatoPorLinea.set(formatoPorLinea);

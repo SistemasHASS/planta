@@ -11,7 +11,7 @@ export interface SobreSp<T = unknown> {
 }
 
 export type CatalogoPorProyecto = 'tiposProcesoEmpacado' | 'codigosRancho' | 'lugaresProduccion' | 'conductores' | 'vehiculos' | 'transportistas' | 'supervisores' | 'personalLogistico';
-export type CatalogoPorCultivo = 'formatos' | 'tiposClamshell' | 'tiposCaja' | 'presentaciones' | 'tiposEmpaqueGuia' | 'categorias' | 'tiposEmpaque';
+export type CatalogoPorCultivo = 'formatos' | 'tiposClamshell' | 'tiposCaja' | 'presentaciones' | 'tiposEmpaqueGuia' | 'categorias' | 'tiposEmpaque' | 'tiposEmpaqueGrupo';
 
 type Fila = Record<string, any>;
 

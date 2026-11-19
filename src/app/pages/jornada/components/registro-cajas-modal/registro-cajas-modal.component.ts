@@ -14,14 +14,12 @@ export interface RegistroCajasInicial {
   puesto: number;
   empacador: Fila;
   formatoId: string;
-  tipoEmpaqueId: string;
+  tipoEmpaqueGrupoId: string;
   tiposEmpaque: SearchSelectOption[];
   /** Cantidad con la que se abre (la que ya tiene registrada; 1 si es nuevo). */
   cantidad: number;
   /** El empacador ya tiene cajas en esta recolección: se edita esa fila en lugar de crear otra. */
   existente: boolean;
-  /** Calibre guardado en la fila (para no perderlo si no se cambia el tipo de empaque). */
-  calibreNombre: string;
 }
 
 const MAX_CAJAS = 99999;
@@ -50,7 +48,7 @@ export class RegistroCajasModalComponent implements OnInit {
   readonly closed = output<void>();
 
   protected readonly formatoId = signal('');
-  protected readonly tipoEmpaqueId = signal('');
+  protected readonly tipoEmpaqueGrupoId = signal('');
   protected readonly tiposEmpaque = signal<SearchSelectOption[]>([]);
   protected readonly cantidad = signal(1);
   protected readonly guardando = signal(false);
@@ -58,7 +56,7 @@ export class RegistroCajasModalComponent implements OnInit {
   ngOnInit(): void {
     const d = this.datos();
     this.formatoId.set(d.formatoId);
-    this.tipoEmpaqueId.set(d.tipoEmpaqueId);
+    this.tipoEmpaqueGrupoId.set(d.tipoEmpaqueGrupoId);
     this.tiposEmpaque.set(d.tiposEmpaque);
     this.cantidad.set(d.cantidad);
   }
@@ -68,7 +66,7 @@ export class RegistroCajasModalComponent implements OnInit {
     if (opcion.value === this.formatoId()) return;
     if (!opcion.value) {
       this.formatoId.set('');
-      this.tipoEmpaqueId.set('');
+      this.tipoEmpaqueGrupoId.set('');
       this.tiposEmpaque.set([]);
       return;
     }
@@ -80,7 +78,7 @@ export class RegistroCajasModalComponent implements OnInit {
     try {
       const tipos = await this.recoleccion.tiposEmpaqueDeFormato(opcion.value);
       this.formatoId.set(opcion.value);
-      this.tipoEmpaqueId.set('');
+      this.tipoEmpaqueGrupoId.set('');
       this.tiposEmpaque.set(tipos);
       if (tipos.length === 0) this.feedback.warning('La matriz de compatibilidad no tiene tipos de empaque para este formato.', 'Sin tipos de empaque');
     } catch (e) {
@@ -91,7 +89,7 @@ export class RegistroCajasModalComponent implements OnInit {
   }
 
   protected elegirTipo(opcion: SearchSelectOption): void {
-    this.tipoEmpaqueId.set(opcion.value);
+    this.tipoEmpaqueGrupoId.set(opcion.value);
   }
 
   protected cerrar(): void {
@@ -168,9 +166,9 @@ export class RegistroCajasModalComponent implements OnInit {
     if (this.guardando()) return;
     const { linea, puesto, empacador } = this.datos();
     const formatoId = this.formatoId();
-    const tipoEmpaqueId = this.tipoEmpaqueId();
+    const tipoEmpaqueGrupoId = this.tipoEmpaqueGrupoId();
     const cantidad = this.cantidad();
-    if (!formatoId || !tipoEmpaqueId) {
+    if (!formatoId || !tipoEmpaqueGrupoId) {
       this.feedback.warning('Elige el formato y el tipo de empaque.', 'Falta elegir');
       return;
     }
@@ -185,9 +183,8 @@ export class RegistroCajasModalComponent implements OnInit {
         ...refLinea(linea),
         puesto,
         formatoId,
-        tipoEmpaqueId,
+        tipoEmpaqueGrupoId,
         cantidad,
-        calibreNombre: this.recoleccion.calibreDe(tipoEmpaqueId) || (tipoEmpaqueId === this.datos().tipoEmpaqueId ? this.datos().calibreNombre : ''),
       });
       if (resp.error) {
         this.feedback.error(resp.mensaje || 'No se pudieron registrar las cajas.');

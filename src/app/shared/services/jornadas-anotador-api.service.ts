@@ -94,7 +94,7 @@ export class JornadasAnotadorApiService {
     return this.post('puestos/sincronizar', { modo: 'vaciar', ...linea });
   }
 
-  /** Tipos de empaque que la matriz de compatibilidad asocia al formato. */
+  /** Tipos de empaque agrupadores (CONVENCIONAL, JUMBO...) que la matriz de compatibilidad permite para el formato: [{ id (= tipoEmpaqueGrupoId), codigo, nombre, activo }]. */
   tiposEmpaque(codigoCultivo: string, formatoId: number): Promise<SobreSp<Fila[]>> {
     return this.post('tipos-empaque/listar', { codigoCultivo, formatoId });
   }
@@ -126,18 +126,18 @@ export class JornadasAnotadorApiService {
 
   /**
    * Movimientos de stock de las cajas del anotador en un día (tipos vacío = todos: ENTRADA, CORRECCION, AJUSTE, SALIDA_PALET).
-   * data = { resumen: [{ tipoMovimiento, movimientos, cajas }], movimientos: [{ id, fechaMovimiento, tipoMovimiento, idProceso, fechaProceso, turno, formatoDescripcion, tipoEmpaqueDescripcion,
-   * categoriaNombre, calibreNombre, cajas (con signo), numeroRecoleccion, numeroPalet, empacadorDocumento, empacador, observaciones, cajasMovimiento }] }.
+   * data = { resumen: [{ tipoMovimiento, movimientos, cajas }], movimientos: [{ id, fechaMovimiento, tipoMovimiento, idProceso, fechaProceso, turno, formatoDescripcion, tipoEmpaqueGrupoNombre,
+   * cajas (con signo), numeroRecoleccion, numeroPalet, empacadorDocumento, empacador, observaciones, cajasMovimiento }] }.
    */
   movimientosStock(cuerpo: { fecha: string; tipos: string[] }): Promise<SobreSp<{ resumen: Fila[]; movimientos: Fila[] }>> {
     return this.post('movimientos-stock/listar', cuerpo);
   }
 
   /**
-   * Corrige una anotación (id del registro de cajas): la cantidad y, si se envía `producto`, también el formato y el tipo de empaque (con el calibre del tipo elegido).
+   * Corrige una anotación (id del registro de cajas): la cantidad y, si se envía `producto`, también el formato y el tipo de empaque agrupador.
    * La base no deja quitar cajas que ya están en palets (ni mover a otro producto cajas que ya salieron a un palet).
    */
-  corregirCajas(id: number, cantidadCajas: number, observaciones: string, producto?: { formatoId: number; tipoEmpaqueId: number; calibreNombre: string }): Promise<SobreSp<Fila[]>> {
+  corregirCajas(id: number, cantidadCajas: number, observaciones: string, producto?: { formatoId: number; tipoEmpaqueGrupoId: number }): Promise<SobreSp<Fila[]>> {
     return this.post('produccion/corregir', { id, cantidadCajas, observaciones, ...(producto ?? {}) });
   }
 
@@ -146,8 +146,8 @@ export class JornadasAnotadorApiService {
     return this.post('recolecciones/cajas/sincronizar', { modo: 'anular', ...cuerpo });
   }
 
-  /** Registra las cajas de un empacador (el del puesto) con el formato y tipo de empaque de la linea, en la recoleccion abierta. */
-  registrarCajas(cuerpo: RefLinea & { puesto: number; formatoId: number; tipoEmpaqueId: number; cantidadCajas: number; calibreNombre: string }): Promise<SobreSp<Fila[]>> {
+  /** Registra las cajas de un empacador (el del puesto) con el formato y tipo de empaque agrupador de la linea, en la recoleccion abierta. */
+  registrarCajas(cuerpo: RefLinea & { puesto: number; formatoId: number; tipoEmpaqueGrupoId: number; cantidadCajas: number }): Promise<SobreSp<Fila[]>> {
     return this.post('recolecciones/cajas/sincronizar', { modo: 'nuevo', ...cuerpo });
   }
 

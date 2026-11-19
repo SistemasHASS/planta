@@ -31,7 +31,7 @@
             </button>
           </div>
           <div class="grid grid-cols-1 gap-1.5 sm:grid-cols-[repeat(auto-fill,minmax(290px,1fr))]">
-            @for (s of stockVisible(); track s.formatoId + '-' + s.tipoEmpaqueId) {
+            @for (s of stockVisible(); track s.formatoId + '-' + s.tipoEmpaqueGrupoId) {
               <span class="flex min-w-0 items-center gap-2 rounded-xl border py-0.5 pl-0.5 pr-2.5 transition duration-200" [class]="claseChip(s)" [attr.aria-current]="esCoincidencia(s) ? 'true' : null">
                 <span class="min-w-9 shrink-0 rounded-lg px-2 py-0.5 text-center text-sm font-extrabold transition duration-200" [class]="claseNumero(s)">{{ s.disponibles }}</span>
                 <span class="min-w-0 text-xs leading-tight">

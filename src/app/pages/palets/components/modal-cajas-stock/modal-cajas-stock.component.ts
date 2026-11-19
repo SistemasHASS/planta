@@ -56,6 +56,8 @@ export class ModalCajasStockComponent {
   readonly modoEdicion = input(false);
   /** Stock de cajas del proceso. null = el parametro Flujo_Empaque no esta activo: no se muestra la barra. */
   readonly stockCajas = input<StockCajaProceso[] | null>(null);
+  /** Tipos de empaque del cultivo (con su agrupador en tipoEmpaqueGrupoId): sirven para saber de que agrupador es el tipo de empaque de la guia. */
+  readonly tiposEmpaque = input<Fila[]>([]);
 
   readonly tiposProcesoEmpacadoModal = input<Fila[]>([]);
   readonly consignatarios = input<Fila[]>([]);
@@ -112,54 +114,35 @@ export class ModalCajasStockComponent {
     return (this.stockCajas() ?? []).filter((s) => Number(s.disponibles) > 0 && (!this.formatoFijado() || Number(s.formatoId) === id));
   });
   /**
-   * Pastilla de stock que coincide con lo que el usuario va llenando. Con formato y tipo de empaque guia elegidos se compara
-   * por formato y por el tipo de empaque de la guia (categoria y calibre solo si ambos lo traen). Cuando la matriz ya dio el
-   * tipo de empaque (al elegir el clamshell) se compara por id.
+   * Pastilla de stock que coincide con lo que el usuario va llenando. El stock se lleva por formato y tipo de empaque agrupador
+   * (CONVENCIONAL, JUMBO...), asi que se busca el agrupador del tipo de empaque elegido: el que dio la matriz (al elegir el clamshell)
+   * o, antes, el de la guia (por su codigo de tipo de empaque), y se compara por formato + agrupador.
    */
-  readonly analisisStock = computed<{ estado: 'coincide' | 'sinStock' | 'ambiguo' | null; stock: StockCajaProceso | null; formato: string; guia: string }>(() => {
+  readonly analisisStock = computed<{ estado: 'coincide' | 'sinStock' | null; stock: StockCajaProceso | null; formato: string; guia: string }>(() => {
     const vacio = { estado: null, stock: null, formato: '', guia: '' } as const;
     const f = this.formCajas();
     const formatoId = Number(f.formatoId) || 0;
     const guiaId = Number(f.tipoEmpaqueGuiaId) || 0;
     if (!formatoId || !guiaId) return vacio;
     const delFormato = this.stockVisible().filter((s) => Number(s.formatoId) === formatoId);
+    const tipos = this.tiposEmpaque();
     const tipoEmpaqueId = Number(f.tipoEmpaqueId) || 0;
+    let tipoEmpaqueGrupoId = 0;
     if (tipoEmpaqueId) {
-      const exacto = delFormato.find((s) => Number(s.tipoEmpaqueId) === tipoEmpaqueId) ?? null;
+      tipoEmpaqueGrupoId = Number(tipos.find((t) => Number(t?.['id']) === tipoEmpaqueId)?.['tipoEmpaqueGrupoId']) || 0;
+      const exacto = tipoEmpaqueGrupoId ? delFormato.find((s) => Number(s.tipoEmpaqueGrupoId) === tipoEmpaqueGrupoId) ?? null : null;
       return { ...vacio, estado: exacto ? 'coincide' : null, stock: exacto };
     }
     const guia: any = this.filteredTiposEmpaqueGuia().find((g: any) => Number(g?.id ?? g?.Id) === guiaId);
     if (!guia) return vacio;
     const n = (v: unknown) => String(v ?? '').trim().toUpperCase();
-    // El SP de guias devuelve TipoEmpaque (descripcion) y categoria; se lee sin importar mayusculas ni el nombre exacto.
-    const leer = (obj: any, ...nombres: string[]) => {
-      const claves = Object.keys(obj ?? {});
-      for (const nombre of nombres) {
-        const k = claves.find((c) => c.toLowerCase() === nombre.toLowerCase());
-        if (k && n(obj[k])) return n(obj[k]);
-      }
-      return '';
-    };
-    const codigo = leer(guia, 'codigoTipoEmpaque');
-    let candidatas: StockCajaProceso[];
-    if (codigo && delFormato.some((s) => n(s.tipoEmpaqueCodigo))) {
-      // Coincidencia exacta: el codigo del tipo de empaque de la guia es el mismo que trae el stock.
-      candidatas = delFormato.filter((s) => n(s.tipoEmpaqueCodigo) === codigo);
-    } else {
-      // Respaldo por texto (si el SP del stock aun no devuelve el codigo).
-      const tipo = leer(guia, 'TipoEmpaque', 'nombreTipoEmpaque', 'descripcionTipoEmpaque');
-      const categoria = leer(guia, 'categoria', 'nombreCategoria');
-      if (!tipo) return vacio;
-      candidatas = delFormato.filter((s) => n(s.tipoEmpaqueDescripcion) === tipo);
-      if (candidatas.length > 1 && categoria) {
-        const porCategoria = candidatas.filter((s) => n(s.categoriaNombre) === categoria);
-        if (porCategoria.length) candidatas = porCategoria;
-      }
-    }
+    const codigo = n(guia?.codigoTipoEmpaque ?? guia?.CodigoTipoEmpaque);
+    if (!codigo) return vacio;
+    tipoEmpaqueGrupoId = Number(tipos.find((t) => n(t?.['codigo']) === codigo)?.['tipoEmpaqueGrupoId']) || 0;
     const formato = String(this.filteredFormatos().find((x: any) => Number(x?.id) === formatoId)?.['descripcion'] ?? delFormato[0]?.formatoDescripcion ?? '').trim();
     const nombreGuia = String(guia?.nombre ?? guia?.Nombre ?? '').trim();
-    if (candidatas.length === 1) return { estado: 'coincide', stock: candidatas[0], formato, guia: nombreGuia };
-    return { estado: candidatas.length === 0 ? 'sinStock' : 'ambiguo', stock: null, formato, guia: nombreGuia };
+    const stock = tipoEmpaqueGrupoId ? delFormato.find((s) => Number(s.tipoEmpaqueGrupoId) === tipoEmpaqueGrupoId) ?? null : null;
+    return stock ? { estado: 'coincide', stock, formato, guia: nombreGuia } : { estado: 'sinStock', stock: null, formato, guia: nombreGuia };
   });
 
   readonly stockCoincide = computed<StockCajaProceso | null>(() => this.analisisStock().stock);
@@ -189,11 +172,11 @@ export class ModalCajasStockComponent {
 
   esCoincidencia(s: StockCajaProceso): boolean {
     const c = this.stockCoincide();
-    return !!c && Number(c.formatoId) === Number(s.formatoId) && Number(c.tipoEmpaqueId) === Number(s.tipoEmpaqueId);
+    return !!c && Number(c.formatoId) === Number(s.formatoId) && Number(c.tipoEmpaqueGrupoId) === Number(s.tipoEmpaqueGrupoId);
   }
 
   etiquetaEmpaque(s: StockCajaProceso): string {
-    return [s.tipoEmpaqueDescripcion, s.categoriaNombre, s.calibreNombre].map((t) => String(t ?? '').trim()).filter(Boolean).join(' — ');
+    return String(s.tipoEmpaqueGrupoNombre ?? '').trim();
   }
 
   readonly optTiposProceso = computed(() => opciones(this.tiposProcesoEmpacadoModal(), 'id'));

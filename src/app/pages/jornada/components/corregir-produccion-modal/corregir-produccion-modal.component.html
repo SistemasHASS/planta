@@ -66,7 +66,7 @@
               </div>
               <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <app-search-select class="block min-w-0" label="Formato" placeholder="Formato" [options]="recoleccion.opcionesFormato()" [value]="e.formatoId || null" (selected)="elegirFormato(f, $event)" />
-                <app-search-select class="block min-w-0" label="Tipo de empaque" placeholder="Tipo de empaque" [disabled]="!e.formatoId" [options]="e.tipos" [value]="e.tipoEmpaqueId || null" (selected)="elegirTipo(f, $event)" />
+                <app-search-select class="block min-w-0" label="Tipo de empaque" placeholder="Tipo de empaque" [disabled]="!e.formatoId" [options]="e.tipos" [value]="e.tipoEmpaqueGrupoId || null" (selected)="elegirTipo(f, $event)" />
               </div>
               @if (productoIncompleto(f)) {
                 <p class="mt-2 text-xs font-bold text-red-600 dark:text-red-400">Elige el formato y el tipo de empaque.</p>

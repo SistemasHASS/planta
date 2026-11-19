@@ -82,11 +82,10 @@ export class RecoleccionCajasComponent {
       this.registro.set({
         linea, puesto, empacador,
         formatoId: this.recoleccion.formatoDe(linea) ?? '',
-        tipoEmpaqueId: this.recoleccion.tipoEmpaqueDe(linea) ?? '',
+        tipoEmpaqueGrupoId: this.recoleccion.tipoEmpaqueDe(linea) ?? '',
         tiposEmpaque: this.recoleccion.tiposEmpaqueDe(linea),
         cantidad: 1,
         existente: false,
-        calibreNombre: '',
       });
       return;
     }
@@ -111,11 +110,10 @@ export class RecoleccionCajasComponent {
     this.registro.set({
       linea, puesto, empacador,
       formatoId: guardado.formatoId,
-      tipoEmpaqueId: guardado.tipoEmpaqueId,
+      tipoEmpaqueGrupoId: guardado.tipoEmpaqueGrupoId,
       tiposEmpaque,
       cantidad: guardado.cantidad,
       existente: true,
-      calibreNombre: guardado.calibreNombre,
     });
   }
 }

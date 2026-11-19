@@ -43,10 +43,10 @@ export const etiquetaCorreccion = (f: Fila): string => {
   return partes.length ? `corregida ${partes.join(' · ')}` : 'corregida';
 };
 
-/** Producto que tenía la fila antes de que la corrigieran ("4.4 OZ — CONVENCIONAL — 10MM — 10MM+"), o '' si no se cambió de producto. */
+/** Producto que tenía la fila antes de que la corrigieran ("4.4 OZ — CONVENCIONAL"), o '' si no se cambió de producto. */
 export const productoAntes = (f: Fila): string =>
   esActivo(f['productoCorregido'])
-    ? [f['formatoAntesDescripcion'], f['tipoEmpaqueAntesDescripcion'], f['categoriaAntesNombre'], f['calibreAntesNombre']].map(texto).filter(Boolean).join(' — ')
+    ? [f['formatoAntesDescripcion'], f['tipoEmpaqueGrupoAntesNombre']].map(texto).filter(Boolean).join(' — ')
     : '';
 
 /**

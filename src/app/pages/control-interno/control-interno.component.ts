@@ -23,13 +23,11 @@ const numero = (valor: unknown): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
-/** Un producto (formato + tipo de empaque + categoría) que sale como columna: sus cajas y los kilos de pago. */
+/** Un producto (formato + tipo de empaque) que sale como columna: sus cajas y los kilos de pago. */
 interface Columna {
   clave: string;
   formato: string;
-  tipoEmpaque: string;
-  /** Categoría y calibre en una sola línea. */
-  categoriaCalibre: string;
+  tipoEmpaqueGrupoNombre: string;
   /** Tiene cajas en el periodo pero la matriz de compatibilidad no lo tiene. */
   fueraDeMatriz: boolean;
 }
@@ -175,8 +173,7 @@ export class ControlInternoComponent implements OnInit {
       const columnas = (Array.isArray(data.columnas) ? data.columnas : []).map<Columna>((c) => ({
         clave: texto(c['clave']),
         formato: texto(c['formato']),
-        tipoEmpaque: texto(c['tipoEmpaque']),
-        categoriaCalibre: [texto(c['categoria']), texto(c['calibre'])].filter(Boolean).join(' · '),
+        tipoEmpaqueGrupoNombre: texto(c['tipoEmpaqueGrupoNombre']),
         fueraDeMatriz: !!c['fueraDeMatriz'],
       }));
 
@@ -190,7 +187,7 @@ export class ControlInternoComponent implements OnInit {
           porClave.set(clave, fila);
         }
         fila.anotadoresSet.add(texto(d['anotador']) || '(sin anotador)');
-        const producto = `${d['formatoId']}-${d['tipoEmpaqueId']}-${d['categoriaId']}`;
+        const producto = `${d['formatoId']}-${d['tipoEmpaqueGrupoId']}`;
         const cajas = numero(d['cajas']);
         const kilos = numero(d['kilos']);
         fila.cajas[producto] = (fila.cajas[producto] ?? 0) + cajas;

@@ -61,8 +61,8 @@ export class StockAnotadorComponent implements OnInit {
     }
   }
 
-  /** "Tipo de empaque — categoría — calibre" sin dejar huecos si algún dato no existe. */
+  /** Tipo de empaque del producto ('—' si no hay). */
   protected tipoEmpaque(f: Fila): string {
-    return [f['tipoEmpaqueDescripcion'], f['categoriaNombre'], f['calibreNombre']].map(texto).filter(Boolean).join(' — ') || '—';
+    return texto(f['tipoEmpaqueGrupoNombre']) || '—';
   }
 }

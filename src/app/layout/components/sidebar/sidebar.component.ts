@@ -119,6 +119,7 @@ const NAV_SECTIONS: NavSection[] = [
           { label: 'Calibres - Maestro', path: '/admin/catalogos/calibres', icon: 'dot' },
           { label: 'Categorías', path: '/admin/catalogos/categorias', icon: 'dot' },
           { label: 'Tipos de Empaque', path: '/admin/catalogos/tiposEmpaque', icon: 'dot' },
+          { label: 'Tipo de Empaque Agrupador', path: '/admin/catalogos/tiposEmpaqueGrupo', icon: 'dot' },
           { label: 'Tipos Empaque Guía', path: '/admin/catalogos/tiposEmpaqueGuia', icon: 'dot' },
           { label: 'Presentaciones', path: '/admin/catalogos/presentaciones', icon: 'dot' },
           { label: 'Tipos de Caja', path: '/admin/catalogos/tiposCaja', icon: 'dot' },

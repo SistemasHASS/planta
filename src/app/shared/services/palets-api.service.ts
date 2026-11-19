@@ -18,16 +18,13 @@ export interface ConsultaMatriz {
   tipoClamshellId?: number;
 }
 
-/** Cajas disponibles de un proceso para un formato y tipo de empaque (suma de los movimientos activos del stock). */
+/** Cajas disponibles de un proceso para un formato y tipo de empaque agrupador (suma de los movimientos activos del stock). */
 export interface StockCajaProceso {
   formatoId: number;
   formatoDescripcion: string;
-  tipoEmpaqueId: number;
-  tipoEmpaqueDescripcion: string;
-  /** Codigo del tipo de empaque (PLANTA_TiposEmpaque.codigo): es el mismo que trae la guia en codigoTipoEmpaque. */
-  tipoEmpaqueCodigo?: string | null;
-  categoriaNombre?: string | null;
-  calibreNombre?: string | null;
+  /** Tipo de empaque agrupador (PLANTA_TiposEmpaqueGrupo): CONVENCIONAL, JUMBO, SWEETEST BATCH... */
+  tipoEmpaqueGrupoId: number;
+  tipoEmpaqueGrupoNombre: string;
   disponibles: number;
 }
 

@@ -42,7 +42,7 @@ export class RecoleccionRapidaComponent {
   // ---- Elección de formato y tipo de empaque ----
 
   protected readonly formatoId = signal('');
-  protected readonly tipoEmpaqueId = signal('');
+  protected readonly tipoEmpaqueGrupoId = signal('');
   protected readonly tiposEmpaque = signal<SearchSelectOption[]>([]);
   protected readonly cargandoTipos = signal(false);
   protected readonly errorTipos = signal('');
@@ -69,7 +69,7 @@ export class RecoleccionRapidaComponent {
   private temporizadorAviso: ReturnType<typeof setTimeout> | null = null;
 
   protected readonly etiquetaFormato = computed(() => this.recoleccion.opcionesFormato().find((o) => o.value === this.formatoId())?.label ?? '');
-  protected readonly etiquetaTipo = computed(() => this.tiposEmpaque().find((o) => o.value === this.tipoEmpaqueId())?.label ?? '');
+  protected readonly etiquetaTipo = computed(() => this.tiposEmpaque().find((o) => o.value === this.tipoEmpaqueGrupoId())?.label ?? '');
   protected readonly resumenEleccion = computed(() => [this.etiquetaFormato(), this.etiquetaTipo()].filter(Boolean).join(' · '));
 
   constructor() {
@@ -88,7 +88,7 @@ export class RecoleccionRapidaComponent {
   protected async elegirFormato(opcion: SearchSelectOption): Promise<void> {
     if (opcion.value === this.formatoId()) return;
     this.errorTipos.set('');
-    this.tipoEmpaqueId.set('');
+    this.tipoEmpaqueGrupoId.set('');
     if (!opcion.value) {
       this.formatoId.set('');
       this.tiposEmpaque.set([]);
@@ -112,11 +112,11 @@ export class RecoleccionRapidaComponent {
   }
 
   protected elegirTipo(opcion: SearchSelectOption): void {
-    this.tipoEmpaqueId.set(opcion.value);
+    this.tipoEmpaqueGrupoId.set(opcion.value);
   }
 
   protected comenzar(): void {
-    if (!this.formatoId() || !this.tipoEmpaqueId()) return;
+    if (!this.formatoId() || !this.tipoEmpaqueGrupoId()) return;
     this.escaneando.set(true);
   }
 
@@ -182,7 +182,7 @@ export class RecoleccionRapidaComponent {
       const existente = this.recoleccion.registroDe(empacador);
       this.cantidad.set(existente?.cantidad ?? 0);
       this.capFormatoId.set(this.formatoId());
-      this.capTipoId.set(this.tipoEmpaqueId());
+      this.capTipoId.set(this.tipoEmpaqueGrupoId());
       this.capTipos.set(this.tiposEmpaque());
       this.panel.set({ tipo: 'captura', linea, puesto: Number(empacador['puesto']), empacador, existente });
     } catch {
@@ -201,7 +201,7 @@ export class RecoleccionRapidaComponent {
 
   /** El empacador ya tenía cajas con otro formato o tipo de empaque: al guardar pasan a lo elegido aquí. */
   protected cambiaEmpaque(existente: CajasRegistradas | undefined): boolean {
-    return !!existente && (existente.formatoId !== this.capFormatoId() || existente.tipoEmpaqueId !== this.capTipoId());
+    return !!existente && (existente.formatoId !== this.capFormatoId() || existente.tipoEmpaqueGrupoId !== this.capTipoId());
   }
 
   /** Cambia el formato solo para este empacador: se piden los tipos de empaque que la matriz permite y se vuelve a elegir el tipo. */
@@ -269,15 +269,14 @@ export class RecoleccionRapidaComponent {
     }
     this.errorGuardar.set('');
     this.guardando.set(true);
-    const tipoEmpaqueId = this.capTipoId();
+    const tipoEmpaqueGrupoId = this.capTipoId();
     try {
       const resp = await this.recoleccion.registrarCajas({
         ...refLinea(p.linea),
         puesto: p.puesto,
         formatoId: this.capFormatoId(),
-        tipoEmpaqueId,
+        tipoEmpaqueGrupoId,
         cantidad,
-        calibreNombre: this.recoleccion.calibreDe(tipoEmpaqueId) || (p.existente?.tipoEmpaqueId === tipoEmpaqueId ? p.existente.calibreNombre : ''),
       });
       if (resp.error) {
         this.errorGuardar.set(resp.mensaje || 'No se pudieron registrar las cajas.');

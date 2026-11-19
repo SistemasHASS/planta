@@ -3,7 +3,7 @@ import { CatalogoPorCultivo, CatalogoPorProyecto } from '../../shared/services/c
 export type CatalogoKey =
   | 'conductores' | 'vehiculos' | 'transportistas' | 'supervisores' | 'personalLogistica'
   | 'tipoProcesoEmpacado' | 'clientes' | 'formatos' | 'presentaciones' | 'tiposCaja' | 'tiposClamshell'
-  | 'lugaresProduccion' | 'codigosRancho' | 'categorias' | 'tiposEmpaque' | 'tiposEmpaqueGuia'
+  | 'lugaresProduccion' | 'codigosRancho' | 'categorias' | 'tiposEmpaque' | 'tiposEmpaqueGrupo' | 'tiposEmpaqueGuia'
   | 'destinos' | 'calibres' | 'transportes';
 
 export interface OpcionCampo {
@@ -412,18 +412,39 @@ const NUEVOS: Partial<Record<CatalogoKey, ConfigCatalogo>> = {
     singular: 'tipo de empaque',
     genero: 'o',
     descripcion: 'Tipos de empaque de la campaña, cada uno con su categoría.',
-    buscarPlaceholder: 'Código, descripción o categoría',
+    buscarPlaceholder: 'Código, descripción, categoría o agrupador',
     campos: [
       { campo: 'codigo', etiqueta: 'Código', tipo: 'texto', maxLength: 50, requerido: true },
       { campo: 'descripcion', etiqueta: 'Descripción', tipo: 'texto', maxLength: 100 },
       { campo: 'codigoCategoria', etiqueta: 'Categoría', tipo: 'select', requerido: true, fuente: { origen: 'cultivo', catalogo: 'categorias', valor: 'codigo', etiqueta: ['codigo', 'nombre'] }, muestra: [{ etiqueta: 'Calibre', calibre: true }] },
+      { campo: 'tipoEmpaqueGrupoId', etiqueta: 'Agrupador', tipo: 'select', requerido: true, fuente: { origen: 'cultivo', catalogo: 'tiposEmpaqueGrupo', valor: 'id', etiqueta: ['nombre'] } },
     ],
-    columnas: ['codigo', 'descripcion', 'categoria', 'nombreCalibre'],
-    etiquetas: { categoria: 'Categoría', nombreCalibre: 'Calibre' },
+    columnas: ['codigo', 'descripcion', 'categoria', 'nombreCalibre', 'tipoEmpaqueGrupoNombre'],
+    etiquetas: { categoria: 'Categoría', nombreCalibre: 'Calibre', tipoEmpaqueGrupoNombre: 'Agrupador' },
     campoUnico: 'codigo',
     campoNombre: ['descripcion', 'codigo'],
-    filtros: ['categoria', 'nombreCalibre'],
+    filtros: ['categoria', 'nombreCalibre', 'tipoEmpaqueGrupoNombre'],
     cruzarCalibre: true,
+  },
+  tiposEmpaqueGrupo: {
+    clave: 'tiposEmpaqueGrupo',
+    grupo: 'catalogos',
+    tabla: 'PLANTA_TiposEmpaqueGrupo',
+    origen: { tipo: 'cultivo', catalogo: 'tiposEmpaqueGrupo' },
+    alcance: 'cultivo',
+    titulo: 'Tipo de Empaque Agrupador',
+    singular: 'tipo de empaque agrupador',
+    genero: 'o',
+    descripcion: 'Agrupa los tipos de empaque que se recolectan y se llevan en el stock como un mismo producto (CONVENCIONAL, JUMBO...).',
+    buscarPlaceholder: 'Código o nombre',
+    campos: [
+      { campo: 'codigo', etiqueta: 'Código', tipo: 'texto', maxLength: 50, requerido: true },
+      { campo: 'nombre', etiqueta: 'Nombre', tipo: 'texto', maxLength: 100, requerido: true },
+    ],
+    columnas: ['codigo', 'nombre'],
+    campoUnico: 'codigo',
+    campoNombre: ['nombre', 'codigo'],
+    filtros: [],
   },
   tiposEmpaqueGuia: {
     clave: 'tiposEmpaqueGuia',

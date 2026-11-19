@@ -80,7 +80,7 @@
           </button>
         </div>
         <div class="grid grid-cols-1 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(250px,1fr))]">
-          @for (s of stock; track s.formatoId + '-' + s.tipoEmpaqueId) {
+          @for (s of stock; track s.formatoId + '-' + s.tipoEmpaqueGrupoId) {
             <span class="flex min-w-0 items-center gap-2 rounded-xl border border-app-border2 py-1 pl-1 pr-3">
               <span class="min-w-10 shrink-0 rounded-lg bg-tint-sky px-2 py-0.5 text-center text-base font-extrabold text-sky-700 dark:text-sky-300">{{ s.disponibles }}</span>
               <span class="min-w-0 text-xs leading-tight">
@@ -395,6 +395,7 @@
     [formCajas]="formCajas()"
     [modoEdicion]="modoEdicionCajas()"
     [stockCajas]="stockCajas()"
+    [tiposEmpaque]="tiposEmpaque()"
     [tiposProcesoEmpacadoModal]="tiposProcesoEmpacadoModal()"
     [consignatarios]="consignatarios()"
     [filteredDestinos]="filteredDestinos()"

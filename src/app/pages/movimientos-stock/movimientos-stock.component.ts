@@ -29,8 +29,6 @@ interface Movimiento {
   proceso: string;
   formato: string;
   tipoEmpaque: string;
-  /** Categoría y calibre en una sola línea. */
-  categoriaCalibre: string;
   /** Cajas con signo: lo que suma o resta al stock. */
   cajas: number;
   /** Empacador al que pertenecen las cajas (vacío si el movimiento no viene de un registro de cajas). */
@@ -90,7 +88,7 @@ export class MovimientosStockComponent implements OnInit {
     const q = this.busqueda().trim().toLowerCase();
     if (!q) return this.movimientos();
     return this.movimientos().filter((m) =>
-      [m.formato, m.tipoEmpaque, m.categoriaCalibre, m.empacador, m.empacadorDocumento, m.observaciones, m.proceso].some((v) => v.toLowerCase().includes(q)),
+      [m.formato, m.tipoEmpaque, m.empacador, m.empacadorDocumento, m.observaciones, m.proceso].some((v) => v.toLowerCase().includes(q)),
     );
   });
   readonly paginacion = crearPaginacion(() => this.buscados(), 50);
@@ -149,8 +147,7 @@ export class MovimientosStockComponent implements OnInit {
           tipo: texto(m['tipoMovimiento']) as Tipo,
           proceso: m['fechaProceso'] ? `${fecha(m['fechaProceso'])} · ${texto(m['turno'])}`.replace(/ · $/, '') : texto(m['idProceso']),
           formato: texto(m['formatoDescripcion']),
-          tipoEmpaque: texto(m['tipoEmpaqueDescripcion']),
-          categoriaCalibre: [texto(m['categoriaNombre']), texto(m['calibreNombre'])].filter(Boolean).join(' · '),
+          tipoEmpaque: texto(m['tipoEmpaqueGrupoNombre']),
           cajas: numero(m['cajas']),
           empacador: texto(m['empacador']),
           empacadorDocumento: texto(m['empacadorDocumento']),

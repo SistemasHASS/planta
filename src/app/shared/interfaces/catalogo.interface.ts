@@ -145,6 +145,9 @@ export interface TipoEmpaque {
   nombreCalibre?: string;
   codigo: string;
   descripcion: string;
+  /** Tipo de empaque agrupador (PLANTA_TiposEmpaqueGrupo.id); null si todavia no se le asigno. */
+  tipoEmpaqueGrupoId?: number | null;
+  tipoEmpaqueGrupoNombre?: string | null;
   activo: boolean;
   fechaCreacion: string;
   bd?: number;

@@ -125,7 +125,7 @@ export class AdministracionApiService {
 
   /**
    * Kilos de pago por formato y tipo de empaque (solo con Flujo_Empaque activo; si no, responde error). Solo administrador.
-   * Cada fila: { formatoId, formatoCodigo, formatoDescripcion, tipoEmpaqueId, tipoEmpaqueCodigo, tipoEmpaqueDescripcion, pesoReal, kilosPago, configurado }.
+   * Cada fila: { formatoId, formatoCodigo, formatoDescripcion, tipoEmpaqueGrupoId, tipoEmpaqueGrupoCodigo, tipoEmpaqueGrupoNombre, pesoReal, kilosPago, configurado }.
    * Si todavía no se configuró, kilosPago no viene (la pantalla lo muestra en 0).
    */
   kilosPago(): Promise<SobreSp<Fila[]>> {
@@ -134,7 +134,7 @@ export class AdministracionApiService {
 
   /**
    * Guarda los kilos de pago de las combinaciones indicadas (crea o actualiza). Solo administrador, solo con Flujo_Empaque activo.
-   * json = [{ formatoId, tipoEmpaqueId, kilosPago }] (texto JSON). Responde por cada fila que cambió: [{ formatoId, tipoEmpaqueId, accion }].
+   * json = [{ formatoId, tipoEmpaqueGrupoId, kilosPago }] (texto JSON). Responde por cada fila que cambió: [{ formatoId, tipoEmpaqueGrupoId, accion }].
    */
   sincronizarKilosPago(json: string): Promise<SobreSp<Fila[]>> {
     return this.post('kilos-pago/sincronizar', { json });
@@ -143,7 +143,7 @@ export class AdministracionApiService {
   /**
    * Excel de control interno en pantalla (solo con Flujo_Empaque activo; si no, responde error). Solo administrador.
    * Fechas AAAA-MM-DD (fecha de apertura de la jornada); codigoAcopio vacío = todas las plantas.
-   * data = { columnas: [{ clave, formato, tipoEmpaque, categoria, calibreId, calibre, fueraDeMatriz }], detalle: [{ idJornada, fecha, codigoAcopio, anotador, dni, empacador, formatoId, tipoEmpaqueId, categoriaId, cajas, kilos }] }.
+   * data = { columnas: [{ clave, formato, tipoEmpaqueGrupoNombre, fueraDeMatriz }], detalle: [{ idJornada, fecha, codigoAcopio, anotador, dni, empacador, formatoId, tipoEmpaqueGrupoId, cajas, kilos }] }.
    */
   controlInterno(cuerpo: { fechaDesde: string; fechaHasta: string; codigoAcopio: string }): Promise<SobreSp<{ columnas: Fila[]; detalle: Fila[] }>> {
     return firstValueFrom(this.http.post<SobreSp<{ columnas: Fila[]; detalle: Fila[] }>>(`${this.baseUrl}/control-interno/listar`, cuerpo));
