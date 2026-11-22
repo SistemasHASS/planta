@@ -6,7 +6,7 @@
     <div class="min-w-0">
       <span class="text-xs font-bold uppercase tracking-widest text-sky-700 dark:text-sky-300">Consultas</span>
       <h1 class="text-xl font-extrabold leading-tight text-app-heading sm:text-2xl">Movimientos de stock</h1>
-      <p class="text-sm text-app-muted">Entradas, correcciones (con su observación), ajustes y salidas a palet de tus cajas.</p>
+      <p class="text-sm text-app-muted">Entradas, correcciones (con su observación), ajustes y salidas a palet de los anotadores del acopio.</p>
     </div>
   </header>
 
@@ -75,7 +75,7 @@
           <p class="text-sm font-bold text-app-heading">{{ buscados().length }} de {{ movimientos().length }} movimiento(s)</p>
           <label class="input input-bordered flex h-[38px] w-full items-center gap-2 sm:w-80">
             <svg lucideSearch class="size-4 opacity-60"></svg>
-            <input type="search" class="grow text-[16px] sm:text-[14px]" placeholder="Buscar formato, empacador u observación" [ngModel]="busqueda()" (ngModelChange)="cambiarBusqueda($event)" />
+            <input type="search" class="grow text-[16px] sm:text-[14px]" placeholder="Buscar anotador, formato, empacador u observación" [ngModel]="busqueda()" (ngModelChange)="cambiarBusqueda($event)" />
           </label>
         </div>
 
@@ -86,6 +86,7 @@
                 <th>Registro</th>
                 <th>Tipo</th>
                 <th>Proceso</th>
+                <th>Anotador</th>
                 <th>Producto</th>
                 <th>Empacador</th>
                 <th class="text-right">Cajas</th>
@@ -101,6 +102,7 @@
                   </td>
                   <td><span class="inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold" [class]="etiqueta(m.tipo).clase">{{ etiqueta(m.tipo).texto }}</span></td>
                   <td class="whitespace-nowrap text-app-text">{{ m.proceso || '—' }}</td>
+                  <td class="whitespace-nowrap font-semibold text-app-text">{{ m.anotador || '—' }}</td>
                   <td>
                     <p class="whitespace-nowrap font-bold text-app-heading">{{ m.formato }}</p>
                     <p class="whitespace-nowrap text-xs text-app-muted">{{ m.tipoEmpaque }}</p>
@@ -130,7 +132,7 @@
                   </td>
                 </tr>
               } @empty {
-                <tr><td colspan="7" class="py-8 text-center text-app-muted">Nada coincide con la búsqueda</td></tr>
+                <tr><td colspan="8" class="py-8 text-center text-app-muted">Nada coincide con la búsqueda</td></tr>
               }
             </tbody>
           </table>
@@ -140,7 +142,7 @@
     } @else {
       <div class="grid place-items-center gap-2 rounded-2xl border border-dashed border-app-border2 bg-app-surface p-10 text-center text-app-muted">
         <svg lucideInbox class="size-10 opacity-40"></svg>
-        <p>{{ consultado() ? 'No hay movimientos tuyos en la fecha seleccionada' : 'Selecciona una fecha y presiona Buscar' }}</p>
+        <p>{{ consultado() ? 'No hay movimientos en la fecha seleccionada' : 'Selecciona una fecha y presiona Buscar' }}</p>
       </div>
     }
   }

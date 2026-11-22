@@ -161,6 +161,23 @@ export class JornadasAnotadorApiService {
     return this.post('recolecciones/sincronizar', { modo: 'editado', id });
   }
 
+  /**
+   * Jornadas anteriores del acopio (últimos 7 días) en las que el anotador tuvo líneas, con lo que podría traer de cada una.
+   * data = { bloqueado, motivo, jornadas: [{ idJornada, idProceso, fechaProceso, turno, estado, fechaApertura, fechaCierre, lineas, empacadores, detalle: [{ nombre, empacadores }] }] };
+   * bloqueado = ya registró cajas en la jornada abierta (no puede traer nada).
+   */
+  jornadasAnteriores(): Promise<SobreSp<{ bloqueado: boolean; motivo: string; jornadas: Fila[] }>> {
+    return this.postSinCuerpo('anteriores/listar');
+  }
+
+  /**
+   * Trae a la jornada abierta las líneas y los empacadores que el anotador tenía al final de una jornada anterior. No reemplaza nada (solo llena lo libre) y no deja si ya registró cajas.
+   * data = { lineasTomadas, lineasYaMias, empacadoresAsignados, omitidos: [{ tipo ('LINEA' | 'EMPACADOR'), detalle }] }.
+   */
+  copiarJornadaAnterior(idJornadaOrigen: number): Promise<SobreSp<{ lineasTomadas: number; lineasYaMias: number; empacadoresAsignados: number; omitidos: { tipo: string; detalle: string }[] }>> {
+    return this.post('anteriores/copiar', { idJornadaOrigen });
+  }
+
   /** Manda los datos como JSON (arreglo de un elemento: [{...}]); el API lo pasa tal cual al SP, que lo convierte a filas. */
   private post<T>(ruta: string, datos: Record<string, unknown>): Promise<SobreSp<T>> {
     return firstValueFrom(this.http.post<SobreSp<T>>(`${this.baseUrl}/${ruta}`, [datos], this.opciones));

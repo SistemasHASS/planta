@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { QrScannerModalComponent, ResultadoQr } from '../../../../shared/components/qr-scanner-modal/qr-scanner-modal.component';
 import { ConfirmModalService } from '../../../../shared/services/confirm-modal.service';
 import { ConnectivityService } from '../../../../shared/services/connectivity.service';
@@ -7,19 +7,21 @@ import { FeedbackModalService } from '../../../../shared/services/feedback-modal
 import { JornadasAnotadorApiService } from '../../../../shared/services/jornadas-anotador-api.service';
 import { LoadingService } from '../../../../shared/services/loading.service';
 import { JornadaStore } from '../../jornada.store';
-import { Fila, claveLinea, destinoEtiqueta, destinoValor, ladosDe, lineaTexto, nombreLinea, refLinea, texto } from '../../jornada.utils';
+import { Fila, claveLinea, destinoEtiqueta, destinoValor, fecha, ladosDe, lineaTexto, nombreLinea, refLinea, texto } from '../../jornada.utils';
 import { LineaPanelComponent } from '../linea-panel/linea-panel.component';
 import { MenuPuestoModalComponent } from '../menu-puesto-modal/menu-puesto-modal.component';
 import { SinLineasComponent } from '../sin-lineas/sin-lineas.component';
+import { ResultadoTraer, TraerJornadaModalComponent } from '../traer-jornada-modal/traer-jornada-modal.component';
 import { ArrastrePuestos } from './arrastre-puestos';
 
 /**
- * Pestaña "Asignar empacadores": puestos de cada línea tomada. Un puesto vacío se llena escaneando el QR del empacador;
- * uno ocupado se puede mover (tocando el destino o arrastrando), cambiar o quitar.
+ * Pestaña "Asignar empacadores": puestos de las líneas que alguien tomó (libres no se muestran). En las que tomó el anotador, un puesto vacío se llena escaneando
+ * el QR del empacador; uno ocupado se puede mover (tocando el destino o arrastrando), cambiar o quitar. Las de otro anotador
+ * se ven con sus asignaciones pero son solo lectura (la base también rechaza cualquier cambio en una línea que no tomó).
  */
 @Component({
   selector: 'app-asignar-empacadores',
-  imports: [LineaPanelComponent, MenuPuestoModalComponent, NgTemplateOutlet, QrScannerModalComponent, SinLineasComponent],
+  imports: [LineaPanelComponent, MenuPuestoModalComponent, NgTemplateOutlet, QrScannerModalComponent, SinLineasComponent, TraerJornadaModalComponent],
   templateUrl: './asignar-empacadores.component.html',
   host: { class: 'block' },
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -43,7 +45,100 @@ export class AsignarEmpacadoresComponent {
   /** Lo que muestra el escáner tras leer el código (buscando / trabajador / error). */
   protected readonly resultadoQr = signal<ResultadoQr | null>(null);
 
+  // ---- Traer de jornada anterior ----
+
+  protected readonly traerAbierto = signal(false);
+  protected readonly traerCargando = signal(false);
+  protected readonly traerCopiando = signal(false);
+  protected readonly traerBloqueado = signal(false);
+  protected readonly traerMotivo = signal('');
+  protected readonly traerJornadas = signal<Fila[]>([]);
+  protected readonly traerResultado = signal<ResultadoTraer | null>(null);
+
+  /** Abre la lista de jornadas anteriores del anotador (el servidor dice si ya no puede traer nada porque registró cajas). */
+  protected async abrirTraer(): Promise<void> {
+    if (!this.connectivity.online()) {
+      this.feedback.error('No hay conexión a internet');
+      return;
+    }
+    this.traerResultado.set(null);
+    this.traerBloqueado.set(false);
+    this.traerMotivo.set('');
+    this.traerJornadas.set([]);
+    this.traerAbierto.set(true);
+    this.traerCargando.set(true);
+    try {
+      const r = await this.jornadasApi.jornadasAnteriores();
+      if (r.error) {
+        this.feedback.error(r.mensaje || 'No se pudieron consultar las jornadas anteriores.');
+        this.traerAbierto.set(false);
+        return;
+      }
+      this.traerBloqueado.set(!!r.data?.bloqueado);
+      this.traerMotivo.set(texto(r.data?.motivo));
+      this.traerJornadas.set(Array.isArray(r.data?.jornadas) ? r.data.jornadas : []);
+    } catch {
+      this.feedback.error('No se pudieron consultar las jornadas anteriores.');
+      this.traerAbierto.set(false);
+    } finally {
+      this.traerCargando.set(false);
+    }
+  }
+
+  protected cerrarTraer(): void {
+    this.traerAbierto.set(false);
+    this.traerResultado.set(null);
+  }
+
+  /** Confirma y trae las líneas y los empacadores de la jornada elegida (el servidor solo llena lo libre y no deja si ya hay cajas registradas). */
+  protected async traerDe(j: Fila): Promise<void> {
+    const ok = await this.confirm.confirm({
+      title: 'Traer de jornada anterior',
+      eyebrow: 'Confirma la acción',
+      message: `¿Traer tus líneas y empacadores de la jornada ${fecha(j['fechaProceso'])} · ${texto(j['turno'])}?`,
+      detail: 'Solo se llenan las líneas libres y los puestos vacíos: no se reemplaza nada. Después podrás ajustar.',
+      confirmText: 'Sí, traer',
+    });
+    if (!ok) return;
+    if (!this.connectivity.online()) {
+      this.feedback.error('No hay conexión a internet');
+      return;
+    }
+    this.traerCopiando.set(true);
+    this.loading.show('Trayendo líneas y empacadores...');
+    try {
+      const r = await this.jornadasApi.copiarJornadaAnterior(Number(j['idJornada']));
+      if (r.error) {
+        this.feedback.error(r.mensaje || 'No se pudo traer la jornada.');
+        return;
+      }
+      this.traerResultado.set({
+        lineasTomadas: Number(r.data?.lineasTomadas) || 0,
+        lineasYaMias: Number(r.data?.lineasYaMias) || 0,
+        empacadoresAsignados: Number(r.data?.empacadoresAsignados) || 0,
+        omitidos: Array.isArray(r.data?.omitidos) ? r.data.omitidos : [],
+      });
+      await this.store.cargarLineas();
+      // Las líneas traídas se muestran desplegadas.
+      this.store.desplegadas.update((actual) => new Set([...actual, ...this.store.misLineas().map((l) => claveLinea(l))]));
+    } catch {
+      this.feedback.error('No se pudo traer la jornada.');
+    } finally {
+      this.loading.hide();
+      this.traerCopiando.set(false);
+    }
+  }
+
   protected readonly claveLinea = claveLinea;
+
+  /** Líneas que alguien tomó (mías o de otro anotador): las libres no se muestran porque nadie las está usando. */
+  protected readonly lineasTomadas = computed(() => this.store.lineas().filter((l) => texto(l['situacion']) !== 'LIBRE'));
+
+  /** La línea la tomó este anotador: solo en esas se puede asignar, mover, cambiar o quitar. */
+  protected esMia(linea: Fila): boolean {
+    return texto(linea['situacion']) === 'MIA';
+  }
+
   protected readonly etiquetaDestino = destinoEtiqueta;
   protected readonly valorDestino = destinoValor;
 
@@ -77,7 +172,7 @@ export class AsignarEmpacadoresComponent {
   // ---- Tocar un puesto ----
 
   protected tocarPuesto(linea: Fila, puesto: number): void {
-    if (this.arrastre.clickSuprimido) return;
+    if (this.arrastre.clickSuprimido || !this.esMia(linea)) return;
     const ocupante = this.store.asignadoEn(linea, puesto);
     const mov = this.moviendo();
     if (mov) {

@@ -106,7 +106,14 @@ export class RecoleccionStore {
     return resp;
   }
 
+  /** Hay al menos una línea mía con un empacador asignado: sin eso no tiene sentido iniciar una recolección (el servidor también lo exige). */
+  readonly puedeIniciar = computed(() => this.jornadaStore.misLineas().some((l) => this.jornadaStore.asignadosDe(l) > 0));
+
   async iniciarRecoleccion(): Promise<void> {
+    if (!this.puedeIniciar()) {
+      this.feedback.warning('Primero toma una línea y asigna al menos un empacador (pestaña Asignar empacadores).', 'No se puede iniciar');
+      return;
+    }
     await this.ejecutarRecoleccion('Iniciando recolección...', 'No se pudo iniciar la recolección.', () => this.jornadasApi.iniciarRecoleccion());
   }
 

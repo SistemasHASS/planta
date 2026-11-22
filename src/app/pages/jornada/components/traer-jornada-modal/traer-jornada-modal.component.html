@@ -1,0 +1,60 @@
+<div class="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center" role="dialog" aria-modal="true" (click)="closed.emit()">
+  <div class="flex max-h-[90vh] w-full max-w-lg flex-col gap-3 rounded-t-3xl bg-app-surface p-5 shadow-2xl sm:rounded-3xl" (click)="$event.stopPropagation()">
+    <div>
+      <p class="text-xs font-extrabold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Asignar empacadores</p>
+      <p class="text-xl font-extrabold leading-tight text-app-heading">Traer de jornada anterior</p>
+    </div>
+
+    @if (resultado(); as r) {
+      <!-- Resultado de traer -->
+      <div class="min-h-0 flex-1 space-y-3 overflow-y-auto">
+        <p class="text-sm text-app-heading">
+          Se tomaron <strong>{{ r.lineasTomadas }}</strong> línea(s) y se asignaron <strong>{{ r.empacadoresAsignados }}</strong> empacador(es).
+          @if (r.lineasYaMias > 0) { <span class="text-app-muted"> Ya tenías {{ r.lineasYaMias }} línea(s) tomada(s).</span> }
+        </p>
+        @if (r.omitidos.length > 0) {
+          <div class="rounded-xl border border-amber-300 bg-amber-50 p-3 dark:border-amber-700 dark:bg-amber-900/20">
+            <p class="text-xs font-extrabold uppercase tracking-wide text-amber-700 dark:text-amber-300">No se pudo traer ({{ r.omitidos.length }})</p>
+            <ul class="mt-1 list-disc space-y-0.5 pl-5 text-xs text-app-heading">
+              @for (o of r.omitidos; track $index) { <li>{{ o.detalle }}</li> }
+            </ul>
+          </div>
+        }
+        <p class="text-xs text-app-muted">Ajusta lo que haga falta: quita a quien no vino o suma a los nuevos.</p>
+      </div>
+      <button type="button" class="btn btn-primary btn-lg" (click)="closed.emit()">Listo</button>
+    } @else {
+      <div class="min-h-0 flex-1 space-y-3 overflow-y-auto">
+        @if (cargando()) {
+          <p class="text-sm text-app-muted">Buscando tus jornadas anteriores…</p>
+        } @else {
+          @if (bloqueado()) {
+            <p class="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm font-semibold text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200">{{ motivo() }}</p>
+          }
+          @for (j of jornadas(); track j['idJornada']) {
+            <div class="space-y-2 rounded-2xl border border-app-border2 p-3">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <p class="text-base font-extrabold text-app-heading">{{ fecha(j['fechaProceso']) }} · {{ texto(j['turno']) }}</p>
+                  <p class="text-xs text-app-muted">{{ j['estado'] === 'ABIERTA' ? 'Sigue abierta' : 'Cerrada' }} · {{ j['lineas'] }} línea(s) · {{ j['empacadores'] }} empacador(es)</p>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm shrink-0" [disabled]="bloqueado() || copiando()" (click)="traer.emit(j)">Traer</button>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                @for (d of detalleDe(j); track $index) {
+                  <span class="rounded-full border border-app-border2 bg-app-surface2 px-2 py-0.5 text-[11px] font-bold text-app-heading">{{ d['nombre'] }} · {{ d['empacadores'] }}</span>
+                }
+              </div>
+            </div>
+          } @empty {
+            <p class="rounded-xl border border-dashed border-app-border2 p-4 text-sm text-app-muted">No tienes líneas en las jornadas de los últimos 7 días.</p>
+          }
+          @if (jornadas().length > 0) {
+            <p class="text-xs text-app-muted">Solo se llenan las líneas libres y los puestos vacíos: no se reemplaza nada.</p>
+          }
+        }
+      </div>
+      <button type="button" class="btn btn-ghost" (click)="closed.emit()">Cerrar</button>
+    }
+  </div>
+</div>

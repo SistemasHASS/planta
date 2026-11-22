@@ -31,6 +31,8 @@ interface Movimiento {
   tipoEmpaque: string;
   /** Cajas con signo: lo que suma o resta al stock. */
   cajas: number;
+  /** Anotador dueño de las cajas del movimiento (de cualquiera del acopio). */
+  anotador: string;
   /** Empacador al que pertenecen las cajas (vacío si el movimiento no viene de un registro de cajas). */
   empacador: string;
   empacadorDocumento: string;
@@ -53,7 +55,7 @@ const ETIQUETAS: Record<Tipo, EtiquetaTipo> = {
 };
 
 /**
- * Movimientos de stock de las cajas del anotador (solo en línea): entradas, correcciones (con la observación que escribió), ajustes de la edición normal y salidas a palet, de un día,
+ * Movimientos de stock de todos los anotadores del acopio (solo en línea): entradas, correcciones (con la observación que escribió), ajustes de la edición normal y salidas a palet, de un día,
  * con el empacador de cada movimiento. Las salidas a palet las registra Logística; el SP las atribuye al anotador por orden de llegada. Lo que dice el kardex (PLANTA_Stock_Movimientos), con el signo de cada movimiento.
  */
 @Component({
@@ -88,7 +90,7 @@ export class MovimientosStockComponent implements OnInit {
     const q = this.busqueda().trim().toLowerCase();
     if (!q) return this.movimientos();
     return this.movimientos().filter((m) =>
-      [m.formato, m.tipoEmpaque, m.empacador, m.empacadorDocumento, m.observaciones, m.proceso].some((v) => v.toLowerCase().includes(q)),
+      [m.formato, m.tipoEmpaque, m.anotador, m.empacador, m.empacadorDocumento, m.observaciones, m.proceso].some((v) => v.toLowerCase().includes(q)),
     );
   });
   readonly paginacion = crearPaginacion(() => this.buscados(), 50);
@@ -100,7 +102,7 @@ export class MovimientosStockComponent implements OnInit {
   /** Texto de una salida a palet sin observación: a qué palet salió y, si el movimiento era más grande, cuánto era en total. */
   detalleSalida(m: Movimiento): string {
     const palet = m.numeroPalet ? `Salió al palet ${m.numeroPalet}` : 'Salió a palet';
-    return m.cajasMovimiento > Math.abs(m.cajas) ? `${palet} (el movimiento fue de ${m.cajasMovimiento} cajas; esta es la parte de tus cajas)` : palet;
+    return m.cajasMovimiento > Math.abs(m.cajas) ? `${palet} (el movimiento fue de ${m.cajasMovimiento} cajas; esta es la parte de las cajas de este anotador)` : palet;
   }
 
   /** 'AAAA-MM-DDTHH:mm:ss' -> dd/MM/yyyy */
@@ -149,6 +151,7 @@ export class MovimientosStockComponent implements OnInit {
           formato: texto(m['formatoDescripcion']),
           tipoEmpaque: texto(m['tipoEmpaqueGrupoNombre']),
           cajas: numero(m['cajas']),
+          anotador: texto(m['anotador']),
           empacador: texto(m['empacador']),
           empacadorDocumento: texto(m['empacadorDocumento']),
           observaciones: texto(m['observaciones']),
