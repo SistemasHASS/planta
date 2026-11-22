@@ -40,6 +40,7 @@
           <button type="button" class="btn btn-sm gap-2 border border-emerald-600 bg-emerald-600 px-4 font-bold text-white shadow-sm transition hover:-translate-y-px hover:bg-emerald-700 disabled:opacity-50 dark:border-emerald-600" [disabled]="!hayCambios()" (click)="guardar()">
             <svg lucideSave class="size-4"></svg> Guardar cambios
           </button>
+          <button type="button" class="btn btn-outline btn-sm gap-2" (click)="abrirNueva()"><svg lucidePlus class="size-4"></svg> Agregar combinación</button>
           <button type="button" class="btn btn-primary btn-sm" (click)="cargar()"><svg lucideRefreshCcw class="size-4"></svg> Actualizar</button>
         </div>
       </div>
@@ -71,11 +72,13 @@
                 <th>Tipo de empaque</th>
                 <th class="text-right">Peso real (kg)</th>
                 <th class="text-right">Kilos de pago</th>
+                <th class="text-center">Activa</th>
+                <th class="text-center">Eliminar</th>
               </tr>
             </thead>
             <tbody>
               @for (f of filasFiltradas(); track f.clave) {
-                <tr class="border-t border-app-border hover:bg-app-surface2">
+                <tr class="border-t border-app-border hover:bg-app-surface2" [class.opacity-60]="!f.activo">
                   <td class="min-w-[14rem] text-app-heading">
                     {{ f.formatoDescripcion }}
                     <span class="ml-1 font-mono text-[11px] text-app-subtle">({{ f.formatoCodigo }})</span>
@@ -103,6 +106,12 @@
                       (blur)="terminar(f, $any($event.target))"
                     />
                   </td>
+                  <td class="text-center">
+                    <input type="checkbox" class="toggle toggle-success toggle-sm" [checked]="f.activo" [disabled]="cambiandoEstado()" [attr.aria-label]="(f.activo ? 'Desactivar ' : 'Activar ') + f.formatoDescripcion + ' ' + f.tipoEmpaqueGrupoNombre" (change)="cambiarActivo(f, $any($event.target).checked)" />
+                  </td>
+                  <td class="text-center">
+                    <button type="button" class="btn btn-ghost btn-sm btn-square text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20" [disabled]="cambiandoEstado()" [attr.aria-label]="'Eliminar ' + f.formatoDescripcion + ' ' + f.tipoEmpaqueGrupoNombre" (click)="pedirEliminar(f)"><svg lucideTrash2 class="size-4"></svg></button>
+                  </td>
                 </tr>
               }
             </tbody>
@@ -114,6 +123,59 @@
           <p>No se encontraron formatos</p>
         </div>
       }
+    </div>
+  }
+
+  @if (porEliminar(); as e) {
+    <div class="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center" role="dialog" aria-modal="true" (click)="cancelarEliminar()">
+      <div class="flex w-full max-w-md flex-col gap-4 rounded-t-3xl bg-app-surface p-5 shadow-2xl sm:rounded-3xl" (click)="$event.stopPropagation()">
+        <div>
+          <p class="text-xs font-extrabold uppercase tracking-wide text-rose-700 dark:text-rose-300">Kilos de pago</p>
+          <p class="text-xl font-extrabold leading-tight text-app-heading">Eliminar combinación</p>
+        </div>
+        <p class="text-sm text-app-heading"><strong>{{ e.formatoDescripcion }}</strong> · {{ e.tipoEmpaqueGrupoNombre }}</p>
+        <p class="text-sm text-app-muted">Ya no saldrá en esta lista ni se ofrecerá al anotador. Lo que ya se registró con esta combinación conserva sus kilos de pago. Si la necesitas otra vez, la puedes volver a crear.</p>
+        <div class="flex justify-end gap-2">
+          <button type="button" class="btn btn-ghost" [disabled]="cambiandoEstado()" (click)="cancelarEliminar()">Cancelar</button>
+          <button type="button" class="btn border-rose-600 bg-rose-600 text-white hover:bg-rose-700" [disabled]="cambiandoEstado()" (click)="confirmarEliminar()">Eliminar</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (nuevaAbierta()) {
+    <div class="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center" role="dialog" aria-modal="true" (click)="cerrarNueva()">
+      <div class="flex max-h-[90vh] w-full max-w-lg flex-col gap-4 rounded-t-3xl bg-app-surface p-5 shadow-2xl sm:rounded-3xl" (click)="$event.stopPropagation()">
+        <div>
+          <p class="text-xs font-extrabold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Kilos de pago</p>
+          <p class="text-xl font-extrabold leading-tight text-app-heading">Agregar combinación</p>
+          <p class="mt-1 text-sm text-app-muted">Formato + tipo de empaque que los anotadores podrán registrar, con los kilos que se le cuentan al empacador por caja.</p>
+        </div>
+
+        @if (nuevaCargando()) {
+          <p class="text-sm text-app-muted">Cargando formatos y tipos de empaque…</p>
+        } @else {
+          <div class="space-y-3">
+            <app-search-select label="Formato" placeholder="Selecciona un formato..." [options]="formatosOpc()" [value]="nuevoFormato() || null" (selected)="elegirFormato($event.value)" />
+            @if (pesoFormatoElegido(); as peso) {
+              <p class="-mt-1 text-sm text-app-muted">Peso real del formato: <strong class="tabular-nums text-app-heading">{{ dos(peso) }} kg</strong> por caja</p>
+            }
+            <app-search-select label="Tipo de empaque" placeholder="Selecciona un tipo de empaque..." [options]="gruposOpc()" [value]="nuevoGrupo() || null" (selected)="nuevoGrupo.set($event.value)" />
+            <label class="block">
+              <span class="mb-[6px] block text-[12.5px] font-semibold text-app-text">Kilos de pago</span>
+              <input type="text" inputmode="decimal" autocomplete="off" maxlength="8" class="input input-bordered h-[42px] w-full text-right font-bold tabular-nums" placeholder="0.00" [value]="nuevoKilos()" (input)="escribirNuevo($any($event.target))" (keydown)="soloNumero($event)" />
+            </label>
+            @if (nuevaYaExiste()) {
+              <p class="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm font-semibold text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300">Esa combinación ya existe. Edita sus kilos en la lista.</p>
+            }
+          </div>
+        }
+
+        <div class="flex justify-end gap-2">
+          <button type="button" class="btn btn-ghost" [disabled]="nuevaGuardando()" (click)="cerrarNueva()">Cancelar</button>
+          <button type="button" class="btn btn-primary" [disabled]="!nuevaLista() || nuevaGuardando() || nuevaCargando()" (click)="guardarNueva()">Crear combinación</button>
+        </div>
+      </div>
     </div>
   }
 </section>
