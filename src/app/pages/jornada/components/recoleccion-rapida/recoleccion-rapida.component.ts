@@ -259,10 +259,6 @@ export class RecoleccionRapidaComponent {
       this.errorGuardar.set('Elige el formato y el tipo de empaque.');
       return;
     }
-    if (cantidad < 1) {
-      this.errorGuardar.set('Escribe cuántas cajas tiene.');
-      return;
-    }
     if (!this.connectivity.online()) {
       this.errorGuardar.set('No hay conexión a internet');
       return;

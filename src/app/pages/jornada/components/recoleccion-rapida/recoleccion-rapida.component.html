@@ -106,7 +106,7 @@
               }
 
               <div class="grid gap-2">
-                <button type="submit" class="btn btn-primary btn-lg" [disabled]="guardando() || capCargando() || !capFormatoId() || !capTipoId() || cantidad() < 1">
+                <button type="submit" class="btn btn-primary btn-lg" [disabled]="guardando() || capCargando() || !capFormatoId() || !capTipoId()">
                   @if (guardando()) { <span class="loading loading-spinner loading-sm"></span> Guardando… } @else { Guardar y escanear otro }
                 </button>
                 <button type="button" class="btn btn-ghost" [disabled]="guardando()" (click)="seguirEscaneando()">Cancelar</button>

@@ -16,7 +16,7 @@ export interface RegistroCajasInicial {
   formatoId: string;
   tipoEmpaqueGrupoId: string;
   tiposEmpaque: SearchSelectOption[];
-  /** Cantidad con la que se abre (la que ya tiene registrada; 1 si es nuevo). */
+  /** Cantidad con la que se abre (la que ya tiene registrada; 0 si es nuevo). */
   cantidad: number;
   /** El empacador ya tiene cajas en esta recolección: se edita esa fila en lugar de crear otra. */
   existente: boolean;
@@ -99,10 +99,10 @@ export class RegistroCajasModalComponent implements OnInit {
 
   /** Botones − y +. */
   protected sumar(delta: number): void {
-    this.cantidad.update((c) => Math.min(MAX_CAJAS, Math.max(1, c + delta)));
+    this.cantidad.update((c) => Math.min(MAX_CAJAS, Math.max(0, c + delta)));
   }
 
-  /** Lo que se escribe en el campo: solo enteros entre 1 y el máximo (vacío se deja en 1 al salir del campo). */
+  /** Lo que se escribe en el campo: solo enteros entre 0 y el máximo (0 = pasó por el puesto y no hizo cajas; vacío vuelve al valor guardado al salir del campo). */
   protected escribir(campo: HTMLInputElement): void {
     // Solo dígitos: se descartan el signo, la "e", el punto, las comas y cualquier otro carácter (también al pegar).
     const digitos = campo.value.replace(/\D/g, '');
@@ -111,10 +111,6 @@ export class RegistroCajasModalComponent implements OnInit {
       return;
     }
     const n = Math.min(MAX_CAJAS, parseInt(digitos, 10));
-    if (n < 1) {
-      campo.value = ''; // 0 no es una cantidad válida
-      return;
-    }
     campo.value = String(n);
     this.cantidad.set(n);
   }
@@ -201,7 +197,10 @@ export class RegistroCajasModalComponent implements OnInit {
           this.feedback.success(`No hubo cambios en las cajas de ${nombre}.`, 'Sin cambios');
           break;
         default:
-          this.feedback.success(`${cantidad} caja(s) de ${nombre} registradas en la recolección ${numero}.`, 'Cajas registradas');
+          this.feedback.success(
+            cantidad === 0 ? `${nombre} quedó registrado con 0 cajas en la recolección ${numero}.` : `${cantidad} caja(s) de ${nombre} registradas en la recolección ${numero}.`,
+            cantidad === 0 ? 'Registrado sin cajas' : 'Cajas registradas',
+          );
       }
     } catch {
       this.feedback.error('No se pudieron registrar las cajas.');

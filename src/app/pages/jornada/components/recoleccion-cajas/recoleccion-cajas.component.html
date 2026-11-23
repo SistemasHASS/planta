@@ -99,11 +99,14 @@
 <ng-template #botonPuesto let-l let-p="puesto">
   @if (store.asignadoEn(l, p); as t) {
     @let cajas = recoleccion.cajasDe(t);
-    <button type="button" class="flex min-h-[4.5rem] cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl border px-1 py-1 text-center transition duration-150 ease-out hover:-translate-y-1 hover:scale-105 hover:shadow-lg hover:ring-2 active:translate-y-0 active:scale-95" [class]="cajas > 0 ? conCajas : sinCajas" [attr.aria-label]="'Puesto ' + p + ', ' + t['nombreCompleto'] + ': ' + cajas + ' cajas. Registrar cajas'" title="Registrar cajas" (click)="abrirRegistro(l, p)">
+    @let registrado = !!recoleccion.registroDe(t);
+    <button type="button" class="flex min-h-[4.5rem] cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl border px-1 py-1 text-center transition duration-150 ease-out hover:-translate-y-1 hover:scale-105 hover:shadow-lg hover:ring-2 active:translate-y-0 active:scale-95" [class]="cajas > 0 ? conCajas : registrado ? conCero : sinCajas" [attr.aria-label]="'Puesto ' + p + ', ' + t['nombreCompleto'] + ': ' + cajas + ' cajas. Registrar cajas'" title="Registrar cajas" (click)="abrirRegistro(l, p)">
       <span class="text-[9px] font-extrabold opacity-70">P{{ p }}</span>
       <span class="line-clamp-2 text-[10px] font-bold leading-tight">{{ t['nombreCompleto'] }}</span>
       @if (cajas > 0) {
         <span class="text-xl font-extrabold leading-none">{{ cajas }}</span>
+      } @else if (registrado) {
+        <span class="text-[10px] font-semibold opacity-80">0 cajas</span>
       } @else {
         <span class="text-[10px] font-semibold opacity-80">sin cajas</span>
       }

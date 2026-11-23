@@ -52,6 +52,9 @@ export class RecoleccionCajasComponent {
   /** Empacador que ya registró cajas en esta recolección: azul, con el total en grande. */
   protected readonly conCajas =
     'border-sky-300 bg-sky-50 text-sky-800 hover:border-sky-500 hover:bg-sky-100 hover:shadow-sky-500/30 hover:ring-sky-400/60 dark:border-sky-700 dark:bg-sky-900/30 dark:text-sky-200 dark:hover:border-sky-400 dark:hover:bg-sky-800/60 dark:hover:text-white dark:hover:shadow-sky-400/20';
+  /** Empacador que se registró con 0 cajas (pasó por el puesto y no hizo nada): ámbar, distinto de "todavía no registrado". */
+  protected readonly conCero =
+    'border-amber-300 bg-amber-50 text-amber-800 hover:border-amber-500 hover:bg-amber-100 hover:shadow-amber-500/30 hover:ring-amber-400/60 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200 dark:hover:border-amber-400 dark:hover:bg-amber-800/60 dark:hover:text-white dark:hover:shadow-amber-400/20';
   /** Empacador que todavía no registró cajas: verde. */
   protected readonly sinCajas =
     'border-emerald-300 bg-emerald-50 text-emerald-800 hover:border-emerald-500 hover:bg-emerald-100 hover:shadow-emerald-500/30 hover:ring-emerald-400/60 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200 dark:hover:border-emerald-400 dark:hover:bg-emerald-800/60 dark:hover:text-white dark:hover:shadow-emerald-400/20';
@@ -84,7 +87,7 @@ export class RecoleccionCajasComponent {
         formatoId: this.recoleccion.formatoDe(linea) ?? '',
         tipoEmpaqueGrupoId: this.recoleccion.tipoEmpaqueDe(linea) ?? '',
         tiposEmpaque: this.recoleccion.tiposEmpaqueDe(linea),
-        cantidad: 1,
+        cantidad: 0,
         existente: false,
       });
       return;

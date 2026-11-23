@@ -13,7 +13,7 @@
     <div>
       <p class="mb-2 text-center text-xs font-extrabold uppercase tracking-wide text-app-muted">Cantidad de cajas</p>
       <div class="flex items-center justify-center gap-3">
-        <button type="button" class="btn btn-outline btn-circle btn-lg text-2xl" aria-label="Menos una caja" [disabled]="cantidad() <= 1 || guardando()" (click)="sumar(-1)">−</button>
+        <button type="button" class="btn btn-outline btn-circle btn-lg text-2xl" aria-label="Menos una caja" [disabled]="cantidad() <= 0 || guardando()" (click)="sumar(-1)">−</button>
         <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="5" autocomplete="off" class="input input-bordered h-16 w-32 text-center text-3xl font-extrabold" aria-label="Cantidad de cajas" [value]="cantidad()" [disabled]="guardando()" (input)="escribir($any($event.target))" (keydown)="soloDigitos($event)" (focus)="$any($event.target).select()" (blur)="$any($event.target).value = cantidad()" />
         <button type="button" class="btn btn-outline btn-circle btn-lg text-2xl" aria-label="Más una caja" [disabled]="guardando()" (click)="sumar(1)">+</button>
       </div>
