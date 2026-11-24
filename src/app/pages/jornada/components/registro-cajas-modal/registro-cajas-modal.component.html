@@ -1,6 +1,6 @@
 @let d = datos();
 <div class="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center" role="dialog" aria-modal="true" (click)="cerrar()">
-  <div class="w-full max-w-sm min-w-0 space-y-4 rounded-t-3xl bg-app-surface p-5 shadow-2xl sm:rounded-3xl" (click)="$event.stopPropagation()">
+  <div class="max-h-[92dvh] w-full max-w-sm min-w-0 space-y-4 overflow-y-auto rounded-t-3xl bg-app-surface p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl" (click)="$event.stopPropagation()">
     <div>
       <p class="text-xs font-extrabold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">{{ d.existente ? 'Editar cajas' : 'Registrar cajas' }} · {{ nombreLinea(d.linea) }} · Puesto P{{ d.puesto }}</p>
       <p class="text-xl font-extrabold leading-tight text-app-heading">{{ d.empacador['nombreCompleto'] }}</p>

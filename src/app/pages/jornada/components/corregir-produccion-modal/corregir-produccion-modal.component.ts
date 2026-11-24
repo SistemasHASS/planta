@@ -7,6 +7,7 @@ import { JornadasAnotadorApiService } from '../../../../shared/services/jornadas
 import { LoadingService } from '../../../../shared/services/loading.service';
 import { RecoleccionStore } from '../../recoleccion.store';
 import { Fila, conSigno, correccion, esActivo, etiquetaCorreccion, productoAntes, texto } from '../../jornada.utils';
+import { portalToBody } from '../../../../shared/utils/portal';
 
 const MAXIMO = 99999;
 const MAXIMO_OBSERVACION = 500;
@@ -30,6 +31,11 @@ interface ProductoEnEdicion {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CorregirProduccionModalComponent {
+  constructor() {
+    // Fuera del contenedor con scroll de la página: en Safari / iOS la ventana quedaba dentro de él y se veía cortada por el menú superior y el pie.
+    portalToBody();
+  }
+
   private readonly api = inject(JornadasAnotadorApiService);
   private readonly feedback = inject(FeedbackModalService);
   private readonly connectivity = inject(ConnectivityService);

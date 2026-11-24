@@ -7,6 +7,7 @@ import { JornadasAnotadorApiService } from '../../../../shared/services/jornadas
 import { LoadingService } from '../../../../shared/services/loading.service';
 import { RecoleccionStore } from '../../recoleccion.store';
 import { Fila, nombreLinea, refLinea, texto } from '../../jornada.utils';
+import { portalToBody } from '../../../../shared/utils/portal';
 
 /** Con qué se abre la ventana: el puesto tocado y lo que está elegido en su línea. */
 export interface RegistroCajasInicial {
@@ -35,6 +36,11 @@ const MAX_CAJAS = 99999;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RegistroCajasModalComponent implements OnInit {
+  constructor() {
+    // Fuera del contenedor con scroll de la página: en Safari / iOS la ventana quedaba dentro de él y se veía cortada por el menú superior y el pie.
+    portalToBody();
+  }
+
   protected readonly recoleccion = inject(RecoleccionStore);
   protected readonly nombreLinea = nombreLinea;
   private readonly connectivity = inject(ConnectivityService);

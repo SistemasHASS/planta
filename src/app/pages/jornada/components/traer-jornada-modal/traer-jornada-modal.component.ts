@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { Fila, fecha, texto } from '../../jornada.utils';
+import { portalToBody } from '../../../../shared/utils/portal';
 
 /** Lo que dejó traer una jornada anterior (para mostrarlo al terminar). */
 export interface ResultadoTraer {
@@ -20,6 +21,11 @@ export interface ResultadoTraer {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TraerJornadaModalComponent {
+  constructor() {
+    // Fuera del contenedor con scroll de la página: en Safari / iOS la ventana quedaba dentro de él y se veía cortada por el menú superior y el pie.
+    portalToBody();
+  }
+
   protected readonly fecha = fecha;
   protected readonly texto = texto;
 

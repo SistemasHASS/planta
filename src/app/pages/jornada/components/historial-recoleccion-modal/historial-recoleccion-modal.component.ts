@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, output, signal } from '@angular/core';
 import { LucideBoxes, LucidePencilLine, LucideX } from '@lucide/angular';
 import { JornadasAnotadorApiService } from '../../../../shared/services/jornadas-anotador-api.service';
+import { portalToBody } from '../../../../shared/utils/portal';
 import { CorregirProduccionModalComponent } from '../corregir-produccion-modal/corregir-produccion-modal.component';
 import { Fila, conSigno, correccion, esActivo, etiquetaCorreccion, fechaHora, hora, productoAntes, texto } from '../../jornada.utils';
 
@@ -18,6 +19,11 @@ import { Fila, conSigno, correccion, esActivo, etiquetaCorreccion, fechaHora, ho
 })
 export class HistorialRecoleccionModalComponent implements OnInit {
   private readonly jornadasApi = inject(JornadasAnotadorApiService);
+
+  constructor() {
+    // Fuera del contenedor con scroll de la página: en Safari / iOS la ventana quedaba dentro de él y se veía cortada por el menú superior y el pie.
+    portalToBody();
+  }
 
   readonly closed = output<void>();
 

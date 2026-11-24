@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { Fila, nombreLinea } from '../../jornada.utils';
+import { portalToBody } from '../../../../shared/utils/portal';
 
 /** Menú de un puesto ocupado: mover, cambiar por otro empacador (escanear) o quitar. */
 @Component({
@@ -8,6 +9,11 @@ import { Fila, nombreLinea } from '../../jornada.utils';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MenuPuestoModalComponent {
+  constructor() {
+    // Fuera del contenedor con scroll de la página: en Safari / iOS la ventana quedaba dentro de él y se veía cortada por el menú superior y el pie.
+    portalToBody();
+  }
+
   protected readonly nombreLinea = nombreLinea;
 
   readonly linea = input.required<Fila>();

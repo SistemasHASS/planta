@@ -1,5 +1,5 @@
 <div class="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center" role="dialog" aria-modal="true" (click)="closed.emit()">
-  <div class="flex max-h-[90vh] w-full max-w-lg flex-col gap-3 rounded-t-3xl bg-app-surface p-5 shadow-2xl sm:rounded-3xl" (click)="$event.stopPropagation()">
+  <div class="flex max-h-[92dvh] w-full max-w-lg flex-col gap-3 rounded-t-3xl bg-app-surface p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl" (click)="$event.stopPropagation()">
     <div>
       <p class="text-xs font-extrabold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Asignar empacadores</p>
       <p class="text-xl font-extrabold leading-tight text-app-heading">Traer de jornada anterior</p>
