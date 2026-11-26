@@ -43,7 +43,14 @@
       </div>
 
       <!-- Empacadores -->
-      <input type="search" class="input input-bordered input-sm mb-3 w-full sm:w-72" placeholder="Buscar empacador..." aria-label="Buscar empacador" autocomplete="off" [value]="busqueda()" (input)="buscar($any($event.target).value)" />
+      <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <input type="search" class="input input-bordered input-sm w-full sm:w-72" placeholder="Buscar empacador..." aria-label="Buscar empacador" autocomplete="off" [value]="busqueda()" (input)="buscar($any($event.target).value)" />
+        @if (tarjetaActiva(); as t) {
+          <button type="button" class="btn btn-sm h-9 min-h-9 gap-2 rounded-full border border-rose-300 bg-rose-50 px-4 font-bold normal-case text-rose-700 hover:bg-rose-100 dark:border-rose-700 dark:bg-rose-900/30 dark:text-rose-300 dark:hover:bg-rose-900/50" (click)="eliminandoProducto.set(t)">
+            <svg lucideTrash2 class="size-4"></svg> Eliminar cajas
+          </button>
+        }
+      </div>
 
       @if (empacadores().length === 0) {
         <p class="rounded-xl border border-dashed border-app-border2 p-6 text-center text-sm text-app-muted">Ningún empacador coincide.</p>
@@ -87,6 +94,17 @@
     }
   </div>
 </div>
+
+@if (eliminandoProducto(); as t) {
+  <app-eliminar-cajas-producto-modal
+    [formatoId]="idsDe(t).formatoId"
+    [tipoEmpaqueGrupoId]="idsDe(t).tipoEmpaqueGrupoId"
+    [formato]="t.formato"
+    [detalle]="t.detalle"
+    (closed)="eliminandoProducto.set(null)"
+    (eliminado)="cargar()"
+  />
+}
 
 @if (editando() && filasEditando().length > 0) {
   <app-corregir-produccion-modal [filas]="filasEditando()" (closed)="editando.set(null)" (guardado)="cargar()" />

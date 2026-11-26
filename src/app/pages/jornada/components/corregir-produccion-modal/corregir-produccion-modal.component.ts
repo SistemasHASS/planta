@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
-import { LucideMinus, LucidePencilLine, LucidePlus, LucideTriangleAlert, LucideX } from '@lucide/angular';
+import { LucideMinus, LucidePencilLine, LucidePlus, LucideTrash2, LucideTriangleAlert, LucideX } from '@lucide/angular';
 import { SearchSelectComponent, SearchSelectOption } from '../../../../shared/components/search-select/search-select.component';
 import { ConnectivityService } from '../../../../shared/services/connectivity.service';
 import { FeedbackModalService } from '../../../../shared/services/feedback-modal.service';
@@ -22,11 +22,12 @@ interface ProductoEnEdicion {
 /**
  * Corregir lo anotado a un empacador: una tarjeta por recolección con su producto, quién anotó y las cajas, que se cambian con el campo o con − / +.
  * Si el anotador se equivocó al elegir, también se puede cambiar el formato y el tipo de empaque (los mismos selects de "Recolección de cajas").
+ * Si las cajas no debieron anotarse (ej. al empacador equivocado) se puede eliminar el registro: pide confirmación y el motivo, y la base lo rechaza si esas cajas ya están en un palet.
  * Antes de guardar se pide confirmación. Subir las cajas siempre se permite; bajarlas (o pasarlas a otro producto) lo rechaza la base si esas cajas ya están en un palet (el mensaje dice en cuáles).
  */
 @Component({
   selector: 'app-corregir-produccion-modal',
-  imports: [LucideMinus, LucidePencilLine, LucidePlus, LucideTriangleAlert, LucideX, SearchSelectComponent],
+  imports: [LucideMinus, LucidePencilLine, LucidePlus, LucideTrash2, LucideTriangleAlert, LucideX, SearchSelectComponent],
   templateUrl: './corregir-produccion-modal.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -55,9 +56,13 @@ export class CorregirProduccionModalComponent {
   protected readonly productos = signal<Record<number, ProductoEnEdicion>>({});
   /** Anotación que espera la confirmación del anotador. */
   protected readonly pendiente = signal<Fila | null>(null);
-  /** Motivo de la corrección que el anotador escribe en la confirmación (obligatorio). */
+  /** Motivo de la corrección que el anotador escribe en la confirmación (opcional). */
   protected readonly observacion = signal('');
   protected readonly maximoObservacion = MAXIMO_OBSERVACION;
+  /** Anotación que espera la confirmación para eliminarse. */
+  protected readonly eliminando = signal<Fila | null>(null);
+  /** Motivo de la eliminación que el anotador escribe en la confirmación (opcional). */
+  protected readonly motivoEliminar = signal('');
 
   protected readonly conSigno = conSigno;
   protected readonly etiquetaCorreccion = etiquetaCorreccion;
@@ -254,6 +259,46 @@ export class CorregirProduccionModalComponent {
 
   protected escribirObservacion(evento: Event): void {
     this.observacion.set((evento.target as HTMLTextAreaElement).value);
+  }
+
+  // ---- Eliminar el registro ----
+
+  protected pedirEliminar(f: Fila): void {
+    this.motivoEliminar.set('');
+    this.eliminando.set(f);
+  }
+
+  protected cancelarEliminar(): void {
+    this.eliminando.set(null);
+    this.motivoEliminar.set('');
+  }
+
+  protected escribirMotivo(evento: Event): void {
+    this.motivoEliminar.set((evento.target as HTMLTextAreaElement).value);
+  }
+
+  protected async confirmarEliminar(): Promise<void> {
+    const f = this.eliminando();
+    const motivo = this.motivoEliminar().trim();
+    if (!f) return;
+    this.eliminando.set(null);
+    if (!this.connectivity.online()) {
+      this.feedback.error('No hay conexión a internet');
+      return;
+    }
+    this.loading.show('Eliminando registro...');
+    try {
+      const r = await this.api.eliminarCajas(this.id(f), motivo);
+      if (r.error) throw new Error(r.mensaje || 'No se pudo eliminar el registro.');
+      this.motivoEliminar.set('');
+      this.guardado.emit();
+      this.feedback.success(`Se eliminó el registro de ${this.nombre()} en la recolección ${texto(f['numeroRecoleccion'])}.`, 'Registro eliminado');
+    } catch (e) {
+      // Si la base rechazó (ej. ya están en palets) se avisa con su mensaje y el registro queda como estaba.
+      this.feedback.error(e instanceof Error && e.message ? e.message : 'No se pudo eliminar el registro.');
+    } finally {
+      await this.loading.hideAfterMinimum();
+    }
   }
 
   protected async confirmar(): Promise<void> {

@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { LucideBoxes, LucidePencilLine, LucideRefreshCcw } from '@lucide/angular';
+import { LucideBoxes, LucidePencilLine, LucideRefreshCcw, LucideTrash2 } from '@lucide/angular';
 import { PaginatorComponent } from '../../../../shared/components/paginator/paginator.component';
 import { ConnectivityService } from '../../../../shared/services/connectivity.service';
 import { JornadasAnotadorApiService } from '../../../../shared/services/jornadas-anotador-api.service';
 import { LoadingService } from '../../../../shared/services/loading.service';
 import { crearPaginacion } from '../../../../shared/utils/paginacion';
 import { CorregirProduccionModalComponent } from '../corregir-produccion-modal/corregir-produccion-modal.component';
+import { EliminarCajasProductoModalComponent } from '../eliminar-cajas-producto-modal/eliminar-cajas-producto-modal.component';
 import { Fila, esActivo, texto } from '../../jornada.utils';
 
 interface Tarjeta {
@@ -41,7 +42,7 @@ const claveItem = (f: Fila): string => [f['formatoId'], f['tipoEmpaqueGrupoId']]
  */
 @Component({
   selector: 'app-produccion-dia',
-  imports: [CorregirProduccionModalComponent, PaginatorComponent, LucideBoxes, LucidePencilLine, LucideRefreshCcw],
+  imports: [CorregirProduccionModalComponent, EliminarCajasProductoModalComponent, PaginatorComponent, LucideBoxes, LucidePencilLine, LucideRefreshCcw, LucideTrash2],
   templateUrl: './produccion-dia.component.html',
   host: { class: 'block' },
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -61,6 +62,9 @@ export class ProduccionDiaComponent implements OnInit {
 
   /** DNI del empacador cuyas anotaciones se están corrigiendo. */
   protected readonly editando = signal<string | null>(null);
+
+  /** Producto (tarjeta) cuyas cajas se están por eliminar. */
+  protected readonly eliminandoProducto = signal<Tarjeta | null>(null);
 
   protected readonly fmt = (n: number): string => n.toFixed(2);
 
@@ -91,6 +95,15 @@ export class ProduccionDiaComponent implements OnInit {
 
   /** La tarjeta elegida sigue valiendo solo si existe. */
   protected readonly claveActiva = computed(() => (this.tarjetas().some((t) => t.clave === this.clave()) ? this.clave() : ''));
+
+  /** La tarjeta elegida (null con "Todos los formatos": eliminar cajas se hace de un producto a la vez). */
+  protected readonly tarjetaActiva = computed(() => this.tarjetas().find((t) => t.clave === this.claveActiva()) ?? null);
+
+  /** formatoId y tipoEmpaqueGrupoId de una tarjeta (su clave es "formatoId|tipoEmpaqueGrupoId"). */
+  protected idsDe(t: Tarjeta): { formatoId: number; tipoEmpaqueGrupoId: number } {
+    const [formatoId, tipoEmpaqueGrupoId] = t.clave.split('|');
+    return { formatoId: Number(formatoId), tipoEmpaqueGrupoId: Number(tipoEmpaqueGrupoId) };
+  }
 
   /** Tabla: un renglón por empacador con lo que se ve según tarjeta y buscador. */
   protected readonly empacadores = computed<EmpacadorFila[]>(() => {

@@ -590,6 +590,17 @@ export class GuiasComponent implements OnInit {
     }
   }
 
+  /** Guía que nunca llegó a SUNAT (sin estado o "No Enviado"): no hay nada que anular allá. */
+  protected noEnviadaSunat(g: GuiaRemision): boolean {
+    const estado = String(g.estadoSunat ?? '').trim().toLowerCase();
+    return estado === '' || estado === 'no enviado';
+  }
+
+  /** Anular: solo el administrador y solo guías CERRADAS que SUNAT aceptó (AC_03) o que nunca se enviaron a SUNAT ("No Enviado"). */
+  protected puedeAnular(g: GuiaRemision): boolean {
+    return g.estado === 'CERRADA' && this.esAdministrador() && (g.codigoEstadoSunat === 'AC_03' || this.noEnviadaSunat(g));
+  }
+
   async anularGuia(g: GuiaRemision): Promise<void> {
     const confirmado = await this.alertService.showConfirm(
       'Confirmar anulación',
@@ -602,7 +613,9 @@ export class GuiasComponent implements OnInit {
     const segura = await this.confirmModal.confirm({
       title: 'Advertencia de anulación',
       eyebrow: 'Acción irreversible',
-      message: 'Una vez anulada la guía no se podrá revertir. Verifique que ya esté anulada en SUNAT antes de continuar.',
+      message: this.noEnviadaSunat(g)
+        ? 'Una vez anulada la guía no se podrá revertir. Esta guía no fue enviada a SUNAT; sus palets volverán a quedar disponibles.'
+        : 'Una vez anulada la guía no se podrá revertir. Verifique que ya esté anulada en SUNAT antes de continuar.',
       detail: `Guía ${g.serie ?? ''}-${g.numero ?? ''}\n${g.nombreDestinatario ?? '—'}\nSUNAT: ${estadoSunatLabel(g.estadoSunat)} · ${g.totalCajas} cajas — ${g.pesoTotal} kg`,
       confirmText: 'Sí, anular guía',
       cancelText: 'Cancelar',

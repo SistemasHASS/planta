@@ -1,0 +1,72 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 px-4 py-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-[2px]" (click)="closed.emit()">
+  <div class="m-auto max-h-[calc(100dvh-2rem)] w-full max-w-sm overflow-y-auto rounded-2xl bg-app-surface p-5 text-center shadow-2xl ring-1 ring-black/5" role="alertdialog" aria-modal="true" aria-labelledby="eliminar-producto-titulo" (click)="$event.stopPropagation()">
+    <span class="mx-auto mb-3 grid size-12 place-items-center rounded-full bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-300"><svg lucideTrash2 class="size-6"></svg></span>
+    <h3 id="eliminar-producto-titulo" class="text-base font-extrabold text-app-heading">Eliminar cajas</h3>
+    <p class="mt-1 text-sm text-app-muted">{{ formato() }}<br />{{ detalle() }}</p>
+
+    @if (cargando()) {
+      <div class="grid place-items-center py-8"><span class="loading loading-spinner loading-lg text-rose-500"></span></div>
+      <button type="button" class="btn mt-2 h-11 min-h-11 w-full rounded-xl border-app-border2 bg-app-surface normal-case text-app-heading hover:bg-slate-100 dark:hover:bg-slate-800" (click)="closed.emit()">Cancelar</button>
+    } @else if (error()) {
+      <p class="mt-4 rounded-xl border border-tint-amber-border bg-tint-amber p-3 text-sm text-app-heading">{{ error() }}</p>
+      <div class="mt-4 grid grid-cols-2 gap-2">
+        <button type="button" class="btn h-11 min-h-11 rounded-xl border-app-border2 bg-app-surface normal-case text-app-heading hover:bg-slate-100 dark:hover:bg-slate-800" (click)="closed.emit()">Cerrar</button>
+        <button type="button" class="btn h-11 min-h-11 rounded-xl border-0 bg-rose-600 normal-case text-white hover:bg-rose-700" (click)="consultar()">Reintentar</button>
+      </div>
+    } @else {
+      <!-- Registradas / libres / en palets -->
+      <div class="mt-4 grid grid-cols-3 gap-2 text-center">
+        <div class="rounded-xl border border-app-border2 bg-slate-50 px-1 py-2.5 dark:bg-slate-800/40">
+          <span class="block text-2xl font-extrabold leading-none text-app-heading">{{ registradas() }}</span>
+          <span class="mt-1 block text-[11px] font-bold leading-tight text-app-muted">Registradas</span>
+        </div>
+        <div class="rounded-xl border border-emerald-300 bg-emerald-50 px-1 py-2.5 dark:border-emerald-700 dark:bg-emerald-900/25">
+          <span class="block text-2xl font-extrabold leading-none text-emerald-700 dark:text-emerald-300">{{ libres() }}</span>
+          <span class="mt-1 block text-[11px] font-bold leading-tight text-emerald-800 dark:text-emerald-200">Libres</span>
+        </div>
+        <div class="rounded-xl border border-amber-300 bg-amber-50 px-1 py-2.5 dark:border-amber-700 dark:bg-amber-900/25">
+          <span class="block text-2xl font-extrabold leading-none text-amber-700 dark:text-amber-300">{{ enPalets() }}</span>
+          <span class="mt-1 block text-[11px] font-bold leading-tight text-amber-800 dark:text-amber-200">En palets</span>
+        </div>
+      </div>
+
+      @if (!puedeEliminar()) {
+        <p class="mt-3 rounded-xl border border-tint-amber-border bg-tint-amber p-3 text-left text-xs text-app-heading">
+          Todas las cajas ya están en palets{{ detallePalets() ? ' (' + detallePalets() + ')' : '' }}. Para eliminarlas, primero sácalas del palet.
+        </p>
+      } @else if (enPalets() > 0) {
+        <p class="mt-3 text-xs text-app-muted">
+          Se eliminarán las <strong class="text-app-heading">{{ libres() }}</strong> cajas libres. Las <strong class="text-app-heading">{{ enPalets() }}</strong> que ya están en palets{{ detallePalets() ? ' (' + detallePalets() + ')' : '' }} no se tocan: para eliminarlas, primero sácalas del palet.
+        </p>
+      } @else if (registradas() === 0) {
+        <p class="mt-3 text-xs text-app-muted">Se quitarán {{ registros() }} {{ registros() === 1 ? 'registro' : 'registros' }} en 0 cajas.</p>
+      } @else {
+        <p class="mt-3 text-xs text-app-muted">
+          Se eliminarán las <strong class="text-app-heading">{{ libres() }}</strong> cajas de {{ empacadores() }} {{ empacadores() === 1 ? 'empacador' : 'empacadores' }} y se descuentan del stock.
+        </p>
+      }
+
+      @if (puedeEliminar()) {
+        <label class="mt-4 block text-left">
+          <span class="mb-1 block text-xs font-bold text-app-heading">Motivo <span class="font-medium text-app-muted">(opcional)</span></span>
+          <textarea
+            rows="3"
+            class="textarea textarea-bordered w-full text-[16px] leading-snug sm:text-[14px]"
+            placeholder="¿Por qué se eliminan? (opcional)"
+            [attr.maxlength]="maximoObservacion"
+            [value]="motivo()"
+            (input)="escribirMotivo($event)"
+          ></textarea>
+          <span class="block text-right text-[11px] text-app-muted">{{ motivo().length }}/{{ maximoObservacion }}</span>
+        </label>
+      }
+
+      <div class="mt-3 grid gap-2" [class]="puedeEliminar() ? 'grid-cols-2' : 'grid-cols-1'">
+        <button type="button" class="btn h-11 min-h-11 rounded-xl border-app-border2 bg-app-surface normal-case text-app-heading hover:bg-slate-100 dark:hover:bg-slate-800" (click)="closed.emit()">{{ puedeEliminar() ? 'Cancelar' : 'Cerrar' }}</button>
+        @if (puedeEliminar()) {
+          <button type="button" class="btn h-11 min-h-11 rounded-xl border-0 bg-rose-600 normal-case text-white hover:bg-rose-700" (click)="pedirConfirmacion()">{{ registradas() === 0 ? 'Sí, quitar' : libres() === 1 ? 'Eliminar 1 caja' : 'Eliminar ' + libres() + ' cajas' }}</button>
+        }
+      </div>
+    }
+  </div>
+</div>

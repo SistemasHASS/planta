@@ -45,7 +45,7 @@
                   <span class="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-extrabold uppercase text-slate-600 dark:bg-slate-700 dark:text-slate-300">Cerrada</span>
                 }
               </span>
-              <span class="mt-0.5 block text-sm font-bold text-app-heading">{{ r['totalCajas'] }} <span class="font-semibold text-app-muted">{{ +r['totalCajas'] === 1 ? 'caja' : 'cajas' }} · {{ r['registros'] }} {{ +r['registros'] === 1 ? 'empacador' : 'empacadores' }}</span></span>
+              <span class="mt-0.5 block text-sm font-bold text-app-heading">{{ r['totalCajas'] }} <span class="font-semibold text-app-muted">{{ +r['totalCajas'] === 1 ? 'caja' : 'cajas' }} · {{ r['registros'] }} {{ +r['registros'] === 1 ? 'empacador' : 'empacadores' }}</span>@if (+r['eliminados'] > 0) { <span class="font-semibold text-rose-600 dark:text-rose-300"> · {{ r['eliminados'] }} {{ +r['eliminados'] === 1 ? 'eliminado' : 'eliminados' }}</span> }</span>
               <span class="block text-[11px] text-app-muted">{{ fechaHora(r['fechaInicio']) }}</span>
             </button>
           }
@@ -79,7 +79,8 @@
               <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
                 <div class="flex flex-wrap gap-2 text-xs font-bold">
                   <span class="rounded-full bg-emerald-100 px-3 py-1.5 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">{{ totalCajas() }} {{ totalCajas() === 1 ? 'caja' : 'cajas' }}</span>
-                  <span class="rounded-full bg-slate-200 px-3 py-1.5 text-slate-700 dark:bg-slate-700 dark:text-slate-200">{{ detalle().length }} {{ detalle().length === 1 ? 'empacador' : 'empacadores' }}</span>
+                  <span class="rounded-full bg-slate-200 px-3 py-1.5 text-slate-700 dark:bg-slate-700 dark:text-slate-200">{{ empacadoresActivos() }} {{ empacadoresActivos() === 1 ? 'empacador' : 'empacadores' }}</span>
+                  @if (eliminados() > 0) { <span class="rounded-full bg-rose-100 px-3 py-1.5 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200">{{ eliminados() }} {{ eliminados() === 1 ? 'eliminado' : 'eliminados' }}</span> }
                 </div>
                 <input type="search" class="input input-bordered input-sm w-full sm:ml-auto sm:w-64" placeholder="Buscar por nombre o DNI" aria-label="Buscar empacador" autocomplete="off" [value]="busqueda()" (input)="busqueda.set($any($event.target).value)" />
               </div>
@@ -104,19 +105,22 @@
                     </thead>
                     <tbody class="divide-y divide-app-border2">
                       @for (f of filas(); track f['id']) {
-                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40" [class]="esEliminado(f) ? 'bg-rose-50/60 dark:bg-rose-900/10' : ''">
                           <td class="whitespace-nowrap px-3 py-2 font-mono text-xs text-app-muted">{{ f['numeroDocumento'] }}</td>
-                          <td class="px-3 py-2 font-bold text-app-heading">{{ f['nombreCompleto'] }}</td>
+                          <td class="px-3 py-2 font-bold text-app-heading" [class]="esEliminado(f) ? 'line-through opacity-70' : ''">{{ f['nombreCompleto'] }}</td>
                           <td class="whitespace-nowrap px-3 py-2 text-app-muted">{{ f['lineaNombre'] }}@if (f['puesto']) { · P{{ f['puesto'] }} }</td>
                           <td class="whitespace-nowrap px-3 py-2 text-app-heading">{{ f['formatoDescripcion'] || '—' }}</td>
-                          <td class="px-3 py-2 text-xs text-app-muted">{{ tipoEmpaque(f) }}@if (productoAntes(f)) { <span class="mt-0.5 block text-[10px] font-bold text-amber-700 dark:text-amber-300">antes: {{ productoAntes(f) }}</span> }</td>
+                          <td class="px-3 py-2 text-xs text-app-muted">{{ tipoEmpaque(f) }}@if (productoAntes(f)) { <span class="mt-0.5 block text-[10px] font-bold text-amber-700 dark:text-amber-300">antes: {{ productoAntes(f) }}</span> }@if (esEliminado(f)) { <span class="mt-0.5 block text-[10px] font-bold text-rose-700 dark:text-rose-300">Motivo: {{ f['motivoAnulacion'] || '—' }}</span> }</td>
                           <td class="whitespace-nowrap px-3 py-2 text-right">
                             <span class="block text-base font-extrabold text-emerald-700 dark:text-emerald-300">{{ f['cantidadCajas'] }}</span>
-                            @if (corregida(f)) { <span class="block text-[10px] font-bold uppercase text-amber-700 dark:text-amber-300" [attr.title]="'Anotadas ' + f['cantidadAnotada']">{{ etiquetaCorreccion(f) }}</span> }
+                            @if (esEliminado(f)) { <span class="block text-[10px] font-bold uppercase text-rose-700 dark:text-rose-300">Eliminado · tenía {{ f['cantidadEliminada'] }}</span> }
+                            @else if (corregida(f)) { <span class="block text-[10px] font-bold uppercase text-amber-700 dark:text-amber-300" [attr.title]="'Anotadas ' + f['cantidadAnotada']">{{ etiquetaCorreccion(f) }}</span> }
                           </td>
-                          <td class="whitespace-nowrap px-3 py-2 text-right text-xs text-app-muted" [attr.title]="f['fechaModificacion'] ? 'Modificado ' + hora(f['fechaModificacion']) : null">{{ hora(f['fechaModificacion'] || f['fechaRegistro']) }}@if (f['fechaModificacion']) { <span class="text-amber-600 dark:text-amber-300" aria-label="modificado">*</span> }</td>
+                          <td class="whitespace-nowrap px-3 py-2 text-right text-xs text-app-muted" [attr.title]="f['fechaModificacion'] ? 'Modificado ' + hora(f['fechaModificacion']) : null">{{ hora(esEliminado(f) ? (f['fechaAnulacion'] || f['fechaModificacion']) : (f['fechaModificacion'] || f['fechaRegistro'])) }}@if (f['fechaModificacion'] && !esEliminado(f)) { <span class="text-amber-600 dark:text-amber-300" aria-label="modificado">*</span> }</td>
                           <td class="px-3 py-2 text-right">
+                            @if (!esEliminado(f)) {
                             <button type="button" class="inline-grid size-8 place-items-center rounded-lg border border-indigo-300 bg-indigo-50 text-indigo-600 transition hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 dark:hover:bg-indigo-900/50" [attr.aria-label]="'Corregir las cajas de ' + f['nombreCompleto']" title="Corregir cajas" (click)="corregir(f)"><svg lucidePencilLine class="size-4"></svg></button>
+                            }
                           </td>
                         </tr>
                       }
@@ -134,18 +138,21 @@
                 <!-- Lista compacta (móvil) -->
                 <ul class="divide-y divide-app-border2 overflow-hidden rounded-xl border border-app-border2 sm:hidden">
                   @for (f of filas(); track f['id']) {
-                    <li class="flex items-center gap-3 px-3 py-2.5">
+                    <li class="flex items-center gap-3 px-3 py-2.5" [class]="esEliminado(f) ? 'bg-rose-50/60 dark:bg-rose-900/10' : ''">
                       <div class="min-w-0 flex-1">
-                        <p class="text-sm font-bold leading-tight text-app-heading">{{ f['nombreCompleto'] }}</p>
+                        <p class="text-sm font-bold leading-tight text-app-heading" [class]="esEliminado(f) ? 'line-through opacity-70' : ''">{{ f['nombreCompleto'] }}</p>
                         <p class="text-[11px] text-app-muted">{{ f['numeroDocumento'] }} · {{ f['lineaNombre'] }}@if (f['puesto']) { · P{{ f['puesto'] }} }</p>
                         <p class="mt-0.5 text-[11px] leading-snug text-app-muted"><span class="font-bold text-app-heading">{{ f['formatoDescripcion'] || '—' }}</span> · {{ tipoEmpaque(f) }}</p>
                         @if (productoAntes(f)) { <p class="text-[10px] font-bold leading-snug text-amber-700 dark:text-amber-300">antes: {{ productoAntes(f) }}</p> }
+                        @if (esEliminado(f)) { <p class="text-[10px] font-bold leading-snug text-rose-700 dark:text-rose-300">Eliminado · tenía {{ f['cantidadEliminada'] }} · Motivo: {{ f['motivoAnulacion'] || '—' }}</p> }
                       </div>
                       <div class="shrink-0 text-right">
                         <span class="block text-xl font-extrabold leading-tight text-emerald-700 dark:text-emerald-300">{{ f['cantidadCajas'] }}</span>
-                        @if (corregida(f)) { <span class="block text-[10px] font-bold uppercase text-amber-700 dark:text-amber-300">{{ etiquetaCorreccion(f) }}</span> }
+                        @if (!esEliminado(f) && corregida(f)) { <span class="block text-[10px] font-bold uppercase text-amber-700 dark:text-amber-300">{{ etiquetaCorreccion(f) }}</span> }
                       </div>
+                      @if (!esEliminado(f)) {
                       <button type="button" class="grid size-9 shrink-0 place-items-center rounded-lg border border-indigo-300 bg-indigo-50 text-indigo-600 dark:border-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300" [attr.aria-label]="'Corregir las cajas de ' + f['nombreCompleto']" (click)="corregir(f)"><svg lucidePencilLine class="size-4"></svg></button>
+                      }
                     </li>
                   }
                   <li class="flex items-center justify-between bg-slate-50 px-3 py-2 text-xs font-extrabold uppercase text-app-muted dark:bg-slate-900/50">

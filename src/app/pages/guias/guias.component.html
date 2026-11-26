@@ -147,14 +147,14 @@
                         </div>
                       }
                         </div>
-                        @if ((g.estado === 'ABIERTA' && !esAdmin()) || (g.estado === 'CERRADA' && esAdministrador() && g.codigoEstadoSunat === 'AC_03')) {
+                        @if ((g.estado === 'ABIERTA' && !esAdmin()) || (puedeAnular(g))) {
                         <div class="flex items-center border-l border-tint-emerald-border pl-2">
                           <div class="flex items-center gap-1">
                         @if (g.estado === 'ABIERTA' && !esAdmin()) {
                           <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--ok" title="Cerrar y numerar grupo" (click)="cerrarGrupo(g._guiasDelGrupo)"><svg lucideCircleCheck class="size-3.5"></svg></button>
                           <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--danger" title="Eliminar grupo" (click)="eliminarGrupo(g._guiasDelGrupo)"><svg lucideTrash2 class="size-3.5"></svg></button>
                         }
-                        @if (g.estado === 'CERRADA' && esAdministrador() && g.codigoEstadoSunat === 'AC_03') {
+                        @if (puedeAnular(g)) {
                           <button type="button" class="btn btn-xs btn-accion btn-accion--danger btn-accion--txt" title="Anular grupo" (click)="anularGrupo(g._guiasDelGrupo)"><svg lucideOctagonX class="size-3.5"></svg> Anular</button>
                         }
                       </div>
@@ -206,7 +206,7 @@
                           <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--ok" title="Cerrar y numerar" aria-label="Cerrar y numerar" (click)="cerrarGuia(g)"><svg lucideCircleCheck class="size-3.5"></svg></button>
                           <button type="button" class="btn btn-xs btn-square btn-accion btn-accion--danger" title="Eliminar" aria-label="Eliminar" (click)="eliminarGuia(g)"><svg lucideTrash2 class="size-3.5"></svg></button>
                         }
-                        @if (g.estado === 'CERRADA' && esAdministrador() && g.codigoEstadoSunat === 'AC_03') {
+                        @if (puedeAnular(g)) {
                           <button type="button" class="btn btn-xs btn-accion btn-accion--danger btn-accion--txt" title="Anular guía" (click)="anularGuia(g)"><svg lucideOctagonX class="size-3.5"></svg> Anular</button>
                         }
                       </div>

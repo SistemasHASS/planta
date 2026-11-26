@@ -141,6 +141,24 @@ export class JornadasAnotadorApiService {
     return this.post('produccion/corregir', { id, cantidadCajas, observaciones, ...(producto ?? {}) });
   }
 
+  /**
+   * Elimina un registro de cajas de la producción (el que no debió anotarse): la fila queda anulada y el stock se devuelve; el motivo es opcional.
+   * La base lo rechaza si esas cajas ya están en un palet.
+   */
+  eliminarCajas(id: number, observaciones: string): Promise<SobreSp<Fila[]>> {
+    return this.post('produccion/corregir', { id, anular: true, observaciones });
+  }
+
+  /** Cuántas cajas hay registradas de un producto en la producción del día, cuántas están libres y cuántas ya están en palets (no cambia nada). */
+  consultarEliminarProducto(formatoId: number, tipoEmpaqueGrupoId: number): Promise<SobreSp<Fila[]>> {
+    return this.post('produccion/eliminar-producto', { modo: 'consultar', formatoId, tipoEmpaqueGrupoId });
+  }
+
+  /** Elimina las cajas libres de un producto de la producción del día (las que ya están en palets no se tocan); el motivo es opcional. */
+  eliminarProducto(formatoId: number, tipoEmpaqueGrupoId: number, observaciones: string): Promise<SobreSp<Fila[]>> {
+    return this.post('produccion/eliminar-producto', { modo: 'ejecutar', formatoId, tipoEmpaqueGrupoId, observaciones });
+  }
+
   /** Quita al empacador de la recolección abierta: su fila de cajas queda anulada y el stock se devuelve. */
   quitarCajas(cuerpo: RefLinea & { puesto: number }): Promise<SobreSp<Fila[]>> {
     return this.post('recolecciones/cajas/sincronizar', { modo: 'anular', ...cuerpo });

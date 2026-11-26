@@ -55,6 +55,14 @@ export class HistorialRecoleccionModalComponent implements OnInit {
     return this.detalle().filter((f) => `${texto(f['numeroDocumento'])} ${texto(f['nombreCompleto'])}`.toLowerCase().includes(q));
   });
 
+  /** Registros eliminados (ANULADO): salen en la lista con 0 cajas y su motivo, pero no cuentan como empacadores ni suman cajas. */
+  protected esEliminado(f: Fila): boolean {
+    return texto(f['estado']) === 'ANULADO';
+  }
+
+  protected readonly empacadoresActivos = computed(() => this.detalle().filter((f) => !this.esEliminado(f)).length);
+  protected readonly eliminados = computed(() => this.detalle().filter((f) => this.esEliminado(f)).length);
+
   /** Total de cajas de la recolección elegida y de lo que se ve con el buscador. */
   protected readonly totalCajas = computed(() => this.detalle().reduce((suma, f) => suma + (Number(f['cantidadCajas']) || 0), 0));
   protected readonly totalFiltrado = computed(() => this.filas().reduce((suma, f) => suma + (Number(f['cantidadCajas']) || 0), 0));
